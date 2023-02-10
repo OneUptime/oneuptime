@@ -265,20 +265,32 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/workflows`
     ),
 
+    [PageMap.WORKFLOWS_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/logs`
+    ),
+
+    [PageMap.WORKFLOWS_VARIABLES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/variables`
+    ),
+
+    [PageMap.WORKFLOW_VARIABLES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/variables`
+    ),
+
     [PageMap.WORKFLOW_BUILDER]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/builder`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/builder`
     ),
 
     [PageMap.WORKFLOW_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}`
     ),
 
     [PageMap.WORKFLOW_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/logs`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/logs`
     ),
 
     [PageMap.WORKFLOW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/delete`
     ),
 
     // logout.

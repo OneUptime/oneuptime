@@ -1,6 +1,7 @@
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export enum AlertType {
     INFO,

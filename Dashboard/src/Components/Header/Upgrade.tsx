@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import Project from 'Model/Models/Project';
 import Navigation from 'CommonUI/src/Utils/Navigation';

@@ -6,15 +6,20 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 @TableAccessControl({
     create: [],
     read: [],
     delete: [],
     update: [],
 })
-@SingularPluralName('Greenlock Certificate', 'Greenlock Certificate')
+@TableMetadata({
+    tableName: 'GreenlockCertificate',
+    singularName: 'Greenlock Certificate',
+    pluralName: 'Greenlock Certificate',
+    icon: IconProp.Lock,
+})
 @Entity({
     name: 'GreenlockCertificate',
 })

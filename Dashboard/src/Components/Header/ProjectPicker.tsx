@@ -5,7 +5,7 @@ import React, {
     useEffect,
 } from 'react';
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Project from 'Model/Models/Project';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';

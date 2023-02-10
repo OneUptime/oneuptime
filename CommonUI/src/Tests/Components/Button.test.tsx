@@ -7,7 +7,7 @@ import Button, {
 } from '../../Components/Button/Button';
 import ButtonType from '../../Components/Button/ButtonTypes';
 import ShortcutKey from '../../Components/ShortcutKey/ShortcutKey';
-import { IconProp } from '../../Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 describe('Button', () => {
     test('it should render correctly with title and icon', () => {

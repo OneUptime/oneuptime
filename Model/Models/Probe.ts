@@ -17,8 +17,8 @@ import Permission from 'Common/Types/Permission';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/probe'))
@@ -26,7 +26,12 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @Entity({
     name: 'Probe',
 })
-@SingularPluralName('Probe', 'Probes')
+@TableMetadata({
+    tableName: 'Probe',
+    singularName: 'Probe',
+    pluralName: 'Probes',
+    icon: IconProp.Settings,
+})
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,

@@ -12,7 +12,9 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -44,11 +46,22 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
         Permission.CanEditScheduledMaintenanceInternalNote,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CrudApiEndpoint(new Route('/scheduled-maintenance-internal-note'))
 @Entity({
     name: 'ScheduledMaintenanceInternalNote',
 })
-@SingularPluralName('Internal Note', 'Internal Notes')
+@TableMetadata({
+    tableName: 'ScheduledMaintenanceInternalNote',
+    singularName: 'Scheduled Event Internal Note',
+    pluralName: 'Scheduled Event Internal Notes',
+    icon: IconProp.Lock,
+})
 export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [

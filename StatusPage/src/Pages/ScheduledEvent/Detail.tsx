@@ -37,7 +37,7 @@ import Color from 'Common/Types/Color';
 import { Green, Grey, Yellow } from 'Common/Types/BrandColors';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,

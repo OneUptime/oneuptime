@@ -4,7 +4,8 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { SizeProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 import Image from '../Image/Image';
 import Route from 'Common/Types/API/Route';

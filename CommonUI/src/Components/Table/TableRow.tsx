@@ -2,7 +2,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
@@ -104,7 +105,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                           FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
-                                                    icon={IconProp.CheckCircle}
+                                                    icon={IconProp.Check}
                                                     className={
                                                         'h-5 w-5 text-gray-500'
                                                     }

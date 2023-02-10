@@ -12,7 +12,9 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -44,11 +46,22 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
         Permission.CanEditIncidentPublicNote,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CrudApiEndpoint(new Route('/incident-public-note'))
 @Entity({
     name: 'IncidentPublicNote',
 })
-@SingularPluralName('Public Note', 'Public Notes')
+@TableMetadata({
+    tableName: 'IncidentPublicNote',
+    singularName: 'Incident Public Note',
+    pluralName: 'Incident Public Notes',
+    icon: IconProp.Team,
+})
 export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [

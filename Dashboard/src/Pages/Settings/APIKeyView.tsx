@@ -8,7 +8,7 @@ import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ApiKey from 'Model/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';

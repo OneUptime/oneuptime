@@ -32,6 +32,8 @@ import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessContr
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+import { EnableWorkflowOn } from '../Types/Model/EnableWorkflow';
+import IconProp from '../Types/Icon/IconProp';
 
 export type DbTypes =
     | string
@@ -79,6 +81,8 @@ export default class BaseModel extends BaseEntity {
 
     public allowAccessIfSubscriptionIsUnpaid!: boolean;
 
+    public enableWorkflowOn!: EnableWorkflowOn;
+
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
@@ -102,6 +106,10 @@ export default class BaseModel extends BaseEntity {
     public tenantColumn!: string | null;
 
     public accessControlColumn!: string | null;
+
+    public icon!: IconProp | null;
+
+    public tableName!: string | null;
 
     public canAccessIfCanReadOn!: string | null;
 

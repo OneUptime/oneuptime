@@ -5,7 +5,8 @@ import { ReactElement } from 'react';
 import AlignItem from '../../Types/AlignItem';
 import SelectEntityField from '../../Types/SelectEntityField';
 import Query from '../../Utils/ModelAPI/Query';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from '../Types/FieldType';
 
 export interface ActionButton {

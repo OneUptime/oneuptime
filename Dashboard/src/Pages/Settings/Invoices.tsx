@@ -1,7 +1,7 @@
 import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Navigation from 'CommonUI/src/Utils/Navigation';

@@ -7,7 +7,8 @@ import URL from 'Common/Types/API/URL';
 import Color from 'Common/Types/Color';
 import Pill from '../Pill/Pill';
 import BaseModel from 'Common/Models/BaseModel';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export enum TimelineItemType {
     StateChange = 'StateChange',

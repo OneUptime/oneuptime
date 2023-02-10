@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface CardButtonSchema {
@@ -21,6 +22,7 @@ export interface ComponentProps {
     children?: undefined | Array<ReactElement> | ReactElement;
     className?: string | undefined;
     bodyClassName?: string | undefined;
+    rightElement?: ReactElement | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -44,6 +46,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                 </p>
                             </div>
                             <div className="flex">
+                                {props.rightElement}
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (

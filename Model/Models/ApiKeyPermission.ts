@@ -23,7 +23,9 @@ import Project from './Project';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
 @TableAccessControl({
@@ -51,12 +53,23 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
         Permission.CanEditProjectApiKey,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key-permission'))
 @Entity({
     name: 'ApiKeyPermission',
 })
-@SingularPluralName('Permission', 'Permissions')
+@TableMetadata({
+    tableName: 'ApiKeyPermission',
+    singularName: 'Permission',
+    pluralName: 'Permissions',
+    icon: IconProp.Lock,
+})
 export default class APIKeyPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

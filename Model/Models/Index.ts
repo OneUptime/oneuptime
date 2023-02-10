@@ -65,6 +65,8 @@ import GreenlockCertificate from './GreenlockCertificate';
 
 // Workflows.
 import Workflow from './Workflow';
+import WorkflowVariables from './WorkflowVariable';
+import WorkflowLog from './WorkflowLog';
 
 export default [
     User,
@@ -114,4 +116,6 @@ export default [
     GreenlockCertificate,
 
     Workflow,
+    WorkflowVariables,
+    WorkflowLog,
 ];

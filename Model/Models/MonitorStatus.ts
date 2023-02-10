@@ -16,8 +16,9 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -45,9 +46,20 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
         Permission.CanEditProjectMonitorStatus,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CrudApiEndpoint(new Route('/monitor-status'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('Monitor Status', 'Monitor Statuses')
+@TableMetadata({
+    tableName: 'MonitorStatus',
+    singularName: 'Monitor Status',
+    pluralName: 'Monitor Statuses',
+    icon: IconProp.AltGlobe,
+})
 @Entity({
     name: 'MonitorStatus',
 })

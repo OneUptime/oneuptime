@@ -3,7 +3,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 
 export interface ComponentProps extends PageComponentProps {

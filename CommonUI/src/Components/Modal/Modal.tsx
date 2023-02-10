@@ -4,8 +4,14 @@ import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';
 import ButtonType from '../Button/ButtonTypes';
 import Loader, { LoaderType } from '../Loader/Loader';
-import Icon, { IconProp, IconType, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconType, SizeProp, ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
+
+export enum ModalWidth {
+    Normal,
+    Large,
+}
 
 export interface ComponentProps {
     title: string;
@@ -22,6 +28,8 @@ export interface ComponentProps {
     isBodyLoading?: boolean | undefined;
     icon?: IconProp | undefined;
     iconType?: IconType | undefined;
+    modalWidth?: ModalWidth | undefined;
+    rightElement?: ReactElement | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -50,7 +58,14 @@ const Modal: FunctionComponent<ComponentProps> = (
 
             <div className="fixed inset-0 z-10 overflow-y-auto">
                 <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                    <div className="relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div
+                        className={`relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${
+                            props.modalWidth &&
+                            props.modalWidth === ModalWidth.Large
+                                ? 'sm:max-w-7xl'
+                                : 'sm:max-w-lg'
+                        } `}
+                    >
                         {props.onClose && (
                             <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
                                 <Button
@@ -83,19 +98,28 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 </div>
                             )}
                             <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
-                                <h3
-                                    className={`text-lg font-medium leading-6 text-gray-900 ${
-                                        props.icon ? 'ml-10 -mt-8 mb-5' : ''
-                                    }`}
-                                    id="modal-title"
-                                >
-                                    {props.title}
-                                </h3>
-                                {props.description && (
-                                    <h3 className="text-sm leading-6 text-gray-500">
-                                        {props.description}
-                                    </h3>
-                                )}
+                                <div className="flex justify-between">
+                                    <div>
+                                        <h3
+                                            className={`text-lg font-medium leading-6 text-gray-900 ${
+                                                props.icon
+                                                    ? 'ml-10 -mt-8 mb-5'
+                                                    : ''
+                                            }`}
+                                            id="modal-title"
+                                        >
+                                            {props.title}
+                                        </h3>
+                                        {props.description && (
+                                            <h3 className="text-sm leading-6 text-gray-500">
+                                                {props.description}
+                                            </h3>
+                                        )}
+                                    </div>
+                                    {props.rightElement && (
+                                        <div>{props.rightElement}</div>
+                                    )}
+                                </div>
                                 <div className="mt-2">
                                     <ModalBody error={props.error}>
                                         {!props.isBodyLoading ? (

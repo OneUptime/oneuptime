@@ -14,13 +14,21 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from './StatusPage';
 import Email from 'Common/Types/Email';
 import Phone from 'Common/Types/Phone';
 import URL from 'Common/Types/API/URL';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -52,7 +60,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 })
 @CrudApiEndpoint(new Route('/status-page-subscriber'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('Status Page Subscriber', 'Status Page Subscribers')
+@TableMetadata({
+    tableName: 'StatusPageSubscriber',
+    singularName: 'Status Page Subscriber',
+    pluralName: 'Status Page Subscribers',
+    icon: IconProp.Team,
+})
 @Entity({
     name: 'StatusPageSubscriber',
 })

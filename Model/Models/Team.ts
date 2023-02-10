@@ -14,8 +14,9 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -48,7 +49,18 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @Entity({
     name: 'Team',
 })
-@SingularPluralName('Team', 'Teams')
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
+@TableMetadata({
+    tableName: 'Team',
+    singularName: 'Team',
+    pluralName: 'Teams',
+    icon: IconProp.Team,
+})
 export default class Team extends BaseModel {
     @ColumnAccessControl({
         create: [

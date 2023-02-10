@@ -14,13 +14,21 @@ import Permission from 'Common/Types/Permission';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'ApiKey',
+})
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
 })
 @TableAccessControl({
     create: [
@@ -45,7 +53,12 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
         Permission.CanEditProjectApiKey,
     ],
 })
-@SingularPluralName('API Key', 'API Keys')
+@TableMetadata({
+    tableName: 'ApiKey',
+    singularName: 'API Key',
+    pluralName: 'API Keys',
+    icon: IconProp.Code,
+})
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [

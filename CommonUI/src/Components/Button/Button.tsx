@@ -2,7 +2,8 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { KeyboardEventProp } from '../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { SizeProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export enum ButtonStyleType {
     PRIMARY,

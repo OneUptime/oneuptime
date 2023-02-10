@@ -6,7 +6,8 @@ import Query from '../../Utils/ModelAPI/Query';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;

@@ -10,7 +10,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from 'Model/Models/StatusPage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';

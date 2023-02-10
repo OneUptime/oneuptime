@@ -8,8 +8,9 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Workflow from 'Model/Models/Workflow';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import WorkflowSideMenu from './SideMenu';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -27,10 +28,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Workflows',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
+                        RouteMap[PageMap.WORKFLOWS] as Route
                     ),
                 },
             ]}
+            sideMenu={<WorkflowSideMenu />}
         >
             <ModelTable<Workflow>
                 modelType={Workflow}
@@ -69,10 +71,19 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={Navigation.getCurrentRoute()}
+                viewPageRoute={Navigation.getCurrentRoute().addRoute(
+                    new Route('/workflow')
+                )}
                 columns={[
                     {
                         field: {
@@ -88,6 +99,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        type: FieldType.Boolean,
                         isFilterable: true,
                     },
                 ]}

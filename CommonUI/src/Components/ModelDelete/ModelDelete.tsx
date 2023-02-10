@@ -5,7 +5,8 @@ import React, { ReactElement, useState } from 'react';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { ButtonStyleType } from '../Button/Button';
 import Card from '../Card/Card';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

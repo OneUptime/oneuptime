@@ -22,7 +22,9 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Label from './Label';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
@@ -56,12 +58,23 @@ import MonitorStatus from './MonitorStatus';
         Permission.CanEditProjectMonitor,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CrudApiEndpoint(new Route('/monitor'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Monitor',
 })
-@SingularPluralName('Monitor', 'Monitors')
+@TableMetadata({
+    tableName: 'Monitor',
+    singularName: 'Monitor',
+    pluralName: 'Monitors',
+    icon: IconProp.AltGlobe,
+})
 export default class Monitor extends BaseModel {
     @ColumnAccessControl({
         create: [

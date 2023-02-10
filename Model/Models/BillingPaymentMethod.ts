@@ -13,7 +13,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 
 @AllowAccessIfSubscriptionIsUnpaid()
@@ -25,7 +26,12 @@ import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessContr
     update: [],
 })
 @CrudApiEndpoint(new Route('/billing-payment-methods'))
-@SingularPluralName('Payment Method', 'Payment Methods')
+@TableMetadata({
+    tableName: 'BillingPaymentMethod',
+    singularName: 'Payment Method',
+    pluralName: 'Payment Methods',
+    icon: IconProp.Billing,
+})
 @Entity({
     name: 'BillingPaymentMethod',
 })

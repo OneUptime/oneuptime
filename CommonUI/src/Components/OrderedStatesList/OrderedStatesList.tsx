@@ -3,7 +3,8 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { SizeProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Item from './Item';
 
 export interface ComponentProps {

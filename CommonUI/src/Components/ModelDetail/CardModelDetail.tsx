@@ -12,7 +12,8 @@ import Card, {
 import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
 import BaseModel from 'Common/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';

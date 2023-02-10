@@ -14,8 +14,10 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
+import { JSONObject } from 'Common/Types/JSON';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -46,7 +48,12 @@ import BaseModel from 'Common/Models/BaseModel';
 @Entity({
     name: 'Workflow',
 })
-@SingularPluralName('Workflow', 'Workflows')
+@TableMetadata({
+    tableName: 'Workflow',
+    singularName: 'Workflow',
+    pluralName: 'Workflows',
+    icon: IconProp.Workflow,
+})
 export default class Workflow extends BaseModel {
     @ColumnAccessControl({
         create: [
@@ -309,4 +316,33 @@ export default class Workflow extends BaseModel {
         default: false,
     })
     public isEnabled?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateWorkflow,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadWorkflow,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditWorkflow,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public graph?: JSONObject = undefined;
 }

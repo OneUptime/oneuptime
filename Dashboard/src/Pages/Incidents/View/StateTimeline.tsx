@@ -9,7 +9,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import IncidentState from 'Model/Models/IncidentState';

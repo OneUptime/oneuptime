@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
@@ -38,7 +38,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Workflow}
                 />
+            </SideMenuSection>
 
+            <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
                         title: 'Runs & Logs',
@@ -49,9 +51,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Logs}
                 />
-            </SideMenuSection>
 
-            <SideMenuSection title="Advanced">
+                <SideMenuItem
+                    link={{
+                        title: 'Workflow Variables',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.WORKFLOW_VARIABLES] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Variable}
+                />
+
                 <SideMenuItem
                     link={{
                         title: 'Delete Workflow',

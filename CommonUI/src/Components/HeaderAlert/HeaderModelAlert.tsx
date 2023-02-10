@@ -3,7 +3,8 @@ import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderAlert from './HeaderAlert';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

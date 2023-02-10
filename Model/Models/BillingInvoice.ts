@@ -13,7 +13,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 import URL from 'Common/Types/API/URL';
 
@@ -30,7 +31,12 @@ import URL from 'Common/Types/API/URL';
     update: [],
 })
 @CrudApiEndpoint(new Route('/billing-invoices'))
-@SingularPluralName('Invoice', 'Invoices')
+@TableMetadata({
+    tableName: 'BillingInvoice',
+    singularName: 'Invoice',
+    pluralName: 'Invoices',
+    icon: IconProp.Invoice,
+})
 @Entity({
     name: 'BillingInvoice',
 })

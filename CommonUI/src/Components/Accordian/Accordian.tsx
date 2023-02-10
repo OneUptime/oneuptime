@@ -4,7 +4,8 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     title?: string | undefined;

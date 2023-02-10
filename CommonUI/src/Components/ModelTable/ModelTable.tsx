@@ -16,7 +16,8 @@ import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 
@@ -729,10 +730,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getAllPermissions();
 
         if (
-            permissions &&
-            ((props.isDeleteable && model.hasDeletePermissions(permissions)) ||
-                (props.isEditable && model.hasUpdatePermissions(permissions)) ||
-                (props.isViewable && model.hasReadPermissions(permissions)))
+            (permissions &&
+                ((props.isDeleteable &&
+                    model.hasDeletePermissions(permissions)) ||
+                    (props.isEditable &&
+                        model.hasUpdatePermissions(permissions)) ||
+                    (props.isViewable &&
+                        model.hasReadPermissions(permissions)))) ||
+            (props.actionButtons && props.actionButtons.length > 0)
         ) {
             columns.push({
                 title: 'Actions',

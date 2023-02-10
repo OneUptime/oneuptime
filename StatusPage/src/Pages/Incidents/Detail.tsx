@@ -37,7 +37,7 @@ import Monitor from 'Model/Models/Monitor';
 import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green, Grey, Red } from 'Common/Types/BrandColors';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 
 export const getIncidentEventItem: Function = (

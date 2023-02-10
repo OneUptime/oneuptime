@@ -14,7 +14,9 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from './StatusPage';
 import Domain from './Domain';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
@@ -47,8 +49,19 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
         Permission.CanEditStatusPageDomain,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CrudApiEndpoint(new Route('/status-page-domain'))
-@SingularPluralName('Domain', 'Domains')
+@TableMetadata({
+    tableName: 'StatusPageDomain',
+    singularName: 'Domain',
+    pluralName: 'Domains',
+    icon: IconProp.Globe,
+})
 @Entity({
     name: 'StatusPageDomain',
 })

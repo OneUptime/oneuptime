@@ -47,7 +47,7 @@ import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
 import { getAnnouncementEventItem } from '../Announcement/Detail';
 import EmnptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

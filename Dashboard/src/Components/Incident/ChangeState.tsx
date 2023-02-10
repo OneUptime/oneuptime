@@ -5,7 +5,7 @@ import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import IncidentState from 'Model/Models/IncidentState';

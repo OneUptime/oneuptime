@@ -12,7 +12,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
@@ -46,7 +47,12 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 })
 @CrudApiEndpoint(new Route('/smtp-config'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('SMTP Config', 'SMTP Configs')
+@TableMetadata({
+    tableName: 'ProjectSMTPConfig',
+    singularName: 'SMTP Config',
+    pluralName: 'SMTP Configs',
+    icon: IconProp.Email,
+})
 @Entity({
     name: 'ProjectSMTPConfig',
 })

@@ -18,10 +18,13 @@ import OngoingScheduledEvents from './Pages/Home/OngingScheduledMaintenance';
 import useAsyncEffect from 'use-async-effect';
 
 import Workflows from './Pages/Workflow/Workflows';
+import WorkflowsVariables from './Pages/Workflow/Variable';
+import WorkflowsLogs from './Pages/Workflow/Logs';
 import WorkflowLogs from './Pages/Workflow/View/Logs';
 import WorkflowDelete from './Pages/Workflow/View/Delete';
 import WorkflowBuilder from './Pages/Workflow/View/Builder';
 import WorkflowOverview from './Pages/Workflow/View/Index';
+import WorkflowVariables from './Pages/Workflow/View/Variable';
 
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
@@ -396,6 +399,46 @@ const App: FunctionComponent = () => {
                     element={
                         <Workflows
                             pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.WORKFLOWS_VARIABLES]?.toString() || ''
+                    }
+                    element={
+                        <WorkflowsVariables
+                            pageRoute={
+                                RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOWS_LOGS]?.toString() || ''}
+                    element={
+                        <WorkflowsLogs
+                            pageRoute={
+                                RouteMap[PageMap.WORKFLOWS_LOGS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.WORKFLOW_VARIABLES]?.toString() || ''
+                    }
+                    element={
+                        <WorkflowVariables
+                            pageRoute={
+                                RouteMap[PageMap.WORKFLOW_VARIABLES] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }

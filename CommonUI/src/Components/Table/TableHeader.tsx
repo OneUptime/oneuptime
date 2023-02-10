@@ -1,7 +1,8 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
 

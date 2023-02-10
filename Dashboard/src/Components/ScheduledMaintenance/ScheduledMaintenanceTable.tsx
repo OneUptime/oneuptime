@@ -1,5 +1,5 @@
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import React, { FunctionComponent, ReactElement } from 'react';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';

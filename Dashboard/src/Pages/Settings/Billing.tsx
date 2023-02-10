@@ -4,7 +4,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Card from 'CommonUI/src/Components/Card/Card';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';

@@ -12,7 +12,9 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
@@ -45,14 +47,22 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
         Permission.CanEditScheduledMaintenanceStateTimeline,
     ],
 })
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
 @CrudApiEndpoint(new Route('/scheduled-maintenance-state-timeline'))
 @Entity({
     name: 'ScheduledMaintenanceStateTimeline',
 })
-@SingularPluralName(
-    'ScheduledMaintenance State Tiemline',
-    'ScheduledMaintenance State Timelines'
-)
+@TableMetadata({
+    tableName: 'ScheduledMaintenanceStateTimeline',
+    icon: IconProp.List,
+    singularName: 'Scheduled Maintenance State Tiemline',
+    pluralName: 'Scheduled Maintenance State Timelines',
+})
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [

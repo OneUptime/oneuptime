@@ -4,7 +4,8 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);

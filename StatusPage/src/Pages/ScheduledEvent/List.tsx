@@ -34,7 +34,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import User from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 

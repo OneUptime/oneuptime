@@ -9,8 +9,9 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow from 'Model/Models/Workflow';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -83,6 +84,13 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -106,6 +114,13 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 description: true,
                             },
                             title: 'Description',
+                        },
+                        {
+                            field: {
+                                isEnabled: true,
+                            },
+                            title: 'Enabled',
+                            fieldType: FieldType.Boolean,
                         },
                     ],
                     modelId: modelId,

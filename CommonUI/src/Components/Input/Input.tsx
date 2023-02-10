@@ -8,7 +8,8 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
 

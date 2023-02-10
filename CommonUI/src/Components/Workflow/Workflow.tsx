@@ -1,4 +1,10 @@
-import React, { FunctionComponent, useCallback, useRef } from 'react';
+import React, {
+    FunctionComponent,
+    useCallback,
+    useRef,
+    useEffect,
+    useState,
+} from 'react';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -14,15 +20,33 @@ import ReactFlow, {
     ProOptions,
     NodeTypes,
     OnConnect,
+    getConnectedEdges,
 } from 'reactflow';
 // 👇 you need to import the reactflow styles
 import 'reactflow/dist/style.css';
-import WorkflowComponent from './Component';
-import AddNewComponent from './AddNewComponent';
+import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
+import ObjectID from 'Common/Types/ObjectID';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Component, { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentsModal from './ComponentModal';
+
+export const getPlaceholderTriggerNode: Function = (): Node => {
+    return {
+        id: ObjectID.generate().toString(),
+        type: 'node',
+        position: { x: 100, y: 100 },
+        data: {
+            icon: IconProp.Bolt,
+            componentType: ComponentType.Trigger,
+            nodeType: NodeType.PlaceholderNode,
+            title: 'Trigger',
+            description: 'Please click here to add trigger',
+        },
+    };
+};
 
 const nodeTypes: NodeTypes = {
     node: WorkflowComponent,
-    addNewNode: AddNewComponent,
 };
 
 const edgeStyle: React.CSSProperties = {
@@ -41,12 +65,80 @@ const newNodeEdgeStyle: React.CSSProperties = {
 export interface ComponentProps {
     initialNodes: Array<Node>;
     initialEdges: Array<Edge>;
+    onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+    showComponentsPickerModal: boolean;
+    onComponentPickerModalUpdate: (isModalShown: boolean) => void;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const [nodes, _setNodes, onNodesChange] = useNodesState(props.initialNodes);
+    const onNodeClick: Function = (data: NodeDataProp) => {
+        // if placeholder node is clicked then show modal.
+
+        if (data.nodeType === NodeType.PlaceholderNode) {
+            showComponentsPickerModal(data.componentType);
+        }
+    };
+
+    const showComponentsPickerModal: Function = (
+        componentType: ComponentType
+    ) => {
+        setShowComponentsType(componentType);
+        setShowComponentsModal(true);
+    };
+
+    useEffect(() => {
+        if (props.showComponentsPickerModal) {
+            showComponentsPickerModal(ComponentType.Component);
+        } else {
+            setShowComponentsModal(false);
+        }
+    }, [props.showComponentsPickerModal]);
+
+    const deleteNode: Function = (id: string): void => {
+        // remove the node.
+
+        const nodesToDelete: Array<Node> = [...nodes].filter((node: Node) => {
+            return node.data.id === id;
+        });
+        const edgeToDelete: Array<Edge> = getConnectedEdges(
+            nodesToDelete,
+            edges
+        );
+
+        setNodes((nds: Array<Node>) => {
+            let nodeToUpdate: Array<Node> = nds.filter((node: Node) => {
+                return node.data.id !== id;
+            });
+
+            if (nodeToUpdate.length === 0) {
+                nodeToUpdate = nodeToUpdate.concat(getPlaceholderTriggerNode());
+            }
+
+            return nodeToUpdate;
+        });
+
+        setEdges((eds: Array<Edge>) => {
+            return eds.filter((edge: Edge) => {
+                const idsToDelete: Array<string> = edgeToDelete.map(
+                    (e: Edge) => {
+                        return e.id;
+                    }
+                );
+                return !idsToDelete.includes(edge.id);
+            });
+        });
+    };
+
+    const [nodes, setNodes, onNodesChange] = useNodesState(
+        props.initialNodes.map((node: Node) => {
+            node.data.onDeleteClick = deleteNode;
+            node.data.onClick = onNodeClick;
+            return node;
+        })
+    );
+
     const [edges, setEdges, onEdgesChange] = useEdgesState(
         props.initialEdges.map((edge: Edge) => {
             // add style.
@@ -59,7 +151,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             );
 
-            if (node && node.type === 'addNewNode') {
+            if (node && node.type === NodeType.PlaceholderNode) {
                 isDarkEdge = false;
             }
 
@@ -77,7 +169,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             return edge;
         })
     );
+
+    useEffect(() => {
+        if (props.onWorkflowUpdated) {
+            props.onWorkflowUpdated(nodes, edges);
+        }
+    }, [nodes, edges]);
+
     const proOptions: ProOptions = { hideAttribution: true };
+
     const onConnect: OnConnect = useCallback(
         (params: any) => {
             return setEdges((eds: Array<Edge>) => {
@@ -113,6 +213,45 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         edgeUpdateSuccessful.current = true;
     }, []);
 
+    const [showComponentsModal, setShowComponentsModal] =
+        useState<boolean>(false);
+
+    const [showComponentType, setShowComponentsType] = useState<ComponentType>(
+        ComponentType.Component
+    );
+
+    useEffect(() => {
+        props.onComponentPickerModalUpdate(showComponentsModal);
+    }, [showComponentsModal]);
+
+    const addToGraph: Function = (component: Component) => {
+        const compToAdd: Node = {
+            id: ObjectID.generate().toString(),
+            type: 'node',
+            position: { x: 200, y: 200 },
+            data: {
+                ...component,
+            },
+        };
+
+        if (component.componentType === ComponentType.Trigger) {
+            // remove the placeholder trigger element from graph.
+            setNodes((nds: Array<Node>) => {
+                return nds
+                    .filter((node: Node) => {
+                        return (
+                            node.data.componentType === ComponentType.Component
+                        );
+                    })
+                    .concat(compToAdd);
+            });
+        } else {
+            setNodes((nds: Array<Node>) => {
+                return nds.concat(compToAdd);
+            });
+        }
+    };
+
     return (
         <div className="h-[48rem]">
             <ReactFlow
@@ -129,8 +268,22 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             >
                 <MiniMap />
                 <Controls />
-                <Background />
+                <Background color="#111827" />
             </ReactFlow>
+
+            {showComponentsModal && (
+                <ComponentsModal
+                    componentsType={showComponentType}
+                    onCloseModal={() => {
+                        setShowComponentsModal(false);
+                    }}
+                    onComponentClick={(component: Component) => {
+                        setShowComponentsModal(false);
+
+                        addToGraph(component);
+                    }}
+                />
+            )}
         </div>
     );
 };
