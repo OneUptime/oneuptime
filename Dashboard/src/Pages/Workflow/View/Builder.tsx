@@ -27,7 +27,10 @@ import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/ComponentModal';
-import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, {
+    ComponentCategory,
+    ComponentType,
+} from 'Common/Types/Workflow/Component';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { NodeType } from 'CommonUI/src/Components/Workflow/Component';
 
@@ -60,9 +63,14 @@ const Delete: FunctionComponent<PageComponentProps> = (
             );
 
             if (workflow) {
-
-                const componentsAndCategories = loadComponentsAndCategories(ComponentType.Component);
-                const triggerAndCategories = loadComponentsAndCategories(ComponentType.Trigger);
+                const componentsAndCategories: {
+                    components: Array<ComponentMetadata>;
+                    categories: Array<ComponentCategory>;
+                } = loadComponentsAndCategories(ComponentType.Component);
+                const triggerAndCategories: {
+                    components: Array<ComponentMetadata>;
+                    categories: Array<ComponentCategory>;
+                } = loadComponentsAndCategories(ComponentType.Trigger);
 
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
                     if (
@@ -72,48 +80,63 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         // add a placeholder trigger node.
                         setNodes([getPlaceholderTriggerNode()]);
                     } else {
+                        const nodes: Array<Node> = (
+                            workflow.graph as JSONObject
+                        )['nodes'] as Array<Node>;
 
-                        const nodes: Array<Node> =  (workflow.graph as JSONObject)[
-                            'nodes'
-                            ] as Array<Node>;
+                        // Fill nodes.
 
-                        // Fill nodes. 
-
-                        for(let i=0;i<nodes.length; i++){
-
-                            if(!nodes[i]){
+                        for (let i: number = 0; i < nodes.length; i++) {
+                            if (!nodes[i]) {
                                 continue;
                             }
 
-                            if(nodes[i]?.data.nodeType === NodeType.PlaceholderNode){
-                                nodes[i] = {... nodes[i], ...getPlaceholderTriggerNode()}
-                                continue; 
+                            if (
+                                nodes[i]?.data.nodeType ===
+                                NodeType.PlaceholderNode
+                            ) {
+                                nodes[i] = {
+                                    ...nodes[i],
+                                    ...getPlaceholderTriggerNode(),
+                                };
+                                continue;
                             }
 
-                            let componentMetdata = componentsAndCategories.components.find((component: ComponentMetadata) => {
-                                return component.id === nodes[i]?.data.metadataId;
-                            })
+                            let componentMetdata: ComponentMetadata | undefined =
+                                componentsAndCategories.components.find(
+                                    (component: ComponentMetadata) => {
+                                        return (
+                                            component.id ===
+                                            nodes[i]?.data.metadataId
+                                        );
+                                    }
+                                );
 
-                            if(!componentMetdata){
-                                componentMetdata = triggerAndCategories.components.find((component: ComponentMetadata) => {
-                                    return component.id === nodes[i]?.data.metadataId;
-                                })
+                            if (!componentMetdata) {
+                                componentMetdata =
+                                    triggerAndCategories.components.find(
+                                        (component: ComponentMetadata) => {
+                                            return (
+                                                component.id ===
+                                                nodes[i]?.data.metadataId
+                                            );
+                                        }
+                                    );
                             }
 
-                            if(!componentMetdata){
-                                throw new BadDataException("Component Metadata not found for node "+nodes[i]?.data.metadataId);
+                            if (!componentMetdata) {
+                                throw new BadDataException(
+                                    'Component Metadata not found for node ' +
+                                        nodes[i]?.data.metadataId
+                                );
                             }
 
-                            
                             nodes[i]!.data.metadata = {
-                                ...componentMetdata
-                            }
-
+                                ...componentMetdata,
+                            };
                         }
 
-                        setNodes(
-                            nodes
-                        );
+                        setNodes(nodes);
                     }
                 } else {
                     // add a placeholder trigger node.
@@ -121,26 +144,22 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 }
 
                 if (workflow.graph && (workflow.graph as JSONObject)['edges']) {
-                    
-                    const edges: Array<Edge> =  (workflow.graph as JSONObject)['edges'] as Array<Edge>;
+                    const edges: Array<Edge> = (workflow.graph as JSONObject)[
+                        'edges'
+                    ] as Array<Edge>;
 
-                    for(let i=0;i<edges.length; i++){
-
-                        if(!edges[i]){
+                    for (let i: number = 0; i < edges.length; i++) {
+                        if (!edges[i]) {
                             continue;
                         }
-                        
-                    
+
                         edges[i] = {
                             ...edges[i],
-                            ...getEdgeDefaultProps()
-                        }
-
+                            ...getEdgeDefaultProps(),
+                        };
                     }
 
-                    setEdges(
-                        edges
-                    );
+                    setEdges(edges);
                 } else {
                     setEdges([]);
                 }
@@ -151,7 +170,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -175,30 +194,43 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setSaveTimeout(
             setTimeout(async () => {
                 try {
-                    const graph: JSONObject = JSON.parse(JSON.stringify({nodes, edges})); // deep copy
+                    const graph: JSONObject = JSON.parse(
+                        JSON.stringify({ nodes, edges })
+                    ); // deep copy
 
-                    // clean up. 
+                    // clean up.
 
                     if (graph['nodes']) {
-                        for (let i = 0; i < (graph['nodes'] as Array<Node>).length; i++) {
+                        for (
+                            let i: number = 0;
+                            i < (graph['nodes'] as Array<Node>).length;
+                            i++
+                        ) {
                             (graph['nodes'] as Array<Node>)[i] = {
-                                ...((graph['nodes'] as Array<Node>)[i] as Node)
+                                ...((graph['nodes'] as Array<Node>)[i] as Node),
                             };
 
-                            delete ((graph['nodes'] as Array<Node>)[i] as Node).data.metadata; 
+                            delete ((graph['nodes'] as Array<Node>)[i] as Node)
+                                .data.metadata;
                         }
                     }
 
-
                     if (graph['edges']) {
-                        for (let i = 0; i < (graph['edges'] as Array<Edge>).length; i++) {
+                        for (
+                            let i: number = 0;
+                            i < (graph['edges'] as Array<Edge>).length;
+                            i++
+                        ) {
                             (graph['edges'] as Array<Edge>)[i] = {
-                                ...((graph['edges'] as Array<Edge>)[i] as Edge)
+                                ...((graph['edges'] as Array<Edge>)[i] as Edge),
                             };
 
-                            delete ((graph['edges'] as Array<Edge>)[i] as Edge).type; 
-                            delete ((graph['edges'] as Array<Edge>)[i] as Edge).style;
-                            delete ((graph['edges'] as Array<Edge>)[i] as Edge).markerEnd;  
+                            delete ((graph['edges'] as Array<Edge>)[i] as Edge)
+                                .type;
+                            delete ((graph['edges'] as Array<Edge>)[i] as Edge)
+                                .style;
+                            delete ((graph['edges'] as Array<Edge>)[i] as Edge)
+                                .markerEnd;
                         }
                     }
 
@@ -211,7 +243,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     try {
                         setError(
                             (err as HTTPErrorResponse).message ||
-                            'Server Error. Please try again'
+                                'Server Error. Please try again'
                         );
                     } catch (e) {
                         setError('Server Error. Please try again');

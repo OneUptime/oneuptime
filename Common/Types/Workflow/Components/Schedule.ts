@@ -1,5 +1,8 @@
 import IconProp from '../../Icon/IconProp';
-import ComponentMetadata, { ComponentInputType, ComponentType } from './../Component';
+import ComponentMetadata, {
+    ComponentInputType,
+    ComponentType,
+} from './../Component';
 
 const components: Array<ComponentMetadata> = [
     {

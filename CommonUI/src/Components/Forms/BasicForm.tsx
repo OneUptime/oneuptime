@@ -971,7 +971,7 @@ const BasicForm: Function = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
-        if(props.onChange){
+        if (props.onChange) {
             props.onChange(values);
         }
 
@@ -1092,7 +1092,11 @@ const BasicForm: Function = <T extends Object>(
                     {({ errors, touched }: any) => {
                         return (
                             <Form autoComplete="off">
-                                {props.title && <h1 className='text-lg text-gray-700 mt-5'>{props.title}</h1>}
+                                {props.title && (
+                                    <h1 className="text-lg text-gray-700 mt-5">
+                                        {props.title}
+                                    </h1>
+                                )}
 
                                 {Boolean(props.description) && (
                                     <p className="text-sm text-gray-500 mb-5">

@@ -20,9 +20,11 @@ import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseMode
 import IconProp from 'Common/Types/Icon/IconProp';
 import SideOver from '../SideOver/SideOver';
 
-export const loadComponentsAndCategories: Function = (componentType: ComponentType): {
-    components: Array<ComponentMetadata>,
-    categories: Array<ComponentCategory>
+export const loadComponentsAndCategories: Function = (
+    componentType: ComponentType
+): {
+    components: Array<ComponentMetadata>;
+    categories: Array<ComponentCategory>;
 } => {
     let initComponents: Array<ComponentMetadata> = [];
     const initCategories: Array<ComponentCategory> = [...Categories];
@@ -35,18 +37,21 @@ export const loadComponentsAndCategories: Function = (componentType: ComponentTy
         );
         initCategories.push({
             name: new model().singularName || 'Model',
-            description: `Interact with ${new model().singularName
-                } in your workflow.`,
+            description: `Interact with ${
+                new model().singularName
+            } in your workflow.`,
             icon: new model().icon || IconProp.Database,
         });
     }
 
-    initComponents = initComponents.filter((componentMetadata: ComponentMetadata) => {
-        return componentMetadata.componentType === componentType;
-    });
+    initComponents = initComponents.filter(
+        (componentMetadata: ComponentMetadata) => {
+            return componentMetadata.componentType === componentType;
+        }
+    );
 
     return { components: initComponents, categories: initCategories };
-}
+};
 
 export interface ComponentProps {
     componentsType: ComponentType;
@@ -62,14 +67,17 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [components, setComponents] = useState<Array<ComponentMetadata>>([]);
     const [categories, setCategories] = useState<Array<ComponentCategory>>([]);
 
-    const [componentsToShow, setComponentsToShow] = useState<Array<ComponentMetadata>>(
-        []
-    );
+    const [componentsToShow, setComponentsToShow] = useState<
+        Array<ComponentMetadata>
+    >([]);
 
     const [isSearching, setIsSearching] = useState<boolean>(false);
 
     useEffect(() => {
-        const value = loadComponentsAndCategories(props.componentsType);
+        const value: {
+            components: Array<ComponentMetadata>;
+            categories: Array<ComponentCategory>;
+        } = loadComponentsAndCategories(props.componentsType);
 
         setComponents(value.components);
 
@@ -85,7 +93,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
         if (!search) {
             setComponentsToShow([
                 ...components.filter((componentMetadata: ComponentMetadata) => {
-                    return componentMetadata.componentType === props.componentsType;
+                    return (
+                        componentMetadata.componentType === props.componentsType
+                    );
                 }),
             ]);
         }
@@ -108,17 +118,28 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
         ]);
     }, [search]);
 
-
-    const [selectedComponentMetadata, setSelectedComponentMetadata] = useState<ComponentMetadata | null>(null)
+    const [selectedComponentMetadata, setSelectedComponentMetadata] =
+        useState<ComponentMetadata | null>(null);
 
     return (
-        <SideOver submitButtonText='Create' title={`Select a ${props.componentsType}`} description={`Please select a component to add to your workflow.`} onClose={props.onCloseModal} submitButtonDisabled={!selectedComponentMetadata} onSubmit={()=>selectedComponentMetadata && props.onComponentClick(selectedComponentMetadata)}>
-
+        <SideOver
+            submitButtonText="Create"
+            title={`Select a ${props.componentsType}`}
+            description={`Please select a component to add to your workflow.`}
+            onClose={props.onCloseModal}
+            submitButtonDisabled={!selectedComponentMetadata}
+            onSubmit={() => {
+                return (
+                    selectedComponentMetadata &&
+                    props.onComponentClick(selectedComponentMetadata)
+                );
+            }}
+        >
             <>
                 <div>
                     {/** Search box here */}
 
-                    <div className='mt-5'>
+                    <div className="mt-5">
                         <Input
                             placeholder="Search..."
                             onChange={(text: string) => {
@@ -144,7 +165,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                         componentsToShow &&
                                         componentsToShow.length > 0 &&
                                         componentsToShow.filter(
-                                            (componentMetadata: ComponentMetadata) => {
+                                            (
+                                                componentMetadata: ComponentMetadata
+                                            ) => {
                                                 return (
                                                     componentMetadata.category ===
                                                     category.name
@@ -196,16 +219,25 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                     componentMetadata
                                                                                 );
                                                                             }}
-                                                                            className={`m-5 ml-0 mt-0 ${selectedComponentMetadata && selectedComponentMetadata.id === componentMetadata.id ? "rounded ring-offset-2 ring ring-indigo-500": ""}`}
+                                                                            className={`m-5 ml-0 mt-0 ${
+                                                                                selectedComponentMetadata &&
+                                                                                selectedComponentMetadata.id ===
+                                                                                    componentMetadata.id
+                                                                                    ? 'rounded ring-offset-2 ring ring-indigo-500'
+                                                                                    : ''
+                                                                            }`}
                                                                         >
                                                                             <ComponentElement
                                                                                 key={
                                                                                     i
                                                                                 }
                                                                                 data={{
-                                                                                    metadata: componentMetadata,
-                                                                                    metadataId: componentMetadata.id,
-                                                                                    internalId: '',
+                                                                                    metadata:
+                                                                                        componentMetadata,
+                                                                                    metadataId:
+                                                                                        componentMetadata.id,
+                                                                                    internalId:
+                                                                                        '',
                                                                                     nodeType:
                                                                                         NodeType.Node,
                                                                                     nodeData:
@@ -213,7 +245,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                     isPreview:
                                                                                         true,
                                                                                     id: '',
-                                                                                    error: ''
+                                                                                    error: '',
                                                                                 }}
                                                                             />
                                                                         </div>

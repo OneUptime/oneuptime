@@ -18,17 +18,22 @@ export interface ComponentProps {
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [component, setComponent] = useState<NodeDataProp>(props.component)
+    const [component, setComponent] = useState<NodeDataProp>(props.component);
 
     return (
-        <SideOver title={props.title} description={props.description} onClose={props.onClose} onSubmit={() => component && props.onSave(component)}>
+        <SideOver
+            title={props.title}
+            description={props.description}
+            onClose={props.onClose}
+            onSubmit={() => {
+                return component && props.onSave(component);
+            }}
+        >
             <>
-
                 <BasicForm
                     hideSubmitButton={true}
                     initialValues={{
-                        id: props.component?.id
+                        id: props.component?.id,
                     }}
                     onChange={(values: FormValues<JSONObject>) => {
                         setComponent({ ...component, ...values });
@@ -45,14 +50,10 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
                             fieldType: FormFieldSchemaType.Text,
                         },
-
                     ]}
-
                 />
 
-                <Divider/>
-
-
+                <Divider />
             </>
         </SideOver>
     );

@@ -27,7 +27,9 @@ import 'reactflow/dist/style.css';
 import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
-import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, {
+    ComponentType,
+} from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentSettingsModal from './ComponentSettingsModal';
@@ -48,7 +50,7 @@ export const getPlaceholderTriggerNode: Function = (): Node => {
             internalId: '',
             nodeType: NodeType.PlaceholderNode,
             id: '',
-            error: ''
+            error: '',
         },
     };
 };
@@ -63,19 +65,16 @@ const edgeStyle: React.CSSProperties = {
     color: '#94a3b8',
 };
 
-
 export const getEdgeDefaultProps: Function = (): JSONObject => {
     return {
         type: 'smoothstep',
         markerEnd: {
             type: MarkerType.Arrow,
-            color:
-                edgeStyle.color?.toString() || ''
-
+            color: edgeStyle.color?.toString() || '',
         },
         style: edgeStyle,
-    }
-}
+    };
+};
 
 export interface ComponentProps {
     initialNodes: Array<Node>;
@@ -167,7 +166,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps()
+                ...getEdgeDefaultProps(),
             };
             return edge;
         })
@@ -184,10 +183,13 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const onConnect: OnConnect = useCallback(
         (params: any) => {
             return setEdges((eds: Array<Edge>) => {
-                return addEdge({
-                    ...params,
-                    ...getEdgeDefaultProps()
-                }, eds);
+                return addEdge(
+                    {
+                        ...params,
+                        ...getEdgeDefaultProps(),
+                    },
+                    eds
+                );
             });
         },
         [setEdges]
@@ -201,15 +203,18 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         (oldEdge: Edge, newConnection: Connection) => {
             edgeUpdateSuccessful.current = true;
             setEdges((eds: Array<Edge>) => {
-                return updateEdge({
-                    ...oldEdge, markerEnd: {
-                        type: MarkerType.Arrow,
-                        color:
-                            edgeStyle.color?.toString() || ''
-
+                return updateEdge(
+                    {
+                        ...oldEdge,
+                        markerEnd: {
+                            type: MarkerType.Arrow,
+                            color: edgeStyle.color?.toString() || '',
+                        },
+                        style: edgeStyle,
                     },
-                    style: edgeStyle
-                }, newConnection, eds);
+                    newConnection,
+                    eds
+                );
             });
         },
         []
@@ -238,19 +243,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
 
-
-
-
     const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
+        const metaDataId: string = componentMetadata.id;
 
-        const metaDataId = componentMetadata.id;
-
-        let hasFoundExistingId = true;
-        let idCounter = 1;
+        let hasFoundExistingId: boolean = true;
+        let idCounter: number = 1;
         while (hasFoundExistingId) {
-            const id = `${metaDataId}-${idCounter}`;
+            const id: string = `${metaDataId}-${idCounter}`;
 
-            const exitingNode = nodes.find((i) => i.data.id === id);
+            const exitingNode: Node | undefined = nodes.find((i: Node) => {
+                return i.data.id === id;
+            });
 
             if (!exitingNode) {
                 hasFoundExistingId = false;
@@ -310,7 +313,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <Background color="#111827" />
             </ReactFlow>
 
-            {showComponentsModal &&  (
+            {showComponentsModal && (
                 <ComponentsModal
                     componentsType={showComponentType}
                     onCloseModal={() => {
@@ -324,11 +327,28 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 />
             )}
 
-            {showComponentSettingsModal && selectedNodeData && <ComponentSettingsModal component={selectedNodeData} title={selectedNodeData && selectedNodeData.metadata.title ? selectedNodeData.metadata.title : "Component Properties"} description={selectedNodeData && selectedNodeData.metadata.description ? selectedNodeData.metadata.description : 'Edit Component Properties and variables here.'} onClose={() => {
-                setshowComponentSettingsModal(false)
-            }} onSave={() => {
-                setshowComponentSettingsModal(false)
-            }} />}
+            {showComponentSettingsModal && selectedNodeData && (
+                <ComponentSettingsModal
+                    component={selectedNodeData}
+                    title={
+                        selectedNodeData && selectedNodeData.metadata.title
+                            ? selectedNodeData.metadata.title
+                            : 'Component Properties'
+                    }
+                    description={
+                        selectedNodeData &&
+                        selectedNodeData.metadata.description
+                            ? selectedNodeData.metadata.description
+                            : 'Edit Component Properties and variables here.'
+                    }
+                    onClose={() => {
+                        setshowComponentSettingsModal(false);
+                    }}
+                    onSave={() => {
+                        setshowComponentSettingsModal(false);
+                    }}
+                />
+            )}
         </div>
     );
 };
