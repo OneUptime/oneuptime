@@ -21,6 +21,34 @@ import Entities from 'Model/Models/Index';
 import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
 import IconProp from 'Common/Types/Icon/IconProp';
 
+export const loadComponentsAndCategories: Function = (componentType: ComponentType): {
+    components: Array<ComponentMetadata>,
+    categories: Array<ComponentCategory>
+} => {
+    let initComponents: Array<ComponentMetadata> = [];
+    const initCategories: Array<ComponentCategory> = [...Categories];
+
+    initComponents = initComponents.concat(Components);
+
+    for (const model of Entities) {
+        initComponents = initComponents.concat(
+            BaseModelComponentFactory.getComponents(new model())
+        );
+        initCategories.push({
+            name: new model().singularName || 'Model',
+            description: `Interact with ${new model().singularName
+                } in your workflow.`,
+            icon: new model().icon || IconProp.Database,
+        });
+    }
+
+    initComponents = initComponents.filter((componentMetadata: ComponentMetadata) => {
+        return componentMetadata.componentType === componentType;
+    });
+
+    return {components: initComponents, categories: initCategories};
+}
+
 export interface ComponentProps {
     componentsType: ComponentType;
     onCloseModal: () => void;
@@ -42,32 +70,13 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [isSearching, setIsSearching] = useState<boolean>(false);
 
     useEffect(() => {
-        let initComponents: Array<ComponentMetadata> = [];
-        const initCategories: Array<ComponentCategory> = [...Categories];
+        const value = loadComponentsAndCategories(props.componentsType);
 
-        initComponents = initComponents.concat(Components);
+        setComponents(value.components);
 
-        for (const model of Entities) {
-            initComponents = initComponents.concat(
-                BaseModelComponentFactory.getComponents(new model())
-            );
-            initCategories.push({
-                name: new model().singularName || 'Model',
-                description: `Interact with ${new model().singularName
-                    } in your workflow.`,
-                icon: new model().icon || IconProp.Database,
-            });
-        }
+        setComponentsToShow([...value.components]);
 
-        initComponents = initComponents.filter((componentMetadata: ComponentMetadata) => {
-            return componentMetadata.componentType === props.componentsType;
-        });
-
-        setComponents(initComponents);
-
-        setComponentsToShow([...initComponents]);
-
-        setCategories(initCategories);
+        setCategories(value.categories);
     }, []);
 
     useEffect(() => {
@@ -202,6 +211,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                 }
                                                                                 data={{
                                                                                     metadata: componentMetadata,
+                                                                                    metadataId: componentMetadata.id,
                                                                                     nodeType:
                                                                                         NodeType.Node,
                                                                                     nodeData:

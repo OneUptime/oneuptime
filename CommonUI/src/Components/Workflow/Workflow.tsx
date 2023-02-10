@@ -29,6 +29,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
+import { JSONObject } from 'Common/Types/JSON';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -43,8 +44,8 @@ export const getPlaceholderTriggerNode: Function = (): Node => {
                 title: 'Trigger',
                 description: 'Please click here to add trigger',
             },
-            nodeType: NodeType.PlaceholderNode, 
-            id: '', 
+            nodeType: NodeType.PlaceholderNode,
+            id: '',
             error: ''
         },
     };
@@ -59,6 +60,20 @@ const edgeStyle: React.CSSProperties = {
     stroke: '#94a3b8',
     color: '#94a3b8',
 };
+
+
+export const getEdgeDefaultProps: Function = (): JSONObject => {
+    return {
+        type: 'smoothstep',
+        markerEnd: {
+            type: MarkerType.Arrow,
+            color:
+                edgeStyle.color?.toString() || ''
+
+        },
+        style: edgeStyle,
+    }
+}
 
 export interface ComponentProps {
     initialNodes: Array<Node>;
@@ -143,14 +158,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             edge = {
                 ...edge,
-                type: 'smoothstep',
-                markerEnd: {
-                    type: MarkerType.Arrow,
-                    color:
-                        edgeStyle.color?.toString() || ''
-
-                },
-                style: edgeStyle,
+                ...getEdgeDefaultProps()
             };
             return edge;
         })
@@ -168,14 +176,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         (params: any) => {
             return setEdges((eds: Array<Edge>) => {
                 return addEdge({
-                    ...params, type: 'smoothstep',
-                    markerEnd: {
-                        type: MarkerType.Arrow,
-                        color:
-                            edgeStyle.color?.toString() || ''
-
-                    },
-                    style: edgeStyle
+                    ...params, 
+                    ...getEdgeDefaultProps()
                 }, eds);
             });
         },
@@ -233,7 +235,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
-                metadata: { ...componentMetadata }
+                id: ObjectID.generate().toString(),
+                error: '',
+                metadata: { ...componentMetadata },
+                metadataId: componentMetadata.id
             },
         };
 
