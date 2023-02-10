@@ -40,10 +40,10 @@ export const getPlaceholderTriggerNode: Function = (): Node => {
             metadata: {
                 icon: IconProp.Bolt,
                 componentType: ComponentType.Trigger,
-
                 title: 'Trigger',
                 description: 'Please click here to add trigger',
             },
+            metadataId: '',
             nodeType: NodeType.PlaceholderNode,
             id: '',
             error: ''

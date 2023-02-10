@@ -29,6 +29,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/ComponentModal';
 import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { NodeType } from 'CommonUI/src/Components/Workflow/Component';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -84,6 +85,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 continue;
                             }
 
+                            if(nodes[i]?.data.nodeType === NodeType.PlaceholderNode){
+                                nodes[i] = {... nodes[i], ...getPlaceholderTriggerNode()}
+                                continue; 
+                            }
+
                             let componentMetdata = componentsAndCategories.components.find((component: ComponentMetadata) => {
                                 component.id === nodes[i]?.data.metadataId;
                             })
@@ -95,7 +101,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             }
 
                             if(!componentMetdata){
-                                throw new BadDataException("Component Metadata not found for node"+nodes[i]?.data.metadataId );
+                                throw new BadDataException("Component Metadata not found for node "+nodes[i]?.data.metadataId);
                             }
 
                             
@@ -169,10 +175,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setSaveTimeout(
             setTimeout(async () => {
                 try {
-                    const graph: JSONObject = {
-                        nodes: [...nodes],
-                        edges: [...edges],
-                    };
+                    const graph: JSONObject = JSON.parse(JSON.stringify({nodes, edges})); // deep copy
 
                     // clean up. 
 
