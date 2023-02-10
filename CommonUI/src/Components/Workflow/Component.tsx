@@ -3,7 +3,8 @@ import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { ComponentType, Port } from 'Common/Types/Workflow/Component';
+import Tooltip from '../Tooltip/Toolip';
 
 export enum NodeType {
     Node = 'Node',
@@ -19,7 +20,7 @@ export interface NodeDataProp {
     onClick?: (node: NodeDataProp) => void | undefined;
     isPreview?: boolean | undefined; // is this used to show in the components modal?
     metadata: ComponentMetadata;
-    metadataId: string; 
+    metadataId: string;
     internalId: string;
 }
 
@@ -58,6 +59,39 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         height: '0.75rem',
         width: '0.75rem',
     };
+
+
+    const getPortPosition: Function = (portCount: number, totalPorts: number, isLabel: boolean | undefined): React.CSSProperties => {
+        if (portCount === 1 && totalPorts === 1) {
+            return {}
+        }
+
+        if (portCount === 1 && totalPorts === 2) {
+            return { left: isLabel ? 70 : 80 }
+        }
+
+        if (portCount === 2 && totalPorts === 2) {
+            return { left:  isLabel ? 150 : 160  }
+        }
+
+        if (portCount === 1 && totalPorts === 3) {
+            return { left:  isLabel ? 70 : 80  }
+        }
+
+        if (portCount === 2 && totalPorts === 3) {
+            return {}
+        }
+
+        if (portCount === 3 && totalPorts === 3) {
+            return { left: isLabel ? 150 : 160  }
+        }
+
+
+        // default
+        return {};
+
+
+    }
 
     if (props.data.nodeType === NodeType.PlaceholderNode) {
         handleStyle = {
@@ -98,8 +132,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             onMouseOut={() => {
                 setIsHovering(false);
             }}
-            style={{...componentStyle, 
-                height: props.data.id ? "12rem": "10rem",
+            style={{
+                ...componentStyle,
+                height: props.data.id ? "12rem" : "10rem",
             }}
             onClick={() => {
                 if (props.data.onClick) {
@@ -179,13 +214,21 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {!props.data.isPreview &&
                 props.data.metadata.componentType !== ComponentType.Trigger && (
-                    <Handle
-                        type="target"
-                        onConnect={(_params: Connection) => { }}
-                        isConnectable={true}
-                        position={Position.Top}
-                        style={handleStyle}
-                    />
+                    <div>
+                        {props.data.metadata.inPorts && props.data.metadata.inPorts.length > 0 && props.data.metadata.inPorts.map((port: Port, i: number) => {
+                            return (<Handle
+                                key={i}
+                                type="target"
+                                id={port.id}
+                                onConnect={(_params: Connection) => {
+
+                                }}
+                                isConnectable={true}
+                                position={Position.Top}
+                                style={{ ...handleStyle, ...getPortPosition(i + 1, props.data.metadata.inPorts.length) }}
+                            />)
+                        })}
+                    </div>
                 )}
 
             <div
@@ -214,6 +257,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         />
                     )}
                     <p
+                    
                         style={{
                             color: textColor,
                             fontSize: '0.875rem',
@@ -251,14 +295,31 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {!props.data.isPreview &&
                 props.data.nodeType !== NodeType.PlaceholderNode && (
-                    <Handle
-                        type="source"
-                        id="a"
-                        onConnect={(_params: Connection) => { }}
-                        isConnectable={true}
-                        position={Position.Bottom}
-                        style={handleStyle}
-                    />
+                    <>
+                        <div>
+                            {props.data.metadata.outPorts && props.data.metadata.outPorts.length > 0 && props.data.metadata.outPorts.map((port: Port, i: number) => {
+                                return (<Handle
+                                    key={i}
+                                    type="source"
+                                    id={port.id}
+                                    onConnect={(_params: Connection) => {
+
+                                    }}
+                                    isConnectable={true}
+                                    position={Position.Bottom}
+                                    style={{ ...handleStyle, ...getPortPosition(i + 1, props.data.metadata.outPorts.length) }}
+                                />)
+                            })}
+                        </div>
+                        <div>
+                            {props.data.metadata.outPorts && props.data.metadata.outPorts.length > 0 && props.data.metadata.outPorts.map((port: Port, i: number) => {
+                                return (<Tooltip
+                                    key={i}
+                                    text={port.description || ''}
+                                ><div key={i} className="text-sm text-gray-400 absolute" style={{bottom: "10px",  ...getPortPosition(i + 1, props.data.metadata.outPorts.length, true) }}>{port.title}</div></Tooltip>)
+                            })}
+                        </div>
+                    </>
                 )}
         </div>
     );

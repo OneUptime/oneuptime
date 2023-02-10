@@ -36,7 +36,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         {props.tooltip && (
                             <Tooltip
                                 key={1}
-                                text={props.tooltip || 'Not avaiulable'}
+                                text={props.tooltip || 'Not available'}
                             >
                                 <div className="ml-1">
                                     <Icon
