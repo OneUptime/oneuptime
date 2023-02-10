@@ -30,6 +30,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
+import SideOver from '../SideOver/SideOver';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -85,12 +86,16 @@ export interface ComponentProps {
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
+    const [showComponentSettingsModal, setshowComponentSettingsModal] =
+    useState<boolean>(false);
 
     const onNodeClick: Function = (data: NodeDataProp) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
             showComponentsPickerModal(data.metadata.componentType);
+        }else{
+            setshowComponentSettingsModal(true);
         }
     };
 
@@ -229,6 +234,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
 
+
+   
+
     const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
 
         const metaDataId = componentMetadata.id;
@@ -310,6 +318,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                 />
             )}
+
+            {showComponentSettingsModal && <SideOver title="Component Properties" description='Edit Component Properties and variables here.' onClose={()=> {
+                setshowComponentSettingsModal(false)
+            }} onSave={()=> {
+                setshowComponentSettingsModal(false)
+            }}><div></div></SideOver>} 
         </div>
     );
 };
