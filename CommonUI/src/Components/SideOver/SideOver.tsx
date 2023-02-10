@@ -10,6 +10,7 @@ export interface ComponentProps {
     onSubmit: ()=> void; 
     children: ReactElement | Array<ReactElement>
     submitButtonDisabled?: boolean | undefined;
+    submitButtonText?: string | undefined;
 }
 
 const SideOver: FunctionComponent<ComponentProps> = (
@@ -63,7 +64,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                                         }} type="button" className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Cancel</button>
                                         <button disabled={props.submitButtonDisabled} onClick={()=>{
                                             props.onSubmit();
-                                        }} type="submit" className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Create</button>
+                                        }} type="submit" className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">{props.submitButtonText || 'Save'}</button>
                                     </div>
                                 </div>
                             </form>

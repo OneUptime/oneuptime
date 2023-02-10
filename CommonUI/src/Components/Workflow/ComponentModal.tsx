@@ -112,7 +112,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [selectedComponentMetadata, setSelectedComponentMetadata] = useState<ComponentMetadata | null>(null)
 
     return (
-        <SideOver title={`Select a ${props.componentsType}`} description={`Please select a component to add to your workflow.`} onClose={props.onCloseModal} submitButtonDisabled={!selectedComponentMetadata} onSubmit={()=>selectedComponentMetadata && props.onComponentClick(selectedComponentMetadata)}>
+        <SideOver submitButtonText='Create' title={`Select a ${props.componentsType}`} description={`Please select a component to add to your workflow.`} onClose={props.onCloseModal} submitButtonDisabled={!selectedComponentMetadata} onSubmit={()=>selectedComponentMetadata && props.onComponentClick(selectedComponentMetadata)}>
 
             <>
                 <div>
@@ -205,6 +205,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                 data={{
                                                                                     metadata: componentMetadata,
                                                                                     metadataId: componentMetadata.id,
+                                                                                    internalId: '',
                                                                                     nodeType:
                                                                                         NodeType.Node,
                                                                                     nodeData:

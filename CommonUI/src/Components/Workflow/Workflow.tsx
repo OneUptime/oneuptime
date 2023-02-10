@@ -45,6 +45,7 @@ export const getPlaceholderTriggerNode: Function = (): Node => {
                 description: 'Please click here to add trigger',
             },
             metadataId: '',
+            internalId: '',
             nodeType: NodeType.PlaceholderNode,
             id: '',
             error: ''
@@ -260,14 +261,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
 
         const compToAdd: Node = {
-            id: ObjectID.generate().toString(),
+            id: ObjectID.generate().toString(), // react-flow id
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
                 id: `${metaDataId}-${idCounter}`,
                 error: '',
                 metadata: { ...componentMetadata },
-                metadataId: componentMetadata.id
+                metadataId: componentMetadata.id,
+                internalId: ObjectID.generate().toString(), // runner id
             },
         };
 
@@ -308,7 +310,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <Background color="#111827" />
             </ReactFlow>
 
-            {showComponentsModal && (
+            {showComponentsModal &&  (
                 <ComponentsModal
                     componentsType={showComponentType}
                     onCloseModal={() => {
@@ -322,7 +324,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 />
             )}
 
-            {showComponentSettingsModal && <ComponentSettingsModal component={selectedNodeData} title={selectedNodeData && selectedNodeData.metadata.title ? selectedNodeData.metadata.title : "Component Properties"} description={selectedNodeData && selectedNodeData.metadata.description ? selectedNodeData.metadata.description : 'Edit Component Properties and variables here.'} onClose={() => {
+            {showComponentSettingsModal && selectedNodeData && <ComponentSettingsModal component={selectedNodeData} title={selectedNodeData && selectedNodeData.metadata.title ? selectedNodeData.metadata.title : "Component Properties"} description={selectedNodeData && selectedNodeData.metadata.description ? selectedNodeData.metadata.description : 'Edit Component Properties and variables here.'} onClose={() => {
                 setshowComponentSettingsModal(false)
             }} onSave={() => {
                 setshowComponentSettingsModal(false)
