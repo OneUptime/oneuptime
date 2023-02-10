@@ -23,7 +23,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.component);
-    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState<boolean>(false);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] =
+        useState<boolean>(false);
 
     return (
         <SideOver
@@ -34,12 +35,15 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                 return component && props.onSave(component);
             }}
             leftFooterElement={
-                <Button title='Delete Component' icon={IconProp.Trash} buttonStyle={ButtonStyleType.DANGER_OUTLINE} onClick={() => {
-                    setShowDeleteConfirmation(true)
-                }}
+                <Button
+                    title="Delete Component"
+                    icon={IconProp.Trash}
+                    buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                    onClick={() => {
+                        setShowDeleteConfirmation(true);
+                    }}
                 />
             }
-
         >
             <>
                 {showDeleteConfirmation && (

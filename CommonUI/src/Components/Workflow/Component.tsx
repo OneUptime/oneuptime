@@ -144,7 +144,6 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             }}
         >
-
             {!props.data.isPreview &&
                 props.data.error &&
                 props.data.nodeType !== NodeType.PlaceholderNode && (
@@ -159,9 +158,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             left: '220px',
                             cursor: 'pointer',
                         }}
-                        onClick={() => {
-                            
-                        }}
+                        onClick={() => {}}
                     >
                         <Icon
                             icon={IconProp.Alert}

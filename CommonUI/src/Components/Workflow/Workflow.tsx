@@ -334,7 +334,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             ? selectedNodeData.metadata.title
                             : 'Component Properties'
                     }
-                    onDelete={(component: NodeDataProp)=> {
+                    onDelete={(component: NodeDataProp) => {
                         deleteNode(component.id);
                     }}
                     description={
