@@ -91,12 +91,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             }
 
                             let componentMetdata = componentsAndCategories.components.find((component: ComponentMetadata) => {
-                                component.id === nodes[i]?.data.metadataId;
+                                return component.id === nodes[i]?.data.metadataId;
                             })
 
                             if(!componentMetdata){
                                 componentMetdata = triggerAndCategories.components.find((component: ComponentMetadata) => {
-                                    component.id === nodes[i]?.data.metadataId;
+                                    return component.id === nodes[i]?.data.metadataId;
                                 })
                             }
 
