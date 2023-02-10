@@ -39,12 +39,15 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     let componentStyle: React.CSSProperties = {
         width: '15rem',
-        height: '8rem',
+        height: '10rem',
         padding: '1rem',
         borderColor: textColor,
+        alignItems: "center",
         borderRadius: '0.25rem',
         borderWidth: '2px',
         backgroundColor: 'white',
+        display: 'inline-block',
+        verticalAlign: 'middle',
         boxShadow:
             '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
     };
@@ -67,6 +70,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             width: '15rem',
             height: '8rem',
             padding: '1rem',
+            display: 'inline-block',
+            alignItems: "center",
+            verticalAlign: 'middle',
             borderColor: isHovering ? '#94a3b8' : '#cbd5e1',
             borderRadius: '0.25rem',
             borderWidth: '2px',
@@ -91,7 +97,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             onMouseOut={() => {
                 setIsHovering(false);
             }}
-            style={componentStyle}
+            style={{...componentStyle, 
+                height: props.data.id ? "12rem": "10rem",
+            }}
             onClick={() => {
                 if (props.data.onClick) {
                     props.data.onClick(props.data);

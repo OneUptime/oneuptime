@@ -22,4 +22,26 @@ export default class Text {
         }
         return word;
     }
+
+    public static pascalCaseToDashes(word: string): string { 
+        let tempWord =  word.replace(/[A-Z]/g, m => "-" + m.toLowerCase());
+        while(tempWord.includes(" ")){
+            tempWord = tempWord.replace(" ", "-");
+        }
+
+        if(tempWord.startsWith("-")){
+            tempWord = this.replaceAt(0, tempWord, " ")
+        }
+
+        if(tempWord.endsWith("-")){
+            tempWord = this.replaceAt(tempWord.length-1, tempWord, " ");
+        }
+
+        return tempWord;
+
+    }
+
+    public static replaceAt(index: number, word: string,  replacement: string) {
+        return word.substring(0, index) + replacement + word.substring(index + replacement.length);
+    }
 }

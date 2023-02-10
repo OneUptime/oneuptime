@@ -59,6 +59,7 @@ export default interface ComponentMetadata {
     returnValues: Array<ReturnValue>;
     inPorts: Array<Port>;
     outPorts: Array<Port>;
+    tableName?: string | undefined;
 }
 
 export interface ComponentCategory {

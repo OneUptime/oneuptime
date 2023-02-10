@@ -230,12 +230,30 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }, [showComponentsModal]);
 
     const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
+
+        const metaDataId = componentMetadata.id;
+
+        let hasFoundExistingId = true; 
+        let idCounter = 1; 
+        while(hasFoundExistingId){
+            const id = `${metaDataId}-${idCounter}`;
+
+            const exitingNode = nodes.find((i)=> i.data.id === id);
+
+            if(!exitingNode){
+                hasFoundExistingId = false;
+                break; 
+            }
+
+            idCounter++;
+        }
+
         const compToAdd: Node = {
             id: ObjectID.generate().toString(),
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
-                id: ObjectID.generate().toString(),
+                id: `${metaDataId}-${idCounter}`,
                 error: '',
                 metadata: { ...componentMetadata },
                 metadataId: componentMetadata.id
