@@ -11,8 +11,6 @@ import ComponentMetadata, {
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
 import Components, { Categories } from 'Common/Types/Workflow/Components';
-import Modal, { ModalWidth } from '../Modal/Modal';
-import { ButtonStyleType } from '../Button/Button';
 import ComponentElement, { NodeType } from './Component';
 import Input from '../Input/Input';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -20,6 +18,7 @@ import Icon from '../Icon/Icon';
 import Entities from 'Model/Models/Index';
 import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
 import IconProp from 'Common/Types/Icon/IconProp';
+import SideOver from '../SideOver/SideOver';
 
 export const loadComponentsAndCategories: Function = (componentType: ComponentType): {
     components: Array<ComponentMetadata>,
@@ -46,7 +45,7 @@ export const loadComponentsAndCategories: Function = (componentType: ComponentTy
         return componentMetadata.componentType === componentType;
     });
 
-    return {components: initComponents, categories: initCategories};
+    return { components: initComponents, categories: initCategories };
 }
 
 export interface ComponentProps {
@@ -101,7 +100,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                         componentMetadata.description
                             .toLowerCase()
                             .includes(search.trim().toLowerCase()) ||
-                            componentMetadata.category
+                        componentMetadata.category
                             .toLowerCase()
                             .includes(search.trim().toLowerCase()))
                 );
@@ -109,33 +108,27 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
         ]);
     }, [search]);
 
+
+    const [selectedComponentMetadata, setSelectedComponentMetadata] = useState<ComponentMetadata | null>(null)
+
     return (
-        <Modal
-            title={`Pick a ${props.componentsType}`}
-            description={`Please select a component to add to your workflow.`}
-            submitButtonText={'Close'}
-            modalWidth={ModalWidth.Large}
-            onSubmit={() => {
-                props.onCloseModal();
-            }}
-            submitButtonStyleType={ButtonStyleType.NORMAL}
-            rightElement={
-                <div>
-                    <Input
-                        placeholder="Search..."
-                        onChange={(text: string) => {
-                            setIsSearching(true);
-                            setSearch(text);
-                        }}
-                    />
-                </div>
-            }
-        >
+        <SideOver title={`Select a ${props.componentsType}`} description={`Please select a component to add to your workflow.`} onClose={props.onCloseModal} submitButtonDisabled={!selectedComponentMetadata} onSubmit={()=>selectedComponentMetadata && props.onComponentClick(selectedComponentMetadata)}>
+
             <>
                 <div>
                     {/** Search box here */}
 
-                    <div className="max-h-[60rem] overflow-y-auto overflow-x-hidden pb-10">
+                    <div className='mt-5'>
+                        <Input
+                            placeholder="Search..."
+                            onChange={(text: string) => {
+                                setIsSearching(true);
+                                setSearch(text);
+                            }}
+                        />
+                    </div>
+
+                    <div className="max-h-[60rem] overflow-y-auto overflow-x-hidden pb-10 mt-5">
                         {!componentsToShow ||
                             (componentsToShow.length === 0 && (
                                 <div className="w-full flex justify-center mt-20">
@@ -174,7 +167,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                 <p className="text-gray-400 text-sm mb-5">
                                                     {category.description}
                                                 </p>
-                                                <div className="flex flex-wrap">
+                                                <div className="flex flex-wrap ml-2">
                                                     {components &&
                                                         components.length > 0 &&
                                                         components
@@ -199,11 +192,11 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                 i
                                                                             }
                                                                             onClick={() => {
-                                                                                props.onComponentClick(
+                                                                                setSelectedComponentMetadata(
                                                                                     componentMetadata
                                                                                 );
                                                                             }}
-                                                                            className="m-5 ml-0 mt-0"
+                                                                            className={`m-5 ml-0 mt-0 ${selectedComponentMetadata && selectedComponentMetadata.id === componentMetadata.id ? "rounded ring-offset-2 ring ring-indigo-500": ""}`}
                                                                         >
                                                                             <ComponentElement
                                                                                 key={
@@ -236,7 +229,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                     </div>
                 </div>
             </>
-        </Modal>
+        </SideOver>
     );
 };
 

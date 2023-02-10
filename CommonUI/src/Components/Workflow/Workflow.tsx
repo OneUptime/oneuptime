@@ -30,7 +30,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
-import SideOver from '../SideOver/SideOver';
+import ComponentSettingsModal from './ComponentSettingsModal';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -39,7 +39,7 @@ export const getPlaceholderTriggerNode: Function = (): Node => {
         position: { x: 100, y: 100 },
         data: {
             metadata: {
-                icon: IconProp.Bolt,
+                iconProp: IconProp.Bolt,
                 componentType: ComponentType.Trigger,
                 title: 'Trigger',
                 description: 'Please click here to add trigger',
@@ -87,15 +87,18 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
     const [showComponentSettingsModal, setshowComponentSettingsModal] =
-    useState<boolean>(false);
+        useState<boolean>(false);
+    const [selectedNodeData, setSeletedNodeData] =
+        useState<NodeDataProp | null>(null);
 
     const onNodeClick: Function = (data: NodeDataProp) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
             showComponentsPickerModal(data.metadata.componentType);
-        }else{
+        } else {
             setshowComponentSettingsModal(true);
+            setSeletedNodeData(data);
         }
     };
 
@@ -181,7 +184,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         (params: any) => {
             return setEdges((eds: Array<Edge>) => {
                 return addEdge({
-                    ...params, 
+                    ...params,
                     ...getEdgeDefaultProps()
                 }, eds);
             });
@@ -235,22 +238,22 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }, [showComponentsModal]);
 
 
-   
+
 
     const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
 
         const metaDataId = componentMetadata.id;
 
-        let hasFoundExistingId = true; 
-        let idCounter = 1; 
-        while(hasFoundExistingId){
+        let hasFoundExistingId = true;
+        let idCounter = 1;
+        while (hasFoundExistingId) {
             const id = `${metaDataId}-${idCounter}`;
 
-            const exitingNode = nodes.find((i)=> i.data.id === id);
+            const exitingNode = nodes.find((i) => i.data.id === id);
 
-            if(!exitingNode){
+            if (!exitingNode) {
                 hasFoundExistingId = false;
-                break; 
+                break;
             }
 
             idCounter++;
@@ -319,11 +322,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 />
             )}
 
-            {showComponentSettingsModal && <SideOver title="Component Properties" description='Edit Component Properties and variables here.' onClose={()=> {
+            {showComponentSettingsModal && <ComponentSettingsModal component={selectedNodeData} title={selectedNodeData && selectedNodeData.metadata.title ? selectedNodeData.metadata.title : "Component Properties"} description={selectedNodeData && selectedNodeData.metadata.description ? selectedNodeData.metadata.description : 'Edit Component Properties and variables here.'} onClose={() => {
                 setshowComponentSettingsModal(false)
-            }} onSave={()=> {
+            }} onSave={() => {
                 setshowComponentSettingsModal(false)
-            }}><div></div></SideOver>} 
+            }} />}
         </div>
     );
 };
