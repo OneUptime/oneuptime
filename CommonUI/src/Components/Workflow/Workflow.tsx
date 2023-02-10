@@ -30,7 +30,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Component, { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 
-
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
         id: ObjectID.generate().toString(),
@@ -82,22 +81,20 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
     };
 
-
-    const showComponentsPickerModal: Function = (componentType: ComponentType) => {
+    const showComponentsPickerModal: Function = (
+        componentType: ComponentType
+    ) => {
         setShowComponentsType(componentType);
         setShowComponentsModal(true);
-    }
+    };
 
-    
-
-    useEffect(()=>{
-        if(props.showComponentsPickerModal){
+    useEffect(() => {
+        if (props.showComponentsPickerModal) {
             showComponentsPickerModal(ComponentType.Component);
-        }else{
+        } else {
             setShowComponentsModal(false);
         }
-    }, [props.showComponentsPickerModal])
-
+    }, [props.showComponentsPickerModal]);
 
     const deleteNode: Function = (id: string): void => {
         // remove the node.
@@ -111,17 +108,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         );
 
         setNodes((nds: Array<Node>) => {
-
-            let nodeToUpdate = nds.filter((node: Node) => {
+            let nodeToUpdate: Array<Node> = nds.filter((node: Node) => {
                 return node.data.id !== id;
-            })
+            });
 
-            if(nodeToUpdate.length === 0){
+            if (nodeToUpdate.length === 0) {
                 nodeToUpdate = nodeToUpdate.concat(getPlaceholderTriggerNode());
             }
 
             return nodeToUpdate;
-           
         });
 
         setEdges((eds: Array<Edge>) => {
@@ -134,8 +129,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 return !idsToDelete.includes(edge.id);
             });
         });
-
-       
     };
 
     const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -223,33 +216,40 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
-
     const [showComponentType, setShowComponentsType] = useState<ComponentType>(
         ComponentType.Component
     );
 
-    useEffect(()=>{
+    useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
-    }, [showComponentsModal])
+    }, [showComponentsModal]);
 
     const addToGraph: Function = (component: Component) => {
-        const compToAdd = {
+        const compToAdd: Node = {
             id: ObjectID.generate().toString(),
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
-                ...component
+                ...component,
             },
         };
 
-        if(component.componentType === ComponentType.Trigger){
-            // remove the placeholder trigger element from graph. 
-            setNodes((nds) => nds.filter((node)=> node.data.componentType === ComponentType.Component).concat(compToAdd));
-        }else{
-            setNodes((nds) => nds.concat(compToAdd));
+        if (component.componentType === ComponentType.Trigger) {
+            // remove the placeholder trigger element from graph.
+            setNodes((nds: Array<Node>) => {
+                return nds
+                    .filter((node: Node) => {
+                        return (
+                            node.data.componentType === ComponentType.Component
+                        );
+                    })
+                    .concat(compToAdd);
+            });
+        } else {
+            setNodes((nds: Array<Node>) => {
+                return nds.concat(compToAdd);
+            });
         }
-
-        
     };
 
     return (

@@ -6,36 +6,35 @@ const components: Array<Component> = [
         id: 'webhook',
         title: 'Webhook',
         category: 'Webhook',
-        description: 'Hook any of your external apps and services with this workflow.',
+        description:
+            'Hook any of your external apps and services with this workflow.',
         iconProp: IconProp.AltGlobe,
         componentType: ComponentType.Trigger,
-        arguments: [
-
+        arguments: [],
+        returnValues: [
+            {
+                id: 'response-headers',
+                name: 'Response Headers',
+                description: 'Response Headers for this request',
+                type: ComponentInputType.StringDictionary,
+                required: false,
+            },
+            {
+                id: 'request-params',
+                name: 'Request Query Params',
+                description: 'Request Query Params for this request',
+                type: ComponentInputType.StringDictionary,
+                required: false,
+            },
+            {
+                id: 'request-body',
+                name: 'Request Body',
+                description: 'Request Body',
+                type: ComponentInputType.JSON,
+                required: false,
+            },
         ],
-        returnValues: [{
-            id: 'response-headers',
-            name: 'Response Headers',
-            description: 'Response Headers for this request',
-            type: ComponentInputType.StringDictionary,
-            required: false,
-        },
-        {
-            id: 'request-params',
-            name: 'Request Query Params',
-            description: 'Request Query Params for this request',
-            type: ComponentInputType.StringDictionary,
-            required: false,
-        },
-        {
-            id: 'request-body',
-            name: 'Request Body',
-            description: 'Request Body',
-            type: ComponentInputType.JSON,
-            required: false,
-        },],
-        inPorts: [
-
-        ],
+        inPorts: [],
         outPorts: [
             {
                 title: 'Out',

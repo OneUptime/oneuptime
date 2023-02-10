@@ -39,7 +39,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [edges, setEdges] = useState<Array<Edge>>([]);
     const [error, setError] = useState<string>('');
 
-    const [showComponentPickerModal, setShowComponentPickerModal] = useState<boolean>(false);
+    const [showComponentPickerModal, setShowComponentPickerModal] =
+        useState<boolean>(false);
 
     const loadGraph: Function = async (): Promise<void> => {
         try {
@@ -64,7 +65,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     } else {
                         setNodes(
                             (workflow.graph as JSONObject)[
-                            'nodes'
+                                'nodes'
                             ] as Array<Node>
                         );
                     }
@@ -87,7 +88,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -125,7 +126,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     try {
                         setError(
                             (err as HTTPErrorResponse).message ||
-                            'Server Error. Please try again'
+                                'Server Error. Please try again'
                         );
                     } catch (e) {
                         setError('Server Error. Please try again');
@@ -234,24 +235,28 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     description={'Workflow builder for OneUptime'}
                     rightElement={
                         <div className="flex">
-                             <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
+                            <p className="text-sm text-gray-400 mr-3 mt-2">
+                                {saveStatus}
+                            </p>
                             <div>
-                                <Button title="Add Component" icon={IconProp.Add} onClick={()=>{
-                                    setShowComponentPickerModal(true);
-                                }} />
+                                <Button
+                                    title="Add Component"
+                                    icon={IconProp.Add}
+                                    onClick={() => {
+                                        setShowComponentPickerModal(true);
+                                    }}
+                                />
                             </div>
-                           
                         </div>
                     }
-
                 >
                     {isLoading ? <ComponentLoader /> : <></>}
 
                     {!isLoading ? (
                         <Workflow
                             showComponentsPickerModal={showComponentPickerModal}
-                            onComponentPickerModalUpdate={(value: boolean)=>{
-                                setShowComponentPickerModal(value)
+                            onComponentPickerModalUpdate={(value: boolean) => {
+                                setShowComponentPickerModal(value);
                             }}
                             initialNodes={nodes}
                             initialEdges={edges}
