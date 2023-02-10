@@ -27,7 +27,7 @@ import 'reactflow/dist/style.css';
 import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
-import Component, { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
@@ -36,11 +36,16 @@ export const getPlaceholderTriggerNode: Function = (): Node => {
         type: 'node',
         position: { x: 100, y: 100 },
         data: {
-            icon: IconProp.Bolt,
-            componentType: ComponentType.Trigger,
-            nodeType: NodeType.PlaceholderNode,
-            title: 'Trigger',
-            description: 'Please click here to add trigger',
+            metadata: {
+                icon: IconProp.Bolt,
+                componentType: ComponentType.Trigger,
+
+                title: 'Trigger',
+                description: 'Please click here to add trigger',
+            },
+            nodeType: NodeType.PlaceholderNode, 
+            id: '', 
+            error: ''
         },
     };
 };
@@ -53,13 +58,6 @@ const edgeStyle: React.CSSProperties = {
     strokeWidth: '2px',
     stroke: '#94a3b8',
     color: '#94a3b8',
-};
-
-const newNodeEdgeStyle: React.CSSProperties = {
-    strokeWidth: '2px',
-    stroke: '#e2e8f0',
-    color: '#e2e8f0',
-    backgroundColor: '#e2e8f0',
 };
 
 export interface ComponentProps {
@@ -77,7 +75,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
-            showComponentsPickerModal(data.componentType);
+            showComponentsPickerModal(data.metadata.componentType);
         }
     };
 
@@ -143,28 +141,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.initialEdges.map((edge: Edge) => {
             // add style.
 
-            let isDarkEdge: boolean = true;
-
-            const node: Node | undefined = props.initialNodes.find(
-                (node: Node) => {
-                    return node.id === edge.target;
-                }
-            );
-
-            if (node && node.type === NodeType.PlaceholderNode) {
-                isDarkEdge = false;
-            }
-
             edge = {
                 ...edge,
                 type: 'smoothstep',
                 markerEnd: {
                     type: MarkerType.Arrow,
-                    color: isDarkEdge
-                        ? edgeStyle.color?.toString() || ''
-                        : newNodeEdgeStyle.color?.toString() || '',
+                    color:
+                        edgeStyle.color?.toString() || ''
+
                 },
-                style: isDarkEdge ? edgeStyle : newNodeEdgeStyle,
+                style: edgeStyle,
             };
             return edge;
         })
@@ -181,7 +167,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const onConnect: OnConnect = useCallback(
         (params: any) => {
             return setEdges((eds: Array<Edge>) => {
-                return addEdge(params, eds);
+                return addEdge({
+                    ...params, type: 'smoothstep',
+                    markerEnd: {
+                        type: MarkerType.Arrow,
+                        color:
+                            edgeStyle.color?.toString() || ''
+
+                    },
+                    style: edgeStyle
+                }, eds);
             });
         },
         [setEdges]
@@ -195,7 +190,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         (oldEdge: Edge, newConnection: Connection) => {
             edgeUpdateSuccessful.current = true;
             setEdges((eds: Array<Edge>) => {
-                return updateEdge(oldEdge, newConnection, eds);
+                return updateEdge({
+                    ...oldEdge, markerEnd: {
+                        type: MarkerType.Arrow,
+                        color:
+                            edgeStyle.color?.toString() || ''
+
+                    },
+                    style: edgeStyle
+                }, newConnection, eds);
             });
         },
         []
@@ -224,17 +227,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
 
-    const addToGraph: Function = (component: Component) => {
+    const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
         const compToAdd: Node = {
             id: ObjectID.generate().toString(),
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
-                ...component,
+                metadata: { ...componentMetadata }
             },
         };
 
-        if (component.componentType === ComponentType.Trigger) {
+        if (componentMetadata.componentType === ComponentType.Trigger) {
             // remove the placeholder trigger element from graph.
             setNodes((nds: Array<Node>) => {
                 return nds
@@ -277,7 +280,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     onCloseModal={() => {
                         setShowComponentsModal(false);
                     }}
-                    onComponentClick={(component: Component) => {
+                    onComponentClick={(component: ComponentMetadata) => {
                         setShowComponentsModal(false);
 
                         addToGraph(component);

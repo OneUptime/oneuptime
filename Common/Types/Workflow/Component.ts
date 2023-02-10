@@ -48,7 +48,7 @@ export interface ReturnValue {
     required: boolean;
 }
 
-export default interface Component {
+export default interface ComponentMetadata {
     id: string;
     title: string;
     category: string;

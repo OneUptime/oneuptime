@@ -1,7 +1,7 @@
 import IconProp from '../../Icon/IconProp';
-import Component, { ComponentInputType, ComponentType } from './../Component';
+import ComponentMetadata, { ComponentInputType, ComponentType } from './../Component';
 
-const components: Array<Component> = [
+const components: Array<ComponentMetadata> = [
     {
         id: 'javascript',
         title: 'Run Custom JavaScript',

@@ -3,7 +3,7 @@ import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { ComponentType } from 'Common/Types/Workflow/Component';
 
 export enum NodeType {
     Node = 'Node',
@@ -12,15 +12,13 @@ export enum NodeType {
 
 export interface NodeDataProp {
     nodeData: JSONObject;
-    title: string;
+    error: string;
     id: string;
-    description: string;
-    icon?: IconProp | undefined;
-    componentType: ComponentType;
     nodeType: NodeType;
     onDeleteClick?: (id: string) => void | undefined;
     onClick?: (node: NodeDataProp) => void | undefined;
     isPreview?: boolean | undefined; // is this used to show in the components modal?
+    metadata: ComponentMetadata;
 }
 
 export interface ComponentProps {
@@ -135,10 +133,45 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 )}
 
             {!props.data.isPreview &&
-                props.data.componentType !== ComponentType.Trigger && (
+                props.data.error &&
+                props.data.nodeType !== NodeType.PlaceholderNode && (
+                    <div
+                        style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '100px',
+                            color: '#ef4444',
+                            position: 'absolute',
+                            top: '0px',
+                            left: '220px',
+                            cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                            if (props.data.onDeleteClick) {
+                                props.data.onDeleteClick(props.data.id);
+                            }
+                        }}
+                    >
+                        <Icon
+                            icon={IconProp.Alert}
+                            style={{
+                                color: '#ef4444',
+                                width: '1rem',
+                                height: '1rem',
+                                textAlign: 'center',
+                                margin: 'auto',
+                                marginTop: '2px',
+                            }}
+                            thick={ThickProp.Thick}
+                        />
+                    </div>
+                )}
+
+            {!props.data.isPreview &&
+                props.data.metadata.componentType !== ComponentType.Trigger && (
                     <Handle
                         type="target"
-                        onConnect={(_params: Connection) => {}}
+                        onConnect={(_params: Connection) => { }}
                         isConnectable={true}
                         position={Position.Top}
                         style={handleStyle}
@@ -155,12 +188,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <div
                     style={{
                         margin: 'auto',
-                        marginTop: props.data.icon ? '0.5rem' : '1rem',
+                        marginTop: props.data.metadata.iconProp ? '0.5rem' : '1rem',
                     }}
                 >
-                    {props.data.icon && (
+                    {props.data.metadata.iconProp && (
                         <Icon
-                            icon={props.data.icon}
+                            icon={props.data.metadata.iconProp}
                             style={{
                                 color: textColor,
                                 width: '1.5rem',
@@ -179,7 +212,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             marginTop: '6px',
                         }}
                     >
-                        {props.data.title}
+                        {props.data.metadata.title}
                     </p>
                     {!props.data.isPreview && props.data.id && (
                         <p
@@ -201,7 +234,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             marginTop: '6px',
                         }}
                     >
-                        {props.data.description}
+                        {props.data.metadata.description}
                     </p>
                 </div>
             </div>
@@ -211,7 +244,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     <Handle
                         type="source"
                         id="a"
-                        onConnect={(_params: Connection) => {}}
+                        onConnect={(_params: Connection) => { }}
                         isConnectable={true}
                         position={Position.Bottom}
                         style={handleStyle}

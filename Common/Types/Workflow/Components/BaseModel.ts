@@ -1,10 +1,10 @@
 import IconProp from '../../Icon/IconProp';
-import Component, { ComponentInputType, ComponentType } from './../Component';
+import ComponentMetadata, { ComponentInputType, ComponentType } from './../Component';
 import BaseModel from '../../../Models/BaseModel';
 
 export default class BaseModelComponent {
-    public static getComponents(model: BaseModel): Array<Component> {
-        const components: Array<Component> = [];
+    public static getComponents(model: BaseModel): Array<ComponentMetadata> {
+        const components: Array<ComponentMetadata> = [];
 
         if (!model.enableWorkflowOn) {
             return [];
