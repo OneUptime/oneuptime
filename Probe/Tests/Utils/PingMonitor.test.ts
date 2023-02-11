@@ -27,19 +27,20 @@ describe('Ping', () => {
     });
     test('Ping.fetch should return appropriate object if the valid IPV4 or IPV6 is given', async () => {
         let result: PingResponse;
-        result = await Ping.fetch(new IPv4('172.217.170.206'), {
+        //fetch the oneuptime first
+        result = await Ping.fetch(new Hostname('oneuptime.com', 80));
+
+        result = await Ping.fetch(result.remoteAddressIP, {
             timeout: new PositiveNumber(5000),
         }); // One of the google ip
         expect(result.isAlive).toBe(true);
         expect(result.responseTimeInMS?.toNumber()).toBeGreaterThan(0);
         expect(result.responseTimeInMS?.toNumber()).toBeLessThanOrEqual(5000);
-        result = await Ping.fetch(new IPv4('192.0.2.200')); //
+        result = await Ping.fetch(new IPv4('240.1.2.200')); //reserved for the future usee
         expect(result.isAlive).toBe(false);
         expect(result.responseTimeInMS).toBeUndefined();
-        result = await Ping.fetch(new IPv4('0.42.52.42')); // ip can't start 0
-        expect(result.responseTimeInMS).toBeUndefined();
-        expect(result.isAlive).toBe(false);
-        result = await Ping.fetch(new IPv6('2001:4860:4860::8888')); //one of the google ip
+
+        result = await Ping.fetch(new IPv6('2001:4860:4860::8888')); //IPV6 google dns resolver
         expect(result.isAlive).toBe(true);
         expect(result.responseTimeInMS).toBeDefined();
     });

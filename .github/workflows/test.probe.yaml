@@ -17,6 +17,9 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
+      - run: sudo apt install cloudflare-warp -y
+      - run: warp-cli register
+      - run: warp-cli connect
       - run: cd Common && npm install
       - run: cd CommonServer && npm install
       - run: cd Probe && npm install && npm run test
