@@ -1,5 +1,6 @@
 import IconProp from 'Common/Types/Icon/IconProp';
 import { JSONObject } from 'Common/Types/JSON';
+import { Dictionary } from 'lodash';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import Divider from '../Divider/Divider';
@@ -23,6 +24,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.component);
+    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<Dictionary<boolean>>({});
     const [showDeleteConfirmation, setShowDeleteConfirmation] =
         useState<boolean>(false);
 
@@ -34,9 +36,12 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             onSubmit={() => {
                 return component && props.onSave(component);
             }}
+            submitButtonDisabled={Object.keys(hasFormValidationErrors).filter((key: string)=> {
+                return hasFormValidationErrors[key];
+            }).length !== 0}
             leftFooterElement={
                 <Button
-                    title="Delete Component"
+                    title={`Delete ${component.metadata.componentType}`}
                     icon={IconProp.Trash}
                     buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                     onClick={() => {
@@ -48,8 +53,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             <>
                 {showDeleteConfirmation && (
                     <ConfirmModal
-                        title={`Delete Component`}
-                        description={`Are you sure you want to delete this component? This action is not recoverable.`}
+                        title={`Delete ${component.metadata.componentType}`}
+                        description={`Are you sure you want to delete this ${component.metadata.componentType.toLowerCase()}? This action is not recoverable.`}
                         onClose={() => {
                             setShowDeleteConfirmation(false);
                         }}
@@ -62,6 +67,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                         submitButtonType={ButtonStyleType.DANGER}
                     />
                 )}
+                <div className='mb-3 mt-3'>
                 <BasicForm
                     hideSubmitButton={true}
                     initialValues={{
@@ -70,10 +76,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     onChange={(values: FormValues<JSONObject>) => {
                         setComponent({ ...component, ...values });
                     }}
+                    onFormValidationErrorChanged={(hasError: boolean)=>{
+                        setHasFormValidatonErrors({...hasFormValidationErrors, "id": hasError});
+                    }}
                     fields={[
                         {
-                            title: 'ID',
-                            description: `Component ID will make it easier for you to connect to other components.`,
+                            title: `${component.metadata.componentType} ID`,
+                            description: `${component.metadata.componentType} ID will make it easier for you to connect to other components.`,
                             field: {
                                 id: true,
                             },
@@ -84,6 +93,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                         },
                     ]}
                 />
+                </div>
 
                 <Divider />
             </>

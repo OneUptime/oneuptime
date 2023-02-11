@@ -346,7 +346,20 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     onClose={() => {
                         setshowComponentSettingsModal(false);
                     }}
-                    onSave={() => {
+                    onSave={(componentData: NodeDataProp) => {
+                        // Update the node. 
+
+                        setNodes((nds: Array<Node>) => {
+                            return nds.map((n: Node)=> {
+
+                                if(n.data.internalId === componentData.internalId){
+                                    n.data = componentData;
+                                }
+
+                                return n;
+                            }); 
+                        });
+                        
                         setshowComponentSettingsModal(false);
                     }}
                 />

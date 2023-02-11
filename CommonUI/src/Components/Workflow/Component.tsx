@@ -68,7 +68,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         isLabel: boolean | undefined
     ): React.CSSProperties => {
         if (portCount === 1 && totalPorts === 1) {
-            return {};
+            return isLabel ? {left: 100} : {};
         }
 
         if (portCount === 1 && totalPorts === 2) {
@@ -84,7 +84,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
 
         if (portCount === 2 && totalPorts === 3) {
-            return {};
+            return isLabel ? {left: 100} : {};
         }
 
         if (portCount === 3 && totalPorts === 3) {
@@ -253,7 +253,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                                 textAlign: 'center',
                             }}
                         >
-                            ({props.data.id})
+                            ({props.data.id.trim()})
                         </p>
                     )}
                     <p
