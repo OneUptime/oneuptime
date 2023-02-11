@@ -13,6 +13,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow, {
+    getEdgeDefaultProps,
     getPlaceholderTriggerNode,
 } from 'CommonUI/src/Components/Workflow/Workflow';
 import Card from 'CommonUI/src/Components/Card/Card';
@@ -25,6 +26,13 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/ComponentModal';
+import ComponentMetadata, {
+    ComponentCategory,
+    ComponentType,
+} from 'Common/Types/Workflow/Component';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { NodeType } from 'CommonUI/src/Components/Workflow/Component';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -55,6 +63,15 @@ const Delete: FunctionComponent<PageComponentProps> = (
             );
 
             if (workflow) {
+                const componentsAndCategories: {
+                    components: Array<ComponentMetadata>;
+                    categories: Array<ComponentCategory>;
+                } = loadComponentsAndCategories(ComponentType.Component);
+                const triggerAndCategories: {
+                    components: Array<ComponentMetadata>;
+                    categories: Array<ComponentCategory>;
+                } = loadComponentsAndCategories(ComponentType.Trigger);
+
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
                     if (
                         ((workflow.graph as JSONObject)['nodes'] as Array<Node>)
@@ -63,11 +80,64 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         // add a placeholder trigger node.
                         setNodes([getPlaceholderTriggerNode()]);
                     } else {
-                        setNodes(
-                            (workflow.graph as JSONObject)[
-                                'nodes'
-                            ] as Array<Node>
-                        );
+                        const nodes: Array<Node> = (
+                            workflow.graph as JSONObject
+                        )['nodes'] as Array<Node>;
+
+                        // Fill nodes.
+
+                        for (let i: number = 0; i < nodes.length; i++) {
+                            if (!nodes[i]) {
+                                continue;
+                            }
+
+                            if (
+                                nodes[i]?.data.nodeType ===
+                                NodeType.PlaceholderNode
+                            ) {
+                                nodes[i] = {
+                                    ...nodes[i],
+                                    ...getPlaceholderTriggerNode(),
+                                };
+                                continue;
+                            }
+
+                            let componentMetdata:
+                                | ComponentMetadata
+                                | undefined = componentsAndCategories.components.find(
+                                (component: ComponentMetadata) => {
+                                    return (
+                                        component.id ===
+                                        nodes[i]?.data.metadataId
+                                    );
+                                }
+                            );
+
+                            if (!componentMetdata) {
+                                componentMetdata =
+                                    triggerAndCategories.components.find(
+                                        (component: ComponentMetadata) => {
+                                            return (
+                                                component.id ===
+                                                nodes[i]?.data.metadataId
+                                            );
+                                        }
+                                    );
+                            }
+
+                            if (!componentMetdata) {
+                                throw new BadDataException(
+                                    'Component Metadata not found for node ' +
+                                        nodes[i]?.data.metadataId
+                                );
+                            }
+
+                            nodes[i]!.data.metadata = {
+                                ...componentMetdata,
+                            };
+                        }
+
+                        setNodes(nodes);
                     }
                 } else {
                     // add a placeholder trigger node.
@@ -75,9 +145,22 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 }
 
                 if (workflow.graph && (workflow.graph as JSONObject)['edges']) {
-                    setEdges(
-                        (workflow.graph as JSONObject)['edges'] as Array<Edge>
-                    );
+                    const edges: Array<Edge> = (workflow.graph as JSONObject)[
+                        'edges'
+                    ] as Array<Edge>;
+
+                    for (let i: number = 0; i < edges.length; i++) {
+                        if (!edges[i]) {
+                            continue;
+                        }
+
+                        edges[i] = {
+                            ...edges[i],
+                            ...getEdgeDefaultProps(),
+                        };
+                    }
+
+                    setEdges(edges);
                 } else {
                     setEdges([]);
                 }
@@ -112,10 +195,45 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setSaveTimeout(
             setTimeout(async () => {
                 try {
-                    const graph: JSONObject = {
-                        nodes,
-                        edges,
-                    };
+                    const graph: JSONObject = JSON.parse(
+                        JSON.stringify({ nodes, edges })
+                    ); // deep copy
+
+                    // clean up.
+
+                    if (graph['nodes']) {
+                        for (
+                            let i: number = 0;
+                            i < (graph['nodes'] as Array<Node>).length;
+                            i++
+                        ) {
+                            (graph['nodes'] as Array<Node>)[i] = {
+                                ...((graph['nodes'] as Array<Node>)[i] as Node),
+                            };
+
+                            delete ((graph['nodes'] as Array<Node>)[i] as Node)
+                                .data.metadata;
+                        }
+                    }
+
+                    if (graph['edges']) {
+                        for (
+                            let i: number = 0;
+                            i < (graph['edges'] as Array<Edge>).length;
+                            i++
+                        ) {
+                            (graph['edges'] as Array<Edge>)[i] = {
+                                ...((graph['edges'] as Array<Edge>)[i] as Edge),
+                            };
+
+                            delete ((graph['edges'] as Array<Edge>)[i] as Edge)
+                                .type;
+                            delete ((graph['edges'] as Array<Edge>)[i] as Edge)
+                                .style;
+                            delete ((graph['edges'] as Array<Edge>)[i] as Edge)
+                                .markerEnd;
+                        }
+                    }
 
                     await ModelAPI.updateById(WorkflowModel, modelId, {
                         graph,
@@ -146,53 +264,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
     useEffect(() => {
         loadGraph().catch();
     }, []);
-
-    // const initialNodes: Array<Node> = [
-    //     {
-    //         id: '1',
-    //         type: 'node',
-    //         position: { x: 100, y: 100 },
-    //         data: {
-    //             id: 'slack-1',
-    //             title: 'Slack',
-    //             description: 'Open a channel',
-    //             icon: IconProp.Add,
-    //             isTrigger: true,
-    //         },
-    //     },
-    //     {
-    //         id: '3',
-    //         type: 'node',
-    //         position: { x: 100, y: 300 },
-    //         data: {
-    //             id: 'slack-2',
-    //             title: 'Slack',
-    //             description: 'Open a channel',
-    //             icon: IconProp.Add,
-    //             isTrigger: false,
-    //         },
-    //     },
-    //     {
-    //         id: '2',
-    //         type: 'addNewNode',
-    //         position: { x: 100, y: 500 },
-    //         data: {
-    //             id: 'slack-3',
-    //             title: 'Slack',
-    //             description: 'Open a channel',
-    //             icon: IconProp.Add,
-    //             isTrigger: true,
-    //         },
-    //     },
-    // ];
-
-    // const initialEdges: Array<Edge> = [
-    //     {
-    //         id: 'e1-2',
-    //         source: '1',
-    //         target: '3',
-    //     },
-    // ];
 
     return (
         <Page

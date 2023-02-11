@@ -64,6 +64,7 @@ export interface ComponentProps<T extends Object> {
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
+    onChange?: undefined | ((values: FormValues<T>) => void);
     fields: Fields<T>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -970,6 +971,10 @@ const BasicForm: Function = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
+        if (props.onChange) {
+            props.onChange(values);
+        }
+
         return { ...errors, ...customValidateResult } as FormikErrors<
             FormValues<T>
         >;
@@ -1087,10 +1092,14 @@ const BasicForm: Function = <T extends Object>(
                     {({ errors, touched }: any) => {
                         return (
                             <Form autoComplete="off">
-                                <h1>{props.title}</h1>
+                                {props.title && (
+                                    <h1 className="text-lg text-gray-700 mt-5">
+                                        {props.title}
+                                    </h1>
+                                )}
 
                                 {Boolean(props.description) && (
-                                    <p className="description">
+                                    <p className="text-sm text-gray-500 mb-5">
                                         {props.description}
                                     </p>
                                 )}

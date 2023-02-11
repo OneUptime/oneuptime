@@ -1,10 +1,14 @@
 import IconProp from '../../Icon/IconProp';
-import Component, { ComponentInputType, ComponentType } from './../Component';
+import ComponentMetadata, {
+    ComponentInputType,
+    ComponentType,
+} from './../Component';
 import BaseModel from '../../../Models/BaseModel';
+import Text from '../../Text';
 
 export default class BaseModelComponent {
-    public static getComponents(model: BaseModel): Array<Component> {
-        const components: Array<Component> = [];
+    public static getComponents(model: BaseModel): Array<ComponentMetadata> {
+        const components: Array<ComponentMetadata> = [];
 
         if (!model.enableWorkflowOn) {
             return [];
@@ -12,11 +16,12 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.read) {
             components.push({
-                id: `${model.tableName}-find-one`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-find-one`,
                 title: `Find One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find one ${model.singularName}`,
                 iconProp: IconProp.ArrowCircleDown,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -61,11 +66,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-find-many`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-find-many`,
                 title: `Find Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
                 iconProp: IconProp.ArrowCircleDown,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -112,11 +118,12 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.delete) {
             components.push({
-                id: `${model.tableName}-on-delete`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-on-delete`,
                 title: `On Delete ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is deleted...`,
                 iconProp: IconProp.Bolt,
+                tableName: model.tableName!,
                 componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
@@ -140,11 +147,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-delete-one`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-delete-one`,
                 title: `Delete One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to delete one ${model.singularName}`,
                 iconProp: IconProp.Trash,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -181,11 +189,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-delete-many`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-delete-many`,
                 title: `Delete Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
                 iconProp: IconProp.Trash,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -224,11 +233,12 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.create) {
             components.push({
-                id: `${model.tableName}-on-create`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-on-create`,
                 title: `On Create ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is created...`,
                 iconProp: IconProp.Bolt,
+                tableName: model.tableName!,
                 componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
@@ -252,11 +262,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-create-one`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-create-one`,
                 title: `Create One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to create one ${model.singularName}`,
                 iconProp: IconProp.Database,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -301,11 +312,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-create-many`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-create-many`,
                 title: `Create Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to create many ${model.pluralName}`,
                 iconProp: IconProp.Database,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -352,11 +364,12 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.update) {
             components.push({
-                id: `${model.tableName}-on-update`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-on-update`,
                 title: `On Update ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is updated...`,
                 iconProp: IconProp.Bolt,
+                tableName: model.tableName!,
                 componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
@@ -379,11 +392,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-update-one`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-update-one`,
                 title: `Update One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to update one ${model.singularName}`,
                 iconProp: IconProp.ArrowCircleUp,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -435,11 +449,12 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: `${model.tableName}-update-many`,
+                id: `${Text.pascalCaseToDashes(model.tableName!)}-update-many`,
                 title: `Update Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to update many ${model.pluralName}`,
                 iconProp: IconProp.ArrowCircleUp,
+                tableName: model.tableName!,
                 componentType: ComponentType.Component,
                 arguments: [
                     {

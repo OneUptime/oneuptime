@@ -3,7 +3,11 @@ import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, {
+    ComponentType,
+    Port,
+} from 'Common/Types/Workflow/Component';
+import Tooltip from '../Tooltip/Toolip';
 
 export enum NodeType {
     Node = 'Node',
@@ -12,15 +16,14 @@ export enum NodeType {
 
 export interface NodeDataProp {
     nodeData: JSONObject;
-    title: string;
+    error: string;
     id: string;
-    description: string;
-    icon?: IconProp | undefined;
-    componentType: ComponentType;
     nodeType: NodeType;
-    onDeleteClick?: (id: string) => void | undefined;
     onClick?: (node: NodeDataProp) => void | undefined;
     isPreview?: boolean | undefined; // is this used to show in the components modal?
+    metadata: ComponentMetadata;
+    metadataId: string;
+    internalId: string;
 }
 
 export interface ComponentProps {
@@ -40,12 +43,15 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     let componentStyle: React.CSSProperties = {
         width: '15rem',
-        height: '8rem',
+        height: '10rem',
         padding: '1rem',
         borderColor: textColor,
+        alignItems: 'center',
         borderRadius: '0.25rem',
         borderWidth: '2px',
         backgroundColor: 'white',
+        display: 'inline-block',
+        verticalAlign: 'middle',
         boxShadow:
             '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
     };
@@ -54,6 +60,39 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         background: '#6b7280',
         height: '0.75rem',
         width: '0.75rem',
+    };
+
+    const getPortPosition: Function = (
+        portCount: number,
+        totalPorts: number,
+        isLabel: boolean | undefined
+    ): React.CSSProperties => {
+        if (portCount === 1 && totalPorts === 1) {
+            return {};
+        }
+
+        if (portCount === 1 && totalPorts === 2) {
+            return { left: isLabel ? 70 : 80 };
+        }
+
+        if (portCount === 2 && totalPorts === 2) {
+            return { left: isLabel ? 150 : 160 };
+        }
+
+        if (portCount === 1 && totalPorts === 3) {
+            return { left: isLabel ? 70 : 80 };
+        }
+
+        if (portCount === 2 && totalPorts === 3) {
+            return {};
+        }
+
+        if (portCount === 3 && totalPorts === 3) {
+            return { left: isLabel ? 150 : 160 };
+        }
+
+        // default
+        return {};
     };
 
     if (props.data.nodeType === NodeType.PlaceholderNode) {
@@ -68,6 +107,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             width: '15rem',
             height: '8rem',
             padding: '1rem',
+            display: 'inline-block',
+            alignItems: 'center',
+            verticalAlign: 'middle',
             borderColor: isHovering ? '#94a3b8' : '#cbd5e1',
             borderRadius: '0.25rem',
             borderWidth: '2px',
@@ -92,7 +134,10 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             onMouseOut={() => {
                 setIsHovering(false);
             }}
-            style={componentStyle}
+            style={{
+                ...componentStyle,
+                height: props.data.id ? '12rem' : '10rem',
+            }}
             onClick={() => {
                 if (props.data.onClick) {
                     props.data.onClick(props.data);
@@ -100,29 +145,25 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             }}
         >
             {!props.data.isPreview &&
-                isHovering &&
+                props.data.error &&
                 props.data.nodeType !== NodeType.PlaceholderNode && (
                     <div
                         style={{
                             width: '20px',
                             height: '20px',
                             borderRadius: '100px',
-                            background: '#ef4444',
+                            color: '#ef4444',
                             position: 'absolute',
-                            top: '-9px',
-                            left: '228px',
+                            top: '0px',
+                            left: '220px',
                             cursor: 'pointer',
                         }}
-                        onClick={() => {
-                            if (props.data.onDeleteClick) {
-                                props.data.onDeleteClick(props.data.id);
-                            }
-                        }}
+                        onClick={() => {}}
                     >
                         <Icon
-                            icon={IconProp.Close}
+                            icon={IconProp.Alert}
                             style={{
-                                color: 'white',
+                                color: '#ef4444',
                                 width: '1rem',
                                 height: '1rem',
                                 textAlign: 'center',
@@ -135,14 +176,35 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 )}
 
             {!props.data.isPreview &&
-                props.data.componentType !== ComponentType.Trigger && (
-                    <Handle
-                        type="target"
-                        onConnect={(_params: Connection) => {}}
-                        isConnectable={true}
-                        position={Position.Top}
-                        style={handleStyle}
-                    />
+                props.data.metadata.componentType !== ComponentType.Trigger && (
+                    <div>
+                        {props.data.metadata.inPorts &&
+                            props.data.metadata.inPorts.length > 0 &&
+                            props.data.metadata.inPorts.map(
+                                (port: Port, i: number) => {
+                                    return (
+                                        <Handle
+                                            key={i}
+                                            type="target"
+                                            id={port.id}
+                                            onConnect={(
+                                                _params: Connection
+                                            ) => {}}
+                                            isConnectable={true}
+                                            position={Position.Top}
+                                            style={{
+                                                ...handleStyle,
+                                                ...getPortPosition(
+                                                    i + 1,
+                                                    props.data.metadata.inPorts
+                                                        .length
+                                                ),
+                                            }}
+                                        />
+                                    );
+                                }
+                            )}
+                    </div>
                 )}
 
             <div
@@ -155,12 +217,14 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <div
                     style={{
                         margin: 'auto',
-                        marginTop: props.data.icon ? '0.5rem' : '1rem',
+                        marginTop: props.data.metadata.iconProp
+                            ? '0.5rem'
+                            : '1rem',
                     }}
                 >
-                    {props.data.icon && (
+                    {props.data.metadata.iconProp && (
                         <Icon
-                            icon={props.data.icon}
+                            icon={props.data.metadata.iconProp}
                             style={{
                                 color: textColor,
                                 width: '1.5rem',
@@ -179,7 +243,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             marginTop: '6px',
                         }}
                     >
-                        {props.data.title}
+                        {props.data.metadata.title}
                     </p>
                     {!props.data.isPreview && props.data.id && (
                         <p
@@ -201,21 +265,74 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             marginTop: '6px',
                         }}
                     >
-                        {props.data.description}
+                        {props.data.metadata.description}
                     </p>
                 </div>
             </div>
 
             {!props.data.isPreview &&
                 props.data.nodeType !== NodeType.PlaceholderNode && (
-                    <Handle
-                        type="source"
-                        id="a"
-                        onConnect={(_params: Connection) => {}}
-                        isConnectable={true}
-                        position={Position.Bottom}
-                        style={handleStyle}
-                    />
+                    <>
+                        <div>
+                            {props.data.metadata.outPorts &&
+                                props.data.metadata.outPorts.length > 0 &&
+                                props.data.metadata.outPorts.map(
+                                    (port: Port, i: number) => {
+                                        return (
+                                            <Handle
+                                                key={i}
+                                                type="source"
+                                                id={port.id}
+                                                onConnect={(
+                                                    _params: Connection
+                                                ) => {}}
+                                                isConnectable={true}
+                                                position={Position.Bottom}
+                                                style={{
+                                                    ...handleStyle,
+                                                    ...getPortPosition(
+                                                        i + 1,
+                                                        props.data.metadata
+                                                            .outPorts.length
+                                                    ),
+                                                }}
+                                            />
+                                        );
+                                    }
+                                )}
+                        </div>
+                        <div>
+                            {props.data.metadata.outPorts &&
+                                props.data.metadata.outPorts.length > 0 &&
+                                props.data.metadata.outPorts.map(
+                                    (port: Port, i: number) => {
+                                        return (
+                                            <Tooltip
+                                                key={i}
+                                                text={port.description || ''}
+                                            >
+                                                <div
+                                                    key={i}
+                                                    className="text-sm text-gray-400 absolute"
+                                                    style={{
+                                                        bottom: '10px',
+                                                        ...getPortPosition(
+                                                            i + 1,
+                                                            props.data.metadata
+                                                                .outPorts
+                                                                .length,
+                                                            true
+                                                        ),
+                                                    }}
+                                                >
+                                                    {port.title}
+                                                </div>
+                                            </Tooltip>
+                                        );
+                                    }
+                                )}
+                        </div>
+                    </>
                 )}
         </div>
     );

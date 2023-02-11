@@ -4,8 +4,11 @@ import Express, {
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
-
+import logger from 'CommonServer/Utils/Logger';
+import App from 'CommonServer/Utils/StartServer';
 import path from 'path';
+
+const APP_NAME: string = 'api-docs';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -25,5 +28,17 @@ app.use(
 app.get(['/', '/docs'], (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('pages/index');
 });
+
+const init: Function = async (): Promise<void> => {
+    try {
+        // init the app
+        await App(APP_NAME);
+    } catch (err) {
+        logger.error('App Init Failed:');
+        logger.error(err);
+    }
+};
+
+init();
 
 export default app;
