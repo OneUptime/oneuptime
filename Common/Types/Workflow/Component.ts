@@ -48,7 +48,7 @@ export interface ReturnValue {
     required: boolean;
 }
 
-export default interface Component {
+export default interface ComponentMetadata {
     id: string;
     title: string;
     category: string;
@@ -59,6 +59,7 @@ export default interface Component {
     returnValues: Array<ReturnValue>;
     inPorts: Array<Port>;
     outPorts: Array<Port>;
+    tableName?: string | undefined;
 }
 
 export interface ComponentCategory {

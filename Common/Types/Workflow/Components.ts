@@ -1,4 +1,4 @@
-import Component, { ComponentCategory } from './Component';
+import ComponentMetadata, { ComponentCategory } from './Component';
 import LogComponents from './Components/Log';
 import APIComponents from './Components/API';
 import ScheduleComponents from './Components/Schedule';
@@ -8,7 +8,7 @@ import JsonComponents from './Components/JSON';
 import JavaScriptComponents from './Components/JavaScript';
 import IconProp from '../Icon/IconProp';
 
-const components: Array<Component> = [
+const components: Array<ComponentMetadata> = [
     ...LogComponents,
     ...APIComponents,
     ...ScheduleComponents,
