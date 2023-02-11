@@ -11,6 +11,17 @@ export interface PingResponse {
     responseTimeInMS?: PositiveNumber;
     remoteAddressIP: IPv4 | IPv6;
     remoteAddressPort: Port;
+    error: Error;
+}
+export interface PingSuccessResponse extends PingResponse {
+    isAlive: true;
+    responseTimeInMS?: PositiveNumber;
+    remoteAddressIP: IPv4 | IPv6;
+    remoteAddressPort: Port;
+}
+interface PingErrorResponse extends PingResponse {
+    isAlive: false;
+    error: Error;
 }
 export interface PingOptions {
     port?: PositiveNumber;
@@ -20,7 +31,7 @@ export default class Ping {
     public static async fetch(
         _host: Hostname | IPv4 | IPv6,
         pingOptions?: PingOptions
-    ): Promise<PingResponse> {
+    ): Promise<PingSuccessResponse | PingErrorResponse> {
         return new Promise<PingResponse>(
             (resolve: Function, _reject: Function) => {
                 const timeout: number =
@@ -48,9 +59,10 @@ export default class Ping {
                         (endTime[0] * 1000000000 + endTime[1]) / 1000000
                     );
                 });
-                socket.on('timeout', () => {
+                socket.on('timeout', (error: Error) => {
                     resolve({
                         isAlive: false,
+                        error: error,
                     });
                 });
                 socket.on('connect', () => {
@@ -71,9 +83,10 @@ export default class Ping {
                         });
                     });
                 });
-                socket.on('error', () => {
+                socket.on('error', (error: Error) => {
                     resolve({
                         isAlive: false,
+                        error,
                     });
                 });
             }

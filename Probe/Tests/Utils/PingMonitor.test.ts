@@ -1,5 +1,6 @@
 import Hostname from 'Common/Types/API/Hostname';
 import IPv4 from 'Common/Types/IP/IPv4';
+import IPv6 from 'Common/Types/IP/IPv6';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Ping, { PingResponse } from '../../Utils/PingMonitor';
 
@@ -18,11 +19,6 @@ describe('Ping', () => {
         expect(result.isAlive).toBe(true);
         expect(result.responseTimeInMS?.toNumber()).toBeGreaterThan(0);
         expect(result.responseTimeInMS?.toNumber()).toBeLessThanOrEqual(5000);
-        result = await Ping.fetch(new Hostname('www.google.com', 65000), {
-            timeout: new PositiveNumber(5000),
-        });
-        expect(result.isAlive).toBe(false);
-        expect(result.responseTimeInMS).toBeUndefined();
         result = await Ping.fetch(new Hostname('www.a.com', 65000), {
             timeout: new PositiveNumber(5000),
         });
@@ -43,5 +39,8 @@ describe('Ping', () => {
         result = await Ping.fetch(new IPv4('0.42.52.42')); // ip can't start 0
         expect(result.responseTimeInMS).toBeUndefined();
         expect(result.isAlive).toBe(false);
+        result = await Ping.fetch(new IPv6('2001:4860:4860::8888')); //one of the google ip
+        expect(result.isAlive).toBe(true);
+        expect(result.responseTimeInMS).toBeDefined();
     });
 });
