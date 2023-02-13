@@ -325,6 +325,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                     {!isLoading ? (
                         <Workflow
+                            workflowId={modelId}
                             showComponentsPickerModal={showComponentPickerModal}
                             onComponentPickerModalUpdate={(value: boolean) => {
                                 setShowComponentPickerModal(value);

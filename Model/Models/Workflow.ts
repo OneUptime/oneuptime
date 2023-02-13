@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -18,7 +18,10 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
+import Label from './Label';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 
+@AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -345,4 +348,50 @@ export default class Workflow extends BaseModel {
         nullable: true,
     })
     public graph?: JSONObject = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'WorkflowLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'workflowId',
+            referencedColumnName: '_id',
+        },
+    })
+    public labels?: Array<Label> = undefined;
+    
 }

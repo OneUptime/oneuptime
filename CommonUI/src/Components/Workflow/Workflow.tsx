@@ -82,6 +82,7 @@ export interface ComponentProps {
     onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
     showComponentsPickerModal: boolean;
     onComponentPickerModalUpdate: (isModalShown: boolean) => void;
+    workflowId: ObjectID
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -328,6 +329,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {showComponentSettingsModal && selectedNodeData && (
                 <ComponentSettingsModal
+                    workflowId={props.workflowId}
                     component={selectedNodeData}
                     title={
                         selectedNodeData && selectedNodeData.metadata.title
@@ -339,7 +341,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     description={
                         selectedNodeData &&
-                        selectedNodeData.metadata.description
+                            selectedNodeData.metadata.description
                             ? selectedNodeData.metadata.description
                             : 'Edit Component Properties and variables here.'
                     }
@@ -350,16 +352,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         // Update the node. 
 
                         setNodes((nds: Array<Node>) => {
-                            return nds.map((n: Node)=> {
+                            return nds.map((n: Node) => {
 
-                                if(n.data.internalId === componentData.internalId){
+                                if (n.data.internalId === componentData.internalId) {
                                     n.data = componentData;
                                 }
 
                                 return n;
-                            }); 
+                            });
                         });
-                        
+
                         setshowComponentSettingsModal(false);
                     }}
                 />

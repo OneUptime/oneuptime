@@ -1,6 +1,6 @@
 import IconProp from 'Common/Types/Icon/IconProp';
 import { JSONObject } from 'Common/Types/JSON';
-import { Dictionary } from 'lodash';
+import Dictionary from 'Common/Types/Dictionary';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import Divider from '../Divider/Divider';
@@ -12,9 +12,8 @@ import SideOver from '../SideOver/SideOver';
 import { NodeDataProp } from './Component';
 import ComponentPortViewer from './ComponentPortViewer';
 import ComponentReturnValueViewer from './ComponentReturnValueViewer';
-import { Argument } from 'Common/Types/Workflow/Component';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-
+import ArgumentsForm from './ArgumentsForm';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     title: string;
@@ -23,6 +22,7 @@ export interface ComponentProps {
     onSave: (component: NodeDataProp) => void;
     onDelete: (component: NodeDataProp) => void;
     component: NodeDataProp;
+    workflowId: ObjectID
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -100,39 +100,10 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     />
                 </div>
 
-                {component.metadata.outPorts.length > 0 && <Divider />}
-
-                <div className='mb-3 mt-3'>
-                    <div className='mt-5 mb-5'>
-                        <h2 className="text-base font-medium text-gray-500">Arguments</h2>
-                        <p className="text-sm font-medium text-gray-400 mb-5">Arguments for this component</p>
-                        {component.metadata.arguments && component.metadata.arguments.length === 0 && <ErrorMessage error={'This component does not take any arguments.'} />}
-                        {component.metadata.arguments && component.metadata.arguments.length > 0 && <BasicForm
-                            hideSubmitButton={true}
-                            initialValues={{
-                                ...component.arguments || {}
-                            }}
-                            onChange={(values: FormValues<JSONObject>) => {
-                                setComponent({ ...component, ...values });
-                            }}
-                            onFormValidationErrorChanged={(hasError: boolean) => {
-                                setHasFormValidatonErrors({ ...hasFormValidationErrors, "id": hasError });
-                            }}
-                            fields={component.metadata.arguments && component.metadata.arguments.map((arg: Argument) => {
-                                return {
-                                    title: `${arg.name}`,
-                                    description: `${arg.required ? "Required" : "Optional"}. ${arg.description}`,
-                                    field: {
-                                        [arg.id]: true,
-                                    },
-                                    required: arg.required,
-                                    fieldType: FormFieldSchemaType.Text,
-                                }
-                            })}
-                        />}
-                    </div>
-                </div>
-
+                <Divider />
+                <ArgumentsForm workflowId={props.workflowId} component={component} onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
+                    setHasFormValidatonErrors({ ...hasFormValidationErrors, ...value })
+                }} />
                 <Divider />
 
 
@@ -147,7 +118,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                 </div>
 
 
-                
+
                 <Divider />
                 <div className='mb-3 mt-3'>
                     <ComponentReturnValueViewer name="Return Values" description='Here  is a list of values that this component returns' returnValues={component.metadata.returnValues} />
