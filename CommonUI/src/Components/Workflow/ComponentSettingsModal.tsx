@@ -10,6 +10,11 @@ import FormValues from '../Forms/Types/FormValues';
 import ConfirmModal from '../Modal/ConfirmModal';
 import SideOver from '../SideOver/SideOver';
 import { NodeDataProp } from './Component';
+import ComponentPortViewer from './ComponentPortViewer';
+import ComponentReturnValueViewer from './ComponentReturnValueViewer';
+import { Argument } from 'Common/Types/Workflow/Component';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+
 
 export interface ComponentProps {
     title: string;
@@ -36,7 +41,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             onSubmit={() => {
                 return component && props.onSave(component);
             }}
-            submitButtonDisabled={Object.keys(hasFormValidationErrors).filter((key: string)=> {
+            submitButtonDisabled={Object.keys(hasFormValidationErrors).filter((key: string) => {
                 return hasFormValidationErrors[key];
             }).length !== 0}
             leftFooterElement={
@@ -68,34 +73,88 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     />
                 )}
                 <div className='mb-3 mt-3'>
-                <BasicForm
-                    hideSubmitButton={true}
-                    initialValues={{
-                        id: component?.id,
-                    }}
-                    onChange={(values: FormValues<JSONObject>) => {
-                        setComponent({ ...component, ...values });
-                    }}
-                    onFormValidationErrorChanged={(hasError: boolean)=>{
-                        setHasFormValidatonErrors({...hasFormValidationErrors, "id": hasError});
-                    }}
-                    fields={[
-                        {
-                            title: `${component.metadata.componentType} ID`,
-                            description: `${component.metadata.componentType} ID will make it easier for you to connect to other components.`,
-                            field: {
-                                id: true,
+                    <BasicForm
+                        hideSubmitButton={true}
+                        initialValues={{
+                            id: component?.id,
+                        }}
+                        onChange={(values: FormValues<JSONObject>) => {
+                            setComponent({ ...component, ...values });
+                        }}
+                        onFormValidationErrorChanged={(hasError: boolean) => {
+                            setHasFormValidatonErrors({ ...hasFormValidationErrors, "id": hasError });
+                        }}
+                        fields={[
+                            {
+                                title: `${component.metadata.componentType} ID`,
+                                description: `${component.metadata.componentType} ID will make it easier for you to connect to other components.`,
+                                field: {
+                                    id: true,
+                                },
+
+                                required: true,
+
+                                fieldType: FormFieldSchemaType.Text,
                             },
+                        ]}
+                    />
+                </div>
 
-                            required: true,
+                {component.metadata.outPorts.length > 0 && <Divider />}
 
-                            fieldType: FormFieldSchemaType.Text,
-                        },
-                    ]}
-                />
+                <div className='mb-3 mt-3'>
+                    <div className='mt-5 mb-5'>
+                        <h2 className="text-base font-medium text-gray-500">Arguments</h2>
+                        <p className="text-sm font-medium text-gray-400 mb-5">Arguments for this component</p>
+                        {component.metadata.arguments && component.metadata.arguments.length === 0 && <ErrorMessage error={'This component does not take any arguments.'} />}
+                        {component.metadata.arguments && component.metadata.arguments.length > 0 && <BasicForm
+                            hideSubmitButton={true}
+                            initialValues={{
+                                ...component.arguments || {}
+                            }}
+                            onChange={(values: FormValues<JSONObject>) => {
+                                setComponent({ ...component, ...values });
+                            }}
+                            onFormValidationErrorChanged={(hasError: boolean) => {
+                                setHasFormValidatonErrors({ ...hasFormValidationErrors, "id": hasError });
+                            }}
+                            fields={component.metadata.arguments && component.metadata.arguments.map((arg: Argument) => {
+                                return {
+                                    title: `${arg.name}`,
+                                    description: `${arg.required ? "Required" : "Optional"}. ${arg.description}`,
+                                    field: {
+                                        [arg.id]: true,
+                                    },
+                                    required: arg.required,
+                                    fieldType: FormFieldSchemaType.Text,
+                                }
+                            })}
+                        />}
+                    </div>
                 </div>
 
                 <Divider />
+
+
+                <div className='mb-3 mt-3'>
+                    <ComponentPortViewer name="In Ports" description='Here  is a list of inports for this component' ports={component.metadata.inPorts} />
+                </div>
+
+                <Divider />
+
+                <div className='mb-3 mt-3'>
+                    <ComponentPortViewer name="Out Ports" description='Here  is a list of outports for this component' ports={component.metadata.outPorts} />
+                </div>
+
+
+                
+                <Divider />
+                <div className='mb-3 mt-3'>
+                    <ComponentReturnValueViewer name="Return Values" description='Here  is a list of values that this component returns' returnValues={component.metadata.returnValues} />
+                </div>
+
+
+
             </>
         </SideOver>
     );

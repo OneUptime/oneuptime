@@ -246,6 +246,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                         true,
                                                                                     id: '',
                                                                                     error: '',
+                                                                                    arguments: {}
                                                                                 }}
                                                                             />
                                                                         </div>

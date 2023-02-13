@@ -409,4 +409,22 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public paymentSuccessDate?: Date = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+    })
+    public workflowRunsInLast30Days?: number = undefined;
 }

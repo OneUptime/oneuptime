@@ -16,9 +16,9 @@ const components: Array<ComponentMetadata> = [
         arguments: [],
         returnValues: [
             {
-                id: 'response-headers',
-                name: 'Response Headers',
-                description: 'Response Headers for this request',
+                id: 'request-headers',
+                name: 'Request Headers',
+                description: 'Request Headers for this request',
                 type: ComponentInputType.StringDictionary,
                 required: false,
             },

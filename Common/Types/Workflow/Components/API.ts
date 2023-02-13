@@ -16,21 +16,21 @@ const components: Array<ComponentMetadata> = [
             {
                 id: 'url',
                 name: 'URL',
-                description: 'URL to send request to',
+                description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
             },
             {
                 id: 'request-body',
                 name: 'Request Body',
-                description: 'Response Body',
+                description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: true,
             },
             {
                 id: 'query-string',
                 name: 'Query String',
-                description: 'Send query string params',
+                description: 'Send query string params.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
@@ -38,7 +38,7 @@ const components: Array<ComponentMetadata> = [
             {
                 id: 'request-headers',
                 name: 'Request Headers',
-                description: 'Request headers to send',
+                description: 'Request headers to send.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,

@@ -8,6 +8,8 @@ import ComponentMetadata, {
     Port,
 } from 'Common/Types/Workflow/Component';
 import Tooltip from '../Tooltip/Toolip';
+import Pill from '../Pill/Pill';
+import { Green } from 'Common/Types/BrandColors';
 
 export enum NodeType {
     Node = 'Node',
@@ -24,6 +26,7 @@ export interface NodeDataProp {
     metadata: ComponentMetadata;
     metadataId: string;
     internalId: string;
+    arguments: JSONObject;
 }
 
 export interface ComponentProps {
@@ -144,6 +147,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             }}
         >
+            <div className='flex justify-center'>
+            {props.data.metadata.componentType === ComponentType.Trigger && props.data.nodeType !== NodeType.PlaceholderNode && !props.data.isPreview && <Pill text="Trigger" color={Green} />}
+            </div>
             {!props.data.isPreview &&
                 props.data.error &&
                 props.data.nodeType !== NodeType.PlaceholderNode && (

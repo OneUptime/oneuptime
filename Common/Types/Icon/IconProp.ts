@@ -14,6 +14,7 @@ enum IconProp {
     ChevronDown = 'ChevronDown',
     ChevronRight = 'ChevronRight',
     ChevronUp = 'ChevronUp',
+    Play = 'Play',
     ChevronLeft = 'ChevronLeft',
     UpDownArrow = 'UpDownArrow',
     Public = 'Public',

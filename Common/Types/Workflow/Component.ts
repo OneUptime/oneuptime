@@ -2,22 +2,24 @@ import IconProp from '../Icon/IconProp';
 
 export enum ComponentInputType {
     Text = 'Text',
+    Password = 'Password',
     Date = 'Date',
     DateTime = 'Date Time',
-    Boolean = 'Boolean',
+    Boolean = 'True or False',
     Number = 'Number',
     Decimal = 'Decimal',
     JavaScript = 'JavaScript',
-    AnyValue = 'AnyValue',
+    AnyValue = 'Any Type',
     JSON = 'JSON',
-    StringDictionary = 'StringDictionary',
+    StringDictionary = 'Dictionary of String',
     URL = 'URL',
     Email = 'Email',
     CronTab = 'CronTab',
-    Query = 'Query',
-    BaseModel = 'BaseModel',
-    BaseModelArray = 'BaseModelArray',
-    JSONArray = 'JSONArray',
+    Query = 'Database Query',
+    BaseModel = 'Database Record',
+    BaseModelArray = 'Database Records',
+    JSONArray = 'List of JSON',
+    LongText = 'Long Text'
 }
 
 export enum ComponentType {
