@@ -410,7 +410,6 @@ export default class Model extends TenantModel {
     })
     public paymentSuccessDate?: Date = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [

@@ -24,8 +24,7 @@ const components: Array<ComponentMetadata> = [
     ...EmailComponents,
     ...WebhookComponents,
     ...WorkflowComponents,
-    ...ManualComponents
-
+    ...ManualComponents,
 ];
 
 export default components;

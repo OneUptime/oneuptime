@@ -65,7 +65,8 @@ const components: Array<ComponentMetadata> = [
             {
                 type: ComponentInputType.Boolean,
                 name: 'Use TLS/SSL',
-                description: 'Check this box if you would like to use TLS/SSL to send emails',
+                description:
+                    'Check this box if you would like to use TLS/SSL to send emails',
                 required: false,
                 id: 'secure',
             },

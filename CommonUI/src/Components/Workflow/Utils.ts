@@ -1,145 +1,148 @@
-
-import {ComponentInputType } from 'Common/Types/Workflow/Component';
+import { ComponentInputType } from 'Common/Types/Workflow/Component';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 import { DropdownOption } from '../Dropdown/Dropdown';
 
-
-export const componentInputTypeToFormFieldType = (componentInputType: ComponentInputType): { 
-    fieldType: FormFieldSchemaType, 
-    dropdownOptions?: Array<DropdownOption> | undefined 
+export const componentInputTypeToFormFieldType = (
+    componentInputType: ComponentInputType
+): {
+    fieldType: FormFieldSchemaType;
+    dropdownOptions?: Array<DropdownOption> | undefined;
 } => {
     if (componentInputType === ComponentInputType.Boolean) {
         return {
             fieldType: FormFieldSchemaType.Checkbox,
-            dropdownOptions: []
-        }
+            dropdownOptions: [],
+        };
     }
 
     if (componentInputType === ComponentInputType.CronTab) {
         return {
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [{
-                label: "Every 30 minutes",
-                value: "*/30 * * * *"
-            },{
-                label: "Every Hour",
-                value: "0 * * * *"
-            },{
-                label: "Every Day",
-                value: "0 0 * * *"
-            },  {
-                label: "Every Week",
-                value: "0 0 * * 0"
-            }, {
-                label: "Every Month",
-                value: "0 0 1 * *"
-            }, {
-                label: "Every Three Months",
-                value: "0 0 1 */3 *"
-            }, {
-                label: "Every Six Months",
-                value: "0 0 1 */3 *"
-            }]
-        }
+            dropdownOptions: [
+                {
+                    label: 'Every 30 minutes',
+                    value: '*/30 * * * *',
+                },
+                {
+                    label: 'Every Hour',
+                    value: '0 * * * *',
+                },
+                {
+                    label: 'Every Day',
+                    value: '0 0 * * *',
+                },
+                {
+                    label: 'Every Week',
+                    value: '0 0 * * 0',
+                },
+                {
+                    label: 'Every Month',
+                    value: '0 0 1 * *',
+                },
+                {
+                    label: 'Every Three Months',
+                    value: '0 0 1 */3 *',
+                },
+                {
+                    label: 'Every Six Months',
+                    value: '0 0 1 */3 *',
+                },
+            ],
+        };
     }
-
 
     if (componentInputType === ComponentInputType.Date) {
         return {
-            fieldType: FormFieldSchemaType.Date
-        }
+            fieldType: FormFieldSchemaType.Date,
+        };
     }
 
     if (componentInputType === ComponentInputType.DateTime) {
         return {
-            fieldType: FormFieldSchemaType.DateTime
-        }
+            fieldType: FormFieldSchemaType.DateTime,
+        };
     }
 
     if (componentInputType === ComponentInputType.LongText) {
         return {
-            fieldType: FormFieldSchemaType.Text
-        }
+            fieldType: FormFieldSchemaType.Text,
+        };
     }
 
     if (componentInputType === ComponentInputType.BaseModel) {
         return {
-            fieldType: FormFieldSchemaType.JSON
-        }
+            fieldType: FormFieldSchemaType.JSON,
+        };
     }
-
 
     if (componentInputType === ComponentInputType.BaseModelArray) {
         return {
-            fieldType: FormFieldSchemaType.JSON
-        }
+            fieldType: FormFieldSchemaType.JSON,
+        };
     }
 
     if (componentInputType === ComponentInputType.Decimal) {
         return {
-            fieldType: FormFieldSchemaType.Number
-        }
+            fieldType: FormFieldSchemaType.Number,
+        };
     }
 
     if (componentInputType === ComponentInputType.Email) {
         return {
-            fieldType: FormFieldSchemaType.Email
-        }
+            fieldType: FormFieldSchemaType.Email,
+        };
     }
 
     if (componentInputType === ComponentInputType.JSON) {
         return {
-            fieldType: FormFieldSchemaType.JSON
-        }
+            fieldType: FormFieldSchemaType.JSON,
+        };
     }
-
 
     if (componentInputType === ComponentInputType.JSONArray) {
         return {
-            fieldType: FormFieldSchemaType.JSON
-        }
+            fieldType: FormFieldSchemaType.JSON,
+        };
     }
 
     if (componentInputType === ComponentInputType.JavaScript) {
         return {
-            fieldType: FormFieldSchemaType.JavaScript
-        }
+            fieldType: FormFieldSchemaType.JavaScript,
+        };
     }
-
 
     if (componentInputType === ComponentInputType.Number) {
         return {
-            fieldType: FormFieldSchemaType.Number
-        }
+            fieldType: FormFieldSchemaType.Number,
+        };
     }
-
 
     if (componentInputType === ComponentInputType.Query) {
         return {
-            fieldType: FormFieldSchemaType.Query
-        }
+            fieldType: FormFieldSchemaType.Query,
+        };
     }
 
     if (componentInputType === ComponentInputType.StringDictionary) {
         return {
-            fieldType: FormFieldSchemaType.JSON
-        }
+            fieldType: FormFieldSchemaType.JSON,
+        };
     }
 
     if (componentInputType === ComponentInputType.Password) {
         return {
-            fieldType: FormFieldSchemaType.Password
-        }
+            fieldType: FormFieldSchemaType.Password,
+        };
     }
 
     if (componentInputType === ComponentInputType.URL) {
         return {
-            fieldType: FormFieldSchemaType.URL
-        }
+            fieldType: FormFieldSchemaType.URL,
+        };
     }
 
     return {
         fieldType: FormFieldSchemaType.Text,
-        dropdownOptions: []
-    }
-}
+        dropdownOptions: [],
+    };
+};

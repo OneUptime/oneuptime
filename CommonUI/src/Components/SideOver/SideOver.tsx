@@ -77,22 +77,26 @@ const SideOver: FunctionComponent<ComponentProps> = (
                                     </div>
                                     <div className="flex justify-end space-x-3">
                                         <Button
-                                        title="Cancel"
+                                            title="Cancel"
                                             onClick={() => {
                                                 props.onClose();
                                             }}
                                             buttonStyle={ButtonStyleType.NORMAL}
                                         />
-                                           
+
                                         <Button
-                                            title={props.submitButtonText || 'Save'}
+                                            title={
+                                                props.submitButtonText || 'Save'
+                                            }
                                             disabled={
                                                 props.submitButtonDisabled
                                             }
                                             onClick={() => {
                                                 props.onSubmit();
                                             }}
-                                            buttonStyle={ButtonStyleType.PRIMARY}
+                                            buttonStyle={
+                                                ButtonStyleType.PRIMARY
+                                            }
                                         />
                                     </div>
                                 </div>

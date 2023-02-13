@@ -16,7 +16,8 @@ const components: Array<ComponentMetadata> = [
             {
                 type: ComponentInputType.AnyValue,
                 name: 'Value',
-                description: 'Enter any value that you need to run this workflow',
+                description:
+                    'Enter any value that you need to run this workflow',
                 required: false,
                 id: 'value',
             },

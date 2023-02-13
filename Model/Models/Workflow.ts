@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -349,7 +357,6 @@ export default class Workflow extends BaseModel {
     })
     public graph?: JSONObject = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -393,5 +400,4 @@ export default class Workflow extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
-    
 }

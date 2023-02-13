@@ -71,7 +71,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         isLabel: boolean | undefined
     ): React.CSSProperties => {
         if (portCount === 1 && totalPorts === 1) {
-            return isLabel ? {left: 100} : {};
+            return isLabel ? { left: 100 } : {};
         }
 
         if (portCount === 1 && totalPorts === 2) {
@@ -87,7 +87,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
 
         if (portCount === 2 && totalPorts === 3) {
-            return isLabel ? {left: 100} : {};
+            return isLabel ? { left: 100 } : {};
         }
 
         if (portCount === 3 && totalPorts === 3) {
@@ -147,8 +147,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             }}
         >
-            <div className='flex justify-center'>
-            {props.data.metadata.componentType === ComponentType.Trigger && props.data.nodeType !== NodeType.PlaceholderNode && !props.data.isPreview && <Pill text="Trigger" color={Green} />}
+            <div className="flex justify-center">
+                {props.data.metadata.componentType === ComponentType.Trigger &&
+                    props.data.nodeType !== NodeType.PlaceholderNode &&
+                    !props.data.isPreview && (
+                        <Pill text="Trigger" color={Green} />
+                    )}
             </div>
             {!props.data.isPreview &&
                 props.data.error &&

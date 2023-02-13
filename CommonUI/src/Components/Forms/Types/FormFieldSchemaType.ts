@@ -28,7 +28,7 @@ enum FormFieldSchemaType {
     HTML,
     RadioButton,
     JSON,
-    Query
+    Query,
 }
 
 export default FormFieldSchemaType;

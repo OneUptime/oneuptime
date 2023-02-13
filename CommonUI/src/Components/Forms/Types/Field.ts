@@ -45,5 +45,4 @@ export default interface Field<TEntity> {
     defaultValue?: boolean | string | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
-    
 }

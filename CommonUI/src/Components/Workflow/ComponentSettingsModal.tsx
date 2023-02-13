@@ -22,14 +22,16 @@ export interface ComponentProps {
     onSave: (component: NodeDataProp) => void;
     onDelete: (component: NodeDataProp) => void;
     component: NodeDataProp;
-    workflowId: ObjectID
+    workflowId: ObjectID;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.component);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<Dictionary<boolean>>({});
+    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
+        Dictionary<boolean>
+    >({});
     const [showDeleteConfirmation, setShowDeleteConfirmation] =
         useState<boolean>(false);
 
@@ -41,9 +43,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             onSubmit={() => {
                 return component && props.onSave(component);
             }}
-            submitButtonDisabled={Object.keys(hasFormValidationErrors).filter((key: string) => {
-                return hasFormValidationErrors[key];
-            }).length !== 0}
+            submitButtonDisabled={
+                Object.keys(hasFormValidationErrors).filter((key: string) => {
+                    return hasFormValidationErrors[key];
+                }).length !== 0
+            }
             leftFooterElement={
                 <Button
                     title={`Delete ${component.metadata.componentType}`}
@@ -72,7 +76,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                         submitButtonType={ButtonStyleType.DANGER}
                     />
                 )}
-                <div className='mb-3 mt-3'>
+                <div className="mb-3 mt-3">
                     <BasicForm
                         hideSubmitButton={true}
                         initialValues={{
@@ -82,7 +86,10 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                             setComponent({ ...component, ...values });
                         }}
                         onFormValidationErrorChanged={(hasError: boolean) => {
-                            setHasFormValidatonErrors({ ...hasFormValidationErrors, "id": hasError });
+                            setHasFormValidatonErrors({
+                                ...hasFormValidationErrors,
+                                id: hasError,
+                            });
                         }}
                         fields={[
                             {
@@ -101,31 +108,44 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                 </div>
 
                 <Divider />
-                <ArgumentsForm workflowId={props.workflowId} component={component} onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
-                    setHasFormValidatonErrors({ ...hasFormValidationErrors, ...value })
-                }} />
+                <ArgumentsForm
+                    workflowId={props.workflowId}
+                    component={component}
+                    onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
+                        setHasFormValidatonErrors({
+                            ...hasFormValidationErrors,
+                            ...value,
+                        });
+                    }}
+                />
                 <Divider />
 
-
-                <div className='mb-3 mt-3'>
-                    <ComponentPortViewer name="In Ports" description='Here  is a list of inports for this component' ports={component.metadata.inPorts} />
+                <div className="mb-3 mt-3">
+                    <ComponentPortViewer
+                        name="In Ports"
+                        description="Here  is a list of inports for this component"
+                        ports={component.metadata.inPorts}
+                    />
                 </div>
 
                 <Divider />
 
-                <div className='mb-3 mt-3'>
-                    <ComponentPortViewer name="Out Ports" description='Here  is a list of outports for this component' ports={component.metadata.outPorts} />
+                <div className="mb-3 mt-3">
+                    <ComponentPortViewer
+                        name="Out Ports"
+                        description="Here  is a list of outports for this component"
+                        ports={component.metadata.outPorts}
+                    />
                 </div>
-
-
 
                 <Divider />
-                <div className='mb-3 mt-3'>
-                    <ComponentReturnValueViewer name="Return Values" description='Here  is a list of values that this component returns' returnValues={component.metadata.returnValues} />
+                <div className="mb-3 mt-3">
+                    <ComponentReturnValueViewer
+                        name="Return Values"
+                        description="Here  is a list of values that this component returns"
+                        returnValues={component.metadata.returnValues}
+                    />
                 </div>
-
-
-
             </>
         </SideOver>
     );

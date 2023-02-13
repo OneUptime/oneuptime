@@ -19,7 +19,7 @@ export enum ComponentInputType {
     BaseModel = 'Database Record',
     BaseModelArray = 'Database Records',
     JSONArray = 'List of JSON',
-    LongText = 'Long Text'
+    LongText = 'Long Text',
 }
 
 export enum ComponentType {
