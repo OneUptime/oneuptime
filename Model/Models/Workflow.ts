@@ -361,20 +361,18 @@ export default class Workflow extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateWorkflow,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadWorkflow,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectMonitor,
+            Permission.CanEditWorkflow,
         ],
     })
     @TableColumn({

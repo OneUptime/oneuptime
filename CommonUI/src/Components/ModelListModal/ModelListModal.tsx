@@ -20,6 +20,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     select: Select<TBaseModel>;
     modalTitle: string;
     modalDescription: string;
+    noItemsMessage: string; 
 }
 
 const ModelListModal: Function = <TBaseModel extends BaseModel>(
@@ -73,6 +74,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             title={props.modalTitle}
             description={props.modalDescription}
             onClose={props.onClose}
+            disableSubmitButton={selectedList.length == 0}
             onSubmit={() => {
                 if (selectedList && selectedList.length === 0) {
                     props.onClose();
@@ -81,11 +83,11 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                 props.onSave(selectedList);
             }}
         >
-            <div>
+            <div className='max-h-96 mt-5 mb-5'>
                 {error ? <ErrorMessage error={error} /> : <></>}
                 {isLoading ? <ComponentLoader /> : <></>}
                 {!isLoading && modelList.length === 0 ? (
-                    <ErrorMessage error={'No items found.'} />
+                    <ErrorMessage error={props.noItemsMessage || 'No items found.'} />
                 ) : (
                     <></>
                 )}
@@ -94,7 +96,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                     modelList.map((model: TBaseModel) => {
                         const isSelected =
                             selectedList.filter((selectedItem: TBaseModel) => {
-                                selectedItem._id?.toString() ===
+                                return selectedItem._id?.toString() ===
                                     model._id?.toString();
                             }).length > 0;
 
@@ -126,8 +128,8 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                         setSelectedList([{ ...model }]);
                                     }
                                 }}
-                                className={`mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
-                                    isSelected ? 'ring-indigo-500' : ''
+                                className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
+                                    isSelected ? 'ring ring-indigo-500' : ''
                                 }`}
                             >
                                 <div className="min-w-0 flex-1">

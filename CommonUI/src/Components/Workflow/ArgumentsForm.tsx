@@ -144,6 +144,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         setShowVariableModal(false);
                     }}
                     onSave={(variableId: string) => {
+                        setShowVariableModal(false);
                         formRef.current.setFieldValue(
                             selectedArgId,
                             variableId

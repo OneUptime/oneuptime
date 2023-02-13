@@ -19,7 +19,10 @@ const VariableModal: FunctionComponent<ComponentProps> = (
             query={{
                 workflowId: props.workflowId,
             }}
+            noItemsMessage="You do have any variables. Please add global or workflow variables."
             modalDescription="This list contains both Global and Workflow variables."
+            titleField="name"
+            descriptionField="description"
             modelType={WorkflowVariable}
             select={{
                 _id: true,

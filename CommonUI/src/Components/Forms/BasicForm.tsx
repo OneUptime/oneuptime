@@ -313,7 +313,7 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
-                    {field.fieldType === FormFieldSchemaType.LongText && (
+                    {(field.fieldType === FormFieldSchemaType.LongText || field.fieldType === FormFieldSchemaType.JSON) && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
