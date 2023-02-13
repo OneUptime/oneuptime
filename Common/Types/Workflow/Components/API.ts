@@ -19,6 +19,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
+                placeholder: "https://api.yourcompany.com"
             },
             {
                 id: 'request-body',
@@ -26,6 +27,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: true,
+                placeholder: '{"key1": "value1", "key2": "value2", ....}'
             },
             {
                 id: 'query-string',
@@ -34,6 +36,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"query1": "value1", "query2": "value2", ....}'
             },
             {
                 id: 'request-headers',
@@ -42,6 +45,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"header1": "value1", "header2": "value2", ....}'
             },
         ],
         returnValues: [
@@ -107,32 +111,36 @@ const components: Array<ComponentMetadata> = [
             {
                 id: 'url',
                 name: 'URL',
-                description: 'URL to send request to',
+                description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
+                placeholder: "https://api.yourcompany.com"
             },
             {
                 id: 'request-body',
                 name: 'Request Body',
-                description: 'Response Body',
+                description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: false,
+                required: true,
+                placeholder: '{"key1": "value1", "key2": "value2", ....}'
             },
             {
                 id: 'query-string',
                 name: 'Query String',
-                description: 'Send query string params',
+                description: 'Send query string params.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"query1": "value1", "query2": "value2", ....}'
             },
             {
                 id: 'request-headers',
                 name: 'Request Headers',
-                description: 'Request headers to send',
+                description: 'Request headers to send.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"header1": "value1", "header2": "value2", ....}'
             },
         ],
         returnValues: [
@@ -198,32 +206,36 @@ const components: Array<ComponentMetadata> = [
             {
                 id: 'url',
                 name: 'URL',
-                description: 'URL to send request to',
+                description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
+                placeholder: "https://api.yourcompany.com"
             },
             {
                 id: 'request-body',
                 name: 'Request Body',
-                description: 'Response Body',
+                description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: false,
+                required: true,
+                placeholder: '{"key1": "value1", "key2": "value2", ....}'
             },
             {
                 id: 'query-string',
                 name: 'Query String',
-                description: 'Send query string params',
+                description: 'Send query string params.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"query1": "value1", "query2": "value2", ....}'
             },
             {
                 id: 'request-headers',
                 name: 'Request Headers',
-                description: 'Request headers to send',
+                description: 'Request headers to send.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"header1": "value1", "header2": "value2", ....}'
             },
         ],
         returnValues: [
@@ -289,32 +301,36 @@ const components: Array<ComponentMetadata> = [
             {
                 id: 'url',
                 name: 'URL',
-                description: 'URL to send request to',
+                description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
+                placeholder: "https://api.yourcompany.com"
             },
             {
                 id: 'request-body',
                 name: 'Request Body',
-                description: 'Response Body',
+                description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: false,
+                required: true,
+                placeholder: '{"key1": "value1", "key2": "value2", ....}'
             },
             {
                 id: 'query-string',
                 name: 'Query String',
-                description: 'Send query string params',
+                description: 'Send query string params.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"query1": "value1", "query2": "value2", ....}'
             },
             {
                 id: 'request-headers',
                 name: 'Request Headers',
-                description: 'Request headers to send',
+                description: 'Request headers to send.',
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
+                placeholder: '{"header1": "value1", "header2": "value2", ....}'
             },
         ],
         returnValues: [

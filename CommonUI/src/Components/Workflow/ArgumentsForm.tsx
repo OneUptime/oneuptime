@@ -85,7 +85,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                             title: `${arg.name}`,
                                             footerElement: (
                                                 <div className="text-gray-500">
-                                                    <p>
+                                                    <p className='text-sm'>
                                                         Pick this value from
                                                         other{' '}
                                                         <a
@@ -127,6 +127,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                                 [arg.id]: true,
                                             },
                                             required: arg.required,
+                                            placeholder: arg.placeholder,
                                             ...componentInputTypeToFormFieldType(
                                                 arg.type
                                             ),

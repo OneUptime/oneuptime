@@ -40,6 +40,7 @@ export interface Argument {
     type: ComponentInputType;
     id: string;
     isAdvanced?: boolean | undefined;
+    placeholder?: string | undefined;
 }
 
 export interface ReturnValue {

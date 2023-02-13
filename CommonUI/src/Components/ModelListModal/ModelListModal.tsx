@@ -13,14 +13,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onClose: () => void;
     onSave: (modals: Array<TBaseModel>) => void;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     titleField: string;
     descriptionField?: string | undefined;
     selectMultiple?: boolean | undefined;
     select: Select<TBaseModel>;
     modalTitle: string;
     modalDescription: string;
-    noItemsMessage: string; 
+    noItemsMessage: string;
 }
 
 const ModelListModal: Function = <TBaseModel extends BaseModel>(
@@ -59,7 +59,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -93,8 +93,8 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                 )}
                 {modelList &&
                     modelList.length > 0 &&
-                    modelList.map((model: TBaseModel) => {
-                        const isSelected =
+                    modelList.map((model: TBaseModel, i: number): ReactElement => {
+                        const isSelected: boolean =
                             selectedList.filter((selectedItem: TBaseModel) => {
                                 return selectedItem._id?.toString() ===
                                     model._id?.toString();
@@ -102,6 +102,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
 
                         return (
                             <div
+                                key={i}
                                 onClick={() => {
                                     if (props.selectMultiple) {
                                         // if added to the list, then remove or add to list
@@ -128,9 +129,8 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                         setSelectedList([{ ...model }]);
                                     }
                                 }}
-                                className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
-                                    isSelected ? 'ring ring-indigo-500' : ''
-                                }`}
+                                className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${isSelected ? 'ring ring-indigo-500' : ''
+                                    }`}
                             >
                                 <div className="min-w-0 flex-1">
                                     <div className="focus:outline-none">

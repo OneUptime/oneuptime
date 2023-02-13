@@ -31,7 +31,7 @@ const VariableModal: FunctionComponent<ComponentProps> = (
                 workflowId: true,
             }}
             onClose={props.onClose}
-            onSubmit={(variables: Array<WorkflowVariable>) => {
+            onSave={(variables: Array<WorkflowVariable>) => {
                 if (variables[0]?.workflowId) {
                     props.onSave(`{{variable.local.${variables[0]?.name}}}`);
                 } else {

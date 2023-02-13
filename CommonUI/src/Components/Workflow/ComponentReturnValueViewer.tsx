@@ -29,9 +29,9 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
             <div className="mt-3">
                 {props.returnValues &&
                     props.returnValues.length > 0 &&
-                    props.returnValues.map((returnValue: ReturnValue) => {
+                    props.returnValues.map((returnValue: ReturnValue, i: number) => {
                         return (
-                            <div className="mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2">
+                            <div key={i} className="mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2">
                                 <div className="min-w-0 flex-1 flex justify-between">
                                     <div className="focus:outline-none">
                                         <span
