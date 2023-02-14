@@ -148,15 +148,22 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                                 className="absolute inset-0"
                                                 aria-hidden="true"
                                             ></span>
-                                            {props.headerField && typeof props.headerField === Typeof.String && <p className="text-sm font-medium text-gray-300">
-                                                {
-                                                    model.getValue(
-                                                        props.headerField as string
-                                                    ) as string
-                                                }
-                                            </p>}
+                                            {props.headerField &&
+                                                typeof props.headerField ===
+                                                    Typeof.String && (
+                                                    <p className="text-sm font-medium text-gray-300">
+                                                        {
+                                                            model.getValue(
+                                                                props.headerField as string
+                                                            ) as string
+                                                        }
+                                                    </p>
+                                                )}
 
-                                            {props.headerField && typeof props.headerField === "function" && props.headerField(model) }
+                                            {props.headerField &&
+                                                typeof props.headerField ===
+                                                    'function' &&
+                                                props.headerField(model)}
                                             <p className="text-sm font-medium text-gray-900">
                                                 {
                                                     model.getValue(

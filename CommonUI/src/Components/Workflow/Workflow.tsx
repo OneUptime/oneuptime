@@ -339,9 +339,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         setShowComponentsModal(false);
                     }}
                     categories={allComponentCategories}
-                    components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-                        return comp.componentType === showComponentType;
-                    })}
+                    components={allComponentMetadata.filter(
+                        (comp: ComponentMetadata) => {
+                            return comp.componentType === showComponentType;
+                        }
+                    )}
                     onComponentClick={(component: ComponentMetadata) => {
                         setShowComponentsModal(false);
 

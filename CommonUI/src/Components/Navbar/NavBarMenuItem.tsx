@@ -9,6 +9,7 @@ export interface ComponentProps {
     route: Route;
     icon: IconProp;
     description: string;
+    onClick: () => void;
 }
 
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (
@@ -17,6 +18,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
     return (
         <div className="dropdown">
             <Link
+                onClick={props.onClick}
                 to={props.route}
                 className="-m-3 flex items-start rounded-lg p-3 transition duration-150 ease-in-out hover:bg-gray-50"
             >

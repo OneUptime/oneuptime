@@ -444,7 +444,8 @@ export default class JSONFunctions {
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
             typeof (val as JSONObject)['value'] === Typeof.String &&
-            ((val as JSONObject)['_type'] as string) === ObjectType.EqualToOrNull
+            ((val as JSONObject)['_type'] as string) ===
+                ObjectType.EqualToOrNull
         ) {
             return new EqualToOrNull((val as JSONObject)['value'] as string);
         } else if (

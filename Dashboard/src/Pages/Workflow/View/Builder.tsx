@@ -301,6 +301,15 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     }}
                                 />
                             </div>
+                            <div>
+                                <Button
+                                    title="Run Wrokflow"
+                                    icon={IconProp.Play}
+                                    onClick={() => {
+                                        setShowComponentPickerModal(true);
+                                    }}
+                                />
+                            </div>
                         </div>
                     }
                 >

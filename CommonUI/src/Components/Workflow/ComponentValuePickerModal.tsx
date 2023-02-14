@@ -10,7 +10,6 @@ export interface ComponentProps {
     onClose: () => void;
     onSave: (componentValueId: string) => void;
     components: Array<NodeDataProp>;
-    currentComponent: NodeDataProp;
 }
 
 const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
@@ -50,7 +49,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
                     props.components.map(
                         (component: NodeDataProp, i: number): ReactElement => {
                             return (
-                                <div className="p-3 pl-1">
+                                <div className="p-3 pl-1" key={i}>
                                     <h2 className="text-base font-medium text-gray-500">
                                         {component.metadata.title} (
                                         {component.id})

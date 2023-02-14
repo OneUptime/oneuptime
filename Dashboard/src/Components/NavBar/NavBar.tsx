@@ -18,7 +18,38 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [isComponentVisible, setIsComponentVisible] =
         useState<boolean>(false);
-    const [moreMenuTimeout, setMoreMenuTimeout] = useState<any>(null);
+    const [moreMenuTimeout, setMoreMenuTimeout] = useState<ReturnType<
+        typeof setTimeout
+    > | null>(null);
+
+    const hideMoreMenu: Function = (): void => {
+        if (moreMenuTimeout) {
+            clearTimeout(moreMenuTimeout);
+            setMoreMenuTimeout(null);
+        }
+
+        const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+            setIsComponentVisible(false);
+        }, 600);
+
+        setMoreMenuTimeout(timeout);
+    };
+
+    const forceHideMoreMenu: Function = (): void => {
+        if (moreMenuTimeout) {
+            clearTimeout(moreMenuTimeout);
+            setMoreMenuTimeout(null);
+        }
+
+        setIsComponentVisible(false);
+    };
+
+    const showMoreMenu: Function = (): void => {
+        if (moreMenuTimeout) {
+            clearTimeout(moreMenuTimeout);
+        }
+        setIsComponentVisible(true);
+    };
 
     if (!props.show) {
         return <></>;
@@ -78,46 +109,21 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 title="More"
                 icon={IconProp.More}
                 onMouseOut={() => {
-                    if (moreMenuTimeout) {
-                        clearTimeout(moreMenuTimeout);
-                    }
-
-                    const timeout = setTimeout(() => {
-                        setIsComponentVisible(false);
-                    }, 600);
-
-                    setMoreMenuTimeout(timeout);
+                    hideMoreMenu();
                 }}
                 onMouseOver={() => {
-                    if (moreMenuTimeout) {
-                        clearTimeout(moreMenuTimeout);
-                    }
-                    setIsComponentVisible(true);
+                    showMoreMenu();
                 }}
                 onClick={() => {
-                    if (moreMenuTimeout) {
-                        clearTimeout(moreMenuTimeout);
-                    }
-                    setIsComponentVisible(true);
+                    showMoreMenu();
                 }}
             >
                 <div
                     onMouseOver={() => {
-                        if (moreMenuTimeout) {
-                            clearTimeout(moreMenuTimeout);
-                        }
-                        setIsComponentVisible(true);
+                        showMoreMenu();
                     }}
                     onMouseOut={() => {
-                        if (moreMenuTimeout) {
-                            clearTimeout(moreMenuTimeout);
-                        }
-
-                        const timeout = setTimeout(() => {
-                            setIsComponentVisible(false);
-                        }, 600);
-
-                        setMoreMenuTimeout(timeout);
+                        hideMoreMenu();
                     }}
                 >
                     {isComponentVisible && (
@@ -138,6 +144,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                     RouteMap[PageMap.WORKFLOWS] as Route
                                 )}
                                 icon={IconProp.Workflow}
+                                onClick={() => {
+                                    forceHideMoreMenu();
+                                }}
                             />
                             <NavBarMenuItem
                                 title="Project Settings"
@@ -146,6 +155,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                     RouteMap[PageMap.SETTINGS] as Route
                                 )}
                                 icon={IconProp.Settings}
+                                onClick={() => {
+                                    forceHideMoreMenu();
+                                }}
                             />
 
                             {/* <NavBarMenuItem

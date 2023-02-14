@@ -23,15 +23,16 @@ const VariableModal: FunctionComponent<ComponentProps> = (
             modalDescription="This list contains both Global and Workflow variables."
             titleField="name"
             descriptionField="description"
-            headerField={(item: WorkflowVariable)=> {
-                let variableType = "GLOBAL VARIABLE";
+            headerField={(item: WorkflowVariable) => {
+                let variableType: string = 'GLOBAL VARIABLE';
 
-
-                if(item.workflowId){
-                    variableType = "LOCAL WORKFLOW VARIABLE";
+                if (item.workflowId) {
+                    variableType = 'LOCAL WORKFLOW VARIABLE';
                 }
 
-                return <p className='text-xs text-gray-400 mb-2'>{variableType}</p>
+                return (
+                    <p className="text-xs text-gray-400 mb-2">{variableType}</p>
+                );
             }}
             modelType={WorkflowVariable}
             select={{

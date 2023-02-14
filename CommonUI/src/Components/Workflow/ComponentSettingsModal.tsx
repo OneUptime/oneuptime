@@ -108,8 +108,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     graphComponents={props.graphComponents}
                     workflowId={props.workflowId}
                     component={component}
-                    onFormChange={(component: NodeDataProp)=> {
-                        setComponent({...component});
+                    onFormChange={(component: NodeDataProp) => {
+                        setComponent({ ...component });
                     }}
                     onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
                         setHasFormValidatonErrors({

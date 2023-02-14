@@ -36,7 +36,6 @@ export default class QueryHelper {
         });
     }
 
-
     public static equalToOrNull(value: string | ObjectID): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(

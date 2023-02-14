@@ -23,7 +23,7 @@ export interface ComponentProps {
     onHasFormValidatonErrors: (values: Dictionary<boolean>) => void;
     workflowId: ObjectID;
     graphComponents: Array<NodeDataProp>;
-    onFormChange: (value: NodeDataProp) => void; 
+    onFormChange: (value: NodeDataProp) => void;
 }
 
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
@@ -44,10 +44,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         props.onHasFormValidatonErrors(hasFormValidationErrors);
     }, [hasFormValidationErrors]);
 
-    useEffect(()=>{
+    useEffect(() => {
         props.onFormChange(component);
-
-    }, [component])
+    }, [component]);
 
     return (
         <div className="mb-3 mt-3">
@@ -75,8 +74,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                 ...(component.arguments || {}),
                             }}
                             onChange={(values: FormValues<JSONObject>) => {
-                                setComponent({ ...component, arguments: {...(component.arguments as JSONObject || {}), ...(values as JSONObject || {})} });
-                                
+                                setComponent({
+                                    ...component,
+                                    arguments: {
+                                        ...((component.arguments as JSONObject) ||
+                                            {}),
+                                        ...((values as JSONObject) || {}),
+                                    },
+                                });
                             }}
                             onFormValidationErrorChanged={(
                                 hasError: boolean
@@ -138,7 +143,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                             required: arg.required,
                                             placeholder: arg.placeholder,
                                             ...componentInputTypeToFormFieldType(
-                                                arg.type, component.arguments && component.arguments[arg.id] ? component.arguments[arg.id] : null
+                                                arg.type,
+                                                component.arguments &&
+                                                    component.arguments[arg.id]
+                                                    ? component.arguments[
+                                                          arg.id
+                                                      ]
+                                                    : null
                                             ),
                                         };
                                     }
@@ -166,7 +177,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             {showComponentPickerModal && (
                 <ComponentValuePickerModal
                     components={props.graphComponents}
-                    currentComponent={props.component}
                     onClose={() => {
                         setShowComponentPickerModal(false);
                     }}

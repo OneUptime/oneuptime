@@ -35,16 +35,18 @@ export const loadComponentsAndCategories: Function = (): {
     return { components: initComponents, categories: initCategories };
 };
 
-export const componentInputTypeToFormFieldType = (
+export const componentInputTypeToFormFieldType: Function = (
     componentInputType: ComponentInputType,
     argValue: any
 ): {
     fieldType: FormFieldSchemaType;
     dropdownOptions?: Array<DropdownOption> | undefined;
 } => {
-
-
-    if(argValue && typeof argValue === Typeof.String && argValue.toString().includes("{{")){
+    if (
+        argValue &&
+        typeof argValue === Typeof.String &&
+        argValue.toString().includes('{{')
+    ) {
         return {
             fieldType: FormFieldSchemaType.Text,
             dropdownOptions: [],
