@@ -313,7 +313,8 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
-                    {(field.fieldType === FormFieldSchemaType.LongText || field.fieldType === FormFieldSchemaType.JSON) && (
+                    {(field.fieldType === FormFieldSchemaType.LongText ||
+                        field.fieldType === FormFieldSchemaType.JSON) && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
@@ -740,13 +741,15 @@ const BasicForm: Function = <T extends Object>(
             }
 
             if (field.validation.noSpecialCharacters) {
-                if (!Boolean(content.match(/^[A-Za-z0-9]*$/))) {
-                    return `${field.title || name} should not have special characters.`;
+                if (!content.match(/^[A-Za-z0-9]*$/)) {
+                    return `${
+                        field.title || name
+                    } should not have special characters.`;
                 }
             }
 
             if (field.validation.noNumbers) {
-                if (!Boolean(content.match(/^[A-Za-z]*$/))) {
+                if (!content.match(/^[A-Za-z]*$/)) {
                     return `${field.title || name} should not have numbers.`;
                 }
             }

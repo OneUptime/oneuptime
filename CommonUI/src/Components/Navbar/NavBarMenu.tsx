@@ -8,7 +8,7 @@ export interface ComponentProps {
         title: string;
         description: string;
         link: URL;
-    }
+    };
 }
 
 const NavBarItem: FunctionComponent<ComponentProps> = (
@@ -26,14 +26,24 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
                 <div className="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8 lg:grid-cols-2">
                     {children}
                 </div>
-                {props.footer && <div className="bg-gray-50 p-5 sm:p-8">
-                    <Link to={props.footer.link} openInNewTab={true} className="-m-3 flow-root rounded-md p-3 transition duration-150 ease-in-out hover:bg-gray-100">
-                        <span className="flex items-center">
-                            <span className="text-base font-medium text-gray-900">{props.footer.title}</span>
-                        </span>
-                        <span className="mt-1 block text-sm text-gray-500">{props.footer.description}</span>
-                    </Link>
-                </div>}
+                {props.footer && (
+                    <div className="bg-gray-50 p-5 sm:p-8">
+                        <Link
+                            to={props.footer.link}
+                            openInNewTab={true}
+                            className="-m-3 flow-root rounded-md p-3 transition duration-150 ease-in-out hover:bg-gray-100"
+                        >
+                            <span className="flex items-center">
+                                <span className="text-base font-medium text-gray-900">
+                                    {props.footer.title}
+                                </span>
+                            </span>
+                            <span className="mt-1 block text-sm text-gray-500">
+                                {props.footer.description}
+                            </span>
+                        </Link>
+                    </div>
+                )}
             </div>
         </div>
     );

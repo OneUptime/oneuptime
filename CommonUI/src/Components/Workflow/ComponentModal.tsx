@@ -17,8 +17,6 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Icon from '../Icon/Icon';
 import SideOver from '../SideOver/SideOver';
 
-
-
 export interface ComponentProps {
     componentsType: ComponentType;
     onCloseModal: () => void;
@@ -42,8 +40,6 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [isSearching, setIsSearching] = useState<boolean>(false);
 
     useEffect(() => {
-       
-
         setComponents(props.components);
 
         setComponentsToShow([...props.components]);
@@ -184,12 +180,13 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                     componentMetadata
                                                                                 );
                                                                             }}
-                                                                            className={`m-5 ml-0 mt-0 ${selectedComponentMetadata &&
-                                                                                    selectedComponentMetadata.id ===
+                                                                            className={`m-5 ml-0 mt-0 ${
+                                                                                selectedComponentMetadata &&
+                                                                                selectedComponentMetadata.id ===
                                                                                     componentMetadata.id
                                                                                     ? 'rounded ring-offset-2 ring ring-indigo-500'
                                                                                     : ''
-                                                                                }`}
+                                                                            }`}
                                                                         >
                                                                             <ComponentElement
                                                                                 key={

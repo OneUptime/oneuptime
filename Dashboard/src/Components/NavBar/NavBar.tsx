@@ -16,9 +16,8 @@ export interface ComponentProps {
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-    const [isComponentVisible, setIsComponentVisible] = useState<boolean>(false);
+    const [isComponentVisible, setIsComponentVisible] =
+        useState<boolean>(false);
     const [moreMenuTimeout, setMoreMenuTimeout] = useState<any>(null);
 
     if (!props.show) {
@@ -75,33 +74,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 )}
             ></NavBarItem>
 
-            <NavBarItem title="More" icon={IconProp.More} onMouseOut={() => {
-                if (moreMenuTimeout) {
-                    clearTimeout(moreMenuTimeout);
-                }
-
-                const timeout = setTimeout(() => {
-                    setIsComponentVisible(false);
-                }, 600);
-
-                setMoreMenuTimeout(timeout);
-            }} onMouseOver={() => {
-                if (moreMenuTimeout) {
-                    clearTimeout(moreMenuTimeout);
-                }
-                setIsComponentVisible(true);
-            }} onClick={() => {
-                if (moreMenuTimeout) {
-                    clearTimeout(moreMenuTimeout);
-                }
-                setIsComponentVisible(true);
-            }}>
-                <div onMouseOver={() => {
-                    if (moreMenuTimeout) {
-                        clearTimeout(moreMenuTimeout);
-                    }
-                    setIsComponentVisible(true);
-                }} onMouseOut={() => {
+            <NavBarItem
+                title="More"
+                icon={IconProp.More}
+                onMouseOut={() => {
                     if (moreMenuTimeout) {
                         clearTimeout(moreMenuTimeout);
                     }
@@ -111,31 +87,68 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     }, 600);
 
                     setMoreMenuTimeout(timeout);
-                }}>
-                    {isComponentVisible && <NavBarMenu footer={{
-                        title: "Report a bug or request a feature.",
-                        description: "We embrace open-source. Please report any issue your find or any feature requests on GitHub.",
-                        link: URL.fromString("https://github.com/OneUptime/oneuptime/issues/new/choose")
-                    }}>
-                        <NavBarMenuItem
-                            title="Workflows"
-                            description='Integrate OneUptime with the rest of your ecosystem.'
-                            route={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.WORKFLOWS] as Route
-                            )}
-                            icon={IconProp.Workflow}
-                        />
-                        <NavBarMenuItem
-                            title="Project Settings"
-                            description='Review or manage project settings here.'
-                            route={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.SETTINGS] as Route
-                            )}
-                            icon={IconProp.Settings}
-                        />
+                }}
+                onMouseOver={() => {
+                    if (moreMenuTimeout) {
+                        clearTimeout(moreMenuTimeout);
+                    }
+                    setIsComponentVisible(true);
+                }}
+                onClick={() => {
+                    if (moreMenuTimeout) {
+                        clearTimeout(moreMenuTimeout);
+                    }
+                    setIsComponentVisible(true);
+                }}
+            >
+                <div
+                    onMouseOver={() => {
+                        if (moreMenuTimeout) {
+                            clearTimeout(moreMenuTimeout);
+                        }
+                        setIsComponentVisible(true);
+                    }}
+                    onMouseOut={() => {
+                        if (moreMenuTimeout) {
+                            clearTimeout(moreMenuTimeout);
+                        }
 
+                        const timeout = setTimeout(() => {
+                            setIsComponentVisible(false);
+                        }, 600);
 
-                        {/* <NavBarMenuItem
+                        setMoreMenuTimeout(timeout);
+                    }}
+                >
+                    {isComponentVisible && (
+                        <NavBarMenu
+                            footer={{
+                                title: 'Report a bug or request a feature.',
+                                description:
+                                    'We embrace open-source. Please report any issue your find or any feature requests on GitHub.',
+                                link: URL.fromString(
+                                    'https://github.com/OneUptime/oneuptime/issues/new/choose'
+                                ),
+                            }}
+                        >
+                            <NavBarMenuItem
+                                title="Workflows"
+                                description="Integrate OneUptime with the rest of your ecosystem."
+                                route={RouteUtil.populateRouteParams(
+                                    RouteMap[PageMap.WORKFLOWS] as Route
+                                )}
+                                icon={IconProp.Workflow}
+                            />
+                            <NavBarMenuItem
+                                title="Project Settings"
+                                description="Review or manage project settings here."
+                                route={RouteUtil.populateRouteParams(
+                                    RouteMap[PageMap.SETTINGS] as Route
+                                )}
+                                icon={IconProp.Settings}
+                            />
+
+                            {/* <NavBarMenuItem
                             title="Logs Management"
                             description='Manage your application logs.'
                             route={RouteUtil.populateRouteParams(
@@ -169,8 +182,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             )}
                             icon={IconProp.Report}
                         /> */}
-
-                    </NavBarMenu>}
+                        </NavBarMenu>
+                    )}
                 </div>
             </NavBarItem>
         </NavBar>

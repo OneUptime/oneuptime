@@ -87,10 +87,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                             title: `${arg.name}`,
                                             footerElement: (
                                                 <div className="text-gray-500">
-                                                    <p className='text-sm'>
+                                                    <p className="text-sm">
                                                         Pick this value from
                                                         other{' '}
-                                                        <a
+                                                        <button
                                                             className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
                                                             onClick={() => {
                                                                 setSelectedArgId(
@@ -102,9 +102,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                                             }}
                                                         >
                                                             component
-                                                        </a>{' '}
+                                                        </button>{' '}
                                                         or from{' '}
-                                                        <a
+                                                        <button
                                                             className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
                                                             onClick={() => {
                                                                 setSelectedArgId(
@@ -116,14 +116,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                                             }}
                                                         >
                                                             variable.
-                                                        </a>
+                                                        </button>
                                                     </p>
                                                 </div>
                                             ),
-                                            description: `${arg.required
+                                            description: `${
+                                                arg.required
                                                     ? 'Required'
                                                     : 'Optional'
-                                                }. ${arg.description}`,
+                                            }. ${arg.description}`,
                                             field: {
                                                 [arg.id]: true,
                                             },

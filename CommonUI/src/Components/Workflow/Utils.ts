@@ -1,4 +1,7 @@
-import ComponentMetadata, { ComponentCategory, ComponentInputType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, {
+    ComponentCategory,
+    ComponentInputType,
+} from 'Common/Types/Workflow/Component';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import Entities from 'Model/Models/Index';
@@ -6,10 +9,7 @@ import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseMode
 import IconProp from 'Common/Types/Icon/IconProp';
 import Components, { Categories } from 'Common/Types/Workflow/Components';
 
-
-export const loadComponentsAndCategories: Function = (
-    
-): {
+export const loadComponentsAndCategories: Function = (): {
     components: Array<ComponentMetadata>;
     categories: Array<ComponentCategory>;
 } => {

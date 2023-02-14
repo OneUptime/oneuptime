@@ -1,7 +1,6 @@
 import ObjectID from 'Common/Types/ObjectID';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
-import React from 'react';
-import { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import ModelListModal from '../ModelListModal/ModelListModal';
 
 export interface ComponentProps {

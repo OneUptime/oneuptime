@@ -29,7 +29,10 @@ const ComponentPortViewer: FunctionComponent<ComponentProps> = (
                     props.ports.length > 0 &&
                     props.ports.map((port: Port, i: number) => {
                         return (
-                            <div key={i} className="mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2">
+                            <div
+                                key={i}
+                                className="mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2"
+                            >
                                 <div className="min-w-0 flex-1">
                                     <div className="focus:outline-none">
                                         <span

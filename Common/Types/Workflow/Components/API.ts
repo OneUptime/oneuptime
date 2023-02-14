@@ -19,7 +19,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
-                placeholder: "https://api.yourcompany.com"
+                placeholder: 'https://api.yourcompany.com',
             },
             {
                 id: 'request-body',
@@ -27,7 +27,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}'
+                placeholder: '{"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -36,7 +36,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}'
+                placeholder: '{"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -45,7 +45,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}'
+                placeholder: '{"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -114,7 +114,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
-                placeholder: "https://api.yourcompany.com"
+                placeholder: 'https://api.yourcompany.com',
             },
             {
                 id: 'request-body',
@@ -122,7 +122,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}'
+                placeholder: '{"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -131,7 +131,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}'
+                placeholder: '{"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -140,7 +140,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}'
+                placeholder: '{"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -209,7 +209,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
-                placeholder: "https://api.yourcompany.com"
+                placeholder: 'https://api.yourcompany.com',
             },
             {
                 id: 'request-body',
@@ -217,7 +217,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}'
+                placeholder: '{"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -226,7 +226,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}'
+                placeholder: '{"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -235,7 +235,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}'
+                placeholder: '{"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -304,7 +304,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'URL to send request to.',
                 type: ComponentInputType.URL,
                 required: true,
-                placeholder: "https://api.yourcompany.com"
+                placeholder: 'https://api.yourcompany.com',
             },
             {
                 id: 'request-body',
@@ -312,7 +312,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}'
+                placeholder: '{"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -321,7 +321,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}'
+                placeholder: '{"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -330,7 +330,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}'
+                placeholder: '{"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [

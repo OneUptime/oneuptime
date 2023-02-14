@@ -13,7 +13,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onClose: () => void;
     onSave: (modals: Array<TBaseModel>) => void;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     titleField: string;
     descriptionField?: string | undefined;
     selectMultiple?: boolean | undefined;
@@ -59,7 +59,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -74,7 +74,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             title={props.modalTitle}
             description={props.modalDescription}
             onClose={props.onClose}
-            disableSubmitButton={selectedList.length == 0}
+            disableSubmitButton={selectedList.length === 0}
             onSubmit={() => {
                 if (selectedList && selectedList.length === 0) {
                     props.onClose();
@@ -83,82 +83,91 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                 props.onSave(selectedList);
             }}
         >
-            <div className='max-h-96 mt-5 mb-5 overflow-y-scroll'>
+            <div className="max-h-96 mt-5 mb-5 overflow-y-scroll">
                 {error ? <ErrorMessage error={error} /> : <></>}
                 {isLoading ? <ComponentLoader /> : <></>}
                 {!isLoading && modelList.length === 0 ? (
-                    <ErrorMessage error={props.noItemsMessage || 'No items found.'} />
+                    <ErrorMessage
+                        error={props.noItemsMessage || 'No items found.'}
+                    />
                 ) : (
                     <></>
                 )}
                 {modelList &&
                     modelList.length > 0 &&
-                    modelList.map((model: TBaseModel, i: number): ReactElement => {
-                        const isSelected: boolean =
-                            selectedList.filter((selectedItem: TBaseModel) => {
-                                return selectedItem._id?.toString() ===
-                                    model._id?.toString();
-                            }).length > 0;
-
-                        return (
-                            <div
-                                key={i}
-                                onClick={() => {
-                                    if (props.selectMultiple) {
-                                        // if added to the list, then remove or add to list
-
-                                        if (isSelected) {
-                                            // remove the item.
-                                            setSelectedList(
-                                                selectedList.filter(
-                                                    (i: TBaseModel) => {
-                                                        return (
-                                                            i._id?.toString() !==
-                                                            model._id?.toString()
-                                                        );
-                                                    }
-                                                )
-                                            );
-                                        } else {
-                                            setSelectedList([
-                                                ...selectedList,
-                                                { ...model },
-                                            ]);
-                                        }
-                                    } else {
-                                        setSelectedList([{ ...model }]);
+                    modelList.map(
+                        (model: TBaseModel, i: number): ReactElement => {
+                            const isSelected: boolean =
+                                selectedList.filter(
+                                    (selectedItem: TBaseModel) => {
+                                        return (
+                                            selectedItem._id?.toString() ===
+                                            model._id?.toString()
+                                        );
                                     }
-                                }}
-                                className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${isSelected ? 'ring ring-indigo-500' : ''
-                                    }`}
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <div className="focus:outline-none">
-                                        <span
-                                            className="absolute inset-0"
-                                            aria-hidden="true"
-                                        ></span>
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {
-                                                model.getValue(
-                                                    props.titleField
-                                                ) as string
+                                ).length > 0;
+
+                            return (
+                                <div
+                                    key={i}
+                                    onClick={() => {
+                                        if (props.selectMultiple) {
+                                            // if added to the list, then remove or add to list
+
+                                            if (isSelected) {
+                                                // remove the item.
+                                                setSelectedList(
+                                                    selectedList.filter(
+                                                        (i: TBaseModel) => {
+                                                            return (
+                                                                i._id?.toString() !==
+                                                                model._id?.toString()
+                                                            );
+                                                        }
+                                                    )
+                                                );
+                                            } else {
+                                                setSelectedList([
+                                                    ...selectedList,
+                                                    { ...model },
+                                                ]);
                                             }
-                                        </p>
-                                        {props.descriptionField && (
-                                            <p className="truncate text-sm text-gray-500">
+                                        } else {
+                                            setSelectedList([{ ...model }]);
+                                        }
+                                    }}
+                                    className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
+                                        isSelected ? 'ring ring-indigo-500' : ''
+                                    }`}
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="focus:outline-none">
+                                            <span
+                                                className="absolute inset-0"
+                                                aria-hidden="true"
+                                            ></span>
+                                            <p className="text-sm font-medium text-gray-900">
                                                 {
                                                     model.getValue(
-                                                        props.descriptionField
+                                                        props.titleField
                                                     ) as string
                                                 }
                                             </p>
-                                        )}
+                                            {props.descriptionField && (
+                                                <p className="truncate text-sm text-gray-500">
+                                                    {
+                                                        model.getValue(
+                                                            props.descriptionField
+                                                        ) as string
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        }
+                    )}
             </div>
         </Modal>
     );

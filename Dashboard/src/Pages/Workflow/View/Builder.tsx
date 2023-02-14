@@ -66,7 +66,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     components: Array<ComponentMetadata>;
                     categories: Array<ComponentCategory>;
                 } = loadComponentsAndCategories();
-                
 
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
                     if (
@@ -98,7 +97,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 continue;
                             }
 
-                            let componentMetdata:
+                            const componentMetdata:
                                 | ComponentMetadata
                                 | undefined = allComponents.components.find(
                                 (component: ComponentMetadata) => {
@@ -108,8 +107,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     );
                                 }
                             );
-
-            
 
                             if (!componentMetdata) {
                                 throw new BadDataException(

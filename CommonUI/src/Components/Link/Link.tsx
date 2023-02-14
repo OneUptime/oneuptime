@@ -14,8 +14,8 @@ export interface ComponentProps {
     onNavigateComplete?: (() => void) | undefined;
     openInNewTab?: boolean | undefined;
     style?: React.CSSProperties | undefined;
-    onMouseOver?: (()=> void) | undefined;
-    onMouseOut?: (()=> void) | undefined;
+    onMouseOver?: (() => void) | undefined;
+    onMouseOut?: (() => void) | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
