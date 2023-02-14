@@ -44,11 +44,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             onSubmit={() => {
                 return component && props.onSave(component);
             }}
-            submitButtonDisabled={
-                Object.keys(hasFormValidationErrors).filter((key: string) => {
-                    return hasFormValidationErrors[key];
-                }).length !== 0
-            }
             leftFooterElement={
                 <Button
                     title={`Delete ${component.metadata.componentType}`}
@@ -113,6 +108,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     graphComponents={props.graphComponents}
                     workflowId={props.workflowId}
                     component={component}
+                    onFormChange={(component: NodeDataProp)=> {
+                        setComponent({...component});
+                    }}
                     onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
                         setHasFormValidatonErrors({
                             ...hasFormValidationErrors,

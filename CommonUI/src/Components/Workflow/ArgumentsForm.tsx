@@ -23,6 +23,7 @@ export interface ComponentProps {
     onHasFormValidatonErrors: (values: Dictionary<boolean>) => void;
     workflowId: ObjectID;
     graphComponents: Array<NodeDataProp>;
+    onFormChange: (value: NodeDataProp) => void; 
 }
 
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
@@ -42,6 +43,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         props.onHasFormValidatonErrors(hasFormValidationErrors);
     }, [hasFormValidationErrors]);
+
+    useEffect(()=>{
+        props.onFormChange(component);
+
+    }, [component])
 
     return (
         <div className="mb-3 mt-3">
@@ -69,7 +75,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                 ...(component.arguments || {}),
                             }}
                             onChange={(values: FormValues<JSONObject>) => {
-                                setComponent({ ...component, ...values });
+                                setComponent({ ...component, arguments: {...(component.arguments as JSONObject || {}), ...(values as JSONObject || {})} });
+                                
                             }}
                             onFormValidationErrorChanged={(
                                 hasError: boolean
@@ -131,7 +138,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                             required: arg.required,
                                             placeholder: arg.placeholder,
                                             ...componentInputTypeToFormFieldType(
-                                                arg.type
+                                                arg.type, component.arguments && component.arguments[arg.id] ? component.arguments[arg.id] : null
                                             ),
                                         };
                                     }

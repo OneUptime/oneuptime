@@ -44,7 +44,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
                 );
             }}
         >
-            <div className="max-h-96 mt-5 mb-5 overflow-y-scroll">
+            <div className="max-h-96 mt-5 mb-5 overflow-y-auto">
                 {props.components &&
                     props.components.length > 0 &&
                     props.components.map(

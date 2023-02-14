@@ -83,7 +83,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                 props.onSave(selectedList);
             }}
         >
-            <div className="max-h-96 mt-5 mb-5 overflow-y-scroll">
+            <div className="max-h-96 mt-5 mb-5 overflow-y-auto p-2">
                 {error ? <ErrorMessage error={error} /> : <></>}
                 {isLoading ? <ComponentLoader /> : <></>}
                 {!isLoading && modelList.length === 0 ? (

@@ -8,6 +8,7 @@ import Entities from 'Model/Models/Index';
 import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Components, { Categories } from 'Common/Types/Workflow/Components';
+import Typeof from 'Common/Types/Typeof';
 
 export const loadComponentsAndCategories: Function = (): {
     components: Array<ComponentMetadata>;
@@ -35,11 +36,21 @@ export const loadComponentsAndCategories: Function = (): {
 };
 
 export const componentInputTypeToFormFieldType = (
-    componentInputType: ComponentInputType
+    componentInputType: ComponentInputType,
+    argValue: any
 ): {
     fieldType: FormFieldSchemaType;
     dropdownOptions?: Array<DropdownOption> | undefined;
 } => {
+
+
+    if(argValue && typeof argValue === Typeof.String && argValue.toString().includes("{{")){
+        return {
+            fieldType: FormFieldSchemaType.Text,
+            dropdownOptions: [],
+        };
+    }
+
     if (componentInputType === ComponentInputType.Boolean) {
         return {
             fieldType: FormFieldSchemaType.Checkbox,
