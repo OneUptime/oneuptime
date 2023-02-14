@@ -735,7 +735,19 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.noSpaces) {
                 if (content.trim().includes(' ')) {
-                    return `${field.title || name} should have no spaces.`;
+                    return `${field.title || name} should not have spaces.`;
+                }
+            }
+
+            if (field.validation.noSpecialCharacters) {
+                if (!Boolean(content.match(/^[A-Za-z0-9]*$/))) {
+                    return `${field.title || name} should not have special characters.`;
+                }
+            }
+
+            if (field.validation.noNumbers) {
+                if (!Boolean(content.match(/^[A-Za-z]*$/))) {
+                    return `${field.title || name} should not have numbers.`;
                 }
             }
         }

@@ -82,7 +82,7 @@ const components: Array<ComponentMetadata> = [
         ],
         outPorts: [
             {
-                title: 'Out',
+                title: 'Email Sent',
                 description:
                     'Connect to this port if you want other componets to execute after the email is sent.',
                 id: 'out',

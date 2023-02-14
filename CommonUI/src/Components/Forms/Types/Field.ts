@@ -34,6 +34,8 @@ export default interface Field<TEntity> {
         maxLength?: number;
         toMatchField?: string;
         noSpaces?: boolean;
+        noSpecialCharacters?: boolean;
+        noNumbers?: boolean;
         minValue?: number;
         maxValue?: number;
         dateShouldBeInTheFuture?: boolean;
