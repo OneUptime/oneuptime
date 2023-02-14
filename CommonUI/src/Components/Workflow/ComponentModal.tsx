@@ -201,8 +201,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                         '',
                                                                                     nodeType:
                                                                                         NodeType.Node,
-                                                                                    nodeData:
-                                                                                        {},
+                                                                                    returnValues: {},
                                                                                     isPreview:
                                                                                         true,
                                                                                     id: '',

@@ -35,6 +35,7 @@ import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentSettingsModal from './ComponentSettingsModal';
 import { loadComponentsAndCategories } from './Utils';
+import RunModal from './RunModal';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -83,8 +84,11 @@ export interface ComponentProps {
     initialEdges: Array<Edge>;
     onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
     showComponentsPickerModal: boolean;
+    showRunModal: boolean;
     onComponentPickerModalUpdate: (isModalShown: boolean) => void;
     workflowId: ObjectID;
+    onRunModalUpdate: (isModalShown: boolean) => void;
+    onRun: (trigger: NodeDataProp)=> void; 
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -136,6 +140,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowComponentsModal(false);
         }
     }, [props.showComponentsPickerModal]);
+
+
+    useEffect(() => {
+        if (props.showRunModal) {
+            setShowRunModal(true);
+        } else {
+            setShowComponentsModal(false);
+        }
+    }, [props.showRunModal]);
 
     const deleteNode: Function = (id: string): void => {
         // remove the node.
@@ -254,6 +267,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
+    const [showRunModal, setShowRunModal] =
+        useState<boolean>(false);
+
     const [showComponentType, setShowComponentsType] = useState<ComponentType>(
         ComponentType.Component
     );
@@ -261,6 +277,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
+
+    useEffect(() => {
+        props.onRunModalUpdate(showRunModal);
+    }, [showRunModal]);
 
     const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
         const metaDataId: string = componentMetadata.id;
@@ -287,6 +307,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
+                nodeType: NodeType.Node,
                 id: `${metaDataId}-${idCounter}`,
                 error: '',
                 metadata: { ...componentMetadata },
@@ -369,7 +390,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     description={
                         selectedNodeData &&
-                        selectedNodeData.metadata.description
+                            selectedNodeData.metadata.description
                             ? selectedNodeData.metadata.description
                             : 'Edit Component Properties and variables here.'
                     }
@@ -396,6 +417,22 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                 />
             )}
+
+
+            {showRunModal && (
+                <RunModal
+                    trigger={(nodes.find((i)=>i.data.metadata.componentType === ComponentType.Trigger) || getPlaceholderTriggerNode()).data}
+                    onClose={() => {
+                        setShowRunModal(false);
+                    }}
+                    onRun={(trigger: NodeDataProp) => {
+                        props.onRun(trigger)
+                        setShowRunModal(false);
+                    }}
+                />
+            )}
+
+
         </div>
     );
 };

@@ -31,7 +31,7 @@ import ComponentMetadata, {
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { NodeType } from 'CommonUI/src/Components/Workflow/Component';
+import { NodeDataProp, NodeType } from 'CommonUI/src/Components/Workflow/Component';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -47,6 +47,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [error, setError] = useState<string>('');
 
     const [showComponentPickerModal, setShowComponentPickerModal] =
+        useState<boolean>(false);
+
+    const [showRunModal, setShowRunModal] =
         useState<boolean>(false);
 
     const loadGraph: Function = async (): Promise<void> => {
@@ -100,18 +103,18 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             const componentMetdata:
                                 | ComponentMetadata
                                 | undefined = allComponents.components.find(
-                                (component: ComponentMetadata) => {
-                                    return (
-                                        component.id ===
-                                        nodes[i]?.data.metadataId
-                                    );
-                                }
-                            );
+                                    (component: ComponentMetadata) => {
+                                        return (
+                                            component.id ===
+                                            nodes[i]?.data.metadataId
+                                        );
+                                    }
+                                );
 
                             if (!componentMetdata) {
                                 throw new BadDataException(
                                     'Component Metadata not found for node ' +
-                                        nodes[i]?.data.metadataId
+                                    nodes[i]?.data.metadataId
                                 );
                             }
 
@@ -154,7 +157,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -227,7 +230,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     try {
                         setError(
                             (err as HTTPErrorResponse).message ||
-                                'Server Error. Please try again'
+                            'Server Error. Please try again'
                         );
                     } catch (e) {
                         setError('Server Error. Please try again');
@@ -306,7 +309,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     title="Run Wrokflow"
                                     icon={IconProp.Play}
                                     onClick={() => {
-                                        setShowComponentPickerModal(true);
+                                        setShowRunModal(true);
                                     }}
                                 />
                             </div>
@@ -323,6 +326,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 setShowComponentPickerModal(value);
                             }}
                             initialNodes={nodes}
+                            onRunModalUpdate={(value: boolean) => {
+                                setShowRunModal(value);
+                            }}
+                            showRunModal={showRunModal}
                             initialEdges={edges}
                             onWorkflowUpdated={async (
                                 nodes: Array<Node>,
@@ -331,6 +338,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 setNodes(nodes);
                                 setEdges(edges);
                                 await saveGraph(nodes, edges);
+                            }}
+                            onRun={(component: NodeDataProp)=> {
+                                console.log(component);
                             }}
                         />
                     ) : (

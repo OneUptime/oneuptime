@@ -17,7 +17,6 @@ export enum NodeType {
 }
 
 export interface NodeDataProp {
-    nodeData: JSONObject;
     error: string;
     id: string;
     nodeType: NodeType;
@@ -27,6 +26,7 @@ export interface NodeDataProp {
     metadataId: string;
     internalId: string;
     arguments: JSONObject;
+    returnValues: JSONObject;
 }
 
 export interface ComponentProps {
