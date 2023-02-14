@@ -23,8 +23,14 @@ const RunModal: FunctionComponent<ComponentProps> = (
     const [showRunConfirmation, setShowRunConfirmation] =
         useState<boolean>(false);
 
+    const [showRunSuccessConfirmation, setShowRunSuccessConfirmation] =
+        useState<boolean>(false);
+
     const [showFormValidationErrors, setShowFormValidationErrors] =
         useState<boolean>(false);
+
+
+
 
     return (
         <SideOver
@@ -56,9 +62,24 @@ const RunModal: FunctionComponent<ComponentProps> = (
                         onSubmit={() => {
                             props.onRun(component);
                             setShowRunConfirmation(false);
-                            props.onClose();
+                            setShowRunSuccessConfirmation(true);
                         }}
                         submitButtonType={ButtonStyleType.SUCCESS}
+                    />
+                )}
+
+
+                {showRunSuccessConfirmation && (
+                    <ConfirmModal
+                        title={`Workflow Started...`}
+                        description={`This workflow is scheduled to execute soon. You can see the status of the run in the Runs and Logs section.`}
+
+                        submitButtonText={'Close'}
+                        onSubmit={() => {
+                            setShowRunSuccessConfirmation(false);
+                            props.onClose();
+                        }}
+                        submitButtonType={ButtonStyleType.NORMAL}
                     />
                 )}
 
@@ -76,6 +97,8 @@ const RunModal: FunctionComponent<ComponentProps> = (
                 )}
 
 
+
+
                 {component.nodeType === NodeType.Node && <RunForm
 
                     component={component}
@@ -90,7 +113,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
                     }}
                 />}
 
-                {component.nodeType === NodeType.PlaceholderNode && <ErrorMessage error='No trigger added. Please add a trigger in order to run this workflow'/>}
+                {component.nodeType === NodeType.PlaceholderNode && <ErrorMessage error='No trigger added. Please add a trigger in order to run this workflow' />}
 
 
 

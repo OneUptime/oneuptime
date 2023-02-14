@@ -427,7 +427,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     onRun={(trigger: NodeDataProp) => {
                         props.onRun(trigger)
-                        setShowRunModal(false);
                     }}
                 />
             )}
