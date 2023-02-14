@@ -88,7 +88,7 @@ export interface ComponentProps {
     onComponentPickerModalUpdate: (isModalShown: boolean) => void;
     workflowId: ObjectID;
     onRunModalUpdate: (isModalShown: boolean) => void;
-    onRun: (trigger: NodeDataProp)=> void; 
+    onRun: (trigger: NodeDataProp) => void;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -140,7 +140,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowComponentsModal(false);
         }
     }, [props.showComponentsPickerModal]);
-
 
     useEffect(() => {
         if (props.showRunModal) {
@@ -267,8 +266,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
-    const [showRunModal, setShowRunModal] =
-        useState<boolean>(false);
+    const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
     const [showComponentType, setShowComponentsType] = useState<ComponentType>(
         ComponentType.Component
@@ -390,7 +388,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     description={
                         selectedNodeData &&
-                            selectedNodeData.metadata.description
+                        selectedNodeData.metadata.description
                             ? selectedNodeData.metadata.description
                             : 'Edit Component Properties and variables here.'
                     }
@@ -418,20 +416,26 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 />
             )}
 
-
             {showRunModal && (
                 <RunModal
-                    trigger={(nodes.find((i)=>i.data.metadata.componentType === ComponentType.Trigger) || getPlaceholderTriggerNode()).data}
+                    trigger={
+                        (
+                            nodes.find((i: Node) => {
+                                return (
+                                    i.data.metadata.componentType ===
+                                    ComponentType.Trigger
+                                );
+                            }) || getPlaceholderTriggerNode()
+                        ).data
+                    }
                     onClose={() => {
                         setShowRunModal(false);
                     }}
                     onRun={(trigger: NodeDataProp) => {
-                        props.onRun(trigger)
+                        props.onRun(trigger);
                     }}
                 />
             )}
-
-
         </div>
     );
 };

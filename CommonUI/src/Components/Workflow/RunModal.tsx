@@ -29,25 +29,23 @@ const RunModal: FunctionComponent<ComponentProps> = (
     const [showFormValidationErrors, setShowFormValidationErrors] =
         useState<boolean>(false);
 
-
-
-
     return (
         <SideOver
-            title={"Run Workflow"}
-            description={"You can run this workflow manually. This can be helpful to test the workflow."}
+            title={'Run Workflow'}
+            description={
+                'You can run this workflow manually. This can be helpful to test the workflow.'
+            }
             onClose={props.onClose}
-            submitButtonDisabled={component.nodeType === NodeType.PlaceholderNode}
+            submitButtonDisabled={
+                component.nodeType === NodeType.PlaceholderNode
+            }
             submitButtonText={'Run Workflow'}
             onSubmit={() => {
-
                 if (Object.keys(hasFormValidationErrors).length > 0) {
-                    setShowFormValidationErrors(true)
+                    setShowFormValidationErrors(true);
                 } else {
                     setShowRunConfirmation(true);
                 }
-
-
             }}
         >
             <>
@@ -68,12 +66,10 @@ const RunModal: FunctionComponent<ComponentProps> = (
                     />
                 )}
 
-
                 {showRunSuccessConfirmation && (
                     <ConfirmModal
                         title={`Workflow Started...`}
                         description={`This workflow is scheduled to execute soon. You can see the status of the run in the Runs and Logs section.`}
-
                         submitButtonText={'Close'}
                         onSubmit={() => {
                             setShowRunSuccessConfirmation(false);
@@ -82,7 +78,6 @@ const RunModal: FunctionComponent<ComponentProps> = (
                         submitButtonType={ButtonStyleType.NORMAL}
                     />
                 )}
-
 
                 {showFormValidationErrors && (
                     <ConfirmModal
@@ -96,27 +91,26 @@ const RunModal: FunctionComponent<ComponentProps> = (
                     />
                 )}
 
+                {component.nodeType === NodeType.Node && (
+                    <RunForm
+                        component={component}
+                        onFormChange={(component: NodeDataProp) => {
+                            setComponent({ ...component });
+                        }}
+                        onHasFormValidatonErrors={(
+                            value: Dictionary<boolean>
+                        ) => {
+                            setHasFormValidatonErrors({
+                                ...hasFormValidationErrors,
+                                ...value,
+                            });
+                        }}
+                    />
+                )}
 
-
-
-                {component.nodeType === NodeType.Node && <RunForm
-
-                    component={component}
-                    onFormChange={(component: NodeDataProp) => {
-                        setComponent({ ...component });
-                    }}
-                    onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
-                        setHasFormValidatonErrors({
-                            ...hasFormValidationErrors,
-                            ...value,
-                        });
-                    }}
-                />}
-
-                {component.nodeType === NodeType.PlaceholderNode && <ErrorMessage error='No trigger added. Please add a trigger in order to run this workflow' />}
-
-
-
+                {component.nodeType === NodeType.PlaceholderNode && (
+                    <ErrorMessage error="No trigger added. Please add a trigger in order to run this workflow" />
+                )}
             </>
         </SideOver>
     );

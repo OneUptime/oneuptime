@@ -1,8 +1,8 @@
- enum WorkflowStatus { 
-    Scheduled = 'Scheduled', 
-    Running = 'Running', 
+enum WorkflowStatus {
+    Scheduled = 'Scheduled',
+    Running = 'Running',
     Success = 'Success',
-    Error = 'Error'
+    Error = 'Error',
 }
 
-export default WorkflowStatus
+export default WorkflowStatus;

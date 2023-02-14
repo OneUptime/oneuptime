@@ -14,7 +14,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Workflow from './Workflow';
-import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus"
+import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -52,9 +52,7 @@ import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus"
 })
 export default class WorkflowLog extends BaseModel {
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -83,9 +81,7 @@ export default class WorkflowLog extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -108,9 +104,7 @@ export default class WorkflowLog extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -139,9 +133,7 @@ export default class WorkflowLog extends BaseModel {
     public workflow?: Workflow = undefined;
 
     @ColumnAccessControl({
-        create: [
-            
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -164,9 +156,7 @@ export default class WorkflowLog extends BaseModel {
     public workflowId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -183,9 +173,7 @@ export default class WorkflowLog extends BaseModel {
     public logs?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

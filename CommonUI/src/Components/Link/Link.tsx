@@ -16,7 +16,7 @@ export interface ComponentProps {
     style?: React.CSSProperties | undefined;
     onMouseOver?: (() => void) | undefined;
     onMouseOut?: (() => void) | undefined;
-    onMouseLeave?:(() => void) | undefined;
+    onMouseLeave?: (() => void) | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (

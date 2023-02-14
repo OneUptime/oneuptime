@@ -30,7 +30,6 @@ const RunForm: FunctionComponent<ComponentProps> = (
         Dictionary<boolean>
     >({});
 
-
     useEffect(() => {
         props.onHasFormValidatonErrors(hasFormValidationErrors);
     }, [hasFormValidationErrors]);
@@ -46,7 +45,9 @@ const RunForm: FunctionComponent<ComponentProps> = (
                     Return Values from Trigger
                 </h2>
                 <p className="text-sm font-medium text-gray-400 mb-5">
-                    This workflow has a trigger to get it to run. Since this trigger returns some values to work. You can pass these return values from trigger manually and test this workflow.
+                    This workflow has a trigger to get it to run. Since this
+                    trigger returns some values to work. You can pass these
+                    return values from trigger manually and test this workflow.
                 </p>
                 {component.metadata.returnValues &&
                     component.metadata.returnValues.length === 0 && (
@@ -88,7 +89,7 @@ const RunForm: FunctionComponent<ComponentProps> = (
                                     (returnValue: ReturnValue) => {
                                         return {
                                             title: `${returnValue.name}`,
-                                            
+
                                             description: `${
                                                 returnValue.required
                                                     ? 'Required'
@@ -98,11 +99,14 @@ const RunForm: FunctionComponent<ComponentProps> = (
                                                 [returnValue.id]: true,
                                             },
                                             required: returnValue.required,
-                                            placeholder: returnValue.placeholder,
+                                            placeholder:
+                                                returnValue.placeholder,
                                             ...componentInputTypeToFormFieldType(
                                                 returnValue.type,
                                                 component.returnValues &&
-                                                    component.returnValues[returnValue.id]
+                                                    component.returnValues[
+                                                        returnValue.id
+                                                    ]
                                                     ? component.returnValues[
                                                           returnValue.id
                                                       ]
@@ -115,7 +119,6 @@ const RunForm: FunctionComponent<ComponentProps> = (
                         />
                     )}
             </div>
-            
         </div>
     );
 };
