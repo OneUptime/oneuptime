@@ -49,6 +49,7 @@ export interface ReturnValue {
     description: string;
     type: ComponentInputType;
     required: boolean;
+    placeholder?: string | undefined;
 }
 
 export default interface ComponentMetadata {

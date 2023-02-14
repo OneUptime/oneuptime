@@ -5,7 +5,7 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { Argument } from 'Common/Types/Workflow/Component';
+import { ReturnValue } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import BasicForm from '../Forms/BasicForm';
 import FormValues from '../Forms/Types/FormValues';
@@ -85,26 +85,26 @@ const RunForm: FunctionComponent<ComponentProps> = (
                             fields={
                                 component.metadata.returnValues &&
                                 component.metadata.returnValues.map(
-                                    (arg: Argument) => {
+                                    (returnValue: ReturnValue) => {
                                         return {
-                                            title: `${arg.name}`,
+                                            title: `${returnValue.name}`,
                                             
                                             description: `${
-                                                arg.required
+                                                returnValue.required
                                                     ? 'Required'
                                                     : 'Optional'
-                                            }. ${arg.description}`,
+                                            }. ${returnValue.description}`,
                                             field: {
-                                                [arg.id]: true,
+                                                [returnValue.id]: true,
                                             },
-                                            required: arg.required,
-                                            placeholder: arg.placeholder,
+                                            required: returnValue.required,
+                                            placeholder: returnValue.placeholder,
                                             ...componentInputTypeToFormFieldType(
-                                                arg.type,
+                                                returnValue.type,
                                                 component.returnValues &&
-                                                    component.returnValues[arg.id]
+                                                    component.returnValues[returnValue.id]
                                                     ? component.returnValues[
-                                                          arg.id
+                                                          returnValue.id
                                                       ]
                                                     : null
                                             ),
