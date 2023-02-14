@@ -30,7 +30,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
         const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
             setIsComponentVisible(false);
-        }, 600);
+        }, 500);
 
         setMoreMenuTimeout(timeout);
     };
@@ -108,7 +108,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             <NavBarItem
                 title="More"
                 icon={IconProp.More}
-                onMouseOut={() => {
+                onMouseLeave={() => {
                     hideMoreMenu();
                 }}
                 onMouseOver={() => {
@@ -122,7 +122,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     onMouseOver={() => {
                         showMoreMenu();
                     }}
-                    onMouseOut={() => {
+                    onMouseLeave={() => {
                         hideMoreMenu();
                     }}
                 >

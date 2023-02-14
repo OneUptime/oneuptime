@@ -18,6 +18,9 @@ import WorkflowElement from '../../../Components/Workflow/WorkflowElement';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
+import WorkflowStatusElement from "CommonUI/src/Components/Workflow/WorkflowStatus";
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -128,6 +131,28 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                                 Workflow
                                             ) as Workflow
                                         }
+                                    />
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                workflowStatus: true
+                            },
+                            isFilterable: true,
+                            
+                            title: 'Workflow Status',
+                            type: FieldType.Text,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (!item['workflowStatus']) {
+                                    throw new BadDataException(
+                                        'Workflow Status not found'
+                                    );
+                                }
+        
+                                return (
+                                    <WorkflowStatusElement
+                                        status={item['workflowStatus'] as WorkflowStatus}
                                     />
                                 );
                             },

@@ -16,6 +16,7 @@ export interface ComponentProps {
     style?: React.CSSProperties | undefined;
     onMouseOver?: (() => void) | undefined;
     onMouseOut?: (() => void) | undefined;
+    onMouseLeave?:(() => void) | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -41,6 +42,7 @@ const Link: FunctionComponent<ComponentProps> = (
             className={`cursor-pointer ${props.className || ''}`}
             onMouseOver={props.onMouseOver}
             onMouseOut={props.onMouseOut}
+            onMouseLeave={props.onMouseLeave}
             style={props.style}
             onClick={() => {
                 if (props.openInNewTab) {

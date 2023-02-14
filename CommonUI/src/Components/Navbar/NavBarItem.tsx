@@ -15,7 +15,7 @@ export interface ComponentProps {
     isRenderedOnMobile?: boolean;
     onMouseOver?: (() => void) | undefined;
     onClick?: (() => void) | undefined;
-    onMouseOut?: (() => void) | undefined;
+    onMouseLeave?: (() => void) | undefined;
 }
 
 const NavBarItem: FunctionComponent<ComponentProps> = (
@@ -49,7 +49,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
                 to={props.route ? props.route : null}
                 onMouseOver={props.onMouseOver}
                 onClick={props.onClick}
-                onMouseOut={props.onMouseOut}
+                onMouseLeave={props.onMouseLeave}
             >
                 {props.icon ? (
                     <Icon
