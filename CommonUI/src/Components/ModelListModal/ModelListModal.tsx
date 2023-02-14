@@ -8,6 +8,7 @@ import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Typeof from 'Common/Types/Typeof';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
@@ -21,6 +22,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modalTitle: string;
     modalDescription: string;
     noItemsMessage: string;
+    headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
 }
 
 const ModelListModal: Function = <TBaseModel extends BaseModel>(
@@ -146,6 +148,15 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                                 className="absolute inset-0"
                                                 aria-hidden="true"
                                             ></span>
+                                            {props.headerField && typeof props.headerField === Typeof.String && <p className="text-sm font-medium text-gray-300">
+                                                {
+                                                    model.getValue(
+                                                        props.headerField as string
+                                                    ) as string
+                                                }
+                                            </p>}
+
+                                            {props.headerField && typeof props.headerField === "function" && props.headerField(model) }
                                             <p className="text-sm font-medium text-gray-900">
                                                 {
                                                     model.getValue(

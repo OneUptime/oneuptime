@@ -24,6 +24,7 @@ import NotNull from './Database/NotNull';
 import { JSONArray, JSONObject, JSONValue, ObjectType } from './JSON';
 import { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
+import EqualToOrNull from './Database/EqualToOrNull';
 
 export default class JSONFunctions {
     public static toJSON(
@@ -354,6 +355,11 @@ export default class JSONFunctions {
                 _type: ObjectType.GreaterThan,
                 value: (val as GreaterThan).value,
             };
+        } else if (val && val instanceof EqualToOrNull) {
+            return {
+                _type: ObjectType.EqualToOrNull,
+                value: (val as EqualToOrNull).value.toString(),
+            };
         } else if (val && val instanceof LessThanOrEqual) {
             return {
                 _type: ObjectType.LessThanOrEqual,
@@ -432,6 +438,15 @@ export default class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Domain
         ) {
             return new Domain((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.EqualToOrNull
+        ) {
+            return new EqualToOrNull((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&

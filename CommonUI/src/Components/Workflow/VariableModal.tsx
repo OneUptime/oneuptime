@@ -1,3 +1,4 @@
+import EqualToOrNull from 'Common/Types/Database/EqualToOrNull';
 import ObjectID from 'Common/Types/ObjectID';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -16,12 +17,22 @@ const VariableModal: FunctionComponent<ComponentProps> = (
         <ModelListModal
             modalTitle="Select a variable"
             query={{
-                workflowId: props.workflowId,
+                workflowId: new EqualToOrNull(props.workflowId.toString()),
             }}
             noItemsMessage="You do have any variables. Please add global or workflow variables."
             modalDescription="This list contains both Global and Workflow variables."
             titleField="name"
             descriptionField="description"
+            headerField={(item: WorkflowVariable)=> {
+                let variableType = "GLOBAL VARIABLE";
+
+
+                if(item.workflowId){
+                    variableType = "LOCAL WORKFLOW VARIABLE";
+                }
+
+                return <p className='text-xs text-gray-400 mb-2'>{variableType}</p>
+            }}
             modelType={WorkflowVariable}
             select={{
                 _id: true,
