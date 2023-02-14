@@ -16,11 +16,13 @@ import { componentInputTypeToFormFieldType } from './Utils';
 import VariableModal from './VariableModal';
 import { FormikProps, FormikValues } from 'formik';
 import ObjectID from 'Common/Types/ObjectID';
+import ComponentValuePickerModal from './ComponentValuePickerModal';
 
 export interface ComponentProps {
     component: NodeDataProp;
     onHasFormValidatonErrors: (values: Dictionary<boolean>) => void;
     workflowId: ObjectID;
+    graphComponents: Array<NodeDataProp>;
 }
 
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
@@ -29,7 +31,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     const formRef: any = useRef<FormikProps<FormikValues>>(null);
     const [component, setComponent] = useState<NodeDataProp>(props.component);
     const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
-    const [_showComponentPickerModal, setShowComponentPickerModal] =
+    const [showComponentPickerModal, setShowComponentPickerModal] =
         useState<boolean>(false);
     const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
         Dictionary<boolean>
@@ -118,11 +120,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                                     </p>
                                                 </div>
                                             ),
-                                            description: `${
-                                                arg.required
+                                            description: `${arg.required
                                                     ? 'Required'
                                                     : 'Optional'
-                                            }. ${arg.description}`,
+                                                }. ${arg.description}`,
                                             field: {
                                                 [arg.id]: true,
                                             },
@@ -149,6 +150,23 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         formRef.current.setFieldValue(
                             selectedArgId,
                             variableId
+                        );
+                    }}
+                />
+            )}
+
+            {showComponentPickerModal && (
+                <ComponentValuePickerModal
+                    components={props.graphComponents}
+                    currentComponent={props.component}
+                    onClose={() => {
+                        setShowComponentPickerModal(false);
+                    }}
+                    onSave={(returnValuePath: string) => {
+                        setShowComponentPickerModal(false);
+                        formRef.current.setFieldValue(
+                            selectedArgId,
+                            returnValuePath
                         );
                     }}
                 />

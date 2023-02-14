@@ -26,10 +26,9 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/ComponentModal';
+import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
 import ComponentMetadata, {
     ComponentCategory,
-    ComponentType,
 } from 'Common/Types/Workflow/Component';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { NodeType } from 'CommonUI/src/Components/Workflow/Component';
@@ -63,14 +62,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
             );
 
             if (workflow) {
-                const componentsAndCategories: {
+                const allComponents: {
                     components: Array<ComponentMetadata>;
                     categories: Array<ComponentCategory>;
-                } = loadComponentsAndCategories(ComponentType.Component);
-                const triggerAndCategories: {
-                    components: Array<ComponentMetadata>;
-                    categories: Array<ComponentCategory>;
-                } = loadComponentsAndCategories(ComponentType.Trigger);
+                } = loadComponentsAndCategories();
+                
 
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
                     if (
@@ -104,7 +100,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                             let componentMetdata:
                                 | ComponentMetadata
-                                | undefined = componentsAndCategories.components.find(
+                                | undefined = allComponents.components.find(
                                 (component: ComponentMetadata) => {
                                     return (
                                         component.id ===
@@ -113,17 +109,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 }
                             );
 
-                            if (!componentMetdata) {
-                                componentMetdata =
-                                    triggerAndCategories.components.find(
-                                        (component: ComponentMetadata) => {
-                                            return (
-                                                component.id ===
-                                                nodes[i]?.data.metadataId
-                                            );
-                                        }
-                                    );
-                            }
+            
 
                             if (!componentMetdata) {
                                 throw new BadDataException(

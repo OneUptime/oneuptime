@@ -22,6 +22,7 @@ export interface ComponentProps {
     onSave: (component: NodeDataProp) => void;
     onDelete: (component: NodeDataProp) => void;
     component: NodeDataProp;
+    graphComponents: Array<NodeDataProp>;
     workflowId: ObjectID;
 }
 
@@ -109,6 +110,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
                 <Divider />
                 <ArgumentsForm
+                    graphComponents={props.graphComponents}
                     workflowId={props.workflowId}
                     component={component}
                     onHasFormValidatonErrors={(value: Dictionary<boolean>) => {

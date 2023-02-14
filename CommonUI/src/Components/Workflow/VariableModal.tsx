@@ -33,9 +33,9 @@ const VariableModal: FunctionComponent<ComponentProps> = (
             onClose={props.onClose}
             onSave={(variables: Array<WorkflowVariable>) => {
                 if (variables[0]?.workflowId) {
-                    props.onSave(`{{variable.local.${variables[0]?.name}}}`);
+                    props.onSave(`{{local.variable.${variables[0]?.name}}}`);
                 } else {
-                    props.onSave(`{{variable.global.${variables[0]?.name}}}`);
+                    props.onSave(`{{global.variable.${variables[0]?.name}}}`);
                 }
             }}
         />

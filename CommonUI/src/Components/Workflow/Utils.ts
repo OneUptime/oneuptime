@@ -1,6 +1,38 @@
-import { ComponentInputType } from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { ComponentCategory, ComponentInputType } from 'Common/Types/Workflow/Component';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 import { DropdownOption } from '../Dropdown/Dropdown';
+import Entities from 'Model/Models/Index';
+import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Components, { Categories } from 'Common/Types/Workflow/Components';
+
+
+export const loadComponentsAndCategories: Function = (
+    
+): {
+    components: Array<ComponentMetadata>;
+    categories: Array<ComponentCategory>;
+} => {
+    let initComponents: Array<ComponentMetadata> = [];
+    const initCategories: Array<ComponentCategory> = [...Categories];
+
+    initComponents = initComponents.concat(Components);
+
+    for (const model of Entities) {
+        initComponents = initComponents.concat(
+            BaseModelComponentFactory.getComponents(new model())
+        );
+        initCategories.push({
+            name: new model().singularName || 'Model',
+            description: `Interact with ${
+                new model().singularName
+            } in your workflow.`,
+            icon: new model().icon || IconProp.Database,
+        });
+    }
+
+    return { components: initComponents, categories: initCategories };
+};
 
 export const componentInputTypeToFormFieldType = (
     componentInputType: ComponentInputType

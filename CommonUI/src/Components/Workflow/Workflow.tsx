@@ -28,11 +28,13 @@ import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, {
+    ComponentCategory,
     ComponentType,
 } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentSettingsModal from './ComponentSettingsModal';
+import { loadComponentsAndCategories } from './Utils';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -86,6 +88,21 @@ export interface ComponentProps {
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+
+
+    const [allComponentMetadata, setAllComponentMetadata] = useState<Array<ComponentMetadata>>([]);
+    const [allComponentCategories, setAllComponentCategories] = useState<Array<ComponentCategory>>([]);
+
+    useEffect(() => {
+        const value: {
+            components: Array<ComponentMetadata>;
+            categories: Array<ComponentCategory>;
+        } = loadComponentsAndCategories();
+
+        setAllComponentCategories(value.categories);
+        setAllComponentMetadata(value.components);
+    }, [])
+
     const edgeUpdateSuccessful: any = useRef(true);
     const [showComponentSettingsModal, setshowComponentSettingsModal] =
         useState<boolean>(false);
@@ -319,6 +336,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     onCloseModal={() => {
                         setShowComponentsModal(false);
                     }}
+                    categories={allComponentCategories}
+                    components={allComponentMetadata.filter((comp) => comp.componentType === showComponentType)}
                     onComponentClick={(component: ComponentMetadata) => {
                         setShowComponentsModal(false);
 
@@ -329,6 +348,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {showComponentSettingsModal && selectedNodeData && (
                 <ComponentSettingsModal
+                    graphComponents={nodes.map((node) => node.data as NodeDataProp)}
                     workflowId={props.workflowId}
                     component={selectedNodeData}
                     title={
@@ -341,7 +361,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     description={
                         selectedNodeData &&
-                        selectedNodeData.metadata.description
+                            selectedNodeData.metadata.description
                             ? selectedNodeData.metadata.description
                             : 'Edit Component Properties and variables here.'
                     }

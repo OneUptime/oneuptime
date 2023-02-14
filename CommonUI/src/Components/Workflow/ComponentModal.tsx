@@ -10,53 +10,21 @@ import ComponentMetadata, {
     ComponentType,
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
-import Components, { Categories } from 'Common/Types/Workflow/Components';
+
 import ComponentElement, { NodeType } from './Component';
 import Input from '../Input/Input';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Icon from '../Icon/Icon';
-import Entities from 'Model/Models/Index';
-import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
-import IconProp from 'Common/Types/Icon/IconProp';
 import SideOver from '../SideOver/SideOver';
 
-export const loadComponentsAndCategories: Function = (
-    componentType: ComponentType
-): {
-    components: Array<ComponentMetadata>;
-    categories: Array<ComponentCategory>;
-} => {
-    let initComponents: Array<ComponentMetadata> = [];
-    const initCategories: Array<ComponentCategory> = [...Categories];
 
-    initComponents = initComponents.concat(Components);
-
-    for (const model of Entities) {
-        initComponents = initComponents.concat(
-            BaseModelComponentFactory.getComponents(new model())
-        );
-        initCategories.push({
-            name: new model().singularName || 'Model',
-            description: `Interact with ${
-                new model().singularName
-            } in your workflow.`,
-            icon: new model().icon || IconProp.Database,
-        });
-    }
-
-    initComponents = initComponents.filter(
-        (componentMetadata: ComponentMetadata) => {
-            return componentMetadata.componentType === componentType;
-        }
-    );
-
-    return { components: initComponents, categories: initCategories };
-};
 
 export interface ComponentProps {
     componentsType: ComponentType;
     onCloseModal: () => void;
     onComponentClick: (componentMetadata: ComponentMetadata) => void;
+    components: Array<ComponentMetadata>;
+    categories: Array<ComponentCategory>;
 }
 
 const ComponentsModal: FunctionComponent<ComponentProps> = (
@@ -74,16 +42,13 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [isSearching, setIsSearching] = useState<boolean>(false);
 
     useEffect(() => {
-        const value: {
-            components: Array<ComponentMetadata>;
-            categories: Array<ComponentCategory>;
-        } = loadComponentsAndCategories(props.componentsType);
+       
 
-        setComponents(value.components);
+        setComponents(props.components);
 
-        setComponentsToShow([...value.components]);
+        setComponentsToShow([...props.components]);
 
-        setCategories(value.categories);
+        setCategories(props.categories);
     }, []);
 
     useEffect(() => {
@@ -219,13 +184,12 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                     componentMetadata
                                                                                 );
                                                                             }}
-                                                                            className={`m-5 ml-0 mt-0 ${
-                                                                                selectedComponentMetadata &&
-                                                                                selectedComponentMetadata.id ===
+                                                                            className={`m-5 ml-0 mt-0 ${selectedComponentMetadata &&
+                                                                                    selectedComponentMetadata.id ===
                                                                                     componentMetadata.id
                                                                                     ? 'rounded ring-offset-2 ring ring-indigo-500'
                                                                                     : ''
-                                                                            }`}
+                                                                                }`}
                                                                         >
                                                                             <ComponentElement
                                                                                 key={
