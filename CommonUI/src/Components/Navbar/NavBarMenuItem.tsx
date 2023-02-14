@@ -1,50 +1,38 @@
 import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { SizeProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Link from '../Link/Link';
 
 export interface ComponentProps {
     title: string;
     route: Route;
-    children?: undefined | Array<ReactElement> | ReactElement;
-    icon?: undefined | IconProp;
+    icon: IconProp;
+    description: string;
 }
 
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let children: Array<ReactElement> = [];
 
-    if (props.children && !Array.isArray(props.children)) {
-        children = [props.children as ReactElement];
-    } else {
-        children = props.children ? props.children : [];
-    }
-
-    const getDropdownItem: Function = (): ReactElement => {
-        return (
-            <Link className="dropdown-item flex" to={props.route}>
-                {props.icon ? (
-                    <>
-                        <Icon icon={props.icon} size={SizeProp.Large} /> &nbsp;
-                    </>
-                ) : (
-                    <></>
-                )}
-                <span>{props.title}</span>
-            </Link>
-        );
-    };
-
-    if (children.length === 0) {
-        return getDropdownItem();
-    }
 
     return (
         <div className="dropdown">
-            {getDropdownItem()}
-            <div className="dropdown-menu">{children}</div>
+            <Link  to={props.route} className="-m-3 flex items-start rounded-lg p-3 transition duration-150 ease-in-out hover:bg-gray-50">
+
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-indigo-500 text-white sm:h-12 sm:w-12">
+
+                    <Icon icon={props.icon} className="h-6 w-6" />
+
+                </div>
+                <div className="ml-4">
+                    <p className="text-base font-medium text-gray-900">{props.title}</p>
+                    <p className="text-sm text-gray-500">{props.description}</p>
+                </div>
+
+
+            </Link>
+
         </div>
     );
 };

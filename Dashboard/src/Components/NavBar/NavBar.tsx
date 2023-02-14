@@ -1,13 +1,13 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import NavBar from 'CommonUI/src/Components/Navbar/NavBar';
-// import NavBarMenu from 'CommonUI/src/Components/Navbar/NavBarMenu';
+import NavBarMenu from 'CommonUI/src/Components/Navbar/NavBarMenu';
 import NavBarItem from 'CommonUI/src/Components/Navbar/NavBarItem';
-// import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
-// import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
+import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
 import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import URL from 'Common/Types/API/URL';
 
 export interface ComponentProps {
     show: boolean;
@@ -16,6 +16,11 @@ export interface ComponentProps {
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+    const [isComponentVisible, setIsComponentVisible] = useState<boolean>(false);
+    const [moreMenuTimeout, setMoreMenuTimeout] = useState<any>(null);
+
     if (!props.show) {
         return <></>;
     }
@@ -70,11 +75,69 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 )}
             ></NavBarItem>
 
-            {/* <NavBarItem title="More" icon={IconProp.More}>
-                <NavBarMenu>
-                    <NavBarMenuColumn title="More">
+            <NavBarItem title="More" icon={IconProp.More} onMouseOut={() => {
+                if (moreMenuTimeout) {
+                    clearTimeout(moreMenuTimeout);
+                }
+
+                const timeout = setTimeout(() => {
+                    setIsComponentVisible(false);
+                }, 600);
+
+                setMoreMenuTimeout(timeout);
+            }} onMouseOver={() => {
+                if (moreMenuTimeout) {
+                    clearTimeout(moreMenuTimeout);
+                }
+                setIsComponentVisible(true);
+            }} onClick={() => {
+                if (moreMenuTimeout) {
+                    clearTimeout(moreMenuTimeout);
+                }
+                setIsComponentVisible(true);
+            }}>
+                <div onMouseOver={() => {
+                    if (moreMenuTimeout) {
+                        clearTimeout(moreMenuTimeout);
+                    }
+                    setIsComponentVisible(true);
+                }} onMouseOut={() => {
+                    if (moreMenuTimeout) {
+                        clearTimeout(moreMenuTimeout);
+                    }
+
+                    const timeout = setTimeout(() => {
+                        setIsComponentVisible(false);
+                    }, 600);
+
+                    setMoreMenuTimeout(timeout);
+                }}>
+                    {isComponentVisible && <NavBarMenu footer={{
+                        title: "Report a bug or request a feature.",
+                        description: "We embrace open-source. Please report any issue your find or any feature requests on GitHub.",
+                        link: URL.fromString("https://github.com/OneUptime/oneuptime/issues/new/choose")
+                    }}>
                         <NavBarMenuItem
+                            title="Workflows"
+                            description='Integrate OneUptime with the rest of your ecosystem.'
+                            route={RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.WORKFLOWS] as Route
+                            )}
+                            icon={IconProp.Workflow}
+                        />
+                        <NavBarMenuItem
+                            title="Project Settings"
+                            description='Review or manage project settings here.'
+                            route={RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.SETTINGS] as Route
+                            )}
+                            icon={IconProp.Settings}
+                        />
+
+
+                        {/* <NavBarMenuItem
                             title="Logs Management"
+                            description='Manage your application logs.'
                             route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.LOGS] as Route
                             )}
@@ -82,6 +145,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                         />
                         <NavBarMenuItem
                             title="Error Tracker"
+                            description='Manage your application errors.'
                             route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.ERROR_TRACKER] as Route
                             )}
@@ -89,30 +153,26 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                         />
                         <NavBarMenuItem
                             title="On-Call Duty"
+                            description='Manage you on-call schedules, escalations and more.'
                             route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.ON_CALL_DUTY] as Route
                             )}
                             icon={IconProp.Call}
                         ></NavBarMenuItem>
-                    </NavBarMenuColumn>
-                    <NavBarMenuColumn title="Advanced">
-                        <NavBarMenuItem
-                            title="Automation Scripts"
-                            route={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route
-                            )}
-                            icon={IconProp.Code}
-                        />
+
+
                         <NavBarMenuItem
                             title="Reports"
+                            description='Get insights into your SRE and DevOps process.'
                             route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.REPORTS] as Route
                             )}
                             icon={IconProp.Report}
-                        />
-                    </NavBarMenuColumn>
-                </NavBarMenu>
-            </NavBarItem> */}
+                        /> */}
+
+                    </NavBarMenu>}
+                </div>
+            </NavBarItem>
         </NavBar>
     );
 };
