@@ -66,12 +66,12 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
     public constructor(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -361,8 +361,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                          createBy.data.getSlugifyColumn() as string
-                      ] as string)
+                        createBy.data.getSlugifyColumn() as string
+                    ] as string)
                     : null
             );
         }
@@ -576,7 +576,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<CreateBy<TBaseModel>> {
         let existingItemsWithSameNameCount: number = 0;
 
-        const uniqueColumnsBy: Dictionary<string> = getUniqueColumnsBy(
+        const uniqueColumnsBy: Dictionary<string | Array<string>> = getUniqueColumnsBy(
             createBy.data
         );
 
@@ -584,6 +584,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!uniqueColumnsBy[key]) {
                 continue;
             }
+
+            if(typeof uniqueColumnsBy[key] === Typeof.String){
+                uniqueColumnsBy[key] = [uniqueColumnsBy[key] as string];
+            }
+
+            const query: Query<TBaseModel> = {};
+
+            for(const uniqueByCoumnName of uniqueColumnsBy[key] as Array<string>){
+                const columnValue = (createBy.data as any)[
+                    uniqueByCoumnName as string
+                ];
+                if((columnValue === null || columnValue === undefined)){
+                    (query as any)[uniqueByCoumnName] = QueryHelper.isNull();
+                }else{
+                    (query as any)[uniqueByCoumnName] = columnValue;
+                }
+            }
+            
 
             existingItemsWithSameNameCount = (
                 await this.countBy({
@@ -593,9 +611,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 ? ((createBy.data as any)[key]! as string)
                                 : ''
                         ),
-                        [uniqueColumnsBy[key] as any]: (createBy.data as any)[
-                            uniqueColumnsBy[key] as any
-                        ],
+                        ...query,
                     },
                     props: {
                         isRoot: true,
@@ -866,10 +882,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column modelType is not found.'
                     );
                 }
 

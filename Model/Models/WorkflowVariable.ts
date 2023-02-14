@@ -201,7 +201,7 @@ export default class WorkflowVariable extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    @UniqueColumnBy('workflowId')
+    @UniqueColumnBy(['workflowId', 'projectId'])
     public name?: string = undefined;
 
     @ColumnAccessControl({

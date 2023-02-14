@@ -29,6 +29,7 @@ import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 import File from './File';
 import Color from 'Common/Types/Color';
+import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
@@ -138,6 +139,7 @@ export default class StatusPage extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
+    @UniqueColumnBy('projectId')
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
