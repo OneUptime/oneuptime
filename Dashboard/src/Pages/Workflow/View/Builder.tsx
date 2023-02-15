@@ -31,10 +31,7 @@ import ComponentMetadata, {
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import {
-    NodeDataProp,
-    NodeType,
-} from 'CommonUI/src/Components/Workflow/Component';
+import { NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

@@ -1,10 +1,10 @@
 import Dictionary from 'Common/Types/Dictionary';
+import { NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ConfirmModal from '../Modal/ConfirmModal';
 import SideOver from '../SideOver/SideOver';
-import { NodeDataProp, NodeType } from './Component';
 import RunForm from './RunForm';
 
 export interface ComponentProps {

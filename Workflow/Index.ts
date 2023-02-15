@@ -3,10 +3,14 @@ import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
+import RunAPI from './API/Trigger';
 
 const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
+
+
+app.use(`/run`, new RunAPI().router);
 
 const init: Function = async (): Promise<void> => {
     try {
@@ -19,6 +23,7 @@ const init: Function = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

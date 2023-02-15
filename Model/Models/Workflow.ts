@@ -398,4 +398,45 @@ export default class Workflow extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            
+        ],
+        update: [
+            
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: false, required: false, type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        nullable: true,
+        length:ColumnLength.ShortText
+    })
+    public triggerId?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            
+        ],
+        update: [
+            
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: false, required: false, type: TableColumnType.JSON })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public triggerArguments?: JSONObject = undefined;
+
+
 }

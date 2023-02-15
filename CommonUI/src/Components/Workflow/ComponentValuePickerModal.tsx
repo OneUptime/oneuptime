@@ -1,10 +1,9 @@
 import { Black } from 'Common/Types/BrandColors';
-import { ReturnValue } from 'Common/Types/Workflow/Component';
+import { NodeDataProp, ReturnValue } from 'Common/Types/Workflow/Component';
 import React, { useState, FunctionComponent, ReactElement } from 'react';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Modal, { ModalWidth } from '../Modal/Modal';
 import Pill from '../Pill/Pill';
-import { NodeDataProp } from './Component';
 
 export interface ComponentProps {
     onClose: () => void;

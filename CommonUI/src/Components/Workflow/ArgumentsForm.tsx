@@ -5,11 +5,10 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { Argument } from 'Common/Types/Workflow/Component';
+import { Argument, NodeDataProp } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import BasicForm from '../Forms/BasicForm';
 import FormValues from '../Forms/Types/FormValues';
-import { NodeDataProp } from './Component';
 import { JSONObject } from 'Common/Types/JSON';
 import Dictionary from 'Common/Types/Dictionary';
 import { componentInputTypeToFormFieldType } from './Utils';

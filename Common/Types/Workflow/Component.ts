@@ -1,4 +1,5 @@
 import IconProp from '../Icon/IconProp';
+import { JSONObject } from '../JSON';
 
 export enum ComponentInputType {
     Text = 'Text',
@@ -25,6 +26,25 @@ export enum ComponentInputType {
 export enum ComponentType {
     Trigger = 'Trigger',
     Component = 'Component',
+}
+
+export enum NodeType {
+    Node = 'Node',
+    PlaceholderNode = 'PlaceholderNode',
+}
+
+export interface NodeDataProp {
+    error: string;
+    id: string;
+    nodeType: NodeType;
+    onClick?: (node: NodeDataProp) => void | undefined;
+    isPreview?: boolean | undefined; // is this used to show in the components modal?
+    metadata: ComponentMetadata;
+    metadataId: string;
+    internalId: string;
+    arguments: JSONObject;
+    returnValues: JSONObject;
+    componentType: ComponentType;
 }
 
 export interface Port {

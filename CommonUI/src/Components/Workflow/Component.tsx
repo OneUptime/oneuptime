@@ -1,33 +1,19 @@
-import { JSONObject } from 'Common/Types/JSON';
+
 import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import ComponentMetadata, {
+import  {
     ComponentType,
+    NodeDataProp,
+    NodeType,
     Port,
 } from 'Common/Types/Workflow/Component';
 import Tooltip from '../Tooltip/Toolip';
 import Pill from '../Pill/Pill';
 import { Green } from 'Common/Types/BrandColors';
 
-export enum NodeType {
-    Node = 'Node',
-    PlaceholderNode = 'PlaceholderNode',
-}
 
-export interface NodeDataProp {
-    error: string;
-    id: string;
-    nodeType: NodeType;
-    onClick?: (node: NodeDataProp) => void | undefined;
-    isPreview?: boolean | undefined; // is this used to show in the components modal?
-    metadata: ComponentMetadata;
-    metadataId: string;
-    internalId: string;
-    arguments: JSONObject;
-    returnValues: JSONObject;
-}
 
 export interface ComponentProps {
     data: NodeDataProp;

@@ -9,11 +9,11 @@ import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 import FormValues from '../Forms/Types/FormValues';
 import ConfirmModal from '../Modal/ConfirmModal';
 import SideOver from '../SideOver/SideOver';
-import { NodeDataProp } from './Component';
 import ComponentPortViewer from './ComponentPortViewer';
 import ComponentReturnValueViewer from './ComponentReturnValueViewer';
 import ArgumentsForm from './ArgumentsForm';
 import ObjectID from 'Common/Types/ObjectID';
+import { NodeDataProp } from 'Common/Types/Workflow/Component';
 
 export interface ComponentProps {
     title: string;
