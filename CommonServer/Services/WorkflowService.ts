@@ -33,7 +33,7 @@ export class Service extends DatabaseService<Model> {
         await this.updateOneById({
             id: new ObjectID(onUpdate.updateBy.query._id! as any), 
             data: {
-                triggerId: trigger?.metadataId!,
+                triggerId: trigger?.metadataId! || null,
                 triggerArguments: trigger?.arguments || {}
             } as any,
             props: {
