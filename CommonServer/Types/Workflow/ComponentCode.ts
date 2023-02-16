@@ -10,12 +10,13 @@ import { ExpressRouter } from "../../Utils/Express";
 export interface RunProps {
     arguments: JSONObject;
     workflowId: ObjectID;
-    workflowRunId: ObjectID;
+    workflowLogId: ObjectID;
 }
 
 export interface RunReturnType {
     returnValues: JSONObject,
-    executePort?: Port | undefined
+    executePort?: Port | undefined,
+    logs: Array<string>
 }
 
 export interface ExecuteWorkflowType {
@@ -33,7 +34,12 @@ export default class ComponentCode {
 
     private metadata: ComponentMetadata | null = null;
 
-    public constructor(metadata: ComponentMetadata) {
+
+    public constructor() {
+        
+    }
+
+    public setMetadata(metadata: ComponentMetadata) {
         this.metadata = metadata;
     }
 
@@ -50,10 +56,11 @@ export default class ComponentCode {
         return await Promise.resolve()
     }
 
-    public async run(_props: RunProps): Promise<RunReturnType> {
+    public async run(_args: JSONObject): Promise<RunReturnType> {
         return await Promise.resolve({
             returnValues: {},
-            port: undefined
+            port: undefined,
+            logs: []
         })
     }
 }

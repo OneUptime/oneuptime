@@ -3,14 +3,17 @@ import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
-import RunAPI from './API/Trigger';
+import ManualAPI from './API/Manual';
+
 
 const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 
-app.use(`/run`, new RunAPI().router);
+
+app.use(`/manual`, new ManualAPI().router);
+
 
 const init: Function = async (): Promise<void> => {
     try {

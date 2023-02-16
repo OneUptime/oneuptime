@@ -98,14 +98,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
-                title="Project Settings"
-                icon={IconProp.Settings}
-                route={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SETTINGS] as Route
-                )}
-            ></NavBarItem>
-
-            <NavBarItem
                 title="More"
                 icon={IconProp.More}
                 onMouseLeave={() => {

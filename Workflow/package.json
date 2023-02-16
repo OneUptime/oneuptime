@@ -14,9 +14,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bullmq": "^3.6.6",
     "Common": "file:../Common",
-    "Model": "file:../Model",
     "CommonServer": "file:../CommonServer",
+    "Model": "file:../Model",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {

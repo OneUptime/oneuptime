@@ -21,7 +21,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
         children = props.children;
     }
     return (
-        <div className="absolute left-1/2 z-10 mt-10 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0 lg:max-w-3xl">
+        <div className="absolute left-1/3 z-10 mt-10 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0 lg:max-w-3xl">
             <div className="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
                 <div className="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8 lg:grid-cols-2">
                     {children}
