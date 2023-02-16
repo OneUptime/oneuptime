@@ -3,10 +3,11 @@ import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
 } from './../Component';
+import ComponentID from "../ComponentID";
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'webhook',
+        id: ComponentID.Webhook,
         title: 'Webhook',
         category: 'Webhook',
         description:

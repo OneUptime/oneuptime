@@ -2,61 +2,58 @@
 // 
 
 import BadDataException from "Common/Types/Exception/BadDataException";
-import NotImplementedException from "Common/Types/Exception/NotImplementedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import { ExpressRouter } from "../../Utils/Express";
 
 export interface RunProps {
-    global: {
-        variables: JSONObject
-    },
-    local: {
-        variables: JSONObject,
-        components: {
-            // component id. 
-            [x: string]: {
-                returnValues: JSONObject
-            }
-        }
-    },
-    workflowId: ObjectID,
-    workflowRunId: ObjectID
+    arguments: JSONObject;
+    workflowId: ObjectID;
+    workflowRunId: ObjectID;
 }
 
 export interface RunReturnType {
     returnValues: JSONObject,
-    executePort: Port
+    executePort?: Port | undefined
 }
 
-export interface InitProps{
+export interface ExecuteWorkflowType {
+    workflowId: ObjectID,
+    returnValues: JSONObject,
+}
+
+export interface InitProps {
     router: ExpressRouter;
-    runWorkflow: (workflowId: ObjectID, returnValues: JSONObject) => void; 
+    executeWorkflow: (executeWorkflow: ExecuteWorkflowType) => Promise<void>;
+    scheduleWorkflow: (executeWorkflow: ExecuteWorkflowType, scheduleAt: string) => Promise<void>;
 }
 
-export default class ComponentCode { 
+export default class ComponentCode {
 
     private metadata: ComponentMetadata | null = null;
 
-    public constructor(metadata: ComponentMetadata){
+    public constructor(metadata: ComponentMetadata) {
         this.metadata = metadata;
     }
 
 
-    public getMetadata(): ComponentMetadata { 
-        if(!this.metadata){
+    public getMetadata(): ComponentMetadata {
+        if (!this.metadata) {
             throw new BadDataException("ComponentMetadata not found")
         }
 
         return this.metadata;
     }
 
-    public async init(_props: InitProps ): Promise<void>{
-        throw new NotImplementedException();
+    public async init(_props: InitProps): Promise<void> {
+        return await Promise.resolve()
     }
 
-    public async run(_props: RunProps): Promise<RunReturnType>{
-        throw new NotImplementedException();
+    public async run(_props: RunProps): Promise<RunReturnType> {
+        return await Promise.resolve({
+            returnValues: {},
+            port: undefined
+        })
     }
 }
