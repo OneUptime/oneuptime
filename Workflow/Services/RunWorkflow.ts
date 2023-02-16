@@ -2,7 +2,7 @@ import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ComponentType, NodeDataProp, NodeType, Port } from "Common/Types/Workflow/Component";
+import ComponentMetadata, { ComponentType, NodeDataProp, NodeType, Port } from "Common/Types/Workflow/Component";
 import { QueueJob, QueueName } from "CommonServer/Infrastructure/Queue";
 import QueueWorker from "CommonServer/Infrastructure/QueueWorker";
 import WorkflowService from "CommonServer/Services/WorkflowService";
@@ -15,6 +15,9 @@ import WorkflowLogService from "CommonServer/Services/WorkflowLogService";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import Components from "CommonServer/Types/Workflow/Components/Index";
 import OneUptimeDate from "Common/Types/Date";
+import { loadAllComponentMetadata } from "../Utils/ComponentMetadata";
+
+const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
 // Job process. 
 QueueWorker.getWorker(QueueName.Workflow, async (job: QueueJob) => {
@@ -58,11 +61,6 @@ export default class RunWorkflow {
 
 
     private logs: Array<string> = [];
-
-
-    public constructor() {
-
-    }
 
     public async runWorkflow(runProps: RunProps): Promise<void> {
         // get nodes and edges. 
@@ -112,6 +110,7 @@ export default class RunWorkflow {
         let executeComponentId: string = runStack.startWithComponentId;
 
         let fifoStackOfComponentsPendingExecution: Array<string> = [executeComponentId];
+        let componentsExecuted: Array<string> = [];
 
         // make variable map
 
@@ -119,6 +118,13 @@ export default class RunWorkflow {
             // get component. 
             // and remoev that component from the stack. 
             executeComponentId = fifoStackOfComponentsPendingExecution.shift()!;
+
+            if(componentsExecuted.includes(executeComponentId)){
+                this.log("Cyclic Workflow Detected. Cannot execute "+executeComponentId+" when it has already been executed.");
+                break;
+            }
+
+            componentsExecuted.push(executeComponentId);
 
             this.log("Executing Component: " + executeComponentId);
 
@@ -136,7 +142,7 @@ export default class RunWorkflow {
                 }
             } else {
                 // now actually run this component. 
-               
+
 
                 const args: JSONObject = this.getComponentArguments(storageMap, stackItem.node);
 
@@ -164,8 +170,13 @@ export default class RunWorkflow {
 
                 const nodesToBeExecuted: Array<string> | undefined = stackItem.outPorts[portToBeExecuted.id];
 
-                if (nodesToBeExecuted) {
-                    fifoStackOfComponentsPendingExecution = fifoStackOfComponentsPendingExecution.concat(nodesToBeExecuted);
+                if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
+                    nodesToBeExecuted.forEach((item: string)=> {
+                        // if its not in the stack, then add it to execution stack. 
+                        if(!fifoStackOfComponentsPendingExecution.includes(item)){
+                            fifoStackOfComponentsPendingExecution.push(item);
+                        }
+                    })
                 }
 
             }
@@ -330,6 +341,13 @@ export default class RunWorkflow {
                 outPorts: {},
                 node: node.data as NodeDataProp
             }
+
+            if(!AllComponents[item.node.metadataId]){
+                // metadata not found. 
+                throw new BadDataException("Metadata not found for "+item.node.metadataId);
+            }
+
+            item.node.metadata = AllComponents[item.node.metadataId] as ComponentMetadata;
 
             // check other components connected to this component. 
 
