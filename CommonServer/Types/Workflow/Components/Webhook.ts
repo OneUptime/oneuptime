@@ -12,6 +12,7 @@ import ComponentCode, {
 
 export default class WebhookTrigger extends ComponentCode {
     public constructor() {
+        super();
         const WebhookComponent: ComponentMetadata | undefined =
             WebhookComponents.find((i: ComponentMetadata) => {
                 return i.id === ComponentID.Webhook;
@@ -20,7 +21,7 @@ export default class WebhookTrigger extends ComponentCode {
         if (!WebhookComponent) {
             throw new BadDataException('Webhook trigger not found.');
         }
-        super(WebhookComponent);
+        this.setMetadata(WebhookComponent);
     }
 
     public override async init(props: InitProps): Promise<void> {
@@ -43,7 +44,7 @@ export default class WebhookTrigger extends ComponentCode {
         req: ExpressRequest,
         res: ExpressResponse,
         props: InitProps
-    ) {
+    ): Promise<void> {
         /// Run Graph.
 
         const executeWorkflow: ExecuteWorkflowType = {

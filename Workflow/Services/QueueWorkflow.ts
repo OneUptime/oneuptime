@@ -14,7 +14,7 @@ export default class QueueWorkflow {
         executeWorkflow: ExecuteWorkflowType,
         scheduleAt?: string
     ): Promise<void> {
-        const workflowId = executeWorkflow.workflowId;
+        const workflowId: ObjectID = executeWorkflow.workflowId;
 
         // get workflow to see if its enabled.
         const workflow: Workflow | null = await WorkflowService.findOneById({
@@ -44,7 +44,7 @@ export default class QueueWorkflow {
 
         // Add Workflow Run Log.
 
-        const runLog = new WorkflowLog();
+        const runLog: WorkflowLog = new WorkflowLog();
         runLog.workflowId = workflowId;
         runLog.projectId = workflow.projectId;
         runLog.workflowStatus = WorkflowStatus.Scheduled;
@@ -52,7 +52,7 @@ export default class QueueWorkflow {
             OneUptimeDate.getCurrentDateAsFormattedString() +
             ': Workflow Scheduled.';
 
-        const created = await WorkflowLogService.create({
+        const created: WorkflowLog = await WorkflowLogService.create({
             data: runLog,
             props: {
                 isRoot: true,

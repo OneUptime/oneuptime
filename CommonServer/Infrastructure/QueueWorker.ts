@@ -7,7 +7,7 @@ export default class QueueWorker {
         queueName: QueueName,
         onJobInQueue: (job: QueueJob) => Promise<void>,
         options: { concurrency: number }
-    ) {
+    ): Worker {
         return new Worker(queueName, onJobInQueue, {
             connection: {
                 host: RedisHostname.toString(),

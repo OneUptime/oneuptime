@@ -22,7 +22,7 @@ export default class ManualAPI {
     public async manuallyRunWorkflow(
         req: ExpressRequest,
         res: ExpressResponse
-    ) {
+    ): Promise<void> {
         // add this workflow to the run queue and return the 200 response.
 
         if (!req.params['workflowId']) {

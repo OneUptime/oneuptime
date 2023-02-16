@@ -33,7 +33,7 @@ export class Service extends DatabaseService<Model> {
             for (const node of ((onUpdate.updateBy.data as any).graph as any)[
                 'nodes'
             ] as Array<JSONObject>) {
-                const nodeData = node['data'] as NodeDataProp;
+                const nodeData: NodeDataProp = node['data'] as NodeDataProp;
                 if (
                     nodeData.componentType === ComponentType.Trigger &&
                     nodeData.nodeType === NodeType.Node

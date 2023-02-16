@@ -27,7 +27,7 @@ export default class Queue {
         options?: {
             scheduleAt?: string;
         }
-    ) {
+    ): Promise<void> {
         const optionsObject: JobsOptions = {
             jobId: jobId.toString(),
         };

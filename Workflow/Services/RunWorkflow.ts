@@ -1,6 +1,6 @@
 import Dictionary from 'Common/Types/Dictionary';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, {
     ComponentType,
@@ -23,6 +23,7 @@ import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import Components from 'CommonServer/Types/Workflow/Components/Index';
 import OneUptimeDate from 'Common/Types/Date';
 import { loadAllComponentMetadata } from '../Utils/ComponentMetadata';
+import Workflow from 'Model/Models/Workflow';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -56,7 +57,7 @@ export default class RunWorkflow {
     public async runWorkflow(runProps: RunProps): Promise<void> {
         // get nodes and edges.
 
-        const workflow = await WorkflowService.findOneById({
+        const workflow: Workflow | null = await WorkflowService.findOneById({
             id: runProps.workflowId,
             select: {
                 graph: true,
@@ -225,13 +226,15 @@ export default class RunWorkflow {
                 continue;
             }
 
-            let argumentContent = component.arguments[argument.id];
+            let argumentContent: JSONValue | undefined =
+                component.arguments[argument.id];
 
             if (!argumentContent) {
                 continue;
             }
 
             if (
+                typeof argumentContent === 'string' &&
                 argumentContent.toString().includes('{{') &&
                 argumentContent.toString().includes('}}')
             ) {
@@ -260,7 +263,7 @@ export default class RunWorkflow {
             Components[node.metadata.id];
 
         if (ComponentCodeItem) {
-            const instance = new ComponentCodeItem();
+            const instance: ComponentCode = new ComponentCodeItem();
             return await instance.run({
                 arguments: args,
             });
@@ -334,7 +337,7 @@ export default class RunWorkflow {
         return newStorageMap;
     }
 
-    public log(data: string | JSONObject | JSONArray) {
+    public log(data: string | JSONObject | JSONArray): void {
         if (typeof data === 'string') {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() + ':' + data
@@ -402,7 +405,7 @@ export default class RunWorkflow {
                     item.outPorts[edge['sourceHandle']] = [];
                 }
 
-                const connectedNode = nodes.find((n: any) => {
+                const connectedNode: any = nodes.find((n: any) => {
                     return n.id === edge.target;
                 });
 
@@ -416,7 +419,7 @@ export default class RunWorkflow {
             runStackItems[node.data.id] = item;
         }
 
-        const trigger: any | undefined = nodes.find((n) => {
+        const trigger: any | undefined = nodes.find((n: any) => {
             return (
                 (n.data as NodeDataProp).componentType ===
                     ComponentType.Trigger &&

@@ -22,7 +22,7 @@ app.use(`/manual`, new ManualAPI().router);
 QueueWorker.getWorker(
     QueueName.Workflow,
     async (job: QueueJob) => {
-        new RunWorkflow().runWorkflow({
+        await new RunWorkflow().runWorkflow({
             workflowId: new ObjectID(job.data['workflowId'] as string),
             workflowLogId: new ObjectID(job.data['workflowLogId'] as string),
             arguments: job.data.data as JSONObject,

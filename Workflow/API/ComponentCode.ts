@@ -4,6 +4,7 @@ import ComponentCode, {
     ExecuteWorkflowType,
 } from 'CommonServer/Types/Workflow/ComponentCode';
 import QueueWorkflow from '../Services/QueueWorkflow';
+import logger from 'CommonServer/Utils/Logger';
 
 export default class ComponentCodeAPI {
     public router!: ExpressRouter;
@@ -17,12 +18,16 @@ export default class ComponentCodeAPI {
             const ComponentCodeItem: typeof ComponentCode | undefined =
                 Components[key];
             if (ComponentCodeItem) {
-                const instance = new ComponentCodeItem();
-                instance.init({
-                    router: this.router,
-                    scheduleWorkflow: this.scheduleWorkflow,
-                    executeWorkflow: this.executeWorkflow,
-                });
+                const instance: ComponentCode = new ComponentCodeItem();
+                instance
+                    .init({
+                        router: this.router,
+                        scheduleWorkflow: this.scheduleWorkflow,
+                        executeWorkflow: this.executeWorkflow,
+                    })
+                    .catch((err: Error) => {
+                        logger.error(err);
+                    });
             }
         }
     }
@@ -30,12 +35,14 @@ export default class ComponentCodeAPI {
     public async scheduleWorkflow(
         executeWorkflow: ExecuteWorkflowType,
         scheduleAt: string
-    ) {
+    ): Promise<void> {
         /// add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow, scheduleAt);
     }
 
-    public async executeWorkflow(executeWorkflow: ExecuteWorkflowType) {
+    public async executeWorkflow(
+        executeWorkflow: ExecuteWorkflowType
+    ): Promise<void> {
         // add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow);
     }

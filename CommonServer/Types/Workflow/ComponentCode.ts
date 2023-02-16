@@ -3,7 +3,7 @@
 
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import { ExpressRouter } from '../../Utils/Express';
@@ -36,11 +36,11 @@ export interface InitProps {
 
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
-    private logs: Array<string> = [];
+    protected logs: Array<string> = [];
 
     public constructor() {}
 
-    public setMetadata(metadata: ComponentMetadata) {
+    public setMetadata(metadata: ComponentMetadata): void {
         this.metadata = metadata;
     }
 
@@ -52,7 +52,7 @@ export default class ComponentCode {
         return this.metadata;
     }
 
-    public log(data: string | JSONObject | JSONArray) {
+    public log(data: string | JSONObject | JSONArray | JSONValue): void {
         if (typeof data === 'string') {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() + ':' + data

@@ -27,11 +27,12 @@ import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, {
+    NodeDataProp,
+    NodeType,
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

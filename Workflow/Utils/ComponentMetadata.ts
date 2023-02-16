@@ -13,7 +13,7 @@ export const loadAllComponentMetadata: Function =
         }
 
         for (const model of Entities) {
-            const baseModelComponentMetadata =
+            const baseModelComponentMetadata: Array<ComponentMetadata> =
                 BaseModelComponentFactory.getComponents(new model());
 
             for (const componentMetadata of baseModelComponentMetadata) {
