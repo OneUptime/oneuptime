@@ -30,7 +30,8 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, {
     ComponentCategory,
     ComponentType,
-    NodeDataProp, NodeType
+    NodeDataProp,
+    NodeType,
 } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
@@ -166,7 +167,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 return node.data.id !== id;
             });
 
-            if (nodeToUpdate.filter((n: Node)=> (n.data as NodeDataProp).componentType === ComponentType.Trigger && (n.data as NodeDataProp).nodeType === NodeType.Node).length === 0) {
+            if (
+                nodeToUpdate.filter((n: Node) => {
+                    return (
+                        (n.data as NodeDataProp).componentType ===
+                            ComponentType.Trigger &&
+                        (n.data as NodeDataProp).nodeType === NodeType.Node
+                    );
+                }).length === 0
+            ) {
                 nodeToUpdate = nodeToUpdate.concat(getPlaceholderTriggerNode());
             }
 
@@ -312,7 +321,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 metadata: { ...componentMetadata },
                 metadataId: componentMetadata.id,
                 internalId: ObjectID.generate().toString(), // runner id
-                componentType: componentMetadata.componentType
+                componentType: componentMetadata.componentType,
             } as NodeDataProp,
         };
 

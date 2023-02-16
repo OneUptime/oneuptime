@@ -189,7 +189,6 @@ export default class WorkflowLog extends BaseModel {
     })
     public workflowStatus?: WorkflowStatus = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -207,7 +206,6 @@ export default class WorkflowLog extends BaseModel {
         unique: false,
     })
     public startedAt?: Date = undefined;
-
 
     @ColumnAccessControl({
         create: [],

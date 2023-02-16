@@ -3,7 +3,7 @@ import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
 } from './../Component';
-import ComponentID from "../ComponentID";
+import ComponentID from '../ComponentID';
 
 const components: Array<ComponentMetadata> = [
     {

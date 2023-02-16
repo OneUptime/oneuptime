@@ -9,7 +9,7 @@ import React, {
 import ComponentMetadata, {
     ComponentType,
     ComponentCategory,
-    NodeType
+    NodeType,
 } from 'Common/Types/Workflow/Component';
 import ComponentElement from './Component';
 import Input from '../Input/Input';
@@ -201,7 +201,8 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                         '',
                                                                                     nodeType:
                                                                                         NodeType.Node,
-                                                                                    componentType:componentMetadata.componentType,
+                                                                                    componentType:
+                                                                                        componentMetadata.componentType,
                                                                                     returnValues:
                                                                                         {},
                                                                                     isPreview:

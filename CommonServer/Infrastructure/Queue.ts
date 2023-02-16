@@ -4,7 +4,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { RedisHostname, RedisPort } from '../Config';
 
 export enum QueueName {
-    Workflow = "Workflow"
+    Workflow = 'Workflow',
 }
 
 export type QueueJob = Job;
@@ -14,24 +14,28 @@ export default class Queue {
         return new BullQueue(queueName, {
             connection: {
                 host: RedisHostname.toString(),
-                port: RedisPort.toNumber()
-            }
+                port: RedisPort.toNumber(),
+            },
         });
     }
 
-    public static async addJob(queueName: QueueName, jobId: ObjectID, jobName: string, data: JSONObject, options?: {
-        scheduleAt?: string
-    }) {
-
+    public static async addJob(
+        queueName: QueueName,
+        jobId: ObjectID,
+        jobName: string,
+        data: JSONObject,
+        options?: {
+            scheduleAt?: string;
+        }
+    ) {
         const optionsObject: JobsOptions = {
-            jobId: jobId.toString(), 
-            
+            jobId: jobId.toString(),
         };
 
-        if(options && options.scheduleAt){
+        if (options && options.scheduleAt) {
             optionsObject.repeat = {
-                pattern: options.scheduleAt
-            }
+                pattern: options.scheduleAt,
+            };
         }
 
         await this.getQueue(queueName).add(jobName, data, optionsObject);

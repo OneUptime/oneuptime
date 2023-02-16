@@ -4,16 +4,32 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
 import ManualAPI from './API/Manual';
-
+import ComponentCode from './API/ComponentCode';
+import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
+import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
+import RunWorkflow from './Services/RunWorkflow';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
 
 const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-
-
+app.use(`/`, new ComponentCode().router);
 app.use(`/manual`, new ManualAPI().router);
 
+// Job process.
+QueueWorker.getWorker(
+    QueueName.Workflow,
+    async (job: QueueJob) => {
+        new RunWorkflow().runWorkflow({
+            workflowId: new ObjectID(job.data['workflowId'] as string),
+            workflowLogId: new ObjectID(job.data['workflowLogId'] as string),
+            arguments: job.data.data as JSONObject,
+        });
+    },
+    { concurrency: 10 }
+);
 
 const init: Function = async (): Promise<void> => {
     try {
@@ -26,7 +42,6 @@ const init: Function = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
-        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

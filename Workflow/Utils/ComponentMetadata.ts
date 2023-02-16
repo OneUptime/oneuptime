@@ -4,21 +4,22 @@ import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseMode
 import Components from 'Common/Types/Workflow/Components';
 import Dictionary from 'Common/Types/Dictionary';
 
-export const loadAllComponentMetadata: Function = (): Dictionary<ComponentMetadata> => {
-    let initComponents: Dictionary<ComponentMetadata> = {};
+export const loadAllComponentMetadata: Function =
+    (): Dictionary<ComponentMetadata> => {
+        const initComponents: Dictionary<ComponentMetadata> = {};
 
-    for(const componentMetadata of Components){
-        initComponents[componentMetadata.id] = componentMetadata;
-    }
-
-
-    for (const model of Entities) {
-        const baseModelComponentMetadata =BaseModelComponentFactory.getComponents(new model());
-
-        for(const componentMetadata of baseModelComponentMetadata){
+        for (const componentMetadata of Components) {
             initComponents[componentMetadata.id] = componentMetadata;
         }
-    }
 
-    return initComponents;
-};
+        for (const model of Entities) {
+            const baseModelComponentMetadata =
+                BaseModelComponentFactory.getComponents(new model());
+
+            for (const componentMetadata of baseModelComponentMetadata) {
+                initComponents[componentMetadata.id] = componentMetadata;
+            }
+        }
+
+        return initComponents;
+    };

@@ -1,9 +1,8 @@
-
 import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import  {
+import {
     ComponentType,
     NodeDataProp,
     NodeType,
@@ -12,8 +11,6 @@ import  {
 import Tooltip from '../Tooltip/Toolip';
 import Pill from '../Pill/Pill';
 import { Green } from 'Common/Types/BrandColors';
-
-
 
 export interface ComponentProps {
     data: NodeDataProp;
