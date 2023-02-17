@@ -23,7 +23,8 @@ export default class WebhookTrigger extends ComponentCode {
         if (!component) {
             throw new BadDataException('Trigger not found.');
         }
-        super(component);
+        super();
+        this.setMetadata(component);
     }
 
     public override async init(props: InitProps): Promise<void> {
