@@ -1,4 +1,3 @@
-import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
@@ -33,7 +32,7 @@ export default class Log extends ComponentCode {
             throw new BadDataException('Out port not found');
         }
 
-        this.log(OneUptimeDate.getCurrentDateAsFormattedString() + ':');
+        this.log('Value: ');
         this.log(args['value']);
 
         return Promise.resolve({

@@ -10,13 +10,12 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import BasicForm from '../Forms/BasicForm';
 import FormValues from '../Forms/Types/FormValues';
 import { JSONObject } from 'Common/Types/JSON';
-import Dictionary from 'Common/Types/Dictionary';
 import { componentInputTypeToFormFieldType } from './Utils';
 import { FormikProps, FormikValues } from 'formik';
 
 export interface ComponentProps {
     component: NodeDataProp;
-    onHasFormValidatonErrors: (values: Dictionary<boolean>) => void;
+    onHasFormValidatonErrors: (values:boolean) => void;
     onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -25,9 +24,7 @@ const RunForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const formRef: any = useRef<FormikProps<FormikValues>>(null);
     const [component, setComponent] = useState<NodeDataProp>(props.component);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
-        Dictionary<boolean>
-    >({});
+    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<boolean>(false);
 
     useEffect(() => {
         props.onHasFormValidatonErrors(hasFormValidationErrors);
@@ -77,10 +74,7 @@ const RunForm: FunctionComponent<ComponentProps> = (
                             onFormValidationErrorChanged={(
                                 hasError: boolean
                             ) => {
-                                setHasFormValidatonErrors({
-                                    ...hasFormValidationErrors,
-                                    id: hasError,
-                                });
+                                setHasFormValidatonErrors(hasError);
                             }}
                             fields={
                                 component.metadata.returnValues &&

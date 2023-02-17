@@ -154,7 +154,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     <WorkflowStatusElement
                                         status={
                                             item[
-                                                'workflowStatus'
+                                            'workflowStatus'
                                             ] as WorkflowStatus
                                         }
                                     />
@@ -165,7 +165,23 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             field: {
                                 createdAt: true,
                             },
-                            title: 'Workflow Ran At',
+                            title: 'Scheduled At',
+                            type: FieldType.DateTime,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                startedAt: true,
+                            },
+                            title: 'Started At',
+                            type: FieldType.DateTime,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                completedAt: true,
+                            },
+                            title: 'Completed At',
                             type: FieldType.DateTime,
                             isFilterable: true,
                         },
@@ -185,7 +201,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         submitButtonStyleType={ButtonStyleType.NORMAL}
                     >
                         <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                            {logs}
+                            {logs.split("\n").map((log: string, i: number) => {
+                                return <div key={i}>{log}</div>
+                            })}
                         </div>
                     </Modal>
                 )}

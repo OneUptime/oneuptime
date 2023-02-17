@@ -55,12 +55,12 @@ export default class ComponentCode {
     public log(data: string | JSONObject | JSONArray | JSONValue): void {
         if (typeof data === 'string') {
             this.logs.push(
-                OneUptimeDate.getCurrentDateAsFormattedString() + ':' + data
+                OneUptimeDate.getCurrentDateAsFormattedString() + ': ' + data
             );
         } else {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ':' +
+                    ': ' +
                     JSON.stringify(data)
             );
         }

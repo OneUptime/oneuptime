@@ -16,12 +16,16 @@ const APP_NAME: string = 'workflow';
 const app: ExpressApplication = Express.getExpressApp();
 
 
-app.use(`/manual`, new ManualAPI().router);
+app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
 
 // Job process.
 QueueWorker.getWorker(
     QueueName.Workflow,
     async (job: QueueJob) => {
+
+        logger.info("Job execution started...")
+        logger.info(job.data);
+
         await new RunWorkflow().runWorkflow({
             workflowId: new ObjectID(job.data['workflowId'] as string),
             workflowLogId: new ObjectID(job.data['workflowLogId'] as string),
@@ -40,7 +44,7 @@ const init: Function = async (): Promise<void> => {
             PostgresAppInstance.getDatasourceOptions()
         );
 
-        app.use(`/`, new ComponentCode().router);
+        app.use(`/${APP_NAME}/`, new ComponentCode().router);
 
         // connect redis
         await Redis.connect();

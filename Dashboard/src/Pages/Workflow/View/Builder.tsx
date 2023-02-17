@@ -35,6 +35,7 @@ import ComponentMetadata, {
 } from 'Common/Types/Workflow/Component';
 import API from 'Common/Utils/API';
 import { WORKFLOW_URL } from 'CommonUI/src/Config';
+import URL from 'Common/Types/API/URL';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -48,6 +49,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [nodes, setNodes] = useState<Array<Node>>([]);
     const [edges, setEdges] = useState<Array<Edge>>([]);
     const [error, setError] = useState<string>('');
+
+    const [showRunSuccessConfirmation, setShowRunSuccessConfirmation] =
+        useState<boolean>(false);
 
     const [showComponentPickerModal, setShowComponentPickerModal] =
         useState<boolean>(false);
@@ -105,18 +109,18 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             const componentMetdata:
                                 | ComponentMetadata
                                 | undefined = allComponents.components.find(
-                                (component: ComponentMetadata) => {
-                                    return (
-                                        component.id ===
-                                        nodes[i]?.data.metadataId
-                                    );
-                                }
-                            );
+                                    (component: ComponentMetadata) => {
+                                        return (
+                                            component.id ===
+                                            nodes[i]?.data.metadataId
+                                        );
+                                    }
+                                );
 
                             if (!componentMetdata) {
                                 throw new BadDataException(
                                     'Component Metadata not found for node ' +
-                                        nodes[i]?.data.metadataId
+                                    nodes[i]?.data.metadataId
                                 );
                             }
 
@@ -159,7 +163,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -232,7 +236,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     try {
                         setError(
                             (err as HTTPErrorResponse).message ||
-                                'Server Error. Please try again'
+                            'Server Error. Please try again'
                         );
                     } catch (e) {
                         setError('Server Error. Please try again');
@@ -342,9 +346,25 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 await saveGraph(nodes, edges);
                             }}
                             onRun={async (component: NodeDataProp) => {
-                                await API.post(WORKFLOW_URL.addRoute("/manual/run/"+modelId.toString()), {
-                                    data: component.returnValues
-                                })
+                                try {
+                                    await API.post(URL.fromString(WORKFLOW_URL.toString()).addRoute("/manual/run/" + modelId.toString()), {
+                                        data: component.returnValues
+                                    })
+
+                                    setShowRunSuccessConfirmation(true)
+                                } catch (err) { 
+                                    try {
+                                        setError(
+                                            (err as HTTPErrorResponse).message ||
+                                            'Server Error. Please try again'
+                                        );
+                                    } catch (e) {
+                                        setError('Server Error. Please try again');
+                                    }
+            
+                                }
+
+
                             }}
                         />
                     ) : (
@@ -358,6 +378,19 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         submitButtonText={'Close'}
                         onSubmit={() => {
                             setError('');
+                        }}
+                        submitButtonType={ButtonStyleType.NORMAL}
+                    />
+                )}
+
+                {showRunSuccessConfirmation && (
+                    <ConfirmModal
+                        title={`Workflow scheduled to execute`}
+                        description={`This workflow is scheduled to execute soon. You can see the status of the run in the Runs and Logs section.`}
+                        submitButtonText={'Close'}
+                        onSubmit={() => {
+                            setShowRunSuccessConfirmation(false);
+
                         }}
                         submitButtonType={ButtonStyleType.NORMAL}
                     />

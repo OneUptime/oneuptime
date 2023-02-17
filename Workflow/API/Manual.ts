@@ -35,7 +35,7 @@ export default class ManualAPI {
 
         await QueueWorkflow.addWorkflowToQueue({
             workflowId: new ObjectID(req.params['workflowId'] as string),
-            returnValues: req.body,
+            returnValues: req.body.data || {},
         });
 
         return Response.sendJsonObjectResponse(req, res, {

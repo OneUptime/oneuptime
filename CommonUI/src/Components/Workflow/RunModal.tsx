@@ -1,4 +1,4 @@
-import Dictionary from 'Common/Types/Dictionary';
+
 import { NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
@@ -18,13 +18,12 @@ const RunModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.trigger);
     const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
-        Dictionary<boolean>
-    >({});
+        boolean
+    >(false);
     const [showRunConfirmation, setShowRunConfirmation] =
         useState<boolean>(false);
 
-    const [showRunSuccessConfirmation, setShowRunSuccessConfirmation] =
-        useState<boolean>(false);
+    
 
     const [showFormValidationErrors, setShowFormValidationErrors] =
         useState<boolean>(false);
@@ -41,7 +40,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
             }
             submitButtonText={'Run Workflow Manually'}
             onSubmit={() => {
-                if (Object.keys(hasFormValidationErrors).length > 0) {
+                if (hasFormValidationErrors) {
                     setShowFormValidationErrors(true);
                 } else {
                     setShowRunConfirmation(true);
@@ -58,26 +57,16 @@ const RunModal: FunctionComponent<ComponentProps> = (
                         }}
                         submitButtonText={'Run'}
                         onSubmit={() => {
-                            props.onRun(component);
                             setShowRunConfirmation(false);
-                            setShowRunSuccessConfirmation(true);
+                            props.onRun(component);
+                            props.onClose();
+                           
                         }}
                         submitButtonType={ButtonStyleType.SUCCESS}
                     />
                 )}
 
-                {showRunSuccessConfirmation && (
-                    <ConfirmModal
-                        title={`Workflow Started...`}
-                        description={`This workflow is scheduled to execute soon. You can see the status of the run in the Runs and Logs section.`}
-                        submitButtonText={'Close'}
-                        onSubmit={() => {
-                            setShowRunSuccessConfirmation(false);
-                            props.onClose();
-                        }}
-                        submitButtonType={ButtonStyleType.NORMAL}
-                    />
-                )}
+                
 
                 {showFormValidationErrors && (
                     <ConfirmModal
@@ -98,11 +87,9 @@ const RunModal: FunctionComponent<ComponentProps> = (
                             setComponent({ ...component });
                         }}
                         onHasFormValidatonErrors={(
-                            value: Dictionary<boolean>
+                            value: boolean
                         ) => {
-                            setHasFormValidatonErrors({
-                                ...value,
-                            });
+                            setHasFormValidatonErrors(value);
                         }}
                     />
                 )}

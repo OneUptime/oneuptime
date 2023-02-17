@@ -24,6 +24,7 @@ import Components from 'CommonServer/Types/Workflow/Components/Index';
 import OneUptimeDate from 'Common/Types/Date';
 import { loadAllComponentMetadata } from '../Utils/ComponentMetadata';
 import Workflow from 'Model/Models/Workflow';
+import logger from 'CommonServer/Utils/Logger';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -57,161 +58,207 @@ export default class RunWorkflow {
     public async runWorkflow(runProps: RunProps): Promise<void> {
         // get nodes and edges.
 
-        const workflow: Workflow | null = await WorkflowService.findOneById({
-            id: runProps.workflowId,
-            select: {
-                graph: true,
-                projectId: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
+        try {
 
-        if (!workflow) {
-            throw new BadDataException('Workflow not found');
-        }
+            const workflow: Workflow | null = await WorkflowService.findOneById({
+                id: runProps.workflowId,
+                select: {
+                    graph: true,
+                    projectId: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
-        if (!workflow.graph) {
-            throw new BadDataException('Workflow graph not found');
-        }
+            if (!workflow) {
+                throw new BadDataException('Workflow not found');
+            }
 
-        // update workflow log.
-        await WorkflowLogService.updateOneById({
-            id: runProps.workflowLogId,
-            data: {
-                workflowStatus: WorkflowStatus.Running,
-                startedAt: OneUptimeDate.getCurrentDate(),
-            },
-            props: {
-                isRoot: true,
-            },
-        });
+            if (!workflow.graph) {
+                throw new BadDataException('Workflow graph not found');
+            }
 
-        // form a run stack.
+            // update workflow log.
+            await WorkflowLogService.updateOneById({
+                id: runProps.workflowLogId,
+                data: {
+                    workflowStatus: WorkflowStatus.Running,
+                    startedAt: OneUptimeDate.getCurrentDate(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
-        const runStack: RunStack = await this.makeRunStack(workflow.graph);
+            // form a run stack.
 
-        // TODO: Cyclic check. If cyclic - break and do not run.
+            const runStack: RunStack = await this.makeRunStack(workflow.graph);
 
-        // get storage map with variables.
-        const storageMap: StorageMap = await this.getVariables(
-            workflow.projectId!,
-            workflow.id!
-        );
+            // get storage map with variables.
+            const storageMap: StorageMap = await this.getVariables(
+                workflow.projectId!,
+                workflow.id!
+            );
 
-        // start execute different components.
-        let executeComponentId: string = runStack.startWithComponentId;
+            // start execute different components.
+            let executeComponentId: string = runStack.startWithComponentId;
 
-        const fifoStackOfComponentsPendingExecution: Array<string> = [
-            executeComponentId,
-        ];
-        const componentsExecuted: Array<string> = [];
+            const fifoStackOfComponentsPendingExecution: Array<string> = [
+                executeComponentId,
+            ];
+            const componentsExecuted: Array<string> = [];
 
-        // make variable map
+            // make variable map
 
-        while (fifoStackOfComponentsPendingExecution.length > 0) {
-            // get component.
-            // and remoev that component from the stack.
-            executeComponentId = fifoStackOfComponentsPendingExecution.shift()!;
+            while (fifoStackOfComponentsPendingExecution.length > 0) {
+                // get component.
+                // and remoev that component from the stack.
+                executeComponentId = fifoStackOfComponentsPendingExecution.shift()!;
 
-            if (componentsExecuted.includes(executeComponentId)) {
-                this.log(
-                    'Cyclic Workflow Detected. Cannot execute ' +
+                if (componentsExecuted.includes(executeComponentId)) {
+                    throw new BadDataException(
+                        'Cyclic Workflow Detected. Cannot execute ' +
                         executeComponentId +
                         ' when it has already been executed.'
-                );
-                break;
-            }
-
-            componentsExecuted.push(executeComponentId);
-
-            this.log('Executing Component: ' + executeComponentId);
-
-            const stackItem: RunStackItem | undefined =
-                runStack.stack[executeComponentId];
-
-            if (!stackItem) {
-                throw new BadDataException(
-                    'Component with ID ' + executeComponentId + ' not found.'
-                );
-            }
-
-            // execute this stack.
-            if (stackItem.node.componentType === ComponentType.Trigger) {
-                // this is already executed. So, place its arguments inside of storage map.
-                storageMap.local.components[stackItem.node.id] = {
-                    returnValues: runProps.arguments,
-                };
-            } else {
-                // now actually run this component.
-
-                const args: JSONObject = this.getComponentArguments(
-                    storageMap,
-                    stackItem.node
-                );
-
-                this.log('Component Args:');
-                this.log(args);
-
-                const result: RunReturnType = await this.runComponent(
-                    args,
-                    stackItem.node
-                );
-
-                this.log(
-                    'Completed Execution Component: ' + executeComponentId
-                );
-                this.log('Data Returned');
-                this.log(result.returnValues);
-                this.log(
-                    'Executing Port: ' + result.executePort?.id || '<None>'
-                );
-
-                storageMap.local.components[stackItem.node.id] = {
-                    returnValues: result.returnValues,
-                };
-
-                this.logs = this.logs.concat(result.logs);
-
-                const portToBeExecuted: Port | undefined = result.executePort;
-
-                if (!portToBeExecuted) {
-                    break; // stop the workflow, the process has ended.
+                    );
                 }
 
-                const nodesToBeExecuted: Array<string> | undefined =
-                    stackItem.outPorts[portToBeExecuted.id];
+                componentsExecuted.push(executeComponentId);
 
-                if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
-                    nodesToBeExecuted.forEach((item: string) => {
-                        // if its not in the stack, then add it to execution stack.
-                        if (
-                            !fifoStackOfComponentsPendingExecution.includes(
-                                item
-                            )
-                        ) {
-                            fifoStackOfComponentsPendingExecution.push(item);
-                        }
-                    });
+                this.log('Executing Component: ' + executeComponentId);
+
+                const stackItem: RunStackItem | undefined =
+                    runStack.stack[executeComponentId];
+
+                if (!stackItem) {
+                    throw new BadDataException(
+                        'Component with ID ' + executeComponentId + ' not found.'
+                    );
+                }
+
+                // execute this stack.
+                if (stackItem.node.componentType === ComponentType.Trigger) {
+                    // this is already executed. So, place its arguments inside of storage map.
+                    storageMap.local.components[stackItem.node.id] = {
+                        returnValues: runProps.arguments,
+                    };
+
+                    this.log("Trigger args:")
+                    this.log(runProps.arguments);
+
+                    // need port to be executed. 
+                    const nodesToBeExecuted: Array<string> | undefined = Object.keys(stackItem.outPorts).map((outport: string) => {
+                        return stackItem.outPorts[outport] || [];
+                    }).flat();
+
+                    if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
+                        nodesToBeExecuted.forEach((item: string) => {
+                            // if its not in the stack, then add it to execution stack.
+                            if (
+                                !fifoStackOfComponentsPendingExecution.includes(
+                                    item
+                                )
+                            ) {
+                                fifoStackOfComponentsPendingExecution.push(item);
+                            }
+                        });
+                    }
+
+                } else {
+                    // now actually run this component.
+
+
+                    console.log("Stroage Map");
+                    console.log(JSON.stringify(storageMap, null, 2));
+
+                    const args: JSONObject = this.getComponentArguments(
+                        storageMap,
+                        stackItem.node
+                    );
+
+                    this.log('Component Args:');
+                    this.log(args);
+
+                    const result: RunReturnType = await this.runComponent(
+                        args,
+                        stackItem.node
+                    );
+                    this.log(
+                        'Component Logs: ' + executeComponentId
+                    );
+                    this.logs = this.logs.concat(result.logs);
+                    this.log(
+                        'Completed Execution Component: ' + executeComponentId
+                    );
+                    this.log('Data Returned');
+                    this.log(result.returnValues);
+                    this.log(
+                        'Executing Port: ' + result.executePort?.title || '<None>'
+                    );
+
+                    storageMap.local.components[stackItem.node.id] = {
+                        returnValues: result.returnValues,
+                    };
+
+
+
+                    const portToBeExecuted: Port | undefined = result.executePort;
+
+                    if (!portToBeExecuted) {
+                        break; // stop the workflow, the process has ended.
+                    }
+
+                    const nodesToBeExecuted: Array<string> | undefined =
+                        stackItem.outPorts[portToBeExecuted.id];
+
+                    if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
+                        nodesToBeExecuted.forEach((item: string) => {
+                            // if its not in the stack, then add it to execution stack.
+                            if (
+                                !fifoStackOfComponentsPendingExecution.includes(
+                                    item
+                                )
+                            ) {
+                                fifoStackOfComponentsPendingExecution.push(item);
+                            }
+                        });
+                    }
                 }
             }
+
+            // collect logs and update status.
+
+            // update workflow log.
+            await WorkflowLogService.updateOneById({
+                id: runProps.workflowLogId,
+                data: {
+                    workflowStatus: WorkflowStatus.Success,
+                    logs: this.logs.join('\n'),
+                    completedAt: OneUptimeDate.getCurrentDate(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+        } catch (err: any) {
+
+            logger.error(err);
+            this.log(err.toString());
+
+            // update workflow log.
+            await WorkflowLogService.updateOneById({
+                id: runProps.workflowLogId,
+                data: {
+                    workflowStatus: WorkflowStatus.Error,
+                    logs: this.logs.join('\n'),
+                    completedAt: OneUptimeDate.getCurrentDate(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
         }
-
-        // collect logs and update status.
-
-        // update workflow log.
-        await WorkflowLogService.updateOneById({
-            id: runProps.workflowLogId,
-            data: {
-                workflowStatus: WorkflowStatus.Success,
-                logs: this.logs.join('\n'),
-                completedAt: OneUptimeDate.getCurrentDate(),
-            },
-            props: {
-                isRoot: true,
-            },
-        });
     }
 
     public getComponentArguments(
@@ -220,6 +267,25 @@ export default class RunWorkflow {
     ): JSONObject {
         // pick arguments from storage map.
         const argumentObj: JSONObject = {};
+
+
+        const deepFind = (obj: JSONObject, path: string): JSONValue => {
+            let paths: Array<string> = path.split('.');
+            let current: any = JSON.parse(JSON.stringify(obj))
+
+
+            for (let i = 0; i < paths.length; ++i) {
+                
+                if (current && paths[i] && (current[(paths as any)[i] as any] as any) === undefined) {
+                    return undefined;
+                } else if (current[paths[i] as string] === null) {
+                    return null;
+                } else {
+                    current = current[paths[i] as string];
+                }
+            }
+            return current;
+        }
 
         for (const argument of component.metadata.arguments) {
             if (!component.arguments[argument.id]) {
@@ -233,6 +299,8 @@ export default class RunWorkflow {
                 continue;
             }
 
+
+
             if (
                 typeof argumentContent === 'string' &&
                 argumentContent.toString().includes('{{') &&
@@ -243,9 +311,12 @@ export default class RunWorkflow {
                     .toString()
                     .replace('{{', '')
                     .replace('}}', '');
-                argumentContent = (storageMap as any)[
-                    argumentContent as string
-                ];
+
+
+                argumentContent = deepFind(storageMap as any, argumentContent as any);
+
+                console.log("Argument Content " + component.id);
+                console.log(argumentContent);
             }
 
             argumentObj[argument.id] = argumentContent;
@@ -264,9 +335,7 @@ export default class RunWorkflow {
 
         if (ComponentCodeItem) {
             const instance: ComponentCode = new ComponentCodeItem();
-            return await instance.run({
-                arguments: args,
-            });
+            return await instance.run(args);
         }
 
         throw new BadDataException(
@@ -340,13 +409,13 @@ export default class RunWorkflow {
     public log(data: string | JSONObject | JSONArray): void {
         if (typeof data === 'string') {
             this.logs.push(
-                OneUptimeDate.getCurrentDateAsFormattedString() + ':' + data
+                OneUptimeDate.getCurrentDateAsFormattedString() + ': ' + data
             );
         } else {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ':' +
-                    JSON.stringify(data)
+                ': ' +
+                JSON.stringify(data)
             );
         }
     }
@@ -354,7 +423,7 @@ export default class RunWorkflow {
     public async makeRunStack(graph: JSONObject): Promise<RunStack> {
         const nodes: Array<any> = graph['nodes'] as Array<any>;
 
-        const edges: Array<any> = graph['edge'] as Array<any>;
+        const edges: Array<any> = graph['edges'] as Array<any>;
 
         if (nodes.length === 0) {
             return {
@@ -362,8 +431,6 @@ export default class RunWorkflow {
                 stack: {},
             };
         }
-
-        // TODO: Prefill with component metadata.
 
         const runStackItems: Dictionary<RunStackItem> = {};
 
@@ -411,7 +478,7 @@ export default class RunWorkflow {
 
                 if (connectedNode) {
                     item.outPorts[edge['sourceHandle']]?.push(
-                        (node.data as NodeDataProp).id
+                        (connectedNode.data as NodeDataProp).id
                     );
                 }
             }
@@ -422,7 +489,7 @@ export default class RunWorkflow {
         const trigger: any | undefined = nodes.find((n: any) => {
             return (
                 (n.data as NodeDataProp).componentType ===
-                    ComponentType.Trigger &&
+                ComponentType.Trigger &&
                 (n.data as NodeDataProp).nodeType === NodeType.Node
             );
         });

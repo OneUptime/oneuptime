@@ -38,7 +38,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
                 }
 
                 props.onSave(
-                    `{{local.components.${selectedComponent.id}.returnValue.${selectedReturnValue.id}}}`
+                    `{{local.components.${selectedComponent.id}.returnValues.${selectedReturnValue.id}}}`
                 );
             }}
         >
