@@ -1,7 +1,7 @@
 import { Queue as BullQueue, JobsOptions, Job } from 'bullmq';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import { RedisHostname, RedisPort } from '../Config';
+import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 
 export enum QueueName {
     Workflow = 'Workflow',
@@ -15,6 +15,7 @@ export default class Queue {
             connection: {
                 host: RedisHostname.toString(),
                 port: RedisPort.toNumber(),
+                password: RedisPassword
             },
         });
     }

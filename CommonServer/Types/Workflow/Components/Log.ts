@@ -3,7 +3,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
-import WebhookComponents from 'Common/Types/Workflow/Components/Webhook';
+import LogComponents from 'Common/Types/Workflow/Components/Log';
 import ComponentCode, { RunReturnType } from '../ComponentCode';
 
 export default class Log extends ComponentCode {
@@ -11,7 +11,7 @@ export default class Log extends ComponentCode {
         super();
 
         const LogComponent: ComponentMetadata | undefined =
-            WebhookComponents.find((i: ComponentMetadata) => {
+            LogComponents.find((i: ComponentMetadata) => {
                 return i.id === ComponentID.Log;
             });
 

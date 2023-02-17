@@ -15,7 +15,7 @@ const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-app.use(`/`, new ComponentCode().router);
+
 app.use(`/manual`, new ManualAPI().router);
 
 // Job process.
@@ -39,6 +39,8 @@ const init: Function = async (): Promise<void> => {
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
+
+        app.use(`/`, new ComponentCode().router);
 
         // connect redis
         await Redis.connect();

@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq';
-import { RedisHostname, RedisPort } from '../Config';
+import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 import { QueueJob, QueueName } from './Queue';
 
 export default class QueueWorker {
@@ -12,6 +12,7 @@ export default class QueueWorker {
             connection: {
                 host: RedisHostname.toString(),
                 port: RedisPort.toNumber(),
+                password: RedisPassword
             },
             concurrency: options.concurrency,
         });

@@ -3,7 +3,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
-import WebhookComponents from 'Common/Types/Workflow/Components/Webhook';
+import ScheduleComponents from 'Common/Types/Workflow/Components/Schedule';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowService from '../../../Services/WorkflowService';
 import QueryHelper from '../../Database/QueryHelper';
@@ -14,7 +14,7 @@ import ComponentCode, {
 
 export default class WebhookTrigger extends ComponentCode {
     public constructor() {
-        const component: ComponentMetadata | undefined = WebhookComponents.find(
+        const component: ComponentMetadata | undefined = ScheduleComponents.find(
             (i: ComponentMetadata) => {
                 return i.id === ComponentID.Schedule;
             }
