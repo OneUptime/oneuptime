@@ -39,7 +39,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
             submitButtonDisabled={
                 component.nodeType === NodeType.PlaceholderNode
             }
-            submitButtonText={'Run Workflow'}
+            submitButtonText={'Run Workflow Manually'}
             onSubmit={() => {
                 if (Object.keys(hasFormValidationErrors).length > 0) {
                     setShowFormValidationErrors(true);
@@ -51,8 +51,8 @@ const RunModal: FunctionComponent<ComponentProps> = (
             <>
                 {showRunConfirmation && (
                     <ConfirmModal
-                        title={`Run Workflow`}
-                        description={`Are you sure you want to run this Workflow?`}
+                        title={`Run Workflow Manually`}
+                        description={`Are you sure you want to run this workflow manually?`}
                         onClose={() => {
                             setShowRunConfirmation(false);
                         }}
@@ -101,7 +101,6 @@ const RunModal: FunctionComponent<ComponentProps> = (
                             value: Dictionary<boolean>
                         ) => {
                             setHasFormValidatonErrors({
-                                ...hasFormValidationErrors,
                                 ...value,
                             });
                         }}

@@ -33,6 +33,8 @@ import ComponentMetadata, {
     NodeType,
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
+import API from 'Common/Utils/API';
+import { WORKFLOW_URL } from 'CommonUI/src/Config';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -306,7 +308,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             </div>
                             <div>
                                 <Button
-                                    title="Run Wrokflow"
+                                    title="Run Wrokflow Manually"
                                     icon={IconProp.Play}
                                     onClick={() => {
                                         setShowRunModal(true);
@@ -339,7 +341,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 setEdges(edges);
                                 await saveGraph(nodes, edges);
                             }}
-                            onRun={(_component: NodeDataProp) => {}}
+                            onRun={async (component: NodeDataProp) => {
+                                await API.post(WORKFLOW_URL.addRoute("/manual/run/"+modelId.toString()), {
+                                    data: component.returnValues
+                                })
+                            }}
                         />
                     ) : (
                         <></>
