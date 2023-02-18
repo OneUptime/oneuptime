@@ -315,8 +315,6 @@ export default class RunWorkflow {
 
                 argumentContent = deepFind(storageMap as any, argumentContent as any);
 
-                console.log("Argument Content " + component.id);
-                console.log(argumentContent);
             }
 
             argumentObj[argument.id] = argumentContent;
@@ -358,8 +356,8 @@ export default class RunWorkflow {
                     content: true,
                     isSecret: true,
                 },
-                limit: 0,
-                skip: LIMIT_PER_PROJECT,
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
                 props: {
                     isRoot: true,
                 },
@@ -376,8 +374,8 @@ export default class RunWorkflow {
                     content: true,
                     isSecret: true,
                 },
-                limit: 0,
-                skip: LIMIT_PER_PROJECT,
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
                 props: {
                     isRoot: true,
                 },

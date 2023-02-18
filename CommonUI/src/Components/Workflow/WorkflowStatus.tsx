@@ -23,6 +23,10 @@ const WorkflowStatusElement: FunctionComponent<ComponentProps> = (
         return <Pill color={Red} text="Error" />;
     }
 
+    if (props.status === WorkflowStatus.Timeout) {
+        return <Pill color={Red} text="Timeout" />;
+    }
+
     return <Pill color={Yellow} text="Unknown" />;
 };
 

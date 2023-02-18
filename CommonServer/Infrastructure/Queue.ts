@@ -39,6 +39,6 @@ export default class Queue {
             };
         }
 
-        await this.getQueue(queueName).add(jobName, data, optionsObject);
+        await this.getQueue(queueName).add(jobName, data, {...optionsObject });
     }
 }
