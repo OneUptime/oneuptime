@@ -24,7 +24,8 @@ const components: Array<ComponentMetadata> = [
             {
                 type: ComponentInputType.JSON,
                 name: 'Arguments',
-                description: 'Pass in arguments to your JavaScript Code from this workflow',
+                description:
+                    'Pass in arguments to your JavaScript Code from this workflow',
                 required: false,
                 id: 'arguments',
             },

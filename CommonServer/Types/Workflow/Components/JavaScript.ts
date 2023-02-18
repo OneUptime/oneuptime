@@ -1,5 +1,5 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import LogComponents from 'Common/Types/Workflow/Components/Log';
@@ -19,14 +19,15 @@ export default class JavaScirptCode extends ComponentCode {
             });
 
         if (!JavaScirptComponent) {
-            throw new BadDataException('Custom JavaScirpt Component not found.');
+            throw new BadDataException(
+                'Custom JavaScirpt Component not found.'
+            );
         }
 
         this.setMetadata(JavaScirptComponent);
     }
 
     public override async run(args: JSONObject): Promise<RunReturnType> {
-
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'success';
@@ -36,7 +37,6 @@ export default class JavaScirptCode extends ComponentCode {
         if (!successPort) {
             throw new BadDataException('Success port not found');
         }
-
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
@@ -49,45 +49,46 @@ export default class JavaScirptCode extends ComponentCode {
         }
 
         try {
-
             // Set timeout
             // Inject args
             // Inject dependencies
 
-            const vm = new VM.NodeVM({
+            const vm: VM.NodeVM = new VM.NodeVM({
                 timeout: 5000,
                 sandbox: {
                     args: args['arguments'],
                     axios: axios,
                     http: http,
                     https: https,
-                }
-            })
-            
-            const script = new VMScript(args['code'] as string || '').compile();
-            
-            const returnVal = await vm.run(script);
+                    console: {
+                        log: (logValue: JSONValue) => {
+                            this.log(logValue);
+                        },
+                    },
+                },
+            });
+
+            const script: VMScript = new VMScript(
+                (args['code'] as string) || ''
+            ).compile();
+
+            const returnVal: any = await vm.run(script);
 
             return {
                 returnValues: {
-                    returnValue: returnVal
+                    returnValue: returnVal,
                 },
                 executePort: successPort,
                 logs: this.logs,
-            }
-            
+            };
         } catch (err) {
-            this.log("Error running script");
+            this.log('Error running script');
             this.log(JSON.stringify(err, null, 2));
             return {
-                returnValues: {
-
-                },
+                returnValues: {},
                 executePort: errorPort,
                 logs: this.logs,
-            }
+            };
         }
-
-        
     }
 }

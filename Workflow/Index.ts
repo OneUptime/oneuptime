@@ -19,7 +19,6 @@ const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-
 app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
 
 // Job process.
@@ -30,12 +29,14 @@ QueueWorker.getWorker(
             await QueueWorker.runJobWithTimeout(5000, async () => {
                 await new RunWorkflow().runWorkflow({
                     workflowId: new ObjectID(job.data['workflowId'] as string),
-                    workflowLogId: new ObjectID(job.data['workflowLogId'] as string),
+                    workflowLogId: new ObjectID(
+                        job.data['workflowLogId'] as string
+                    ),
                     arguments: job.data.data as JSONObject,
                 });
-            })
+            });
         } catch (err: any) {
-            // WOrkflow might have timed out. 
+            // WOrkflow might have timed out.
             if (err instanceof TimeoutException) {
                 // update workflow log.
                 await WorkflowLogService.updateOneById({
@@ -62,8 +63,9 @@ QueueWorker.getWorker(
                     },
                 });
             }
-        }
 
+            throw err;
+        }
     },
     { concurrency: 10 }
 );

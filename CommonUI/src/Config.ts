@@ -64,9 +64,7 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
     env('DOMAIN')
 );
 
-export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(
-    env('DOMAIN')
-);
+export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 

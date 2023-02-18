@@ -19,6 +19,7 @@ const VariableModal: FunctionComponent<ComponentProps> = (
             query={{
                 workflowId: new EqualToOrNull(props.workflowId.toString()),
             }}
+            isSearchEnabled={true}
             noItemsMessage="You do have any variables. Please add global or workflow variables."
             modalDescription="This list contains both Global and Workflow variables."
             titleField="name"

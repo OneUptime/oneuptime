@@ -15,7 +15,7 @@ import { FormikProps, FormikValues } from 'formik';
 
 export interface ComponentProps {
     component: NodeDataProp;
-    onHasFormValidatonErrors: (values:boolean) => void;
+    onHasFormValidatonErrors: (values: boolean) => void;
     onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -24,7 +24,8 @@ const RunForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const formRef: any = useRef<FormikProps<FormikValues>>(null);
     const [component, setComponent] = useState<NodeDataProp>(props.component);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<boolean>(false);
+    const [hasFormValidationErrors, setHasFormValidatonErrors] =
+        useState<boolean>(false);
 
     useEffect(() => {
         props.onHasFormValidatonErrors(hasFormValidationErrors);

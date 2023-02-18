@@ -3,7 +3,7 @@ enum WorkflowStatus {
     Running = 'Running',
     Success = 'Success',
     Error = 'Error',
-    Timeout = 'Timeout'
+    Timeout = 'Timeout',
 }
 
 export default WorkflowStatus;

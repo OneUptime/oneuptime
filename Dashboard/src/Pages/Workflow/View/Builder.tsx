@@ -109,18 +109,18 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             const componentMetdata:
                                 | ComponentMetadata
                                 | undefined = allComponents.components.find(
-                                    (component: ComponentMetadata) => {
-                                        return (
-                                            component.id ===
-                                            nodes[i]?.data.metadataId
-                                        );
-                                    }
-                                );
+                                (component: ComponentMetadata) => {
+                                    return (
+                                        component.id ===
+                                        nodes[i]?.data.metadataId
+                                    );
+                                }
+                            );
 
                             if (!componentMetdata) {
                                 throw new BadDataException(
                                     'Component Metadata not found for node ' +
-                                    nodes[i]?.data.metadataId
+                                        nodes[i]?.data.metadataId
                                 );
                             }
 
@@ -163,7 +163,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -236,7 +236,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     try {
                         setError(
                             (err as HTTPErrorResponse).message ||
-                            'Server Error. Please try again'
+                                'Server Error. Please try again'
                         );
                     } catch (e) {
                         setError('Server Error. Please try again');
@@ -347,24 +347,31 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             }}
                             onRun={async (component: NodeDataProp) => {
                                 try {
-                                    await API.post(URL.fromString(WORKFLOW_URL.toString()).addRoute("/manual/run/" + modelId.toString()), {
-                                        data: component.returnValues
-                                    })
+                                    await API.post(
+                                        URL.fromString(
+                                            WORKFLOW_URL.toString()
+                                        ).addRoute(
+                                            '/manual/run/' + modelId.toString()
+                                        ),
+                                        {
+                                            data: component.returnValues,
+                                        }
+                                    );
 
-                                    setShowRunSuccessConfirmation(true)
-                                } catch (err) { 
+                                    setShowRunSuccessConfirmation(true);
+                                } catch (err) {
                                     try {
                                         setError(
-                                            (err as HTTPErrorResponse).message ||
-                                            'Server Error. Please try again'
+                                            (err as HTTPErrorResponse)
+                                                .message ||
+                                                'Server Error. Please try again'
                                         );
                                     } catch (e) {
-                                        setError('Server Error. Please try again');
+                                        setError(
+                                            'Server Error. Please try again'
+                                        );
                                     }
-            
                                 }
-
-
                             }}
                         />
                     ) : (
@@ -390,7 +397,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         submitButtonText={'Close'}
                         onSubmit={() => {
                             setShowRunSuccessConfirmation(false);
-
                         }}
                         submitButtonType={ButtonStyleType.NORMAL}
                     />

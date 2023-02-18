@@ -15,7 +15,7 @@ export default class Queue {
             connection: {
                 host: RedisHostname.toString(),
                 port: RedisPort.toNumber(),
-                password: RedisPassword
+                password: RedisPassword,
             },
         });
     }
@@ -39,6 +39,6 @@ export default class Queue {
             };
         }
 
-        await this.getQueue(queueName).add(jobName, data, {...optionsObject });
+        await this.getQueue(queueName).add(jobName, data, { ...optionsObject });
     }
 }

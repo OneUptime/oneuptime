@@ -2,7 +2,7 @@ enum ComponentID {
     Webhook = 'webhook',
     Log = 'log',
     Schedule = 'schedule',
-    JavaScriptCode = 'javascript'
+    JavaScriptCode = 'javascript',
 }
 
 export default ComponentID;

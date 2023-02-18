@@ -9,10 +9,11 @@ export default class Log extends ComponentCode {
     public constructor() {
         super();
 
-        const LogComponent: ComponentMetadata | undefined =
-            LogComponents.find((i: ComponentMetadata) => {
+        const LogComponent: ComponentMetadata | undefined = LogComponents.find(
+            (i: ComponentMetadata) => {
                 return i.id === ComponentID.Log;
-            });
+            }
+        );
 
         if (!LogComponent) {
             throw new BadDataException('Component not found.');
@@ -32,12 +33,16 @@ export default class Log extends ComponentCode {
             throw new BadDataException('Out port not found');
         }
 
-        await new Promise(r => setTimeout(r, 6000));
+        await new Promise(r => {
+            return setTimeout(r, 6000);
+        });
 
         this.log('Value: ');
         this.log(args['value']);
 
-        await new Promise(r => setTimeout(r, 6000));
+        await new Promise(r => {
+            return setTimeout(r, 6000);
+        });
 
         return Promise.resolve({
             returnValues: {},

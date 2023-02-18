@@ -59,17 +59,18 @@ export default class RunWorkflow {
         // get nodes and edges.
 
         try {
-
-            const workflow: Workflow | null = await WorkflowService.findOneById({
-                id: runProps.workflowId,
-                select: {
-                    graph: true,
-                    projectId: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+            const workflow: Workflow | null = await WorkflowService.findOneById(
+                {
+                    id: runProps.workflowId,
+                    select: {
+                        graph: true,
+                        projectId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                }
+            );
 
             if (!workflow) {
                 throw new BadDataException('Workflow not found');
@@ -114,13 +115,14 @@ export default class RunWorkflow {
             while (fifoStackOfComponentsPendingExecution.length > 0) {
                 // get component.
                 // and remoev that component from the stack.
-                executeComponentId = fifoStackOfComponentsPendingExecution.shift()!;
+                executeComponentId =
+                    fifoStackOfComponentsPendingExecution.shift()!;
 
                 if (componentsExecuted.includes(executeComponentId)) {
                     throw new BadDataException(
                         'Cyclic Workflow Detected. Cannot execute ' +
-                        executeComponentId +
-                        ' when it has already been executed.'
+                            executeComponentId +
+                            ' when it has already been executed.'
                     );
                 }
 
@@ -133,7 +135,9 @@ export default class RunWorkflow {
 
                 if (!stackItem) {
                     throw new BadDataException(
-                        'Component with ID ' + executeComponentId + ' not found.'
+                        'Component with ID ' +
+                            executeComponentId +
+                            ' not found.'
                     );
                 }
 
@@ -144,13 +148,16 @@ export default class RunWorkflow {
                         returnValues: runProps.arguments,
                     };
 
-                    this.log("Trigger args:")
+                    this.log('Trigger args:');
                     this.log(runProps.arguments);
 
-                    // need port to be executed. 
-                    const nodesToBeExecuted: Array<string> | undefined = Object.keys(stackItem.outPorts).map((outport: string) => {
-                        return stackItem.outPorts[outport] || [];
-                    }).flat();
+                    // need port to be executed.
+                    const nodesToBeExecuted: Array<string> | undefined =
+                        Object.keys(stackItem.outPorts)
+                            .map((outport: string) => {
+                                return stackItem.outPorts[outport] || [];
+                            })
+                            .flat();
 
                     if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
                         nodesToBeExecuted.forEach((item: string) => {
@@ -160,17 +167,14 @@ export default class RunWorkflow {
                                     item
                                 )
                             ) {
-                                fifoStackOfComponentsPendingExecution.push(item);
+                                fifoStackOfComponentsPendingExecution.push(
+                                    item
+                                );
                             }
                         });
                     }
-
                 } else {
                     // now actually run this component.
-
-
-                    console.log("Stroage Map");
-                    console.log(JSON.stringify(storageMap, null, 2));
 
                     const args: JSONObject = this.getComponentArguments(
                         storageMap,
@@ -184,9 +188,7 @@ export default class RunWorkflow {
                         args,
                         stackItem.node
                     );
-                    this.log(
-                        'Component Logs: ' + executeComponentId
-                    );
+                    this.log('Component Logs: ' + executeComponentId);
                     this.logs = this.logs.concat(result.logs);
                     this.log(
                         'Completed Execution Component: ' + executeComponentId
@@ -194,16 +196,16 @@ export default class RunWorkflow {
                     this.log('Data Returned');
                     this.log(result.returnValues);
                     this.log(
-                        'Executing Port: ' + result.executePort?.title || '<None>'
+                        'Executing Port: ' + result.executePort?.title ||
+                            '<None>'
                     );
 
                     storageMap.local.components[stackItem.node.id] = {
                         returnValues: result.returnValues,
                     };
 
-
-
-                    const portToBeExecuted: Port | undefined = result.executePort;
+                    const portToBeExecuted: Port | undefined =
+                        result.executePort;
 
                     if (!portToBeExecuted) {
                         break; // stop the workflow, the process has ended.
@@ -220,7 +222,9 @@ export default class RunWorkflow {
                                     item
                                 )
                             ) {
-                                fifoStackOfComponentsPendingExecution.push(item);
+                                fifoStackOfComponentsPendingExecution.push(
+                                    item
+                                );
                             }
                         });
                     }
@@ -242,7 +246,6 @@ export default class RunWorkflow {
                 },
             });
         } catch (err: any) {
-
             logger.error(err);
             this.log(err.toString());
 
@@ -268,24 +271,27 @@ export default class RunWorkflow {
         // pick arguments from storage map.
         const argumentObj: JSONObject = {};
 
+        const deepFind: Function = (
+            obj: JSONObject,
+            path: string
+        ): JSONValue => {
+            const paths: Array<string> = path.split('.');
+            let current: any = JSON.parse(JSON.stringify(obj));
 
-        const deepFind = (obj: JSONObject, path: string): JSONValue => {
-            let paths: Array<string> = path.split('.');
-            let current: any = JSON.parse(JSON.stringify(obj))
-
-
-            for (let i = 0; i < paths.length; ++i) {
-                
-                if (current && paths[i] && (current[(paths as any)[i] as any] as any) === undefined) {
+            for (let i: number = 0; i < paths.length; ++i) {
+                if (
+                    current &&
+                    paths[i] &&
+                    (current[(paths as any)[i] as any] as any) === undefined
+                ) {
                     return undefined;
                 } else if (current[paths[i] as string] === null) {
                     return null;
-                } else {
-                    current = current[paths[i] as string];
                 }
+                current = current[paths[i] as string];
             }
             return current;
-        }
+        };
 
         for (const argument of component.metadata.arguments) {
             if (!component.arguments[argument.id]) {
@@ -299,8 +305,6 @@ export default class RunWorkflow {
                 continue;
             }
 
-
-
             if (
                 typeof argumentContent === 'string' &&
                 argumentContent.toString().includes('{{') &&
@@ -312,9 +316,10 @@ export default class RunWorkflow {
                     .replace('{{', '')
                     .replace('}}', '');
 
-
-                argumentContent = deepFind(storageMap as any, argumentContent as any);
-
+                argumentContent = deepFind(
+                    storageMap as any,
+                    argumentContent as any
+                );
             }
 
             argumentObj[argument.id] = argumentContent;
@@ -412,8 +417,8 @@ export default class RunWorkflow {
         } else {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                ': ' +
-                JSON.stringify(data)
+                    ': ' +
+                    JSON.stringify(data)
             );
         }
     }
@@ -487,7 +492,7 @@ export default class RunWorkflow {
         const trigger: any | undefined = nodes.find((n: any) => {
             return (
                 (n.data as NodeDataProp).componentType ===
-                ComponentType.Trigger &&
+                    ComponentType.Trigger &&
                 (n.data as NodeDataProp).nodeType === NodeType.Node
             );
         });

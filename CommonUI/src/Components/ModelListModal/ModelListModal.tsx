@@ -9,13 +9,15 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Typeof from 'Common/Types/Typeof';
+import Input from '../Input/Input';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onClose: () => void;
     onSave: (modals: Array<TBaseModel>) => void;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     titleField: string;
+    isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
     selectMultiple?: boolean | undefined;
     select: Select<TBaseModel>;
@@ -32,10 +34,18 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
     const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
+    const [searchText, setSearchText] = useState<string>('');
 
     useEffect(() => {
         fetchItems().catch();
     }, []);
+
+    useEffect(() => {
+        if (!props.isSearchEnabled) {
+            setSearchedList([...modelList]);
+        }
+    }, [props.isSearchEnabled, modelList])
 
     const fetchItems: Function = async () => {
         setError('');
@@ -61,7 +71,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -70,6 +80,28 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
 
         setIsLoading(false);
     };
+
+    useEffect(()=>{
+        if (!searchText) {
+            setSearchedList([...modelList]);
+        } else {
+            // search
+
+            setSearchedList([...modelList].filter((model): boolean => {
+                const includedInSearch: boolean = (model.getValue(
+                    props.titleField
+                ) as string).toLowerCase().includes(searchText);
+
+                if (!includedInSearch && props.descriptionField) {
+                    return (model.getValue(
+                        props.descriptionField
+                    ) as string).toLowerCase().includes(searchText);
+                }
+
+                return includedInSearch;
+            }));
+        }
+    }, [modelList, searchText])
 
     return (
         <Modal
@@ -85,19 +117,30 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                 props.onSave(selectedList);
             }}
         >
-            <div className="max-h-96 mt-5 mb-5 overflow-y-auto p-2">
+            <div>
+                {!isLoading && !error && props.isSearchEnabled && <div className='p-2'><Input placeholder='Search...' onChange={(value: string) => {
+
+                    setSearchText(value);
+
+                    
+                }} /></div>}
+            </div>
+            <div className="max-h-96 mb-5 overflow-y-auto p-2">
                 {error ? <ErrorMessage error={error} /> : <></>}
                 {isLoading ? <ComponentLoader /> : <></>}
-                {!isLoading && modelList.length === 0 ? (
+
+
+                {!isLoading && searchedList.length === 0 ? (
                     <ErrorMessage
-                        error={props.noItemsMessage || 'No items found.'}
+                        error={searchText ? "No items match your search" : (props.noItemsMessage || 'No items found.')}
                     />
                 ) : (
                     <></>
                 )}
-                {modelList &&
-                    modelList.length > 0 &&
-                    modelList.map(
+
+                {searchedList &&
+                    searchedList.length > 0 &&
+                    searchedList.map(
                         (model: TBaseModel, i: number): ReactElement => {
                             const isSelected: boolean =
                                 selectedList.filter(
@@ -138,9 +181,8 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                             setSelectedList([{ ...model }]);
                                         }
                                     }}
-                                    className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
-                                        isSelected ? 'ring ring-indigo-500' : ''
-                                    }`}
+                                    className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${isSelected ? 'ring ring-indigo-500' : ''
+                                        }`}
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="focus:outline-none">
@@ -150,7 +192,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                             ></span>
                                             {props.headerField &&
                                                 typeof props.headerField ===
-                                                    Typeof.String && (
+                                                Typeof.String && (
                                                     <p className="text-sm font-medium text-gray-300">
                                                         {
                                                             model.getValue(
@@ -162,7 +204,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
 
                                             {props.headerField &&
                                                 typeof props.headerField ===
-                                                    'function' &&
+                                                'function' &&
                                                 props.headerField(model)}
                                             <p className="text-sm font-medium text-gray-900">
                                                 {

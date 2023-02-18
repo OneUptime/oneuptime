@@ -14,11 +14,10 @@ import ComponentCode, {
 
 export default class WebhookTrigger extends ComponentCode {
     public constructor() {
-        const component: ComponentMetadata | undefined = ScheduleComponents.find(
-            (i: ComponentMetadata) => {
+        const component: ComponentMetadata | undefined =
+            ScheduleComponents.find((i: ComponentMetadata) => {
                 return i.id === ComponentID.Schedule;
-            }
-        );
+            });
 
         if (!component) {
             throw new BadDataException('Trigger not found.');

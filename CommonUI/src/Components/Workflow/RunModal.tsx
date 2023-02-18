@@ -1,4 +1,3 @@
-
 import { NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
@@ -17,13 +16,10 @@ const RunModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.trigger);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
-        boolean
-    >(false);
+    const [hasFormValidationErrors, setHasFormValidatonErrors] =
+        useState<boolean>(false);
     const [showRunConfirmation, setShowRunConfirmation] =
         useState<boolean>(false);
-
-    
 
     const [showFormValidationErrors, setShowFormValidationErrors] =
         useState<boolean>(false);
@@ -60,13 +56,10 @@ const RunModal: FunctionComponent<ComponentProps> = (
                             setShowRunConfirmation(false);
                             props.onRun(component);
                             props.onClose();
-                           
                         }}
                         submitButtonType={ButtonStyleType.SUCCESS}
                     />
                 )}
-
-                
 
                 {showFormValidationErrors && (
                     <ConfirmModal
@@ -86,9 +79,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
                         onFormChange={(component: NodeDataProp) => {
                             setComponent({ ...component });
                         }}
-                        onHasFormValidatonErrors={(
-                            value: boolean
-                        ) => {
+                        onHasFormValidatonErrors={(value: boolean) => {
                             setHasFormValidatonErrors(value);
                         }}
                     />
