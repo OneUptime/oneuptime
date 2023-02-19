@@ -30,6 +30,7 @@ import Label from './Label';
 import File from './File';
 import Color from 'Common/Types/Color';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
+import { JSONObject } from 'Common/Types/JSON';
 
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
@@ -1310,4 +1311,36 @@ export default class StatusPage extends BaseModel {
         default: true,
     })
     public showScheduledMaintenancePage?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public customFields?: JSONObject = undefined;
 }
