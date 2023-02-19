@@ -32,6 +32,7 @@ import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import Label from './Label';
 import StatusPage from './StatusPage';
+import { JSONObject } from 'Common/Types/JSON';
 
 @AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
@@ -668,4 +669,36 @@ export default class ScheduledMaintenance extends BaseModel {
         default: false,
     })
     public isStatusPageSubscribersNotifiedOnEventOngoing?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectScheduledMaintenance,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectScheduledMaintenance,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectScheduledMaintenance,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public customFields?: JSONObject = undefined;
 }
