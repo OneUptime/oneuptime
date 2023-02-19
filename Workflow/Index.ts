@@ -10,10 +10,6 @@ import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 import RunWorkflow from './Services/RunWorkflow';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import TimeoutException from 'Common/Types/Exception/TimeoutException';
-import WorkflowLogService from 'CommonServer/Services/WorkflowLogService';
-import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
-import OneUptimeDate from 'Common/Types/Date';
 
 const APP_NAME: string = 'workflow';
 
@@ -22,8 +18,8 @@ const app: ExpressApplication = Express.getExpressApp();
 app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
 
 
-app.get(`/${APP_NAME}/docs/:componentName`, (_req: ExpressRequest, res: ExpressResponse)=>{
-    res.sendFile(__dirname+"/Docs/ComponentDocumentation/Webhook.md")
+app.get(`/${APP_NAME}/docs/:componentName`, (_req: ExpressRequest, res: ExpressResponse) => {
+    res.sendFile(__dirname + "/Docs/ComponentDocumentation/Webhook.md")
 });
 
 
@@ -31,47 +27,14 @@ app.get(`/${APP_NAME}/docs/:componentName`, (_req: ExpressRequest, res: ExpressR
 QueueWorker.getWorker(
     QueueName.Workflow,
     async (job: QueueJob) => {
-        try {
-            await QueueWorker.runJobWithTimeout(5000, async () => {
-                await new RunWorkflow().runWorkflow({
-                    workflowId: new ObjectID(job.data['workflowId'] as string),
-                    workflowLogId: new ObjectID(
-                        job.data['workflowLogId'] as string
-                    ),
-                    arguments: job.data.data as JSONObject,
-                });
-            });
-        } catch (err: any) {
-            // WOrkflow might have timed out.
-            if (err instanceof TimeoutException) {
-                // update workflow log.
-                await WorkflowLogService.updateOneById({
-                    id: new ObjectID(job.data['workflowLogId'] as string),
-                    data: {
-                        workflowStatus: WorkflowStatus.Timeout,
-                        logs: err.toString(),
-                        completedAt: OneUptimeDate.getCurrentDate(),
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
-            } else {
-                await WorkflowLogService.updateOneById({
-                    id: new ObjectID(job.data['workflowLogId'] as string),
-                    data: {
-                        workflowStatus: WorkflowStatus.Error,
-                        logs: err.toString(),
-                        completedAt: OneUptimeDate.getCurrentDate(),
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
-            }
-
-            throw err;
-        }
+        await new RunWorkflow().runWorkflow({
+            workflowId: new ObjectID(job.data['workflowId'] as string),
+            workflowLogId: new ObjectID(
+                job.data['workflowLogId'] as string
+            ),
+            arguments: job.data.data as JSONObject,
+            timeout: 5000
+        });
     },
     { concurrency: 10 }
 );

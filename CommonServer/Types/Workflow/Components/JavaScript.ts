@@ -2,7 +2,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
-import LogComponents from 'Common/Types/Workflow/Components/Log';
+import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
 import ComponentCode, { RunReturnType } from '../ComponentCode';
 import VM, { VMScript } from 'vm2';
 import axios from 'axios';
@@ -14,8 +14,8 @@ export default class JavaScirptCode extends ComponentCode {
         super();
 
         const JavaScirptComponent: ComponentMetadata | undefined =
-            LogComponents.find((i: ComponentMetadata) => {
-                return i.id === ComponentID.Log;
+            JavaScriptComponents.find((i: ComponentMetadata) => {
+                return i.id === ComponentID.JavaScriptCode;
             });
 
         if (!JavaScirptComponent) {

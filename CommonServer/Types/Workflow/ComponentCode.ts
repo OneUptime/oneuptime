@@ -12,6 +12,7 @@ export interface RunProps {
     arguments: JSONObject;
     workflowId: ObjectID;
     workflowLogId: ObjectID;
+    timeout: number; 
 }
 
 export interface RunReturnType {

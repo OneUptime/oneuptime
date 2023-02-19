@@ -25,6 +25,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import { loadAllComponentMetadata } from '../Utils/ComponentMetadata';
 import Workflow from 'Model/Models/Workflow';
 import logger from 'CommonServer/Utils/Logger';
+import TimeoutException from 'Common/Types/Exception/TimeoutException';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -59,6 +60,14 @@ export default class RunWorkflow {
         // get nodes and edges.
 
         try {
+
+
+            let shouldStop: boolean  =false; 
+
+            setTimeout(() => {
+                    shouldStop = true; 
+            }, runProps.timeout);
+
             const workflow: Workflow | null = await WorkflowService.findOneById(
                 {
                     id: runProps.workflowId,
@@ -113,6 +122,11 @@ export default class RunWorkflow {
             // make variable map
 
             while (fifoStackOfComponentsPendingExecution.length > 0) {
+
+                if(shouldStop){
+                    throw new TimeoutException("Workflow execution time was more than "+runProps.timeout+"ms and workflow timed-out.");
+                }
+
                 // get component.
                 // and remoev that component from the stack.
                 executeComponentId =
@@ -249,7 +263,26 @@ export default class RunWorkflow {
             logger.error(err);
             this.log(err.toString());
 
-            // update workflow log.
+            if(err instanceof TimeoutException){
+
+                this.log("Workflow Timed out.");
+
+                // update workflow log.
+                await WorkflowLogService.updateOneById({
+                    id: runProps.workflowLogId,
+                    data: {
+                        workflowStatus: WorkflowStatus.Timeout,
+                        logs: this.logs.join('\n'),
+                        completedAt: OneUptimeDate.getCurrentDate(),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                
+            }else{
+                // update workflow log.
             await WorkflowLogService.updateOneById({
                 id: runProps.workflowLogId,
                 data: {
@@ -261,6 +294,9 @@ export default class RunWorkflow {
                     isRoot: true,
                 },
             });
+            }
+
+            
         }
     }
 
