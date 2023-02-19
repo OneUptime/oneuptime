@@ -110,6 +110,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
                     <DocumentationViewer
                         documentationLink={component.metadata.documentationLink}
+                        workflowId={props.workflowId}
                     />
                 </div>}
 

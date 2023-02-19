@@ -4,7 +4,7 @@ import ComponentMetadata, {
     ComponentType,
 } from './../Component';
 import ComponentID from '../ComponentID';
-import URL from '../../API/URL';
+import Route from '../../API/Route';
 
 const components: Array<ComponentMetadata> = [
     {
@@ -15,7 +15,7 @@ const components: Array<ComponentMetadata> = [
             'Hook any of your external apps and services with this workflow.',
         iconProp: IconProp.AltGlobe,
         componentType: ComponentType.Trigger,
-        documentationLink: URL.fromString("https://raw.githubusercontent.com/OneUptime/oneuptime/workflow-project/Workflow/Docs/ComponentDocumentation/Webhook.md"),
+        documentationLink: Route.fromString("/workflow/docs/s"),
         arguments: [],
         returnValues: [
             {

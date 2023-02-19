@@ -36,6 +36,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                     h6: ({ ...props }: any) => {
                         return <h1 className="text-base " {...props} />;
                     },
+                    p: ({ ...props }: any) => {
+                        return <p className="text-base mt-2 text-gray-500" {...props} />;
+                    },
+                    code: ({ ...props }: any) => {
+                        return <p className="bg-gray-50 text-gray-500 p-3 mt-2 mb-2 rounded text-base text-sm" {...props} />;
+                    },
                 }}
                 remarkPlugins={[remarkGfm]}
             >
