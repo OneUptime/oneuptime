@@ -14,6 +14,7 @@ import ComponentReturnValueViewer from './ComponentReturnValueViewer';
 import ArgumentsForm from './ArgumentsForm';
 import ObjectID from 'Common/Types/ObjectID';
 import { NodeDataProp } from 'Common/Types/Workflow/Component';
+import DocumentationViewer from './DoucmentationViewer';
 
 export interface ComponentProps {
     title: string;
@@ -103,7 +104,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     />
                 </div>
 
+                {component.metadata.documentationLink && <div>
+                    <Divider />
+
+
+                    <DocumentationViewer
+                        documentationLink={component.metadata.documentationLink}
+                    />
+                </div>}
+
                 <Divider />
+
+
                 <ArgumentsForm
                     graphComponents={props.graphComponents}
                     workflowId={props.workflowId}
@@ -118,6 +130,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                         });
                     }}
                 />
+
+
+
                 <Divider />
 
                 <div className="mb-3 mt-3">

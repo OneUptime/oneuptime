@@ -1,4 +1,4 @@
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express, { ExpressApplication, ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import Redis from 'CommonServer/Infrastructure/Redis';
@@ -20,6 +20,11 @@ const APP_NAME: string = 'workflow';
 const app: ExpressApplication = Express.getExpressApp();
 
 app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
+
+
+app.get(`/${APP_NAME}/docs/:componentName`, (_req: ExpressRequest, res: ExpressResponse)=>{
+    res.sendFile(__dirname+"/Docs/ComponentDocumentation/Webhook.md")
+});
 
 
 // Job process.

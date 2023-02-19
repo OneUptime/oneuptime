@@ -1,3 +1,4 @@
+import URL from '../API/URL';
 import IconProp from '../Icon/IconProp';
 import { JSONObject } from '../JSON';
 
@@ -84,7 +85,7 @@ export default interface ComponentMetadata {
     inPorts: Array<Port>;
     outPorts: Array<Port>;
     tableName?: string | undefined;
-    documentationInMarkdown?: string; 
+    documentationLink?: URL; 
 }
 
 export interface ComponentCategory {
