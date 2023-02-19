@@ -21,6 +21,7 @@ const app: ExpressApplication = Express.getExpressApp();
 
 app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
 
+
 // Job process.
 QueueWorker.getWorker(
     QueueName.Workflow,

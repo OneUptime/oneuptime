@@ -15,7 +15,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onClose: () => void;
     onSave: (modals: Array<TBaseModel>) => void;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
@@ -45,7 +45,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
         if (!props.isSearchEnabled) {
             setSearchedList([...modelList]);
         }
-    }, [props.isSearchEnabled, modelList])
+    }, [props.isSearchEnabled, modelList]);
 
     const fetchItems: Function = async () => {
         setError('');
@@ -71,7 +71,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -81,27 +81,33 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
         setIsLoading(false);
     };
 
-    useEffect(()=>{
+    useEffect(() => {
         if (!searchText) {
             setSearchedList([...modelList]);
         } else {
             // search
 
-            setSearchedList([...modelList].filter((model): boolean => {
-                const includedInSearch: boolean = (model.getValue(
-                    props.titleField
-                ) as string).toLowerCase().includes(searchText);
+            setSearchedList(
+                [...modelList].filter((model): boolean => {
+                    const includedInSearch: boolean = (
+                        model.getValue(props.titleField) as string
+                    )
+                        .toLowerCase()
+                        .includes(searchText);
 
-                if (!includedInSearch && props.descriptionField) {
-                    return (model.getValue(
-                        props.descriptionField
-                    ) as string).toLowerCase().includes(searchText);
-                }
+                    if (!includedInSearch && props.descriptionField) {
+                        return (
+                            model.getValue(props.descriptionField) as string
+                        )
+                            .toLowerCase()
+                            .includes(searchText);
+                    }
 
-                return includedInSearch;
-            }));
+                    return includedInSearch;
+                })
+            );
         }
-    }, [modelList, searchText])
+    }, [modelList, searchText]);
 
     return (
         <Modal
@@ -118,21 +124,28 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             }}
         >
             <div>
-                {!isLoading && !error && props.isSearchEnabled && <div className='p-2'><Input placeholder='Search...' onChange={(value: string) => {
-
-                    setSearchText(value);
-
-                    
-                }} /></div>}
+                {!isLoading && !error && props.isSearchEnabled && (
+                    <div className="p-2">
+                        <Input
+                            placeholder="Search..."
+                            onChange={(value: string) => {
+                                setSearchText(value);
+                            }}
+                        />
+                    </div>
+                )}
             </div>
             <div className="max-h-96 mb-5 overflow-y-auto p-2">
                 {error ? <ErrorMessage error={error} /> : <></>}
                 {isLoading ? <ComponentLoader /> : <></>}
 
-
                 {!isLoading && searchedList.length === 0 ? (
                     <ErrorMessage
-                        error={searchText ? "No items match your search" : (props.noItemsMessage || 'No items found.')}
+                        error={
+                            searchText
+                                ? 'No items match your search'
+                                : props.noItemsMessage || 'No items found.'
+                        }
                     />
                 ) : (
                     <></>
@@ -181,8 +194,9 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                             setSelectedList([{ ...model }]);
                                         }
                                     }}
-                                    className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${isSelected ? 'ring ring-indigo-500' : ''
-                                        }`}
+                                    className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
+                                        isSelected ? 'ring ring-indigo-500' : ''
+                                    }`}
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="focus:outline-none">
@@ -192,7 +206,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                                             ></span>
                                             {props.headerField &&
                                                 typeof props.headerField ===
-                                                Typeof.String && (
+                                                    Typeof.String && (
                                                     <p className="text-sm font-medium text-gray-300">
                                                         {
                                                             model.getValue(
@@ -204,7 +218,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
 
                                             {props.headerField &&
                                                 typeof props.headerField ===
-                                                'function' &&
+                                                    'function' &&
                                                 props.headerField(model)}
                                             <p className="text-sm font-medium text-gray-900">
                                                 {
