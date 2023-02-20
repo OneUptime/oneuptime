@@ -3,7 +3,7 @@ import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
-import ComponentCode, { RunReturnType } from '../ComponentCode';
+import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import VM, { VMScript } from 'vm2';
 import axios from 'axios';
 import http from 'http';
@@ -27,7 +27,7 @@ export default class JavaScriptCode extends ComponentCode {
         this.setMetadata(JavaScirptComponent);
     }
 
-    public override async run(args: JSONObject, log: Function): Promise<RunReturnType> {
+    public override async run(args: JSONObject, options: RunOptions): Promise<RunReturnType> {
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'success';
@@ -63,7 +63,7 @@ export default class JavaScriptCode extends ComponentCode {
                     https: https,
                     console: {
                         log: (logValue: JSONValue) => {
-                            log(logValue);
+                            options.log(logValue);
                         },
                     },
                 },
@@ -88,8 +88,8 @@ export default class JavaScriptCode extends ComponentCode {
                 executePort: successPort,
             };
         } catch (err: any) {
-            log('Error running script');
-            log(err.message ? err.message : JSON.stringify(err, null, 2));
+            options.log('Error running script');
+            options.log(err.message ? err.message : JSON.stringify(err, null, 2));
             return {
                 returnValues: {},
                 executePort: errorPort,

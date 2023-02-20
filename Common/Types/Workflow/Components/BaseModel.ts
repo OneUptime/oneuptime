@@ -283,7 +283,7 @@ export default class BaseModelComponent {
                         id: 'model',
                         name: `${model.singularName}`,
                         description: `${model.singularName} created in the database`,
-                        type: ComponentInputType.BaseModel,
+                        type: ComponentInputType.JSON,
                         required: false,
                     },
                 ],

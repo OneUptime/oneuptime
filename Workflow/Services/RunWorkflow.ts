@@ -55,11 +55,19 @@ export interface RunStack {
 
 export default class RunWorkflow {
     private logs: Array<string> = [];
+    private workflowId: ObjectID | null = null;
+    private projectId: ObjectID | null = null;
+    private workflowLogId: ObjectID | null = null;
 
     public async runWorkflow(runProps: RunProps): Promise<void> {
         // get nodes and edges.
 
         try {
+
+            this.workflowId = runProps.workflowId;
+            this.workflowLogId = runProps.workflowLogId;
+            
+
             let shouldStop: boolean = false;
 
             setTimeout(() => {
@@ -86,6 +94,8 @@ export default class RunWorkflow {
             if (!workflow.graph) {
                 throw new BadDataException('Workflow graph not found');
             }
+
+            this.projectId = workflow.projectId || null;
 
             // update workflow log.
             await WorkflowLogService.updateOneById({
@@ -369,7 +379,12 @@ export default class RunWorkflow {
 
         if (ComponentCode) {
             const instance: ComponentCode = ComponentCode;
-            return await instance.run(args, this.log);
+            return await instance.run(args, {
+                log: this.log,
+                workflowId: this.workflowId!,
+                workflowLogId: this.workflowLogId!, 
+                projectId: this.projectId!
+            });
         }
 
         throw new BadDataException(

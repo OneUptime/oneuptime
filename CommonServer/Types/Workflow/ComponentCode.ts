@@ -14,6 +14,13 @@ export interface RunProps {
     timeout: number;
 }
 
+export interface RunOptions {
+    log: Function,
+    workflowLogId: ObjectID,
+    workflowId: ObjectID,
+    projectId: ObjectID
+}
+
 export interface RunReturnType {
     returnValues: JSONObject;
     executePort?: Port | undefined;
@@ -35,8 +42,8 @@ export interface InitProps {
 
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
-   
-    public constructor() {}
+
+    public constructor() { }
 
     public setMetadata(metadata: ComponentMetadata): void {
         this.metadata = metadata;
@@ -54,7 +61,7 @@ export default class ComponentCode {
         return await Promise.resolve();
     }
 
-    public async run(_args: JSONObject, _log: Function): Promise<RunReturnType> {
+    public async run(_args: JSONObject, _options: RunOptions): Promise<RunReturnType> {
         return await Promise.resolve({
             returnValues: {},
             port: undefined,

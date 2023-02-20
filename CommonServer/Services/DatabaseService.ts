@@ -66,7 +66,7 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    public entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
