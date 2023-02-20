@@ -23,8 +23,8 @@ app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
 
 app.get(
     `/${APP_NAME}/docs/:componentName`,
-    (_req: ExpressRequest, res: ExpressResponse) => {
-        res.sendFile(__dirname + '/Docs/ComponentDocumentation/Webhook.md');
+    (req: ExpressRequest, res: ExpressResponse) => {
+        res.sendFile(__dirname + '/Docs/ComponentDocumentation/'+req.params['componentName']);
     }
 );
 

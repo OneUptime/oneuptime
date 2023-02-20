@@ -15,7 +15,7 @@ const components: Array<ComponentMetadata> = [
             'Hook any of your external apps and services with this workflow.',
         iconProp: IconProp.AltGlobe,
         componentType: ComponentType.Trigger,
-        documentationLink: Route.fromString('/workflow/docs/s'),
+        documentationLink: Route.fromString('/workflow/docs/Webhook.md'),
         arguments: [],
         returnValues: [
             {

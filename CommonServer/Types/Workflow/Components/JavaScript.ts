@@ -55,6 +55,7 @@ export default class JavaScirptCode extends ComponentCode {
 
             const vm: VM.NodeVM = new VM.NodeVM({
                 timeout: 5000,
+                allowAsync: true,
                 sandbox: {
                     args: args['arguments'],
                     axios: axios,
@@ -69,10 +70,12 @@ export default class JavaScirptCode extends ComponentCode {
             });
 
             const script: VMScript = new VMScript(
-                (args['code'] as string) || ''
+                `module.exports = async function(args) { ${(args['code'] as string) || ''} }`
             ).compile();
 
-            const returnVal: any = await vm.run(script);
+            const functionToRun: any = vm.run(script);
+
+            const returnVal: any = await functionToRun(JSON.parse(args['arguments'] as string || '{}'));
 
             return {
                 returnValues: {
@@ -81,9 +84,10 @@ export default class JavaScirptCode extends ComponentCode {
                 executePort: successPort,
                 logs: this.logs,
             };
-        } catch (err) {
+        } catch (err: any) {
+            console.log(err);
             this.log('Error running script');
-            this.log(JSON.stringify(err, null, 2));
+            this.log(err.message ? err.message : JSON.stringify(err, null, 2));
             return {
                 returnValues: {},
                 executePort: errorPort,

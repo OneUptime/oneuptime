@@ -1,3 +1,4 @@
+import Route from '../../API/Route';
 import IconProp from '../../Icon/IconProp';
 import ComponentID from '../ComponentID';
 import ComponentMetadata, {
@@ -13,6 +14,7 @@ const components: Array<ComponentMetadata> = [
         description: 'Run custom JavaScript in your workflow',
         iconProp: IconProp.Code,
         componentType: ComponentType.Component,
+        documentationLink: Route.fromString('/workflow/docs/JavaScript.md'),
         arguments: [
             {
                 type: ComponentInputType.JavaScript,
