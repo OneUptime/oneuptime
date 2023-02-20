@@ -170,11 +170,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                            width:
-                                100 / props.showDetailsInNumberOfColumns +
-                                '%',
-                        }
-                        : { width: "100%" }
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
+                        : { width: '100%' }
                 }
             >
                 {field.title && (
@@ -199,9 +199,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 )}
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
-                    {data && <span className={`${field.contentClassName} w-full`}>
-                        {data}
-                    </span>}
+                    {data && (
+                        <span className={`${field.contentClassName} w-full`}>
+                            {data}
+                        </span>
+                    )}
                     {!data && (
                         <span className="text-gray-500">
                             {field.placeholder}

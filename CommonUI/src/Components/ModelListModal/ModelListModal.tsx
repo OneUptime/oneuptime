@@ -88,7 +88,7 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
             // search
 
             setSearchedList(
-                [...modelList].filter((model): boolean => {
+                [...modelList].filter((model: TBaseModel): boolean => {
                     const includedInSearch: boolean = (
                         model.getValue(props.titleField) as string
                     )

@@ -1,4 +1,3 @@
-
 import CodeType from 'Common/Types/Code/CodeType';
 
 import React, {
@@ -8,7 +7,7 @@ import React, {
     useState,
 } from 'react';
 
-import Editor from "@monaco-editor/react";
+import Editor from '@monaco-editor/react';
 
 export interface ComponentProps {
     initialValue?: undefined | string;
@@ -69,10 +68,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-
     return (
         <div
-            id="code-editor"
+            data-testid={props.dataTestId}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
@@ -84,67 +82,68 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 value={value}
                 onChange={(code: string | undefined) => {
                     if (code === undefined) {
-                        code = ""
+                        code = '';
                     }
-                    return setValue(code);
 
+                    setValue(code);
+                    props.onBlur && props.onBlur();
                 }}
-                
-                defaultValue={props.initialValue || ''}
+                defaultValue={props.initialValue || props.placeholder || ''}
                 className={className}
                 options={{
-                    "acceptSuggestionOnCommitCharacter": true,
-                    "acceptSuggestionOnEnter": "on",
-                    "accessibilitySupport": "auto",
+                    acceptSuggestionOnCommitCharacter: true,
+                    acceptSuggestionOnEnter: 'on',
+                    accessibilitySupport: 'auto',
 
-                    "automaticLayout": true,
-                    "codeLens": false,
-                    "colorDecorators": true,
-                    "contextmenu": false,
-                    "cursorBlinking": "blink",
+                    automaticLayout: true,
+                    codeLens: false,
+                    colorDecorators: true,
+                    contextmenu: false,
+                    cursorBlinking: 'blink',
+                    tabIndex: props.tabIndex || 0,
 
-                    "cursorStyle": "line",
-                    "disableLayerHinting": false,
-                    "disableMonospaceOptimizations": false,
-                    "dragAndDrop": false,
-                    "fixedOverflowWidgets": false,
-                    "folding": true,
-                    "foldingStrategy": "auto",
-                    "fontLigatures": false,
-                    "formatOnPaste": false,
-                    "formatOnType": false,
-                    "hideCursorInOverviewRuler": false,
-                    "links": true,
-                    "mouseWheelZoom": false,
-                    "multiCursorMergeOverlapping": true,
-                    "multiCursorModifier": "alt",
-                    "overviewRulerBorder": true,
-                    "overviewRulerLanes": 2,
-                    "quickSuggestions": true,
-                    "quickSuggestionsDelay": 100,
-                    "readOnly": false,
-                    "renderControlCharacters": false,
+                    cursorStyle: 'line',
+                    disableLayerHinting: false,
+                    disableMonospaceOptimizations: false,
+                    dragAndDrop: false,
+                    fixedOverflowWidgets: false,
+                    folding: true,
+                    foldingStrategy: 'auto',
+                    fontLigatures: false,
+                    formatOnPaste: false,
+                    formatOnType: false,
+                    hideCursorInOverviewRuler: false,
+                    links: true,
+                    mouseWheelZoom: false,
+                    multiCursorMergeOverlapping: true,
+                    multiCursorModifier: 'alt',
+                    overviewRulerBorder: true,
+                    overviewRulerLanes: 2,
+                    quickSuggestions: true,
+                    quickSuggestionsDelay: 100,
+                    readOnly: props.readOnly || false,
+                    renderControlCharacters: false,
 
-                    "renderLineHighlight": "all",
-                    "renderWhitespace": "none",
-                    "revealHorizontalRightPadding": 30,
-                    "roundedSelection": true,
-                    "rulers": [],
-                    "scrollBeyondLastColumn": 5,
-                    "scrollBeyondLastLine": true,
-                    "selectOnLineNumbers": true,
-                    "selectionClipboard": true,
-                    "selectionHighlight": true,
-                    "showFoldingControls": "mouseover",
-                    "smoothScrolling": false,
-                    "suggestOnTriggerCharacters": true,
-                    "wordBasedSuggestions": true,
-                    "wordSeparators": "~!@#$%^&*()-=+[{]}|;:'\",.<>/?",
-                    "wordWrap": "off",
-                    "wordWrapBreakAfterCharacters": "\t})]?|&,;",
-                    "wordWrapBreakBeforeCharacters": "{([+",
-                    "wordWrapColumn": 80,
-                    "wrappingIndent": "none"
+                    renderLineHighlight: 'all',
+                    renderWhitespace: 'none',
+                    revealHorizontalRightPadding: 30,
+                    roundedSelection: true,
+                    rulers: [],
+                    scrollBeyondLastColumn: 5,
+                    scrollBeyondLastLine: true,
+                    selectOnLineNumbers: true,
+                    selectionClipboard: true,
+                    selectionHighlight: true,
+                    showFoldingControls: 'mouseover',
+                    smoothScrolling: false,
+                    suggestOnTriggerCharacters: true,
+                    wordBasedSuggestions: true,
+                    wordSeparators: '~!@#$%^&*()-=+[{]}|;:\'",.<>/?',
+                    wordWrap: 'off',
+                    wordWrapBreakAfterCharacters: '\t})]?|&,;',
+                    wordWrapBreakBeforeCharacters: '{([+',
+                    wordWrapColumn: 80,
+                    wrappingIndent: 'none',
                 }}
             />
             {props.error && (

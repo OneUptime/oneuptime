@@ -99,13 +99,13 @@ export default class URL extends DatabaseProperty {
         }`;
         if (!this.email) {
             if (this.route && this.route.toString().startsWith('/')) {
-                if(urlString.endsWith("/")){
-                    urlString = urlString.substring(0, urlString.length-1);
+                if (urlString.endsWith('/')) {
+                    urlString = urlString.substring(0, urlString.length - 1);
                 }
                 urlString += this.route.toString();
             } else {
-                if(urlString.endsWith("/")){
-                    urlString = urlString.substring(0, urlString.length-1);
+                if (urlString.endsWith('/')) {
+                    urlString = urlString.substring(0, urlString.length - 1);
                 }
                 urlString += '/' + this.route.toString();
             }

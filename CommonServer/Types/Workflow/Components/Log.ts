@@ -33,16 +33,8 @@ export default class Log extends ComponentCode {
             throw new BadDataException('Out port not found');
         }
 
-        await new Promise(r => {
-            return setTimeout(r, 6000);
-        });
-
         this.log('Value: ');
         this.log(args['value']);
-
-        await new Promise(r => {
-            return setTimeout(r, 6000);
-        });
 
         return Promise.resolve({
             returnValues: {},

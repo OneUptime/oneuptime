@@ -85,7 +85,7 @@ export default interface ComponentMetadata {
     inPorts: Array<Port>;
     outPorts: Array<Port>;
     tableName?: string | undefined;
-    documentationLink?: Route; 
+    documentationLink?: Route;
 }
 
 export interface ComponentCategory {

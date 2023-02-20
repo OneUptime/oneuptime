@@ -670,7 +670,6 @@ export default class ScheduledMaintenance extends BaseModel {
     })
     public isStatusPageSubscribersNotifiedOnEventOngoing?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

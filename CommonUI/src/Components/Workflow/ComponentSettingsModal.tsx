@@ -104,18 +104,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     />
                 </div>
 
-                {component.metadata.documentationLink && <div>
-                    <Divider />
+                {component.metadata.documentationLink && (
+                    <div>
+                        <Divider />
 
-
-                    <DocumentationViewer
-                        documentationLink={component.metadata.documentationLink}
-                        workflowId={props.workflowId}
-                    />
-                </div>}
+                        <DocumentationViewer
+                            documentationLink={
+                                component.metadata.documentationLink
+                            }
+                            workflowId={props.workflowId}
+                        />
+                    </div>
+                )}
 
                 <Divider />
-
 
                 <ArgumentsForm
                     graphComponents={props.graphComponents}
@@ -131,8 +133,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                         });
                     }}
                 />
-
-
 
                 <Divider />
 

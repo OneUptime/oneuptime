@@ -60,12 +60,10 @@ export default class RunWorkflow {
         // get nodes and edges.
 
         try {
-
-
-            let shouldStop: boolean  =false; 
+            let shouldStop: boolean = false;
 
             setTimeout(() => {
-                    shouldStop = true; 
+                shouldStop = true;
             }, runProps.timeout);
 
             const workflow: Workflow | null = await WorkflowService.findOneById(
@@ -122,9 +120,12 @@ export default class RunWorkflow {
             // make variable map
 
             while (fifoStackOfComponentsPendingExecution.length > 0) {
-
-                if(shouldStop){
-                    throw new TimeoutException("Workflow execution time was more than "+runProps.timeout+"ms and workflow timed-out.");
+                if (shouldStop) {
+                    throw new TimeoutException(
+                        'Workflow execution time was more than ' +
+                            runProps.timeout +
+                            'ms and workflow timed-out.'
+                    );
                 }
 
                 // get component.
@@ -263,9 +264,8 @@ export default class RunWorkflow {
             logger.error(err);
             this.log(err.toString());
 
-            if(err instanceof TimeoutException){
-
-                this.log("Workflow Timed out.");
+            if (err instanceof TimeoutException) {
+                this.log('Workflow Timed out.');
 
                 // update workflow log.
                 await WorkflowLogService.updateOneById({
@@ -279,24 +279,20 @@ export default class RunWorkflow {
                         isRoot: true,
                     },
                 });
-
-                
-            }else{
+            } else {
                 // update workflow log.
-            await WorkflowLogService.updateOneById({
-                id: runProps.workflowLogId,
-                data: {
-                    workflowStatus: WorkflowStatus.Error,
-                    logs: this.logs.join('\n'),
-                    completedAt: OneUptimeDate.getCurrentDate(),
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+                await WorkflowLogService.updateOneById({
+                    id: runProps.workflowLogId,
+                    data: {
+                        workflowStatus: WorkflowStatus.Error,
+                        logs: this.logs.join('\n'),
+                        completedAt: OneUptimeDate.getCurrentDate(),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
             }
-
-            
         }
     }
 
