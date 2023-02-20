@@ -44,6 +44,14 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                             />
                         );
                     },
+                    li: ({ ...props }: any) => {
+                        return (
+                            <p
+                                className="text-base mt-2 text-gray-500"
+                                {...props}
+                            />
+                        );
+                    },
                     code: ({ ...props }: any) => {
                         return (
                             <p
