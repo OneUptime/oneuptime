@@ -89,7 +89,7 @@ export default class JavaScirptCode extends ComponentCode {
                 logs: this.logs,
             };
         } catch (err: any) {
-            console.log(err);
+            
             this.log('Error running script');
             this.log(err.message ? err.message : JSON.stringify(err, null, 2));
             return {
