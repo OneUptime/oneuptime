@@ -110,7 +110,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 );
                                 onCompleteAction();
                                 onError(err as Error);
-                                
                             }
                         },
                     },

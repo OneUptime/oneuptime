@@ -70,12 +70,16 @@ export default class JavaScirptCode extends ComponentCode {
             });
 
             const script: VMScript = new VMScript(
-                `module.exports = async function(args) { ${(args['code'] as string) || ''} }`
+                `module.exports = async function(args) { ${
+                    (args['code'] as string) || ''
+                } }`
             ).compile();
 
             const functionToRun: any = vm.run(script);
 
-            const returnVal: any = await functionToRun(JSON.parse(args['arguments'] as string || '{}'));
+            const returnVal: any = await functionToRun(
+                JSON.parse((args['arguments'] as string) || '{}')
+            );
 
             return {
                 returnValues: {

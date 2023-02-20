@@ -24,7 +24,11 @@ app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
 app.get(
     `/${APP_NAME}/docs/:componentName`,
     (req: ExpressRequest, res: ExpressResponse) => {
-        res.sendFile(__dirname + '/Docs/ComponentDocumentation/'+req.params['componentName']);
+        res.sendFile(
+            __dirname +
+                '/Docs/ComponentDocumentation/' +
+                req.params['componentName']
+        );
     }
 );
 
