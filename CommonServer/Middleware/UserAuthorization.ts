@@ -169,9 +169,6 @@ export default class UserMiddleware {
                 )
             );
 
-            console.log("Project Permission");
-            console.log(projectValue);
-
             const projectPermissionsHash: string = await HashedString.hashValue(
                 projectValue,
                 null

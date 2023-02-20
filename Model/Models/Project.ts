@@ -28,7 +28,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProject
+        Permission.CanReadProject,
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
@@ -59,7 +59,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [
             Permission.ProjectOwner,
@@ -86,7 +86,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -105,7 +105,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [Permission.ProjectOwner],
     })
@@ -124,7 +124,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -143,7 +143,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -161,7 +161,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -179,7 +179,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -198,7 +198,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -217,7 +217,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -239,7 +239,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -268,7 +268,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -310,7 +310,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -328,7 +328,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [
             Permission.ProjectOwner,
@@ -430,7 +430,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject
+            Permission.CanReadProject,
         ],
         update: [],
     })

@@ -99,7 +99,6 @@ enum Permission {
     CanEditWorkflow = 'CanEditWorkflow',
     CanReadWorkflow = 'CanReadWorkflow',
 
-
     // Workflow Permissions (Owner Permission)
     CanDeleteProject = 'CanDeleteProject',
     CanEditProject = 'CanEditProject',
@@ -849,8 +848,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-            
             {
                 permission: Permission.CanDeleteProject,
                 title: 'Can Delete Project',
