@@ -54,11 +54,6 @@ export default class AccessTokenService {
             _type: 'UserGlobalAccessPermission',
         };
 
-        // if user is a part of any project then, he is the project member.
-        if (projectIds.length > 0) {
-            permissionToStore.globalPermissions.push(Permission.ProjectMember);
-        }
-
         await GlobalCache.setJSON('user', userId.toString(), permissionToStore);
 
         return permissionToStore;
