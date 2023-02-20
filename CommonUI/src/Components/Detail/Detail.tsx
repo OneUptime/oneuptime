@@ -199,9 +199,9 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 )}
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
-                    <span className={`${field.contentClassName} w-full`}>
-                        {data && data}
-                    </span>
+                    {data && <span className={`${field.contentClassName} w-full`}>
+                        {data}
+                    </span>}
                     {!data && (
                         <span className="text-gray-500">
                             {field.placeholder}
