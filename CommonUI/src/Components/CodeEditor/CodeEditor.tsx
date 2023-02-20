@@ -122,7 +122,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     "overviewRulerLanes": 2,
                     "quickSuggestions": true,
                     "quickSuggestionsDelay": 100,
-                    "readOnly": props.readOnly || false,
+                    "readOnly": false,
                     "renderControlCharacters": false,
 
                     "renderLineHighlight": "all",

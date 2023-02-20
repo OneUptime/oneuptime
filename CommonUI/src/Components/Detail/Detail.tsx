@@ -138,7 +138,6 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                     type={codeType}
                     readOnly={true}
                     value={data as string}
-                    className="form-control"
                 />
             );
         }
@@ -171,11 +170,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                              width:
-                                  100 / props.showDetailsInNumberOfColumns +
-                                  '%',
-                          }
-                        : {}
+                            width:
+                                100 / props.showDetailsInNumberOfColumns +
+                                '%',
+                        }
+                        : { width: "100%" }
                 }
             >
                 {field.title && (
@@ -200,7 +199,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 )}
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
-                    <span className={field.contentClassName}>
+                    <span className={`${field.contentClassName} w-full`}>
                         {data && data}
                     </span>
                     {!data && (
