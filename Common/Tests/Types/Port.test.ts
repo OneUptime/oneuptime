@@ -9,10 +9,10 @@ describe('Testing class port', () => {
         expect(new Port('6000').port.positiveNumber).toEqual(6000);
     });
 
-    test('should throw exception "Port should be in the range from 0 to 65535"', () => {
+    test('should throw exception "Port is not in valid format."', () => {
         expect(() => {
             new Port(67000);
-        }).toThrow('Port should be in the range from 0 to 65535');
+        }).toThrow('Port is not in valid format.');
     });
 
     test('Port.port should be mutatable', () => {
