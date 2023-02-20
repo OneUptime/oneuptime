@@ -129,7 +129,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
-                            <NavBarMenuItem
+                            {/* <NavBarMenuItem
                                 title="Workflows"
                                 description="Integrate OneUptime with the rest of your ecosystem."
                                 route={RouteUtil.populateRouteParams(
@@ -139,7 +139,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}
-                            />
+                            /> */}
                             <NavBarMenuItem
                                 title="Project Settings"
                                 description="Review or manage project settings here."
