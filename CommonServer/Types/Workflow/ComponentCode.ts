@@ -1,9 +1,8 @@
 // this class is the base class that all the component can implement
 //
 
-import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import { ExpressRouter } from '../../Utils/Express';
