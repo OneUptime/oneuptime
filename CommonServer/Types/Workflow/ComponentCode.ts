@@ -15,10 +15,10 @@ export interface RunProps {
 }
 
 export interface RunOptions {
-    log: Function,
-    workflowLogId: ObjectID,
-    workflowId: ObjectID,
-    projectId: ObjectID
+    log: Function;
+    workflowLogId: ObjectID;
+    workflowId: ObjectID;
+    projectId: ObjectID;
 }
 
 export interface RunReturnType {
@@ -43,7 +43,7 @@ export interface InitProps {
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
 
-    public constructor() { }
+    public constructor() {}
 
     public setMetadata(metadata: ComponentMetadata): void {
         this.metadata = metadata;
@@ -61,7 +61,10 @@ export default class ComponentCode {
         return await Promise.resolve();
     }
 
-    public async run(_args: JSONObject, _options: RunOptions): Promise<RunReturnType> {
+    public async run(
+        _args: JSONObject,
+        _options: RunOptions
+    ): Promise<RunReturnType> {
         return await Promise.resolve({
             returnValues: {},
             port: undefined,

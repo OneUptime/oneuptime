@@ -15,8 +15,7 @@ export default class ComponentCodeAPI {
         // init all component code.
         /// Get all the components.
         for (const key in Components) {
-            const ComponentCode: ComponentCode | undefined =
-                Components[key];
+            const ComponentCode: ComponentCode | undefined = Components[key];
             if (ComponentCode) {
                 const instance: ComponentCode = ComponentCode;
                 instance

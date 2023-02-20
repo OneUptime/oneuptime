@@ -63,10 +63,8 @@ export default class RunWorkflow {
         // get nodes and edges.
 
         try {
-
             this.workflowId = runProps.workflowId;
             this.workflowLogId = runProps.workflowLogId;
-            
 
             let shouldStop: boolean = false;
 
@@ -213,7 +211,7 @@ export default class RunWorkflow {
                         args,
                         stackItem.node
                     );
-                   
+
                     this.log(
                         'Completed Execution Component: ' + executeComponentId
                     );
@@ -382,8 +380,8 @@ export default class RunWorkflow {
             return await instance.run(args, {
                 log: this.log,
                 workflowId: this.workflowId!,
-                workflowLogId: this.workflowLogId!, 
-                projectId: this.projectId!
+                workflowLogId: this.workflowLogId!,
+                projectId: this.projectId!,
             });
         }
 

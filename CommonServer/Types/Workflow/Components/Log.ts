@@ -22,7 +22,10 @@ export default class Log extends ComponentCode {
         this.setMetadata(LogComponent);
     }
 
-    public override async run(args: JSONObject, options: RunOptions): Promise<RunReturnType> {
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
         const outPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'out';

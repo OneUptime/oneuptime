@@ -26,13 +26,13 @@ app.use(
 
 // Index page
 app.get(['/docs'], (_req: ExpressRequest, res: ExpressResponse) => {
-    return res.redirect("/docs/index");
+    return res.redirect('/docs/index');
 });
 
 // Index page
 app.get(['/docs/:page'], (req: ExpressRequest, res: ExpressResponse) => {
-    return res.render('pages/index',{
-        page: req.params['page'] || 'index'
+    return res.render('pages/index', {
+        page: req.params['page'] || 'index',
     });
 });
 

@@ -27,7 +27,10 @@ export default class JavaScriptCode extends ComponentCode {
         this.setMetadata(JavaScirptComponent);
     }
 
-    public override async run(args: JSONObject, options: RunOptions): Promise<RunReturnType> {
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'success';
@@ -89,7 +92,9 @@ export default class JavaScriptCode extends ComponentCode {
             };
         } catch (err: any) {
             options.log('Error running script');
-            options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+            options.log(
+                err.message ? err.message : JSON.stringify(err, null, 2)
+            );
             return {
                 returnValues: {},
                 executePort: errorPort,

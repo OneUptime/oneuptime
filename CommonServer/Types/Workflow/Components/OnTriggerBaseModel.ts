@@ -9,23 +9,40 @@ import ComponentCode, {
     ExecuteWorkflowType,
     InitProps,
 } from '../ComponentCode';
-import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
+import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import WorkflowService from '../../../Services/WorkflowService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Workflow from 'Model/Models/Workflow';
 import ClusterKeyAuthorization from '../../../Middleware/ClusterKeyAuthorization';
 
-export default class OnTriggerBaseModel<TBaseModel extends BaseModel> extends ComponentCode {
-    public constructor(modelService: DatabaseService<TBaseModel>, type: string) {
+export default class OnTriggerBaseModel<
+    TBaseModel extends BaseModel
+> extends ComponentCode {
+    public constructor(
+        modelService: DatabaseService<TBaseModel>,
+        type: string
+    ) {
         super();
 
-        const BaseModelComponent: ComponentMetadata | undefined = BaseModelComponents.getComponents(modelService.getModel()).find((i: ComponentMetadata) => {
-            return i.id === `${Text.pascalCaseToDashes(modelService.getModel().tableName!)}-${type}`;
-        });
+        const BaseModelComponent: ComponentMetadata | undefined =
+            BaseModelComponents.getComponents(modelService.getModel()).find(
+                (i: ComponentMetadata) => {
+                    return (
+                        i.id ===
+                        `${Text.pascalCaseToDashes(
+                            modelService.getModel().tableName!
+                        )}-${type}`
+                    );
+                }
+            );
 
         if (!BaseModelComponent) {
-            throw new BadDataException('On Create trigger component for ' + modelService.getModel().tableName + " not found.");
+            throw new BadDataException(
+                'On Create trigger component for ' +
+                    modelService.getModel().tableName +
+                    ' not found.'
+            );
         }
         this.setMetadata(BaseModelComponent);
     }
@@ -33,14 +50,16 @@ export default class OnTriggerBaseModel<TBaseModel extends BaseModel> extends Co
     public override async init(props: InitProps): Promise<void> {
         props.router.get(
             `/model/:projectId/${this.getMetadata().id}`,
-            ClusterKeyAuthorization.isAuthorizedServiceMiddleware, async (req: ExpressRequest, res: ExpressResponse) => {
+            ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+            async (req: ExpressRequest, res: ExpressResponse) => {
                 await this.initTrigger(req, res, props);
             }
         );
 
         props.router.post(
             `/model/:projectId/${this.getMetadata().id}`,
-            ClusterKeyAuthorization.isAuthorizedServiceMiddleware, async (req: ExpressRequest, res: ExpressResponse) => {
+            ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+            async (req: ExpressRequest, res: ExpressResponse) => {
                 await this.initTrigger(req, res, props);
             }
         );
@@ -51,14 +70,13 @@ export default class OnTriggerBaseModel<TBaseModel extends BaseModel> extends Co
         res: ExpressResponse,
         props: InitProps
     ): Promise<void> {
-
-        // get all the enabled workflows with this trigger. 
+        // get all the enabled workflows with this trigger.
 
         const workflows: Array<Workflow> = await WorkflowService.findBy({
             query: {
                 triggerId: this.getMetadata().id,
                 projectId: new ObjectID(req.params['projectId'] as string),
-                isEnabled: true
+                isEnabled: true,
             },
             props: {
                 isRoot: true,
@@ -66,11 +84,11 @@ export default class OnTriggerBaseModel<TBaseModel extends BaseModel> extends Co
             limit: LIMIT_MAX,
             skip: 0,
             select: {
-                _id: true
-            }
+                _id: true,
+            },
         });
 
-        const promises = []; 
+        const promises: Array<Promise<void>> = [];
 
         for (const workflow of workflows) {
             /// Run Graph.
