@@ -1,4 +1,4 @@
-name: Compile CommonServer
+name: Compile File Service
 
 on:
   pull_request: 
@@ -19,5 +19,6 @@ jobs:
           node-version: 18.3.0
       - run: cd Common && npm install
       - run: cd Model && npm install
-      - run: cd CommonServer && npm install && npm run compile
+      - run: cd CommonServer && npm install
+      - run: cd File && npm install && npm run compile
   
