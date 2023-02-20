@@ -198,13 +198,12 @@ export default class RunWorkflow {
 
                     this.log('Component Args:');
                     this.log(args);
-
+                    this.log('Component Logs: ' + executeComponentId);
                     const result: RunReturnType = await this.runComponent(
                         args,
                         stackItem.node
                     );
-                    this.log('Component Logs: ' + executeComponentId);
-                    this.logs = this.logs.concat(result.logs);
+                   
                     this.log(
                         'Completed Execution Component: ' + executeComponentId
                     );
@@ -365,12 +364,12 @@ export default class RunWorkflow {
         node: NodeDataProp
     ): Promise<RunReturnType> {
         // takes in args and returns values.
-        const ComponentCodeItem: typeof ComponentCode | undefined =
+        const ComponentCode: ComponentCode | undefined =
             Components[node.metadata.id];
 
-        if (ComponentCodeItem) {
-            const instance: ComponentCode = new ComponentCodeItem();
-            return await instance.run(args);
+        if (ComponentCode) {
+            const instance: ComponentCode = ComponentCode;
+            return await instance.run(args, this.log);
         }
 
         throw new BadDataException(

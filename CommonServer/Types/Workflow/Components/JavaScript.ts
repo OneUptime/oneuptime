@@ -9,7 +9,7 @@ import axios from 'axios';
 import http from 'http';
 import https from 'https';
 
-export default class JavaScirptCode extends ComponentCode {
+export default class JavaScriptCode extends ComponentCode {
     public constructor() {
         super();
 
@@ -27,7 +27,7 @@ export default class JavaScirptCode extends ComponentCode {
         this.setMetadata(JavaScirptComponent);
     }
 
-    public override async run(args: JSONObject): Promise<RunReturnType> {
+    public override async run(args: JSONObject, log: Function): Promise<RunReturnType> {
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'success';
@@ -63,7 +63,7 @@ export default class JavaScirptCode extends ComponentCode {
                     https: https,
                     console: {
                         log: (logValue: JSONValue) => {
-                            this.log(logValue);
+                            log(logValue);
                         },
                     },
                 },
@@ -86,15 +86,13 @@ export default class JavaScirptCode extends ComponentCode {
                     returnValue: returnVal,
                 },
                 executePort: successPort,
-                logs: this.logs,
             };
         } catch (err: any) {
-            this.log('Error running script');
-            this.log(err.message ? err.message : JSON.stringify(err, null, 2));
+            log('Error running script');
+            log(err.message ? err.message : JSON.stringify(err, null, 2));
             return {
                 returnValues: {},
                 executePort: errorPort,
-                logs: this.logs,
             };
         }
     }
