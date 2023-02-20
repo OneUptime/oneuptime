@@ -4,7 +4,7 @@ import Loader, { LoaderType } from '../Loader/Loader';
 
 const ComponentLoader: FunctionComponent = (): ReactElement => {
     return (
-        <div className="my-20 w-max flex justify-center">
+        <div className="my-20 w-full flex justify-center">
             <Loader
                 loaderType={LoaderType.Bar}
                 color={VeryLightGrey}
