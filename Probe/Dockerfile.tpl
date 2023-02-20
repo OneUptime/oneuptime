@@ -52,9 +52,6 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
-# Install trivy for container scanning
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
-
 # Install kubectl for kubernetes monitor scanning
 RUN OS_ARCHITECTURE="amd64"
 RUN if [[ "$(uname -m)" -eq "aarch64" ]] ; then OS_ARCHITECTURE="arm64" ; fi

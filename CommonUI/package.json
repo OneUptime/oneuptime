@@ -17,6 +17,7 @@
         "@fortawesome/react-fontawesome": "^0.1.18",
         "@headlessui/react": "^1.7.7",
         "@heroicons/react": "^2.0.13",
+        "@monaco-editor/react": "^4.4.6",
         "@nivo/bar": "^0.79.1",
         "@nivo/core": "^0.79.0",
         "@tippyjs/react": "^4.2.6",

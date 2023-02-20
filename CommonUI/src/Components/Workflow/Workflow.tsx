@@ -24,15 +24,20 @@ import ReactFlow, {
 } from 'reactflow';
 // 👇 you need to import the reactflow styles
 import 'reactflow/dist/style.css';
-import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
+import WorkflowComponent from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, {
+    ComponentCategory,
     ComponentType,
+    NodeDataProp,
+    NodeType,
 } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentSettingsModal from './ComponentSettingsModal';
+import { loadComponentsAndCategories } from './Utils';
+import RunModal from './RunModal';
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -81,10 +86,31 @@ export interface ComponentProps {
     initialEdges: Array<Edge>;
     onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
     showComponentsPickerModal: boolean;
+    showRunModal: boolean;
     onComponentPickerModalUpdate: (isModalShown: boolean) => void;
+    workflowId: ObjectID;
+    onRunModalUpdate: (isModalShown: boolean) => void;
+    onRun: (trigger: NodeDataProp) => void;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+    const [allComponentMetadata, setAllComponentMetadata] = useState<
+        Array<ComponentMetadata>
+    >([]);
+    const [allComponentCategories, setAllComponentCategories] = useState<
+        Array<ComponentCategory>
+    >([]);
+
+    useEffect(() => {
+        const value: {
+            components: Array<ComponentMetadata>;
+            categories: Array<ComponentCategory>;
+        } = loadComponentsAndCategories();
+
+        setAllComponentCategories(value.categories);
+        setAllComponentMetadata(value.components);
+    }, []);
+
     const edgeUpdateSuccessful: any = useRef(true);
     const [showComponentSettingsModal, setshowComponentSettingsModal] =
         useState<boolean>(false);
@@ -117,6 +143,14 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
     }, [props.showComponentsPickerModal]);
 
+    useEffect(() => {
+        if (props.showRunModal) {
+            setShowRunModal(true);
+        } else {
+            setShowComponentsModal(false);
+        }
+    }, [props.showRunModal]);
+
     const deleteNode: Function = (id: string): void => {
         // remove the node.
 
@@ -133,7 +167,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 return node.data.id !== id;
             });
 
-            if (nodeToUpdate.length === 0) {
+            if (
+                nodeToUpdate.filter((n: Node) => {
+                    return (
+                        (n.data as NodeDataProp).componentType ===
+                            ComponentType.Trigger &&
+                        (n.data as NodeDataProp).nodeType === NodeType.Node
+                    );
+                }).length === 0
+            ) {
                 nodeToUpdate = nodeToUpdate.concat(getPlaceholderTriggerNode());
             }
 
@@ -234,6 +276,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
+    const [showRunModal, setShowRunModal] = useState<boolean>(false);
+
     const [showComponentType, setShowComponentsType] = useState<ComponentType>(
         ComponentType.Component
     );
@@ -241,6 +285,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
+
+    useEffect(() => {
+        props.onRunModalUpdate(showRunModal);
+    }, [showRunModal]);
 
     const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
         const metaDataId: string = componentMetadata.id;
@@ -267,12 +315,14 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             type: 'node',
             position: { x: 200, y: 200 },
             data: {
+                nodeType: NodeType.Node,
                 id: `${metaDataId}-${idCounter}`,
                 error: '',
                 metadata: { ...componentMetadata },
                 metadataId: componentMetadata.id,
                 internalId: ObjectID.generate().toString(), // runner id
-            },
+                componentType: componentMetadata.componentType,
+            } as NodeDataProp,
         };
 
         if (componentMetadata.componentType === ComponentType.Trigger) {
@@ -318,6 +368,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     onCloseModal={() => {
                         setShowComponentsModal(false);
                     }}
+                    categories={allComponentCategories}
+                    components={allComponentMetadata.filter(
+                        (comp: ComponentMetadata) => {
+                            return comp.componentType === showComponentType;
+                        }
+                    )}
                     onComponentClick={(component: ComponentMetadata) => {
                         setShowComponentsModal(false);
 
@@ -328,6 +384,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {showComponentSettingsModal && selectedNodeData && (
                 <ComponentSettingsModal
+                    graphComponents={nodes.map((node: Node) => {
+                        return node.data as NodeDataProp;
+                    })}
+                    workflowId={props.workflowId}
                     component={selectedNodeData}
                     title={
                         selectedNodeData && selectedNodeData.metadata.title
@@ -346,8 +406,44 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     onClose={() => {
                         setshowComponentSettingsModal(false);
                     }}
-                    onSave={() => {
+                    onSave={(componentData: NodeDataProp) => {
+                        // Update the node.
+
+                        setNodes((nds: Array<Node>) => {
+                            return nds.map((n: Node) => {
+                                if (
+                                    n.data.internalId ===
+                                    componentData.internalId
+                                ) {
+                                    n.data = componentData;
+                                }
+
+                                return n;
+                            });
+                        });
+
                         setshowComponentSettingsModal(false);
+                    }}
+                />
+            )}
+
+            {showRunModal && (
+                <RunModal
+                    trigger={
+                        (
+                            nodes.find((i: Node) => {
+                                return (
+                                    i.data.metadata.componentType ===
+                                    ComponentType.Trigger
+                                );
+                            }) || getPlaceholderTriggerNode()
+                        ).data
+                    }
+                    onClose={() => {
+                        setShowRunModal(false);
+                    }}
+                    onRun={(trigger: NodeDataProp) => {
+                        props.onRun(trigger);
                     }}
                 />
             )}

@@ -15,6 +15,7 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -102,6 +103,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 );
 
                                 onCompleteAction();
+                                Navigation.reload();
                             } catch (err) {
                                 GlobalEvents.dispatchEvent(
                                     EventName.PROJECT_INVITATIONS_REFRESH

@@ -70,6 +70,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Workflow Name',
                         validation: {
                             minLength: 2,
+                            noSpaces: true,
+                            noSpecialCharacters: true,
+                            noNumbers: true,
                         },
                     },
                     {

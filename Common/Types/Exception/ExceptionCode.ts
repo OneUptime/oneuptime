@@ -10,6 +10,7 @@ enum ExceptionCode {
     NotAuthenticatedxception = 401,
     PaymentRequiredException = 402,
     NotFoundException = 404,
+    TimeoutException = 408,
 }
 
 export default ExceptionCode;

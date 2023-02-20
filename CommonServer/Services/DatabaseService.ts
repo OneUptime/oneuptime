@@ -576,13 +576,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<CreateBy<TBaseModel>> {
         let existingItemsWithSameNameCount: number = 0;
 
-        const uniqueColumnsBy: Dictionary<string> = getUniqueColumnsBy(
-            createBy.data
-        );
+        const uniqueColumnsBy: Dictionary<string | Array<string>> =
+            getUniqueColumnsBy(createBy.data);
 
         for (const key in uniqueColumnsBy) {
             if (!uniqueColumnsBy[key]) {
                 continue;
+            }
+
+            if (typeof uniqueColumnsBy[key] === Typeof.String) {
+                uniqueColumnsBy[key] = [uniqueColumnsBy[key] as string];
+            }
+
+            const query: Query<TBaseModel> = {};
+
+            for (const uniqueByCoumnName of uniqueColumnsBy[
+                key
+            ] as Array<string>) {
+                const columnValue: JSONValue = (createBy.data as any)[
+                    uniqueByCoumnName as string
+                ];
+                if (columnValue === null || columnValue === undefined) {
+                    (query as any)[uniqueByCoumnName] = QueryHelper.isNull();
+                } else {
+                    (query as any)[uniqueByCoumnName] = columnValue;
+                }
             }
 
             existingItemsWithSameNameCount = (
@@ -593,9 +611,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 ? ((createBy.data as any)[key]! as string)
                                 : ''
                         ),
-                        [uniqueColumnsBy[key] as any]: (createBy.data as any)[
-                            uniqueColumnsBy[key] as any
-                        ],
+                        ...query,
                     },
                     props: {
                         isRoot: true,

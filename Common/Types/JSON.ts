@@ -19,10 +19,12 @@ import InBetween from './Database/InBetween';
 import Domain from './Domain';
 import NotNull from './Database/NotNull';
 import { BaseEntity } from 'typeorm';
+import EqualToOrNull from './Database/EqualToOrNull';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',
     Name = 'Name',
+    EqualToOrNull = 'EqualToOrNull',
     Email = 'Email',
     Phone = 'Phone',
     Color = 'Color',
@@ -82,6 +84,8 @@ export type JSONValue =
     | Domain
     | Array<Domain>
     | Array<Search>
+    | EqualToOrNull
+    | Array<EqualToOrNull>
     | GreaterThan
     | Array<GreaterThan>
     | GreaterThanOrEqual

@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,7 +7,7 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'log',
+        id: ComponentID.Log,
         title: 'Log',
         category: 'Utils',
         description: 'Log to console what ever is passed to this component',

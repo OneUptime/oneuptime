@@ -1,8 +1,7 @@
 enum CodeType {
-    JavaScript = 'JavaScript',
-    CSS = 'CSS',
-    HTML = 'HTML',
-
+    JavaScript = 'javascript',
+    CSS = 'css',
+    HTML = 'html',
     // TODO add more mime types.
 }
 

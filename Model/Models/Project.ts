@@ -28,12 +28,13 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
+        Permission.CanReadProject,
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
         Permission.ProjectOwner,
         Permission.CanManageProjectBilling,
-        Permission.CanUpdateProject,
+        Permission.CanEditProject,
     ],
 })
 @EnableWorkflow({
@@ -58,11 +59,12 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
-            Permission.CanUpdateProject,
+            Permission.CanEditProject,
         ],
     })
     @TableColumn({
@@ -84,6 +86,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -102,6 +105,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [Permission.ProjectOwner],
     })
@@ -120,6 +124,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -138,6 +143,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -155,6 +161,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -172,6 +179,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -190,6 +198,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -208,6 +217,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -229,6 +239,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -257,6 +268,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -298,6 +310,7 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [],
     })
@@ -315,11 +328,12 @@ export default class Model extends TenantModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.CanReadProject,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
-            Permission.CanUpdateProject,
+            Permission.CanEditProject,
         ],
     })
     @TableColumn({
@@ -409,4 +423,22 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public paymentSuccessDate?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+    })
+    public workflowRunsInLast30Days?: number = undefined;
 }

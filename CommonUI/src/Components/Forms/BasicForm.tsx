@@ -78,6 +78,7 @@ export interface ComponentProps<T extends Object> {
     error: string | null;
     hideSubmitButton?: undefined | boolean;
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -312,7 +313,8 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
-                    {field.fieldType === FormFieldSchemaType.LongText && (
+                    {(field.fieldType === FormFieldSchemaType.LongText ||
+                        field.fieldType === FormFieldSchemaType.JSON) && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
@@ -734,7 +736,21 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.noSpaces) {
                 if (content.trim().includes(' ')) {
-                    return `${field.title || name} should have no spaces.`;
+                    return `${field.title || name} should not have spaces.`;
+                }
+            }
+
+            if (field.validation.noSpecialCharacters) {
+                if (!content.match(/^[A-Za-z0-9]*$/)) {
+                    return `${
+                        field.title || name
+                    } should not have special characters.`;
+                }
+            }
+
+            if (field.validation.noNumbers) {
+                if (!content.match(/^[A-Za-z]*$/)) {
+                    return `${field.title || name} should not have numbers.`;
                 }
             }
         }
@@ -971,13 +987,22 @@ const BasicForm: Function = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
+        const totalValidationErrors: FormikErrors<FormValues<T>> = {
+            ...errors,
+            ...customValidateResult,
+        } as FormikErrors<FormValues<T>>;
+
         if (props.onChange) {
             props.onChange(values);
         }
 
-        return { ...errors, ...customValidateResult } as FormikErrors<
-            FormValues<T>
-        >;
+        if (props.onFormValidationErrorChanged) {
+            props.onFormValidationErrorChanged(
+                Object.keys(totalValidationErrors).length !== 0
+            );
+        }
+
+        return totalValidationErrors;
     };
 
     const formRef: any = useRef<any>(null);

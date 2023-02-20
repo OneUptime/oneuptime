@@ -29,6 +29,7 @@ import Label from './Label';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MonitorStatus from './MonitorStatus';
+import { JSONObject } from 'Common/Types/JSON';
 
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
@@ -451,4 +452,35 @@ export default class Monitor extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public currentMonitorStatusId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public customFields?: JSONObject = undefined;
 }

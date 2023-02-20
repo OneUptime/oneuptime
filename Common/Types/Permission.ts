@@ -29,10 +29,6 @@ enum Permission {
     Public = 'Public', // non-registered user. Everyone has this permission.
 
     // Billing Permissions (Owner Permission)
-    CanDeleteProject = 'CanDeleteProject',
-    CanUpdateProject = 'CanDeleteProject',
-
-    // Billing Permissions (Owner Permission)
     CanCreateProjectApiKey = 'CanCreateProjectApiKey',
     CanDeleteProjectApiKey = 'CanDeleteProjectApiKey',
     CanReadProjectApiKey = 'CanReadProjectApiKey',
@@ -102,6 +98,11 @@ enum Permission {
     CanDeleteWorkflow = 'CanDeleteWorkflow',
     CanEditWorkflow = 'CanEditWorkflow',
     CanReadWorkflow = 'CanReadWorkflow',
+
+    // Workflow Permissions (Owner Permission)
+    CanDeleteProject = 'CanDeleteProject',
+    CanEditProject = 'CanEditProject',
+    CanReadProject = 'CanReadProject',
 
     // Workflow Permissions (Owner Permission)
     CanCreateWorkflowLog = 'CanCreateWorkflowLog',
@@ -426,22 +427,7 @@ export class PermissionHelper {
                 isAssignableToTenant: false,
                 isAccessControlPermission: false,
             },
-            {
-                permission: Permission.CanDeleteProject,
-                title: 'Can Delete Project',
-                description:
-                    'A user assigned this permission can delete this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-            {
-                permission: Permission.CanUpdateProject,
-                title: 'Can Update Project',
-                description:
-                    'A user assigned this permission can update this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
+
             {
                 permission: Permission.CanManageProjectBilling,
                 title: 'Can Manage Billing',
@@ -858,6 +844,31 @@ export class PermissionHelper {
                 title: 'Can Read Workflow',
                 description:
                     'A user assigned this permission  can read Workflow in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanDeleteProject,
+                title: 'Can Delete Project',
+                description:
+                    'A user assigned this permission  can delete Project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditProject,
+                title: 'Can Edit Project',
+                description:
+                    'A user assigned this permission can edit Project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadProject,
+                title: 'Can Read Project',
+                description:
+                    'A user assigned this permission  can read this Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

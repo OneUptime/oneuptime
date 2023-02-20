@@ -11,6 +11,11 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import WorkflowSideMenu from './SideMenu';
+import Label from 'Model/Models/Label';
+import DashboardNavigation from '../../Utils/Navigation';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import LabelsElement from '../../Components/Label/Labels';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -108,6 +113,38 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         title: 'Enabled',
                         type: FieldType.Boolean,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        JSONFunctions.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />

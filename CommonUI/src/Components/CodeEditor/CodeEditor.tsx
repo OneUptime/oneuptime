@@ -1,8 +1,3 @@
-import Editor from 'react-simple-code-editor';
-import PrismJS, { highlight, Grammar } from 'prismjs';
-import 'prismjs/components/prism-clike';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/themes/prism.css';
 import CodeType from 'Common/Types/Code/CodeType';
 
 import React, {
@@ -11,6 +6,8 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+
+import Editor from '@monaco-editor/react';
 
 export interface ComponentProps {
     initialValue?: undefined | string;
@@ -71,60 +68,83 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-    let grammar: Grammar = (PrismJS.languages as any).markup as any;
-    let language: string = 'markup';
-
-    if (props.type === CodeType.JavaScript) {
-        grammar = (PrismJS.languages as any).javascript as any;
-        language = 'javascript';
-    }
-
-    if (props.type === CodeType.HTML) {
-        grammar = (PrismJS.languages as any).html as any;
-        language = 'html';
-    }
-
-    if (props.type === CodeType.CSS) {
-        grammar = (PrismJS.languages as any).css as any;
-        language = 'css';
-    }
-
     return (
         <div
-            id="code-editor"
+            data-testid={props.dataTestId}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
             }}
         >
             <Editor
-                tabIndex={props.tabIndex}
-                id={props.dataTestId}
+                defaultLanguage={props.type}
+                height="25vh"
                 value={value}
-                onValueChange={(code: string) => {
-                    return setValue(code);
-                }}
-                className={className}
-                highlight={(code: string) => {
-                    return highlight(code, grammar, language);
-                }}
-                padding={10}
-                style={{
-                    fontFamily: '"Fira code", "Fira Mono", monospace',
-                    fontSize: 12,
-                    maxHeight: '100px',
-                    overflowX: 'hidden',
-                    overflowY: 'scroll',
-                    width: '100%',
-                    minHeight: '200px',
-                }}
-                placeholder={props.placeholder || ''}
-                onBlur={() => {
-                    if (props.onBlur) {
-                        props.onBlur();
+                onChange={(code: string | undefined) => {
+                    if (code === undefined) {
+                        code = '';
                     }
+
+                    setValue(code);
+                    props.onBlur && props.onBlur();
                 }}
-                disabled={props.readOnly || false}
+                defaultValue={props.initialValue || props.placeholder || ''}
+                className={className}
+                options={{
+                    acceptSuggestionOnCommitCharacter: true,
+                    acceptSuggestionOnEnter: 'on',
+                    accessibilitySupport: 'auto',
+
+                    automaticLayout: true,
+                    codeLens: false,
+                    colorDecorators: true,
+                    contextmenu: false,
+                    cursorBlinking: 'blink',
+                    tabIndex: props.tabIndex || 0,
+
+                    cursorStyle: 'line',
+                    disableLayerHinting: false,
+                    disableMonospaceOptimizations: false,
+                    dragAndDrop: false,
+                    fixedOverflowWidgets: false,
+                    folding: true,
+                    foldingStrategy: 'auto',
+                    fontLigatures: false,
+                    formatOnPaste: false,
+                    formatOnType: false,
+                    hideCursorInOverviewRuler: false,
+                    links: true,
+                    mouseWheelZoom: false,
+                    multiCursorMergeOverlapping: true,
+                    multiCursorModifier: 'alt',
+                    overviewRulerBorder: true,
+                    overviewRulerLanes: 2,
+                    quickSuggestions: true,
+                    quickSuggestionsDelay: 100,
+                    readOnly: props.readOnly || false,
+                    renderControlCharacters: false,
+
+                    renderLineHighlight: 'all',
+                    renderWhitespace: 'none',
+                    revealHorizontalRightPadding: 30,
+                    roundedSelection: true,
+                    rulers: [],
+                    scrollBeyondLastColumn: 5,
+                    scrollBeyondLastLine: true,
+                    selectOnLineNumbers: true,
+                    selectionClipboard: true,
+                    selectionHighlight: true,
+                    showFoldingControls: 'mouseover',
+                    smoothScrolling: false,
+                    suggestOnTriggerCharacters: true,
+                    wordBasedSuggestions: true,
+                    wordSeparators: '~!@#$%^&*()-=+[{]}|;:\'",.<>/?',
+                    wordWrap: 'off',
+                    wordWrapBreakAfterCharacters: '\t})]?|&,;',
+                    wordWrapBreakBeforeCharacters: '{([+',
+                    wordWrapColumn: 80,
+                    wrappingIndent: 'none',
+                }}
             />
             {props.error && (
                 <p className="mt-1 text-sm text-red-400">{props.error}</p>
