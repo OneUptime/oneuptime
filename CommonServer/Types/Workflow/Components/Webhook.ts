@@ -47,6 +47,8 @@ export default class WebhookTrigger extends ComponentCode {
     ): Promise<void> {
         /// Run Graph.
 
+        // check if this workflow has the trigger enabled. 
+
         const executeWorkflow: ExecuteWorkflowType = {
             workflowId: new ObjectID(req.params['workflowId'] as string),
             returnValues: {

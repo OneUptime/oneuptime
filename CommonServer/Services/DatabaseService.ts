@@ -83,6 +83,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
+    public getModel(): TBaseModel {
+        return this.model;
+    }
+
     public getQueryBuilder(modelName: string): SelectQueryBuilder<TBaseModel> {
         return this.getRepository().createQueryBuilder(modelName);
     }
