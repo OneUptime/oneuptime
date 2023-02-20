@@ -15,10 +15,10 @@ export default class ComponentCodeAPI {
         // init all component code.
         /// Get all the components.
         for (const key in Components) {
-            const ComponentCodeItem: typeof ComponentCode | undefined =
+            const ComponentCode: ComponentCode | undefined =
                 Components[key];
-            if (ComponentCodeItem) {
-                const instance: ComponentCode = new ComponentCodeItem();
+            if (ComponentCode) {
+                const instance: ComponentCode = ComponentCode;
                 instance
                     .init({
                         router: this.router,

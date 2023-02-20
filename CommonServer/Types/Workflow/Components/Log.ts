@@ -22,7 +22,7 @@ export default class Log extends ComponentCode {
         this.setMetadata(LogComponent);
     }
 
-    public override async run(args: JSONObject): Promise<RunReturnType> {
+    public override async run(args: JSONObject, log: Function): Promise<RunReturnType> {
         const outPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'out';
@@ -33,13 +33,12 @@ export default class Log extends ComponentCode {
             throw new BadDataException('Out port not found');
         }
 
-        this.log('Value: ');
-        this.log(args['value']);
+        log('Value: ');
+        log(args['value']);
 
         return Promise.resolve({
             returnValues: {},
             executePort: outPort,
-            logs: this.logs,
         });
     }
 }

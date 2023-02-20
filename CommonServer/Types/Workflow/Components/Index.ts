@@ -6,11 +6,11 @@ import Dictionary from 'Common/Types/Dictionary';
 import ComponentCode from '../ComponentCode';
 import JavaScirptCode from './JavaScript';
 
-const Components: Dictionary<typeof ComponentCode> = {
-    [ComponentID.Webhook]: WebhookTrigger,
-    [ComponentID.Log]: Log,
-    [ComponentID.Schedule]: Schedule,
-    [ComponentID.JavaScriptCode]: JavaScirptCode,
+const Components: Dictionary<ComponentCode> = {
+    [ComponentID.Webhook]: new WebhookTrigger(),
+    [ComponentID.Log]: new Log(),
+    [ComponentID.Schedule]: new Schedule(),
+    [ComponentID.JavaScriptCode]: new JavaScirptCode(),
 };
 
 export default Components;

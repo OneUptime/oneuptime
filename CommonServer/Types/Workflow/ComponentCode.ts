@@ -18,7 +18,6 @@ export interface RunProps {
 export interface RunReturnType {
     returnValues: JSONObject;
     executePort?: Port | undefined;
-    logs: Array<string>;
 }
 
 export interface ExecuteWorkflowType {
@@ -37,8 +36,7 @@ export interface InitProps {
 
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
-    protected logs: Array<string> = [];
-
+   
     public constructor() {}
 
     public setMetadata(metadata: ComponentMetadata): void {
@@ -53,29 +51,14 @@ export default class ComponentCode {
         return this.metadata;
     }
 
-    public log(data: string | JSONObject | JSONArray | JSONValue): void {
-        if (typeof data === 'string') {
-            this.logs.push(
-                OneUptimeDate.getCurrentDateAsFormattedString() + ': ' + data
-            );
-        } else {
-            this.logs.push(
-                OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ': ' +
-                    JSON.stringify(data)
-            );
-        }
-    }
-
     public async init(_props: InitProps): Promise<void> {
         return await Promise.resolve();
     }
 
-    public async run(_args: JSONObject): Promise<RunReturnType> {
+    public async run(_args: JSONObject, _log: Function): Promise<RunReturnType> {
         return await Promise.resolve({
             returnValues: {},
             port: undefined,
-            logs: [],
         });
     }
 }
