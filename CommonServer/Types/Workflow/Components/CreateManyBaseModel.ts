@@ -73,7 +73,7 @@ export default class CreateManyBaseModel<
                 throw new BadDataException('json-array is undefined.');
             }
 
-            if(typeof args['json-array'] === 'string'){
+            if (typeof args['json-array'] === 'string') {
                 args['json-array'] = JSON.parse(args['json-array'] as string);
             }
 

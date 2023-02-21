@@ -73,7 +73,7 @@ export default class CreateOneBaseModel<
                 throw new BadDataException('JSON is undefined.');
             }
 
-            if(typeof args['json'] === 'string'){
+            if (typeof args['json'] === 'string') {
                 args['json'] = JSON.parse(args['json'] as string);
             }
 
@@ -107,17 +107,14 @@ export default class CreateOneBaseModel<
                 executePort: successPort,
             };
         } catch (err: any) {
-            
-            if(err instanceof Exception){
-                options.log(
-                    err.getMessage()
-                );
-            }else{
+            if (err instanceof Exception) {
+                options.log(err.getMessage());
+            } else {
                 options.log(
                     err.message ? err.message : JSON.stringify(err, null, 2)
                 );
             }
-            
+
             return {
                 returnValues: {},
                 executePort: errorPort,

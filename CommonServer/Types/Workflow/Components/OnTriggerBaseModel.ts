@@ -19,9 +19,8 @@ import ClusterKeyAuthorization from '../../../Middleware/ClusterKeyAuthorization
 export default class OnTriggerBaseModel<
     TBaseModel extends BaseModel
 > extends ComponentCode {
-
-    public modelId: string = "";
-    public type: string= "";
+    public modelId: string = '';
+    public type: string = '';
 
     public constructor(
         modelService: DatabaseService<TBaseModel>,
@@ -33,15 +32,12 @@ export default class OnTriggerBaseModel<
             modelService.getModel().tableName!
         )}`;
 
-        this.type = type; 
+        this.type = type;
 
         const BaseModelComponent: ComponentMetadata | undefined =
             BaseModelComponents.getComponents(modelService.getModel()).find(
                 (i: ComponentMetadata) => {
-                    return (
-                        i.id ===
-                        `${this.modelId}-${this.type}`
-                    );
+                    return i.id === `${this.modelId}-${this.type}`;
                 }
             );
 
@@ -53,7 +49,6 @@ export default class OnTriggerBaseModel<
             );
         }
         this.setMetadata(BaseModelComponent);
-         
     }
 
     public override async init(props: InitProps): Promise<void> {
@@ -81,7 +76,7 @@ export default class OnTriggerBaseModel<
     ): Promise<void> {
         // get all the enabled workflows with this trigger.
         Response.sendJsonObjectResponse(req, res, { status: 'Triggered' });
-        
+
         const workflows: Array<Workflow> = await WorkflowService.findBy({
             query: {
                 triggerId: this.getMetadata().id,
@@ -112,7 +107,5 @@ export default class OnTriggerBaseModel<
         }
 
         await Promise.all(promises);
-
-        
     }
 }

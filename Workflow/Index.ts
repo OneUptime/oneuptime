@@ -26,13 +26,11 @@ app.get(
     (req: ExpressRequest, res: ExpressResponse) => {
         res.sendFile(
             __dirname +
-            '/Docs/ComponentDocumentation/' +
-            req.params['componentName']
+                '/Docs/ComponentDocumentation/' +
+                req.params['componentName']
         );
     }
 );
-
-
 
 // Job process.
 QueueWorker.getWorker(
@@ -59,7 +57,7 @@ const init: Function = async (): Promise<void> => {
 
         // init the app
         await App(APP_NAME);
-    
+
         // connect redis
         await Redis.connect();
     } catch (err) {

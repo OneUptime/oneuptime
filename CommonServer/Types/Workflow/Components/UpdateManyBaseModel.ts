@@ -73,7 +73,7 @@ export default class UpdateManyBaseModel<
                 throw new BadDataException('JSON is undefined.');
             }
 
-            if(typeof args['data'] === 'string'){
+            if (typeof args['data'] === 'string') {
                 args['data'] = JSON.parse(args['data'] as string);
             }
 
@@ -91,7 +91,7 @@ export default class UpdateManyBaseModel<
                 throw new BadDataException('Query is undefined.');
             }
 
-            if(typeof args['query'] === 'string'){
+            if (typeof args['query'] === 'string') {
                 args['query'] = JSON.parse(args['query'] as string);
             }
 

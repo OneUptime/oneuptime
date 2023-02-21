@@ -72,7 +72,7 @@ export default class DeleteManyBaseModel<
                 throw new BadDataException('Query is undefined.');
             }
 
-            if(typeof args['query'] === 'string'){
+            if (typeof args['query'] === 'string') {
                 args['query'] = JSON.parse(args['query'] as string);
             }
 

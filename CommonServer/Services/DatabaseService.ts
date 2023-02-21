@@ -486,9 +486,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             new URL(
                 Protocol.HTTP,
                 WorkflowHostname,
-                new Route(`${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
-                    this.getModel().tableName!
-                )}/${triggerType}`)
+                new Route(
+                    `${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                        this.getModel().tableName!
+                    )}/${triggerType}`
+                )
             ),
             {
                 data: JSONFunctions.toJSON(model, this.entityType),
