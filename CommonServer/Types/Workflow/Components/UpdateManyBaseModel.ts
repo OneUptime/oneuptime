@@ -98,7 +98,7 @@ export default class UpdateManyBaseModel<
                 ] = options.projectId;
             }
 
-            await this.modelService.updateOneBy({
+            await this.modelService.updateBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 props: {
