@@ -49,6 +49,7 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import Text from 'Common/Types/Text';
 
 export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 
@@ -485,7 +486,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             new URL(
                 Protocol.HTTP,
                 WorkflowHostname,
-                new Route(`${WorkflowRoute.toString()}/model/${projectId.toString()}/${triggerType}`)
+                new Route(`${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                    this.getModel().tableName!
+                )}/${triggerType}`)
             ),
             {
                 data: JSONFunctions.toJSON(model, this.entityType),

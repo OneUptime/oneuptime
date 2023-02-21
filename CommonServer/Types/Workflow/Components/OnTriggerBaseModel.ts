@@ -65,15 +65,6 @@ export default class OnTriggerBaseModel<
             }
         );
 
-        console.log(`/model-type/hello/${this.modelId}/${this.type}`);
-
-        props.router.get(
-            `/workflow/model-type/hello/${this.modelId}/${this.type}`,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-               Response.sendJsonObjectResponse(req, res, {"hey": "here"});
-            }
-        );
-
         props.router.post(
             `/model/:projectId/${this.modelId}/${this.type}`,
             ClusterKeyAuthorization.isAuthorizedServiceMiddleware,

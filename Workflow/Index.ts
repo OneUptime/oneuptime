@@ -26,11 +26,13 @@ app.get(
     (req: ExpressRequest, res: ExpressResponse) => {
         res.sendFile(
             __dirname +
-                '/Docs/ComponentDocumentation/' +
-                req.params['componentName']
+            '/Docs/ComponentDocumentation/' +
+            req.params['componentName']
         );
     }
 );
+
+
 
 // Job process.
 QueueWorker.getWorker(
@@ -48,15 +50,16 @@ QueueWorker.getWorker(
 
 const init: Function = async (): Promise<void> => {
     try {
-        // init the app
-        await App(APP_NAME);
         // connect to the database.
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
 
-        app.use(`/`, new ComponentCode().router);
+        app.use(`/${APP_NAME}`, new ComponentCode().router);
 
+        // init the app
+        await App(APP_NAME);
+    
         // connect redis
         await Redis.connect();
     } catch (err) {
