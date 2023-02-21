@@ -54,6 +54,7 @@ export interface RunStack {
 }
 
 export default class RunWorkflow {
+
     private logs: Array<string> = [];
     private workflowId: ObjectID | null = null;
     private projectId: ObjectID | null = null;
@@ -454,6 +455,11 @@ export default class RunWorkflow {
     }
 
     public log(data: string | JSONObject | JSONArray): void {
+
+        if(!this.logs){
+            this.logs = [];
+        }
+
         if (typeof data === 'string') {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() + ': ' + data

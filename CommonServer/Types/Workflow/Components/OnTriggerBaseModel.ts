@@ -80,7 +80,8 @@ export default class OnTriggerBaseModel<
         props: InitProps
     ): Promise<void> {
         // get all the enabled workflows with this trigger.
-
+        Response.sendJsonObjectResponse(req, res, { status: 'Triggered' });
+        
         const workflows: Array<Workflow> = await WorkflowService.findBy({
             query: {
                 triggerId: this.getMetadata().id,
@@ -112,6 +113,6 @@ export default class OnTriggerBaseModel<
 
         await Promise.all(promises);
 
-        Response.sendJsonObjectResponse(req, res, { status: 'Triggered' });
+        
     }
 }

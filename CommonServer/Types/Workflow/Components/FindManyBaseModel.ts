@@ -76,11 +76,17 @@ export default class FindManyBaseModel<
                 throw new BadDataException('Query is undefined.');
             }
 
+            if(typeof args['query'] === 'string'){
+                args['query'] = JSON.parse(args['query'] as string);
+            }
+
             if (typeof args['query'] !== 'object') {
                 throw new BadDataException(
                     'Query is should be of type object.'
                 );
             }
+
+            
 
             if (this.modelService.getModel().getTenantColumn()) {
                 (args['query'] as JSONObject)[
@@ -90,6 +96,10 @@ export default class FindManyBaseModel<
 
             if (!args['select']) {
                 throw new BadDataException('Select Fields is undefined.');
+            }
+
+            if(typeof args['select'] === 'string'){
+                args['select'] = JSON.parse(args['select'] as string);
             }
 
             if (typeof args['select'] !== 'object') {

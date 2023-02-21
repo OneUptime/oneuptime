@@ -7,6 +7,7 @@ import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import Exception from 'Common/Types/Exception/Exception';
 
 export default class CreateOneBaseModel<
     TBaseModel extends BaseModel
@@ -72,6 +73,10 @@ export default class CreateOneBaseModel<
                 throw new BadDataException('JSON is undefined.');
             }
 
+            if(typeof args['json'] === 'string'){
+                args['json'] = JSON.parse(args['json'] as string);
+            }
+
             if (typeof args['json'] !== 'object') {
                 throw new BadDataException('JSON is should be of type object.');
             }
@@ -102,10 +107,17 @@ export default class CreateOneBaseModel<
                 executePort: successPort,
             };
         } catch (err: any) {
-            options.log('Error runnning component');
-            options.log(
-                err.message ? err.message : JSON.stringify(err, null, 2)
-            );
+            
+            if(err instanceof Exception){
+                options.log(
+                    err.getMessage()
+                );
+            }else{
+                options.log(
+                    err.message ? err.message : JSON.stringify(err, null, 2)
+                );
+            }
+            
             return {
                 returnValues: {},
                 executePort: errorPort,
