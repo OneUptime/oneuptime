@@ -775,9 +775,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 },
             });
 
+            
+
             const numberOfDocsAffected: number =
                 (await this.getRepository().delete(beforeDeleteBy.query as any))
                     .affected || 0;
+
+            // hit workflow. 
+            if(this.getModel().enableWorkflowOn.delete && deleteBy.props.tenantId){
+                for(const item of items){
+                    await this.onTrigger(item, deleteBy.props.tenantId, "on-delete");
+                }
+            }
 
             if (!deleteBy.props.ignoreHooks) {
                 await this.onDeleteSuccess(
