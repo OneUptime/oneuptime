@@ -26,10 +26,17 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: `Filter on ${model.singularName}`,
+                        name: 'Query',
+                        description: `Query on ${model.singularName}`,
                         required: false,
-                        id: 'filter',
+                        id: 'query',
+                    },
+                    {
+                        type: ComponentInputType.Query,
+                        name: 'Select Fields',
+                        description: `Select on ${model.singularName}`,
+                        required: false,
+                        id: 'select',
                     },
                 ],
                 returnValues: [
@@ -76,10 +83,31 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: 'Please fill out this filter',
+                        name: 'Query',
+                        description: 'Please fill out this query',
                         required: false,
-                        id: 'filter',
+                        id: 'query',
+                    },
+                    {
+                        type: ComponentInputType.Query,
+                        name: 'Select Fields',
+                        description: `Select on ${model.singularName}`,
+                        required: false,
+                        id: 'select',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Skip',
+                        description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
+                        required: false,
+                        id: 'skip',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Limit',
+                        description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+                        required: false,
+                        id: 'limit',
                     },
                 ],
                 returnValues: [
@@ -158,9 +186,9 @@ export default class BaseModelComponent {
                     {
                         type: ComponentInputType.Query,
                         name: 'Delete by',
-                        description: 'Please fill out this filter',
+                        description: 'Please fill out this query',
                         required: false,
-                        id: 'filter',
+                        id: 'query',
                     },
                 ],
                 returnValues: [],
@@ -200,9 +228,9 @@ export default class BaseModelComponent {
                     {
                         type: ComponentInputType.Query,
                         name: 'Delete by',
-                        description: 'Please fill out this filter',
+                        description: 'Please fill out this query',
                         required: false,
-                        id: 'filter',
+                        id: 'query',
                     },
                 ],
                 returnValues: [],
@@ -402,10 +430,10 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: 'Please fill out this filter',
+                        name: 'Query',
+                        description: 'Please fill out this query',
                         required: false,
-                        id: 'filter',
+                        id: 'query',
                     },
                     {
                         id: 'json',
@@ -459,10 +487,10 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: 'Please fill out this filter',
+                        name: 'Query',
+                        description: 'Please fill out this query',
                         required: false,
-                        id: 'filter',
+                        id: 'query',
                     },
                     {
                         id: 'json-array',
