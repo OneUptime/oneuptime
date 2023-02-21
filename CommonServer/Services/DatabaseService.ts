@@ -23,7 +23,7 @@ import PostgresDatabase, {
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import { EncryptionSecret } from '../Config';
+import { EncryptionSecret, WorkflowHostname } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
@@ -43,6 +43,15 @@ import ModelPermission, {
 import Select from '../Types/Database/Select';
 import Populate from '../Types/Database/Populate';
 import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
+import API from 'Common/Utils/API';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+
+
+export type DatabaseTriggerType = "on-create" | "on-update" | "on-delete";
 
 export interface OnCreate<TBaseModel extends BaseModel> {
     createBy: CreateBy<TBaseModel>;
@@ -66,12 +75,12 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    public entityType!: { new (): TBaseModel };
+    public entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
     public constructor(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -365,8 +374,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                          createBy.data.getSlugifyColumn() as string
-                      ] as string)
+                        createBy.data.getSlugifyColumn() as string
+                    ] as string)
                     : null
             );
         }
@@ -468,6 +477,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return data;
     }
 
+    public async onTrigger(model: TBaseModel, projectId: ObjectID, triggerType: DatabaseTriggerType) {
+        await API.post(new URL(Protocol.HTTP, WorkflowHostname, new Route(`/model/${projectId.toString()}/${triggerType}`)), {
+            data: JSONFunctions.toJSON(model, this.entityType)
+        }, {
+            ...ClusterKeyAuthorization.getClusterKeyHeaders()
+        })
+    }
+
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
         const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
             ? { createBy, carryForward: [] }
@@ -533,6 +550,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data
                 );
             }
+
+            // hit workflow.; 
+            if (this.getModel().enableWorkflowOn.create && createBy.props.tenantId) {
+                await this.onTrigger(createBy.data, createBy.props.tenantId, "on-create");
+            }
+
             return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
@@ -886,10 +909,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column modelType is not found.'
                     );
                 }
 
@@ -997,6 +1020,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } as any;
 
                 await this.getRepository().save(item);
+
+                // hit workflow. 
+                if(this.getModel().enableWorkflowOn.update && updateBy.props.tenantId){
+                    await this.onTrigger(item, updateBy.props.tenantId, "on-update");
+                }
             }
 
             // Cant Update relations.

@@ -60,7 +60,11 @@ export const MailHostname: Hostname = Hostname.fromString(
 );
 
 export const WorkerHostname: Hostname = Hostname.fromString(
-    process.env['WORKER_HOSTNAME'] || 'mail'
+    process.env['WORKER_HOSTNAME'] || 'worker'
+);
+
+export const WorkflowHostname: Hostname = Hostname.fromString(
+    process.env['WORKFLOW_HOSTNAME'] || 'workflow'
 );
 
 export const DashboardApiHostname: Hostname = Hostname.fromString(
@@ -130,6 +134,10 @@ export const HelmRoute: Route = new Route(
 );
 export const AccountsRoute: Route = new Route(
     process.env['ACCOUNTS_ROUTE'] || '/accounts'
+);
+
+export const WorkflowRoute: Route = new Route(
+    process.env['WORKFLOW_ROUTE'] || '/workflow'
 );
 
 export const ApiDocsRoute: Route = new Route(

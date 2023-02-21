@@ -8,8 +8,17 @@ import {
 import Response from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class ClusterKeyAuthorization {
+
+
+    public static getClusterKeyHeaders(): Dictionary<string>{
+        return {
+            clusterkey: ONEUPTIME_SECRET.toString()
+        }
+    }
+
     public static async isAuthorizedServiceMiddleware(
         req: ExpressRequest,
         res: ExpressResponse,
