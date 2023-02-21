@@ -39,7 +39,7 @@ export default class Text {
             tempWord = this.replaceAt(tempWord.length - 1, tempWord, ' ');
         }
 
-        return tempWord.toLowerCase();
+        return tempWord.toLowerCase().trim();
     }
 
     public static replaceAt(

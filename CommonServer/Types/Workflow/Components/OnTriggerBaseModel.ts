@@ -19,20 +19,28 @@ import ClusterKeyAuthorization from '../../../Middleware/ClusterKeyAuthorization
 export default class OnTriggerBaseModel<
     TBaseModel extends BaseModel
 > extends ComponentCode {
+
+    public modelId: string = "";
+    public type: string= "";
+
     public constructor(
         modelService: DatabaseService<TBaseModel>,
         type: string
     ) {
         super();
 
+        this.modelId = `${Text.pascalCaseToDashes(
+            modelService.getModel().tableName!
+        )}`;
+
+        this.type = type; 
+
         const BaseModelComponent: ComponentMetadata | undefined =
             BaseModelComponents.getComponents(modelService.getModel()).find(
                 (i: ComponentMetadata) => {
                     return (
                         i.id ===
-                        `${Text.pascalCaseToDashes(
-                            modelService.getModel().tableName!
-                        )}-${type}`
+                        `${this.modelId}-${this.type}`
                     );
                 }
             );
@@ -45,19 +53,29 @@ export default class OnTriggerBaseModel<
             );
         }
         this.setMetadata(BaseModelComponent);
+         
     }
 
     public override async init(props: InitProps): Promise<void> {
         props.router.get(
-            `/model/:projectId/${this.getMetadata().id}`,
+            `/model/:projectId/${this.modelId}/${this.type}`,
             ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 await this.initTrigger(req, res, props);
             }
         );
 
+        console.log(`/model-type/hello/${this.modelId}/${this.type}`);
+
+        props.router.get(
+            `/workflow/model-type/hello/${this.modelId}/${this.type}`,
+            async (req: ExpressRequest, res: ExpressResponse) => {
+               Response.sendJsonObjectResponse(req, res, {"hey": "here"});
+            }
+        );
+
         props.router.post(
-            `/model/:projectId/${this.getMetadata().id}`,
+            `/model/:projectId/${this.modelId}/${this.type}`,
             ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 await this.initTrigger(req, res, props);

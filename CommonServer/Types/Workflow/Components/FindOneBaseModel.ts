@@ -25,7 +25,7 @@ export default class FindOneBaseModel<
                         i.id ===
                         `${Text.pascalCaseToDashes(
                             modelService.getModel().tableName!
-                        )}-fine-one`
+                        )}-find-one`
                     );
                 }
             );

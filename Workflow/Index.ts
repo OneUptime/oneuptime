@@ -55,7 +55,7 @@ const init: Function = async (): Promise<void> => {
             PostgresAppInstance.getDatasourceOptions()
         );
 
-        app.use(`/${APP_NAME}/`, new ComponentCode().router);
+        app.use(`/`, new ComponentCode().router);
 
         // connect redis
         await Redis.connect();

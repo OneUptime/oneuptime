@@ -27,7 +27,7 @@ export default class FindManyBaseModel<
                         i.id ===
                         `${Text.pascalCaseToDashes(
                             modelService.getModel().tableName!
-                        )}-fine-many`
+                        )}-find-many`
                     );
                 }
             );

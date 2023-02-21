@@ -23,7 +23,7 @@ import PostgresDatabase, {
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import { EncryptionSecret, WorkflowHostname } from '../Config';
+import { EncryptionSecret, WorkflowHostname, WorkflowRoute } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
@@ -485,7 +485,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             new URL(
                 Protocol.HTTP,
                 WorkflowHostname,
-                new Route(`/model/${projectId.toString()}/${triggerType}`)
+                new Route(`${WorkflowRoute.toString()}/model/${projectId.toString()}/${triggerType}`)
             ),
             {
                 data: JSONFunctions.toJSON(model, this.entityType),
@@ -564,7 +564,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             // hit workflow.;
             if (
-                this.getModel().enableWorkflowOn.create &&
+                this.getModel().enableWorkflowOn?.create &&
                 createBy.props.tenantId
             ) {
                 await this.onTrigger(
@@ -799,7 +799,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             // hit workflow.
             if (
-                this.getModel().enableWorkflowOn.delete &&
+                this.getModel().enableWorkflowOn?.delete &&
                 deleteBy.props.tenantId
             ) {
                 for (const item of items) {
@@ -1055,7 +1055,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                 // hit workflow.
                 if (
-                    this.getModel().enableWorkflowOn.update &&
+                    this.getModel().enableWorkflowOn?.update &&
                     updateBy.props.tenantId
                 ) {
                     await this.onTrigger(
