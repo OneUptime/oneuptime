@@ -27,40 +27,58 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.JavaScriptCode]: new JavaScirptCode(),
 };
 
+for (const baseModelService of BaseModelServices) {
+    const model: BaseModel = baseModelService.getModel();
 
-for(const baseModelService of BaseModelServices){
-    const model: BaseModel = baseModelService.getModel(); 
-
-    if(!model.enableWorkflowOn){
-        continue; 
+    if (!model.enableWorkflowOn) {
+        continue;
     }
 
-    const modelId: string = `${Text.pascalCaseToDashes(
-        model.tableName!
-    )}`;
+    const modelId: string = `${Text.pascalCaseToDashes(model.tableName!)}`;
 
-    if(model.enableWorkflowOn.create){
-        Components[`${modelId}-on-create`] = new OnCreateBaseModel(baseModelService as any);
-        Components[`${modelId}-create-one`] = new CreateOneBaseModel(baseModelService as any);
-        Components[`${modelId}-create-many`] = new CreateManyBaseModel(baseModelService as any);
+    if (model.enableWorkflowOn.create) {
+        Components[`${modelId}-on-create`] = new OnCreateBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-create-one`] = new CreateOneBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-create-many`] = new CreateManyBaseModel(
+            baseModelService as any
+        );
     }
 
-    if(model.enableWorkflowOn.read){
-        Components[`${modelId}-find-one`] = new FindOneBaseModel(baseModelService as any);
-        Components[`${modelId}-find-many`] = new FindManyBaseModel(baseModelService as any);
+    if (model.enableWorkflowOn.read) {
+        Components[`${modelId}-find-one`] = new FindOneBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-find-many`] = new FindManyBaseModel(
+            baseModelService as any
+        );
     }
 
-
-    if(model.enableWorkflowOn.update){
-        Components[`${modelId}-on-update`] = new OnUpdateBaseModel(baseModelService as any);
-        Components[`${modelId}-update-one`] = new UpdateOneBaseModel(baseModelService as any);
-        Components[`${modelId}-update-many`] = new UpdateManyBaseModel(baseModelService as any);
+    if (model.enableWorkflowOn.update) {
+        Components[`${modelId}-on-update`] = new OnUpdateBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-update-one`] = new UpdateOneBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-update-many`] = new UpdateManyBaseModel(
+            baseModelService as any
+        );
     }
 
-    if(model.enableWorkflowOn.delete){
-        Components[`${modelId}-on-delete`] = new OnDeleteBaseModel(baseModelService as any);
-        Components[`${modelId}-delete-one`] = new DeleteOneBaseModel(baseModelService as any);
-        Components[`${modelId}-delete-many`] = new DeleteManyBaseModel(baseModelService as any);
+    if (model.enableWorkflowOn.delete) {
+        Components[`${modelId}-on-delete`] = new OnDeleteBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-delete-one`] = new DeleteOneBaseModel(
+            baseModelService as any
+        );
+        Components[`${modelId}-delete-many`] = new DeleteManyBaseModel(
+            baseModelService as any
+        );
     }
 }
 

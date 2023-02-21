@@ -29,7 +29,6 @@ export default class ComponentCodeAPI {
                     });
             }
         }
-
     }
 
     public async scheduleWorkflow(
