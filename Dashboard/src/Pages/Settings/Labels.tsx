@@ -102,6 +102,14 @@ const Labels: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
+                            _id: true,
+                        },
+                        title: 'Label ID',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
                             name: true,
                         },
                         title: 'Name',

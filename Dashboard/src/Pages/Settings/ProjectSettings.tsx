@@ -62,6 +62,12 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
+                                _id: true,
+                            },
+                            title: 'Project ID',
+                        },
+                        {
+                            field: {
                                 name: true,
                             },
                             title: 'Project Name',
