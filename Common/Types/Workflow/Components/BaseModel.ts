@@ -436,21 +436,15 @@ export default class BaseModelComponent {
                         id: 'query',
                     },
                     {
-                        id: 'json',
-                        name: 'JSON Object',
+                        id: 'data',
+                        name: 'Data (JSON Object)',
                         description: `${model.singularName} represented as JSON`,
                         type: ComponentInputType.JSON,
                         required: true,
                     },
                 ],
                 returnValues: [
-                    {
-                        id: 'model',
-                        name: `${model.singularName}`,
-                        description: `${model.singularName} updated in the database`,
-                        type: ComponentInputType.BaseModel,
-                        required: false,
-                    },
+                   
                 ],
                 inPorts: [
                     {
@@ -493,21 +487,15 @@ export default class BaseModelComponent {
                         id: 'query',
                     },
                     {
-                        id: 'json-array',
-                        name: 'JSON Array',
-                        description: 'List of models represented as JSON array',
-                        type: ComponentInputType.JSONArray,
+                        id: 'data',
+                        name: 'Data (JSON Object)',
+                        description: `${model.singularName} represented as JSON`,
+                        type: ComponentInputType.JSON,
                         required: true,
                     },
                 ],
                 returnValues: [
-                    {
-                        id: 'models',
-                        name: `${model.pluralName}`,
-                        description: 'Models updated in the database',
-                        type: ComponentInputType.BaseModel,
-                        required: false,
-                    },
+                  
                 ],
                 inPorts: [
                     {
