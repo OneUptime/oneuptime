@@ -8,7 +8,7 @@ import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
-export default class CreateOneBaseModel<
+export default class CreateManyBaseModel<
     TBaseModel extends BaseModel
 > extends ComponentCode {
     private modelService: DatabaseService<TBaseModel> | null = null;
