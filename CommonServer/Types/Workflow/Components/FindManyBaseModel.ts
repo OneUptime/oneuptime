@@ -77,7 +77,9 @@ export default class FindManyBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException('Query is should be of type object.');
+                throw new BadDataException(
+                    'Query is should be of type object.'
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -86,36 +88,38 @@ export default class FindManyBaseModel<
                 ] = options.projectId;
             }
 
-
-
             if (!args['select']) {
                 throw new BadDataException('Select Fields is undefined.');
             }
 
             if (typeof args['select'] !== 'object') {
-                throw new BadDataException('Select Fields is should be of type object.');
+                throw new BadDataException(
+                    'Select Fields is should be of type object.'
+                );
             }
 
             if (typeof args['skip'] !== 'number') {
                 args['skip'] = 0;
             }
 
-
             if (typeof args['limit'] !== 'number') {
                 args['limit'] = 10;
             }
 
-            if(typeof args['limit'] === 'number' &&  args['limit'] > LIMIT_PER_PROJECT){
-                options.log("Limit cannot be "+args['limit'])
-                options.log("Setting the limit to "+LIMIT_PER_PROJECT)
+            if (
+                typeof args['limit'] === 'number' &&
+                args['limit'] > LIMIT_PER_PROJECT
+            ) {
+                options.log('Limit cannot be ' + args['limit']);
+                options.log('Setting the limit to ' + LIMIT_PER_PROJECT);
                 args['limit'] = LIMIT_PER_PROJECT;
             }
 
             const models: Array<TBaseModel> = await this.modelService.findBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
                 select: args['select'] as Select<TBaseModel>,
-                limit:  new PositiveNumber(args['limit'] as number),
-                skip:  new PositiveNumber(args['skip'] as number),
+                limit: new PositiveNumber(args['limit'] as number),
+                skip: new PositiveNumber(args['skip'] as number),
                 props: {
                     isRoot: true,
                 },

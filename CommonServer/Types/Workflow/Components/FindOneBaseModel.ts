@@ -75,7 +75,9 @@ export default class FindOneBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException('Query is should be of type object.');
+                throw new BadDataException(
+                    'Query is should be of type object.'
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -84,16 +86,15 @@ export default class FindOneBaseModel<
                 ] = options.projectId;
             }
 
-
-
             if (!args['select']) {
                 throw new BadDataException('Select Fields is undefined.');
             }
 
             if (typeof args['select'] !== 'object') {
-                throw new BadDataException('Select Fields is should be of type object.');
+                throw new BadDataException(
+                    'Select Fields is should be of type object.'
+                );
             }
-
 
             const model: TBaseModel | null = await this.modelService.findOneBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
@@ -105,10 +106,12 @@ export default class FindOneBaseModel<
 
             return {
                 returnValues: {
-                    model: model ? JSONFunctions.toJSON(
-                        model,
-                        this.modelService.entityType
-                    ) : null,
+                    model: model
+                        ? JSONFunctions.toJSON(
+                              model,
+                              this.modelService.entityType
+                          )
+                        : null,
                 },
                 executePort: successPort,
             };

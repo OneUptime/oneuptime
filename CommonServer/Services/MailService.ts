@@ -34,7 +34,7 @@ export default class MailService {
             new URL(Protocol.HTTP, MailHostname, new Route('/email/send')),
             body,
             {
-                ...ClusterKeyAuthorization.getClusterKeyHeaders()
+                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
             }
         );
     }

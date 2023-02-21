@@ -443,9 +443,7 @@ export default class BaseModelComponent {
                         required: true,
                     },
                 ],
-                returnValues: [
-                   
-                ],
+                returnValues: [],
                 inPorts: [
                     {
                         title: 'In',
@@ -494,9 +492,7 @@ export default class BaseModelComponent {
                         required: true,
                     },
                 ],
-                returnValues: [
-                  
-                ],
+                returnValues: [],
                 inPorts: [
                     {
                         title: 'In',

@@ -6,7 +6,6 @@ import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Query from '../../Database/Query';
 
 export default class DeleteOneBaseModel<
@@ -74,7 +73,9 @@ export default class DeleteOneBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException('Query is should be of type object.');
+                throw new BadDataException(
+                    'Query is should be of type object.'
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -91,9 +92,7 @@ export default class DeleteOneBaseModel<
             });
 
             return {
-                returnValues: {
-                    
-                },
+                returnValues: {},
                 executePort: successPort,
             };
         } catch (err: any) {

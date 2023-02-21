@@ -11,12 +11,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import Dictionary from 'Common/Types/Dictionary';
 
 export default class ClusterKeyAuthorization {
-
-
-    public static getClusterKeyHeaders(): Dictionary<string>{
+    public static getClusterKeyHeaders(): Dictionary<string> {
         return {
-            clusterkey: ONEUPTIME_SECRET.toString()
-        }
+            clusterkey: ONEUPTIME_SECRET.toString(),
+        };
     }
 
     public static async isAuthorizedServiceMiddleware(

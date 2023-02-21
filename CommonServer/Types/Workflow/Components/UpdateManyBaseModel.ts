@@ -83,13 +83,14 @@ export default class UpdateManyBaseModel<
                 ] = options.projectId;
             }
 
-
             if (!args['query']) {
                 throw new BadDataException('Query is undefined.');
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException('Query is should be of type object.');
+                throw new BadDataException(
+                    'Query is should be of type object.'
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -107,9 +108,7 @@ export default class UpdateManyBaseModel<
             });
 
             return {
-                returnValues: {
-                    
-                },
+                returnValues: {},
                 executePort: successPort,
             };
         } catch (err: any) {

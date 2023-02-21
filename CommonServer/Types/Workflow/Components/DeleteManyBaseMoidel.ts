@@ -73,7 +73,9 @@ export default class DeleteManyBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException('Query is should be of type object.');
+                throw new BadDataException(
+                    'Query is should be of type object.'
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -90,9 +92,7 @@ export default class DeleteManyBaseModel<
             });
 
             return {
-                returnValues: {
-                    
-                },
+                returnValues: {},
                 executePort: successPort,
             };
         } catch (err: any) {
