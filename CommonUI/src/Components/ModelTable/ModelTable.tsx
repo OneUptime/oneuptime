@@ -56,6 +56,7 @@ import SubscriptionPlan, {
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import { ModalWidth } from '../Modal/Modal';
 
 export enum ShowTableAs {
     Table,
@@ -112,6 +113,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     sortOrder?: SortOrder | undefined;
     dragDropIdField?: string | undefined;
     dragDropIndexField?: string | undefined;
+    createEditModalWidth?: ModalWidth | undefined;
     orderedStatesListProps?: {
         titleField: string;
         descriptionField?: string | undefined;
@@ -1199,6 +1201,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
+                    modalWidth={props.createEditModalWidth}
                     name={
                         modalType === ModalType.Create
                             ? `${props.name} > ${

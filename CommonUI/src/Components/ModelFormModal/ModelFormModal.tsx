@@ -1,6 +1,6 @@
 import React, { ReactElement, RefObject, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
-import Modal from '../Modal/Modal';
+import Modal, { ModalWidth } from '../Modal/Modal';
 import ModelForm, {
     ComponentProps as ModelFormComponentProps,
 } from '../Forms/ModelForm';
@@ -20,6 +20,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     initialValues?: FormValues<TBaseModel> | undefined;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
+    modalWidth?: ModalWidth | undefined;
     onSuccess?:
         | undefined
         | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
@@ -41,6 +42,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     return (
         <Modal
             {...props}
+            modalWidth={props.modalWidth}
             submitButtonType={ButtonType.Submit}
             isLoading={isFormLoading}
             description={props.description}
@@ -61,6 +63,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                         onLoadingChange={(isFormLoading: boolean) => {
                             setIsFormLoading(isFormLoading);
                         }}
+                        
                         formRef={formRef}
                         initialValues={props.initialValues}
                         onSuccess={(

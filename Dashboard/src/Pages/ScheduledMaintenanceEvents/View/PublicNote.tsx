@@ -55,7 +55,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     title: 'Public Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                        PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                         ] as Route,
                         modelId
                     ),
@@ -101,11 +101,11 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Public Scheduled Maintenance Note',
                         description:
-                            'This is in markdown. This note is private to your team members and is not visible to public.',
+                            'This is in markdown. This note is visible on your Status Page.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
                         placeholder:
-                            'Add a private note to this scheduled maintenance here.',
+                            'Add a public note to this scheduled maintenance here.',
                     },
                 ]}
                 showRefreshButton={true}
@@ -132,7 +132,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         user={
                                             JSONFunctions.fromJSON(
                                                 item[
-                                                    'createdByUser'
+                                                'createdByUser'
                                                 ] as JSONObject,
                                                 User
                                             ) as User

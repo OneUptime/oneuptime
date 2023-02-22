@@ -30,6 +30,25 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     let className: string = '';
 
+    const [placeholder, setPlaceholder] = useState<string>('');
+
+    useEffect(()=>{
+        if (props.type === CodeType.Markdown) {
+            setPlaceholder(`<!---
+            ${props.placeholder}. This is in markdown.
+            -->`)
+        }
+
+        if (props.type === CodeType.HTML) {
+            setPlaceholder(`<!---
+            ${props.placeholder}. This is in HTML.
+            -->`)
+        }
+    }, [props.placeholder, props.type])
+
+    
+
+
     if (!props.className) {
         className =
             'block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm';
@@ -88,7 +107,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     setValue(code);
                     props.onBlur && props.onBlur();
                 }}
-                defaultValue={props.initialValue || props.placeholder || ''}
+                defaultValue={props.initialValue || placeholder || ''}
                 className={className}
                 options={{
                     acceptSuggestionOnCommitCharacter: true,
@@ -101,7 +120,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     contextmenu: false,
                     cursorBlinking: 'blink',
                     tabIndex: props.tabIndex || 0,
-
+                    minimap: { enabled: false },
                     cursorStyle: 'line',
                     disableLayerHinting: false,
                     disableMonospaceOptimizations: false,
@@ -132,6 +151,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     scrollBeyondLastColumn: 5,
                     scrollBeyondLastLine: true,
                     selectOnLineNumbers: true,
+                    lineNumbers: "off",
                     selectionClipboard: true,
                     selectionHighlight: true,
                     showFoldingControls: 'mouseover',
