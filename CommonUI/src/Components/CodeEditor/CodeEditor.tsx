@@ -44,6 +44,19 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             ${props.placeholder}. This is in HTML.
             -->`)
         }
+
+        if (props.type === CodeType.JavaScript) {
+            setPlaceholder(`// ${props.placeholder}. This is in JavaScript.`)
+        }
+
+        if (props.type === CodeType.JSON) {
+            setPlaceholder(`// ${props.placeholder}. This is in JSON.`)
+        }
+
+        if (props.type === CodeType.CSS) {
+            setPlaceholder(`/* ${props.placeholder}. This is in JavaScript. */`)
+        }
+
     }, [props.placeholder, props.type])
 
     

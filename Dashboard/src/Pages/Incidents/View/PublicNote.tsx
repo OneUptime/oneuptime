@@ -69,6 +69,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}
+                
                 createEditModalWidth={ModalWidth.Large}
                 isViewable={false}
                 query={{

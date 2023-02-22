@@ -21,6 +21,7 @@ import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -68,6 +69,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 id="table-scheduled-maintenance-internal-note"
                 name="Scheduled Maintenance Events > Public Notes"
                 isDeleteable={true}
+                createEditModalWidth={ModalWidth.Large}
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}

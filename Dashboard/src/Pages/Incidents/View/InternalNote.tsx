@@ -21,6 +21,7 @@ import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -70,6 +71,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}
+                createEditModalWidth={ModalWidth.Large}
                 query={{
                     incidentId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
