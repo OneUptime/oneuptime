@@ -1,5 +1,10 @@
 import DeleteOneBy from './DeleteOneBy';
 import BaseModel from 'Common/Models/BaseModel';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
-type DeleteBy<TBaseModel extends BaseModel> = DeleteOneBy<TBaseModel>;
+interface DeleteBy<TBaseModel extends BaseModel> extends DeleteOneBy<TBaseModel>{
+    limit:  PositiveNumber | number;
+    skip:  PositiveNumber | number;
+}
+
 export default DeleteBy;

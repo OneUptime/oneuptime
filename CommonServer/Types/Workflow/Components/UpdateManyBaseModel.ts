@@ -8,6 +8,8 @@ import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
 import Query from '../../Database/Query';
 import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class UpdateManyBaseModel<
     TBaseModel extends BaseModel
@@ -101,6 +103,23 @@ export default class UpdateManyBaseModel<
                 );
             }
 
+            if (typeof args['skip'] !== 'number') {
+                args['skip'] = 0;
+            }
+
+            if (typeof args['limit'] !== 'number') {
+                args['limit'] = 10;
+            }
+
+            if (
+                typeof args['limit'] === 'number' &&
+                args['limit'] > LIMIT_PER_PROJECT
+            ) {
+                options.log('Limit cannot be ' + args['limit']);
+                options.log('Setting the limit to ' + LIMIT_PER_PROJECT);
+                args['limit'] = LIMIT_PER_PROJECT;
+            }
+
             if (this.modelService.getModel().getTenantColumn()) {
                 (args['query'] as JSONObject)[
                     this.modelService.getModel().getTenantColumn() as string
@@ -110,6 +129,8 @@ export default class UpdateManyBaseModel<
             await this.modelService.updateBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
+                limit: new PositiveNumber(args['limit'] as number),
+                skip: new PositiveNumber(args['skip'] as number),
                 props: {
                     isRoot: true,
                 },

@@ -11,6 +11,7 @@ import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -109,6 +110,8 @@ export class Service extends DatabaseService<Model> {
                 currentScheduledMaintenanceStateId:
                     scheduledMaintenanceStateId.id,
             },
+            skip: 0, 
+            limit: LIMIT_PER_PROJECT,
             query: {
                 _id: scheduledMaintenanceId.toString()!,
             },

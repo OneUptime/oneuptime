@@ -145,7 +145,7 @@ export class Service extends DatabaseService<Model> {
                 newOrder = incidentState.order! - 1;
             }
 
-            await this.updateBy({
+            await this.updateOneBy({
                 query: {
                     _id: incidentState._id!,
                 },

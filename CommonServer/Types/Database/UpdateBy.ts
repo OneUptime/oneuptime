@@ -1,5 +1,10 @@
 import BaseModel from 'Common/Models/BaseModel';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import UpdateOneBy from './UpdateOneBy';
 
-type UpdateBy<TBaseModel extends BaseModel> = UpdateOneBy<TBaseModel>;
+interface UpdateBy<TBaseModel extends BaseModel> extends UpdateOneBy<TBaseModel>{
+    limit:  PositiveNumber | number;
+    skip:  PositiveNumber | number;
+}
+
 export default UpdateBy;

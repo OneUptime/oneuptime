@@ -75,12 +75,12 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    public entityType!: { new (): TBaseModel };
+    public entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
     public constructor(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -374,8 +374,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                          createBy.data.getSlugifyColumn() as string
-                      ] as string)
+                        createBy.data.getSlugifyColumn() as string
+                    ] as string)
                     : null
             );
         }
@@ -756,7 +756,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async deleteOneBy(
         deleteOneBy: DeleteOneBy<TBaseModel>
     ): Promise<number> {
-        return await this._deleteBy(deleteOneBy);
+        return await this._deleteBy({ ...deleteOneBy, limit: 1, skip: 0 });
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -778,10 +778,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 deleteBy.props
             );
 
+            if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
+                beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
+            }
+
+            if (!(beforeDeleteBy.limit instanceof PositiveNumber)) {
+                beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
+            }
+
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
-                skip: 0,
-                limit: LIMIT_MAX,
+                skip: beforeDeleteBy.skip.toNumber(),
+                limit: beforeDeleteBy.limit.toNumber(),
                 populate: {},
                 select: {},
                 props: { ...beforeDeleteBy.props, ignoreHooks: true },
@@ -792,6 +800,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUserId: deleteBy.props.userId,
                 } as any,
+                limit: deleteBy.limit,
+                skip: deleteBy.skip,
                 props: {
                     isRoot: true,
                     ignoreHooks: true,
@@ -946,10 +956,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column modelType is not found.'
                     );
                 }
 
@@ -1041,10 +1051,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     true
                 )) as QueryDeepPartialEntity<TBaseModel>;
 
+
+            if (!(updateBy.skip instanceof PositiveNumber)) {
+                updateBy.skip = new PositiveNumber(updateBy.skip);
+            }
+
+            if (!(updateBy.limit instanceof PositiveNumber)) {
+                updateBy.limit = new PositiveNumber(updateBy.limit);
+            }
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeUpdateBy.query,
-                skip: 0,
-                limit: LIMIT_MAX,
+                skip: updateBy.skip.toNumber(),
+                limit: updateBy.limit.toNumber(),
                 populate: {},
                 select: {},
                 props: { ...beforeUpdateBy.props, ignoreHooks: true },
@@ -1101,7 +1119,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async updateOneBy(
         updateOneBy: UpdateOneBy<TBaseModel>
     ): Promise<number> {
-        return await this._updateBy(updateOneBy);
+        return await this._updateBy({ ...updateOneBy, limit: 1, skip: 0 });
     }
 
     public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
