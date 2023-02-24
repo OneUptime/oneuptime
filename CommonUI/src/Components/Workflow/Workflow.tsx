@@ -128,12 +128,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
-            if(data.componentType === ComponentType.Component){
+            if (data.componentType === ComponentType.Component) {
                 setShowComponentsModal(true);
-            }else{
+            } else {
                 setShowTriggersModal(true);
             }
-            
+
         } else {
             setshowComponentSettingsModal(true);
             setSeletedNodeData(data);
@@ -352,6 +352,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             id: ObjectID.generate().toString(), // react-flow id
             type: 'node',
             position: { x: 200, y: 200 },
+            selected: true,
             data: {
                 nodeType: NodeType.Node,
                 id: `${metaDataId}-${idCounter}`,
@@ -371,12 +372,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         return (
                             node.data.componentType === ComponentType.Component
                         );
-                    })
-                    .concat(compToAdd);
+                    }).map((n: Node) => {
+                        return { ...n, selected: false };
+                    }).concat({ ...compToAdd } as any);
             });
         } else {
             setNodes((nds: Array<Node>) => {
-                return nds.concat(compToAdd);
+                return nds.map((n: Node) => {
+                    return { ...n, selected: false };
+                }).concat({ ...compToAdd } as any);
             });
         }
     };
