@@ -51,7 +51,9 @@ export default class CreateOneBaseModel<
         );
 
         if (!successPort) {
-            throw options.onError(new BadDataException('Success port not found'));
+            throw options.onError(
+                new BadDataException('Success port not found')
+            );
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -66,11 +68,15 @@ export default class CreateOneBaseModel<
 
         try {
             if (!this.modelService) {
-                throw options.onError(new BadDataException('modelService is undefined.'));
+                throw options.onError(
+                    new BadDataException('modelService is undefined.')
+                );
             }
 
             if (!args['json']) {
-                throw options.onError(new BadDataException('JSON is undefined.'));
+                throw options.onError(
+                    new BadDataException('JSON is undefined.')
+                );
             }
 
             if (typeof args['json'] === 'string') {
@@ -78,7 +84,9 @@ export default class CreateOneBaseModel<
             }
 
             if (typeof args['json'] !== 'object') {
-                throw options.onError(new BadDataException('JSON is should be of type object.'));
+                throw options.onError(
+                    new BadDataException('JSON is should be of type object.')
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {

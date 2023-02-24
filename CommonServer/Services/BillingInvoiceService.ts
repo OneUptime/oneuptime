@@ -53,7 +53,7 @@ export class Service extends DatabaseService<Model> {
             query: {
                 projectId: findBy.props.tenantId!,
             },
-            limit: LIMIT_PER_PROJECT, 
+            limit: LIMIT_PER_PROJECT,
             skip: 0,
             props: {
                 isRoot: true,

@@ -2,7 +2,9 @@ import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
 import Project from 'Model/Models/Project';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 import { BILLING_ENABLED, getAllEnvVars } from '../Config';
 
 export default class ProjectUtil {
@@ -40,7 +42,6 @@ export default class ProjectUtil {
         return SubscriptionPlan.getPlanSelect(
             project.paymentProviderPlanId,
             getAllEnvVars()
-        )
-
+        );
     }
 }

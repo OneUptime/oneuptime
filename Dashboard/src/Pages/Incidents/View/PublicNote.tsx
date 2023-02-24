@@ -69,7 +69,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}
-                
                 createEditModalWidth={ModalWidth.Large}
                 isViewable={false}
                 query={{
@@ -105,8 +104,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             'This is in markdown. This note is visible on your Status Page.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder:
-                            'Add a public note to this incident here.',
+                        placeholder: 'Add a public note to this incident here.',
                     },
                 ]}
                 showTableAs={ShowTableAs.List}

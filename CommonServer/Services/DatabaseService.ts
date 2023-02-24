@@ -75,12 +75,12 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    public entityType!: { new(): TBaseModel };
+    public entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -374,8 +374,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                        createBy.data.getSlugifyColumn() as string
-                    ] as string)
+                          createBy.data.getSlugifyColumn() as string
+                      ] as string)
                     : null
             );
         }
@@ -807,22 +807,25 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     ignoreHooks: true,
                 },
             });
-            
-            
-            let numberOfDocsAffected: number = 0;
 
+            let numberOfDocsAffected: number = 0;
 
             if (items.length > 0) {
                 beforeDeleteBy.query = {
                     ...beforeDeleteBy.query,
-                    _id: QueryHelper.in(items.map((i: TBaseModel) => {
-                        return i.id!;
-                    }))
-                }
+                    _id: QueryHelper.in(
+                        items.map((i: TBaseModel) => {
+                            return i.id!;
+                        })
+                    ),
+                };
 
                 numberOfDocsAffected =
-                    (await this.getRepository().softDelete(beforeDeleteBy.query as any))
-                        .affected || 0;
+                    (
+                        await this.getRepository().softDelete(
+                            beforeDeleteBy.query as any
+                        )
+                    ).affected || 0;
             }
 
             // hit workflow.
@@ -969,10 +972,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -1063,7 +1066,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     updateBy.props,
                     true
                 )) as QueryDeepPartialEntity<TBaseModel>;
-
 
             if (!(updateBy.skip instanceof PositiveNumber)) {
                 updateBy.skip = new PositiveNumber(updateBy.skip);

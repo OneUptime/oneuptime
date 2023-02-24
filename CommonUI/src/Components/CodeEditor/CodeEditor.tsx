@@ -32,35 +32,33 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
     const [placeholder, setPlaceholder] = useState<string>('');
 
-    useEffect(()=>{
+    useEffect(() => {
         if (props.type === CodeType.Markdown) {
             setPlaceholder(`<!---
             ${props.placeholder}. This is in markdown.
-            -->`)
+            -->`);
         }
 
         if (props.type === CodeType.HTML) {
             setPlaceholder(`<!---
             ${props.placeholder}. This is in HTML.
-            -->`)
+            -->`);
         }
 
         if (props.type === CodeType.JavaScript) {
-            setPlaceholder(`// ${props.placeholder}. This is in JavaScript.`)
+            setPlaceholder(`// ${props.placeholder}. This is in JavaScript.`);
         }
 
         if (props.type === CodeType.JSON) {
-            setPlaceholder(`// ${props.placeholder}. This is in JSON.`)
+            setPlaceholder(`// ${props.placeholder}. This is in JSON.`);
         }
 
         if (props.type === CodeType.CSS) {
-            setPlaceholder(`/* ${props.placeholder}. This is in JavaScript. */`)
+            setPlaceholder(
+                `/* ${props.placeholder}. This is in JavaScript. */`
+            );
         }
-
-    }, [props.placeholder, props.type])
-
-    
-
+    }, [props.placeholder, props.type]);
 
     if (!props.className) {
         className =
@@ -164,7 +162,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     scrollBeyondLastColumn: 5,
                     scrollBeyondLastLine: true,
                     selectOnLineNumbers: true,
-                    lineNumbers: "off",
+                    lineNumbers: 'off',
                     selectionClipboard: true,
                     selectionHighlight: true,
                     showFoldingControls: 'mouseover',

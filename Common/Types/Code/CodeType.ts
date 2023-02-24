@@ -3,7 +3,7 @@ enum CodeType {
     CSS = 'css',
     HTML = 'html',
     JSON = 'json',
-    Markdown = 'markdown'
+    Markdown = 'markdown',
     // TODO add more mime types.
 }
 

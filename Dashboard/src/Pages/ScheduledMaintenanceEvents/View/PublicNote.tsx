@@ -56,7 +56,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     title: 'Public Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                         ] as Route,
                         modelId
                     ),
@@ -134,7 +134,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         user={
                                             JSONFunctions.fromJSON(
                                                 item[
-                                                'createdByUser'
+                                                    'createdByUser'
                                                 ] as JSONObject,
                                                 User
                                             ) as User

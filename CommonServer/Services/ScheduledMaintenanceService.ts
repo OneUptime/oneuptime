@@ -110,7 +110,7 @@ export class Service extends DatabaseService<Model> {
                 currentScheduledMaintenanceStateId:
                     scheduledMaintenanceStateId.id,
             },
-            skip: 0, 
+            skip: 0,
             limit: LIMIT_PER_PROJECT,
             query: {
                 _id: scheduledMaintenanceId.toString()!,

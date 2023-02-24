@@ -18,7 +18,7 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import ModelProgress from "CommonUI/src/Components/ModelProgress/ModelProgress";
+import ModelProgress from 'CommonUI/src/Components/ModelProgress/ModelProgress';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import OneUptimeDate from 'Common/Types/Date';
@@ -51,19 +51,25 @@ const Workflows: FunctionComponent<PageComponentProps> = (
             sideMenu={<WorkflowSideMenu />}
         >
             <>
-
-                {plan && (plan === PlanSelect.Growth || plan === PlanSelect.Scale) && <ModelProgress<WorkflowLog> 
-                    totalCount={WorkflowPlan[plan]}
-                    modelType={WorkflowLog}
-                    countQuery={
-                        {
-                            createdAt: new InBetween(startDate, endDate)
-                        }
-                    }
-                    title="Workflow Runs"
-                    description={"Workflow runs in the last 30 days. Your current plan is "+plan+". It currently supports "+WorkflowPlan[plan]+" runs in the last 30 days."}
-                />}
-
+                {plan &&
+                    (plan === PlanSelect.Growth ||
+                        plan === PlanSelect.Scale) && (
+                        <ModelProgress<WorkflowLog>
+                            totalCount={WorkflowPlan[plan]}
+                            modelType={WorkflowLog}
+                            countQuery={{
+                                createdAt: new InBetween(startDate, endDate),
+                            }}
+                            title="Workflow Runs"
+                            description={
+                                'Workflow runs in the last 30 days. Your current plan is ' +
+                                plan +
+                                '. It currently supports ' +
+                                WorkflowPlan[plan] +
+                                ' runs in the last 30 days.'
+                            }
+                        />
+                    )}
 
                 <ModelTable<Workflow>
                     modelType={Workflow}
@@ -164,7 +170,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                     <LabelsElement
                                         labels={
                                             JSONFunctions.fromJSON(
-                                                (item['labels'] as JSONArray) || [],
+                                                (item['labels'] as JSONArray) ||
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }

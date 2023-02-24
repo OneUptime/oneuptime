@@ -1103,9 +1103,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getCardTitle: Function = (
         title: ReactElement | string
     ): ReactElement => {
+        const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
 
-        const plan: PlanSelect | null =  ProjectUtil.getCurrentPlan(); 
-         
         return (
             <span>
                 {title}

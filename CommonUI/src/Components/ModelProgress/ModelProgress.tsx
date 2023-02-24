@@ -13,37 +13,32 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     description: string;
     totalCount: number;
     countQuery: Query<TBaseModel>;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
 }
-
 
 const ModelProgress: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
-
 
     const fetchCount: Function = async () => {
         setError('');
         setIsLoading(true);
 
         try {
-
             const count: number = await ModelAPI.count<TBaseModel>(
                 props.modelType,
                 props.countQuery
             );
 
             setCount(count);
-
         } catch (err) {
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -59,18 +54,22 @@ const ModelProgress: Function = <TBaseModel extends BaseModel>(
         setIsLoading(false);
     }, []);
 
-
     return (
-        <Card
-            title={props.title}
-            description={
-                props.description
-            }
-        >
+        <Card title={props.title} description={props.description}>
             <div className="w-full -mt-20">
-                {!error && <div><ErrorMessage error={error} /></div>}
+                {!error && (
+                    <div>
+                        <ErrorMessage error={error} />
+                    </div>
+                )}
                 {isLoading && <ComponentLoader />}
-                {!error && !isLoading &&<ProgressBar totalCount={props.totalCount} count={count} suffix={props.title} />}
+                {!error && !isLoading && (
+                    <ProgressBar
+                        totalCount={props.totalCount}
+                        count={count}
+                        suffix={props.title}
+                    />
+                )}
             </div>
         </Card>
     );

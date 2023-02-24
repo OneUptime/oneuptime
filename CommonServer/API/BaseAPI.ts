@@ -31,12 +31,12 @@ export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
 > {
-    public entityType: { new(): TBaseModel };
+    public entityType: { new (): TBaseModel };
 
     public router: ExpressRouter;
     public service: TBaseService;
 
-    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
         // Create
@@ -363,7 +363,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         await this.onBeforeDelete(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
@@ -381,7 +380,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         await this.onBeforeUpdate(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const objectIdString: string = objectId.toString();

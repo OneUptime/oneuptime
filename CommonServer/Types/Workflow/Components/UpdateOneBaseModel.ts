@@ -51,7 +51,9 @@ export default class UpdateOneBaseModel<
         );
 
         if (!successPort) {
-            throw options.onError(new BadDataException('Success port not found'));
+            throw options.onError(
+                new BadDataException('Success port not found')
+            );
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -66,11 +68,15 @@ export default class UpdateOneBaseModel<
 
         try {
             if (!this.modelService) {
-                throw options.onError(new BadDataException('modelService is undefined.'));
+                throw options.onError(
+                    new BadDataException('modelService is undefined.')
+                );
             }
 
             if (!args['data']) {
-                throw options.onError(new BadDataException('JSON is undefined.'));
+                throw options.onError(
+                    new BadDataException('JSON is undefined.')
+                );
             }
 
             if (typeof args['data'] === 'string') {
@@ -78,7 +84,9 @@ export default class UpdateOneBaseModel<
             }
 
             if (typeof args['data'] !== 'object') {
-                throw options.onError(new BadDataException('JSON is should be of type object.'));
+                throw options.onError(
+                    new BadDataException('JSON is should be of type object.')
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -88,7 +96,9 @@ export default class UpdateOneBaseModel<
             }
 
             if (!args['query']) {
-                throw options.onError(new BadDataException('Query is undefined.'));
+                throw options.onError(
+                    new BadDataException('Query is undefined.')
+                );
             }
 
             if (typeof args['query'] === 'string') {
@@ -96,9 +106,9 @@ export default class UpdateOneBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw options.onError(new BadDataException(
-                    'Query is should be of type object.'
-                ));
+                throw options.onError(
+                    new BadDataException('Query is should be of type object.')
+                );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {

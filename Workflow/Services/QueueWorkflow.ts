@@ -46,10 +46,12 @@ export default class QueueWorkflow {
             );
         }
 
-        //check project and plan 
-        const projectPlan = await ProjectService.getCurrentPlan(workflow.projectId);
+        //check project and plan
+        const projectPlan = await ProjectService.getCurrentPlan(
+            workflow.projectId
+        );
 
-        console.log("Project Plan")
+        console.log('Project Plan');
         console.log(projectPlan);
 
         if (projectPlan.isSubscriptionUnpaid) {
@@ -74,23 +76,19 @@ export default class QueueWorkflow {
         }
 
         if (projectPlan.plan) {
-
             const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
             const endDate: Date = OneUptimeDate.getCurrentDate();
 
-            const workflowCount: PositiveNumber = await WorkflowLogService.countBy({
-                query: {
-                    projectId: workflow.projectId,
-                    createdAt: QueryHelper.inBetween(
-                        startDate,
-                        endDate
-                    ),
-                },
-                props: {
-                    isRoot: true
-                }
-            });
-
+            const workflowCount: PositiveNumber =
+                await WorkflowLogService.countBy({
+                    query: {
+                        projectId: workflow.projectId,
+                        createdAt: QueryHelper.inBetween(startDate, endDate),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (workflowCount.toNumber() > WorkflowPlan[projectPlan.plan]) {
                 // Add Workflow Run Log.
@@ -101,7 +99,9 @@ export default class QueueWorkflow {
                 runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
                 runLog.logs =
                     OneUptimeDate.getCurrentDateAsFormattedString() +
-                    `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${WorkflowPlan[projectPlan.plan]}`;
+                    `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
+                        WorkflowPlan[projectPlan.plan]
+                    }`;
 
                 await WorkflowLogService.create({
                     data: runLog,
@@ -109,12 +109,9 @@ export default class QueueWorkflow {
                         isRoot: true,
                     },
                 });
-                
+
                 return;
-
             }
-
-            
         }
 
         // Add Workflow Run Log.

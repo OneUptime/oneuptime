@@ -76,8 +76,9 @@ const selectedEdgeStyle: React.CSSProperties = {
     color: '#818cf8',
 };
 
-export const getEdgeDefaultProps: Function = (selected: boolean): JSONObject => {
-
+export const getEdgeDefaultProps: Function = (
+    selected: boolean
+): JSONObject => {
     return {
         type: 'smoothstep',
         markerEnd: {
@@ -133,7 +134,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             } else {
                 setShowTriggersModal(true);
             }
-
         } else {
             setshowComponentSettingsModal(true);
             setSeletedNodeData(data);
@@ -176,7 +176,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 nodeToUpdate.filter((n: Node) => {
                     return (
                         (n.data as NodeDataProp).componentType ===
-                        ComponentType.Trigger &&
+                            ComponentType.Trigger &&
                         (n.data as NodeDataProp).nodeType === NodeType.Node
                     );
                 }).length === 0
@@ -188,19 +188,21 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         });
 
         setEdges((eds: Array<Edge>) => {
-            return eds.filter((edge: Edge) => {
-                const idsToDelete: Array<string> = edgeToDelete.map(
-                    (e: Edge) => {
-                        return e.id;
-                    }
-                );
-                return !idsToDelete.includes(edge.id);
-            }).map((edge: Edge) => {
-                return {
-                    ...edge,
-                    ...getEdgeDefaultProps(edge.selected),
-                };
-            });
+            return eds
+                .filter((edge: Edge) => {
+                    const idsToDelete: Array<string> = edgeToDelete.map(
+                        (e: Edge) => {
+                            return e.id;
+                        }
+                    );
+                    return !idsToDelete.includes(edge.id);
+                })
+                .map((edge: Edge) => {
+                    return {
+                        ...edge,
+                        ...getEdgeDefaultProps(edge.selected),
+                    };
+                });
         });
     };
 
@@ -217,7 +219,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps(edge.selected)
+                ...getEdgeDefaultProps(edge.selected),
             };
 
             return edge;
@@ -285,14 +287,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const onEdgeUpdateEnd: any = useCallback((_props: any, edge: Edge) => {
         if (!edgeUpdateSuccessful.current) {
             setEdges((eds: Array<Edge>) => {
-                return eds.filter((e: Edge) => {
-                    return e.id !== edge.id;
-                }).map((edge: Edge) => {
-                    return {
-                        ...edge,
-                        ...getEdgeDefaultProps(edge.selected),
-                    };
-                });
+                return eds
+                    .filter((e: Edge) => {
+                        return e.id !== edge.id;
+                    })
+                    .map((edge: Edge) => {
+                        return {
+                            ...edge,
+                            ...getEdgeDefaultProps(edge.selected),
+                        };
+                    });
             });
         }
 
@@ -302,16 +306,13 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
-    const [showTriggersModal, setShowTriggersModal] =
-        useState<boolean>(false);
+    const [showTriggersModal, setShowTriggersModal] = useState<boolean>(false);
 
     const [showRunModal, setShowRunModal] = useState<boolean>(false);
-
 
     useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
-
 
     const refreshEdges: Function = (): void => {
         setEdges((eds: Array<Edge>) => {
@@ -322,7 +323,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 };
             });
         });
-    }
+    };
 
     useEffect(() => {
         props.onRunModalUpdate(showRunModal);
@@ -372,15 +373,19 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         return (
                             node.data.componentType === ComponentType.Component
                         );
-                    }).map((n: Node) => {
+                    })
+                    .map((n: Node) => {
                         return { ...n, selected: false };
-                    }).concat({ ...compToAdd } as any);
+                    })
+                    .concat({ ...compToAdd } as any);
             });
         } else {
             setNodes((nds: Array<Node>) => {
-                return nds.map((n: Node) => {
-                    return { ...n, selected: false };
-                }).concat({ ...compToAdd } as any);
+                return nds
+                    .map((n: Node) => {
+                        return { ...n, selected: false };
+                    })
+                    .concat({ ...compToAdd } as any);
             });
         }
     };
@@ -420,7 +425,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     categories={allComponentCategories}
                     components={allComponentMetadata.filter(
                         (comp: ComponentMetadata) => {
-                            return comp.componentType === ComponentType.Component;
+                            return (
+                                comp.componentType === ComponentType.Component
+                            );
                         }
                     )}
                     onComponentClick={(component: ComponentMetadata) => {
@@ -468,7 +475,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     description={
                         selectedNodeData &&
-                            selectedNodeData.metadata.description
+                        selectedNodeData.metadata.description
                             ? selectedNodeData.metadata.description
                             : 'Edit Component Properties and variables here.'
                     }

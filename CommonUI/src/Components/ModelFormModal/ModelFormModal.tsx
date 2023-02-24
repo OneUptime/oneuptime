@@ -63,7 +63,6 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                         onLoadingChange={(isFormLoading: boolean) => {
                             setIsFormLoading(isFormLoading);
                         }}
-                        
                         formRef={formRef}
                         initialValues={props.initialValues}
                         onSuccess={(

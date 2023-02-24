@@ -68,7 +68,7 @@ export default class RunWorkflow {
             this.workflowLogId = runProps.workflowLogId;
 
             let didWorkflowTimeOut: boolean = false;
-            let didWorkflowErrorOut: boolean = false; 
+            let didWorkflowErrorOut: boolean = false;
 
             setTimeout(() => {
                 didWorkflowTimeOut = true;
@@ -96,8 +96,6 @@ export default class RunWorkflow {
             }
 
             this.projectId = workflow.projectId || null;
-
-            
 
             // update workflow log.
             await WorkflowLogService.updateOneById({
@@ -139,7 +137,6 @@ export default class RunWorkflow {
                             'ms and workflow timed-out.'
                     );
                 }
-
 
                 // get component.
                 // and remoev that component from the stack.
@@ -215,7 +212,7 @@ export default class RunWorkflow {
                     const result: RunReturnType = await this.runComponent(
                         args,
                         stackItem.node,
-                        ()=> {
+                        () => {
                             didWorkflowErrorOut = true;
                         }
                     );
@@ -393,8 +390,8 @@ export default class RunWorkflow {
         if (ComponentCode) {
             const instance: ComponentCode = ComponentCode;
             return await instance.run(args, {
-                log: (data: string | JSONObject | JSONArray)=>{
-                    this.log(data)
+                log: (data: string | JSONObject | JSONArray) => {
+                    this.log(data);
                 },
                 workflowId: this.workflowId!,
                 workflowLogId: this.workflowLogId!,
@@ -403,7 +400,7 @@ export default class RunWorkflow {
                     this.log(exception);
                     onError();
                     return exception;
-                }
+                },
             });
         }
 
@@ -476,12 +473,11 @@ export default class RunWorkflow {
     }
 
     public log(data: string | JSONObject | JSONArray | Exception): void {
-
         if (!this.logs) {
             this.logs = [];
         }
 
-        if(data instanceof Exception){
+        if (data instanceof Exception) {
             data = data.getMessage();
         }
 
