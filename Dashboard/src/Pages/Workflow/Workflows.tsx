@@ -29,7 +29,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
     const endDate: Date = OneUptimeDate.getCurrentDate();
-    const plan = ProjectUtil.getCurrentPlan();
+    const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
 
     return (
         <Page

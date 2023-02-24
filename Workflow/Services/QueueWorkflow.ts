@@ -12,6 +12,7 @@ import ProjectService from 'CommonServer/Services/ProjectService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export default class QueueWorkflow {
     public static async addWorkflowToQueue(
@@ -47,12 +48,10 @@ export default class QueueWorkflow {
         }
 
         //check project and plan
-        const projectPlan = await ProjectService.getCurrentPlan(
-            workflow.projectId
-        );
-
-        console.log('Project Plan');
-        console.log(projectPlan);
+        const projectPlan: {
+            plan: PlanSelect | null;
+            isSubscriptionUnpaid: boolean;
+        } = await ProjectService.getCurrentPlan(workflow.projectId);
 
         if (projectPlan.isSubscriptionUnpaid) {
             // Add Workflow Run Log.

@@ -17,7 +17,7 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
     const [percent, setPercent] = useState<number>(0);
 
     useEffect(() => {
-        let percent = 0;
+        let percent: number = 0;
 
         try {
             percent = (props.count * 100) / props.totalCount;

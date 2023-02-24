@@ -127,6 +127,9 @@ export default class RunWorkflow {
             ];
             const componentsExecuted: Array<string> = [];
 
+            const setDidErrorOut: Function = () => {
+                didWorkflowErrorOut = true;
+            };
             // make variable map
 
             while (fifoStackOfComponentsPendingExecution.length > 0) {
@@ -212,9 +215,7 @@ export default class RunWorkflow {
                     const result: RunReturnType = await this.runComponent(
                         args,
                         stackItem.node,
-                        () => {
-                            didWorkflowErrorOut = true;
-                        }
+                        setDidErrorOut
                     );
 
                     if (didWorkflowErrorOut) {
