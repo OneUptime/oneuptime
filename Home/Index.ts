@@ -349,10 +349,10 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                 {
                     name: 'Advanced Workflows',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
@@ -414,9 +414,9 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     name: 'Advanced Workflows',
                     plans: {
                         free: false,
-                        growth: true,
-                        scale: true,
-                        enterprise: true,
+                        growth: "500 Runs / month",
+                        scale: "2000 Runs  /month",
+                        enterprise: "Unlimited Runs",
                     },
                 },
                 {
@@ -511,11 +511,11 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
             const response:
                 | HTTPResponse<Array<JSONObject>>
                 | HTTPErrorResponse = await API.get<Array<JSONObject>>(
-                URL.fromString(
-                    'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
+                    URL.fromString(
+                        'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
                         pageNumber
-                )
-            );
+                    )
+                );
             pageNumber++;
             if ((response.data as Array<JSONObject>).length < 30) {
                 hasMoreContributors = false;
