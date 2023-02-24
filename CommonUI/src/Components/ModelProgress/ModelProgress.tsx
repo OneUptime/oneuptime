@@ -31,7 +31,7 @@ const ModelProgress: Function = <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            
+
             const count: number = await ModelAPI.count<TBaseModel>(
                 props.modelType,
                 props.countQuery
@@ -64,14 +64,15 @@ const ModelProgress: Function = <TBaseModel extends BaseModel>(
         <Card
             title={props.title}
             description={
-                <div>
-                    {!error && !isLoading &&  <div>{props.description}</div>}
-                    {!error && <div><ErrorMessage error={error} /></div>}
-                    {isLoading && <ComponentLoader /> }
-                    <ProgressBar totalCount={count} count={count} />
-                </div>
+                props.description
             }
-        />
+        >
+            <div className="w-full -mt-20">
+                {!error && <div><ErrorMessage error={error} /></div>}
+                {isLoading && <ComponentLoader />}
+                {!error && !isLoading &&<ProgressBar totalCount={props.totalCount} count={count} suffix={props.title} />}
+            </div>
+        </Card>
     );
 };
 
