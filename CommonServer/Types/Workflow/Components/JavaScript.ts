@@ -38,7 +38,7 @@ export default class JavaScriptCode extends ComponentCode {
         );
 
         if (!successPort) {
-            throw new BadDataException('Success port not found');
+            throw options.onError(new BadDataException('Success port not found'));
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -48,7 +48,7 @@ export default class JavaScriptCode extends ComponentCode {
         );
 
         if (!errorPort) {
-            throw new BadDataException('Error port not found');
+            throw options.onError(new BadDataException('Error port not found'));
         }
 
         try {

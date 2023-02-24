@@ -808,8 +808,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 },
             });
 
+
+            beforeDeleteBy.query= {
+                ...beforeDeleteBy.query, 
+                _id: QueryHelper.in(items.map((i: TBaseModel)=> {
+                    return i.id!; 
+                }))
+            }
+
             const numberOfDocsAffected: number =
-                (await this.getRepository().delete(beforeDeleteBy.query as any))
+                (await this.getRepository().softDelete(beforeDeleteBy.query as any))
                     .affected || 0;
 
             // hit workflow.

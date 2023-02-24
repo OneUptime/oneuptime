@@ -33,8 +33,8 @@ export default class FindOneBaseModel<
         if (!BaseModelComponent) {
             throw new BadDataException(
                 'Find one component for ' +
-                    modelService.getModel().tableName +
-                    ' not found.'
+                modelService.getModel().tableName +
+                ' not found.'
             );
         }
         this.setMetadata(BaseModelComponent);
@@ -52,7 +52,7 @@ export default class FindOneBaseModel<
         );
 
         if (!successPort) {
-            throw new BadDataException('Success port not found');
+            throw options.onError(new BadDataException('Success port not found'));
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -62,16 +62,16 @@ export default class FindOneBaseModel<
         );
 
         if (!errorPort) {
-            throw new BadDataException('Error port not found');
+            throw options.onError(new BadDataException('Error port not found'));
         }
 
         try {
             if (!this.modelService) {
-                throw new BadDataException('modelService is undefined.');
+                throw options.onError(new BadDataException('modelService is undefined.'));
             }
 
             if (!args['query']) {
-                throw new BadDataException('Query is undefined.');
+                throw options.onError(new BadDataException('Query is undefined.'));
             }
 
             if (typeof args['query'] === 'string') {
@@ -79,9 +79,9 @@ export default class FindOneBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException(
+                throw options.onError(new BadDataException(
                     'Query is should be of type object.'
-                );
+                ));
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
@@ -91,13 +91,17 @@ export default class FindOneBaseModel<
             }
 
             if (!args['select']) {
-                throw new BadDataException('Select Fields is undefined.');
+                throw options.onError(new BadDataException('Select Fields is undefined.'));
+            }
+
+            if (typeof args['select'] === 'string') {
+                args['select'] = JSON.parse(args['select'] as string);
             }
 
             if (typeof args['select'] !== 'object') {
-                throw new BadDataException(
+                throw options.onError(new BadDataException(
                     'Select Fields is should be of type object.'
-                );
+                ));
             }
 
             const model: TBaseModel | null = await this.modelService.findOneBy({
@@ -112,18 +116,21 @@ export default class FindOneBaseModel<
                 returnValues: {
                     model: model
                         ? JSONFunctions.toJSON(
-                              model,
-                              this.modelService.entityType
-                          )
+                            model,
+                            this.modelService.entityType
+                        )
                         : null,
                 },
                 executePort: successPort,
             };
         } catch (err: any) {
+
             options.log('Error runnning component');
+
             options.log(
                 err.message ? err.message : JSON.stringify(err, null, 2)
             );
+
             return {
                 returnValues: {},
                 executePort: errorPort,

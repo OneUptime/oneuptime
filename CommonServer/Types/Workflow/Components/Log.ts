@@ -33,7 +33,7 @@ export default class Log extends ComponentCode {
         );
 
         if (!outPort) {
-            throw new BadDataException('Out port not found');
+            throw options.onError(new BadDataException('Out port not found'));
         }
 
         options.log('Value: ');

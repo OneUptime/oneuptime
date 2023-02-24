@@ -26,6 +26,7 @@ import { loadAllComponentMetadata } from '../Utils/ComponentMetadata';
 import Workflow from 'Model/Models/Workflow';
 import logger from 'CommonServer/Utils/Logger';
 import TimeoutException from 'Common/Types/Exception/TimeoutException';
+import Exception from 'Common/Types/Exception/Exception';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -66,10 +67,11 @@ export default class RunWorkflow {
             this.workflowId = runProps.workflowId;
             this.workflowLogId = runProps.workflowLogId;
 
-            let shouldStop: boolean = false;
+            let didWorkflowTimeOut: boolean = false;
+            let didWorkflowErrorOut: boolean = false; 
 
             setTimeout(() => {
-                shouldStop = true;
+                didWorkflowTimeOut = true;
             }, runProps.timeout);
 
             const workflow: Workflow | null = await WorkflowService.findOneById(
@@ -128,13 +130,14 @@ export default class RunWorkflow {
             // make variable map
 
             while (fifoStackOfComponentsPendingExecution.length > 0) {
-                if (shouldStop) {
+                if (didWorkflowTimeOut) {
                     throw new TimeoutException(
                         'Workflow execution time was more than ' +
                             runProps.timeout +
                             'ms and workflow timed-out.'
                     );
                 }
+
 
                 // get component.
                 // and remoev that component from the stack.
@@ -209,8 +212,17 @@ export default class RunWorkflow {
                     this.log('Component Logs: ' + executeComponentId);
                     const result: RunReturnType = await this.runComponent(
                         args,
-                        stackItem.node
+                        stackItem.node,
+                        ()=> {
+                            didWorkflowErrorOut = true;
+                        }
                     );
+
+                    if (didWorkflowErrorOut) {
+                        throw new BadDataException(
+                            'Workflow stopped because of an error'
+                        );
+                    }
 
                     this.log(
                         'Completed Execution Component: ' + executeComponentId
@@ -369,7 +381,8 @@ export default class RunWorkflow {
 
     public async runComponent(
         args: JSONObject,
-        node: NodeDataProp
+        node: NodeDataProp,
+        onError: Function
     ): Promise<RunReturnType> {
         // takes in args and returns values.
         const ComponentCode: ComponentCode | undefined =
@@ -378,10 +391,17 @@ export default class RunWorkflow {
         if (ComponentCode) {
             const instance: ComponentCode = ComponentCode;
             return await instance.run(args, {
-                log: this.log,
+                log: (data: string | JSONObject | JSONArray)=>{
+                    this.log(data)
+                },
                 workflowId: this.workflowId!,
                 workflowLogId: this.workflowLogId!,
                 projectId: this.projectId!,
+                onError: (exception: Exception) => {
+                    this.log(exception);
+                    onError();
+                    return exception;
+                }
             });
         }
 
@@ -453,9 +473,14 @@ export default class RunWorkflow {
         return newStorageMap;
     }
 
-    public log(data: string | JSONObject | JSONArray): void {
+    public log(data: string | JSONObject | JSONArray | Exception): void {
+
         if (!this.logs) {
             this.logs = [];
+        }
+
+        if(data instanceof Exception){
+            data = data.getMessage();
         }
 
         if (typeof data === 'string') {

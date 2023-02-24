@@ -352,6 +352,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                multiSelectionKeyCode={null}
                 onEdgeUpdate={onEdgeUpdate}
                 nodeTypes={nodeTypes}
                 onEdgeUpdateStart={onEdgeUpdateStart}

@@ -2,6 +2,7 @@
 //
 
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Exception from 'Common/Types/Exception/Exception';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
@@ -19,6 +20,7 @@ export interface RunOptions {
     workflowLogId: ObjectID;
     workflowId: ObjectID;
     projectId: ObjectID;
+    onError: (exception: Exception) => Exception;
 }
 
 export interface RunReturnType {

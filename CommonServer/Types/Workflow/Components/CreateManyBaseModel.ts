@@ -51,7 +51,7 @@ export default class CreateManyBaseModel<
         );
 
         if (!successPort) {
-            throw new BadDataException('Success port not found');
+            throw options.onError(new BadDataException('Success port not found'));
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -61,16 +61,16 @@ export default class CreateManyBaseModel<
         );
 
         if (!errorPort) {
-            throw new BadDataException('Error port not found');
+            throw options.onError(new BadDataException('Error port not found'));
         }
 
         try {
             if (!this.modelService) {
-                throw new BadDataException('modelService is undefined.');
+                throw options.onError(new BadDataException('modelService is undefined.'));
             }
 
             if (!args['json-array']) {
-                throw new BadDataException('json-array is undefined.');
+                throw options.onError(new BadDataException('json-array is undefined.'));
             }
 
             if (typeof args['json-array'] === 'string') {
@@ -78,9 +78,9 @@ export default class CreateManyBaseModel<
             }
 
             if (!Array.isArray(args['json-array'])) {
-                throw new BadDataException(
+                throw options.onError(new BadDataException(
                     'json-array is should be of type object.'
-                );
+                ));
             }
 
             const array: Array<TBaseModel> = [];

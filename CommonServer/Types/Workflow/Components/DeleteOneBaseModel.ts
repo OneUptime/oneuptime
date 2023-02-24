@@ -50,7 +50,7 @@ export default class DeleteOneBaseModel<
         );
 
         if (!successPort) {
-            throw new BadDataException('Success port not found');
+            throw options.onError(new BadDataException('Success port not found'));
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -60,16 +60,16 @@ export default class DeleteOneBaseModel<
         );
 
         if (!errorPort) {
-            throw new BadDataException('Error port not found');
+            throw options.onError(new BadDataException('Error port not found'));
         }
 
         try {
             if (!this.modelService) {
-                throw new BadDataException('modelService is undefined.');
+                throw options.onError(new BadDataException('modelService is undefined.'));
             }
 
             if (!args['query']) {
-                throw new BadDataException('Query is undefined.');
+                throw options.onError(new BadDataException('Query is undefined.'));
             }
 
             if (typeof args['query'] === 'string') {
@@ -77,9 +77,9 @@ export default class DeleteOneBaseModel<
             }
 
             if (typeof args['query'] !== 'object') {
-                throw new BadDataException(
+                throw options.onError(new BadDataException(
                     'Query is should be of type object.'
-                );
+                ));
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
