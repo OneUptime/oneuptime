@@ -391,6 +391,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 onEdgeClick={()=>{
                     refreshEdges();
                 }}
+                onNodeClick={()=>{
+                    refreshEdges();
+                }}
                 proOptions={proOptions}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
