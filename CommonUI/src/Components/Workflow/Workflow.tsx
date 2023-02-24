@@ -78,15 +78,13 @@ const selectedEdgeStyle: React.CSSProperties = {
 
 export const getEdgeDefaultProps: Function = (selected: boolean): JSONObject => {
 
-    console.log(selected);
-
     return {
         type: 'smoothstep',
         markerEnd: {
             type: MarkerType.Arrow,
             color: edgeStyle.color?.toString() || '',
         },
-        style: selected ? selectedEdgeStyle : edgeStyle,
+        style: selected ? {...selectedEdgeStyle} : {...edgeStyle},
     };
 };
 
@@ -180,7 +178,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 nodeToUpdate.filter((n: Node) => {
                     return (
                         (n.data as NodeDataProp).componentType ===
-                            ComponentType.Trigger &&
+                        ComponentType.Trigger &&
                         (n.data as NodeDataProp).nodeType === NodeType.Node
                     );
                 }).length === 0
@@ -199,6 +197,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }
                 );
                 return !idsToDelete.includes(edge.id);
+            }).map((edge: Edge)=>{
+                return {
+                    ...edge,
+                    ...getEdgeDefaultProps(edge.selected),
+                };
             });
         });
     };
@@ -213,13 +216,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [edges, setEdges, onEdgesChange] = useEdgesState(
         props.initialEdges.map((edge: Edge) => {
             // add style.
-            
+
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps(edge.selected),
+                ...getEdgeDefaultProps(edge.selected)
             };
-
-            console.log(edge);
 
             return edge;
         })
@@ -241,7 +242,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         ...params,
                         ...getEdgeDefaultProps(params.selected),
                     },
-                    eds
+                    eds.map((edge: Edge)=>{
+                        return {
+                            ...edge,
+                            ...getEdgeDefaultProps(edge.selected),
+                        };
+                    })
                 );
             });
         },
@@ -266,7 +272,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         style: edgeStyle,
                     },
                     newConnection,
-                    eds
+                    eds.map((edge: Edge)=>{
+                        return {
+                            ...edge,
+                            ...getEdgeDefaultProps(edge.selected),
+                        };
+                    })
                 );
             });
         },
@@ -278,6 +289,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setEdges((eds: Array<Edge>) => {
                 return eds.filter((e: Edge) => {
                     return e.id !== edge.id;
+                }).map((edge: Edge)=>{
+                    return {
+                        ...edge,
+                        ...getEdgeDefaultProps(edge.selected),
+                    };
                 });
             });
         }
@@ -297,6 +313,18 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
+
+
+    const refreshEdges: Function = (): void => {
+        setEdges((eds: Array<Edge>) => {
+            return eds.map((edge: Edge)=>{
+                return {
+                    ...edge,
+                    ...getEdgeDefaultProps(edge.selected),
+                };
+            });
+        });
+    }
 
     useEffect(() => {
         props.onRunModalUpdate(showRunModal);
@@ -360,6 +388,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
+                onEdgeClick={()=>{
+                    refreshEdges();
+                }}
                 proOptions={proOptions}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
@@ -412,7 +443,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }}
                     description={
                         selectedNodeData &&
-                        selectedNodeData.metadata.description
+                            selectedNodeData.metadata.description
                             ? selectedNodeData.metadata.description
                             : 'Edit Component Properties and variables here.'
                     }
