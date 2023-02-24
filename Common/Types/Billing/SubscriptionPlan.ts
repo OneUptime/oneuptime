@@ -5,6 +5,7 @@ export enum PlanSelect {
     Free = 'Free',
     Growth = 'Growth',
     Enterprise = 'Enterprise',
+    Scale = 'Scale'
 }
 
 export default class SubscriptionPlan {

@@ -97,6 +97,8 @@ export default class RunWorkflow {
 
             this.projectId = workflow.projectId || null;
 
+            
+
             // update workflow log.
             await WorkflowLogService.updateOneById({
                 id: runProps.workflowLogId,

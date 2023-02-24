@@ -57,6 +57,7 @@ import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ModalWidth } from '../Modal/Modal';
+import ProjectUtil from '../../Utils/Project';
 
 export enum ShowTableAs {
     Table,
@@ -122,7 +123,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheBegining?: boolean;
     };
     onViewComplete: (item: TBaseModel) => void;
-    currentPlan?: PlanSelect | undefined;
     name: string;
 }
 
@@ -1103,15 +1103,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getCardTitle: Function = (
         title: ReactElement | string
     ): ReactElement => {
+
+        const plan: PlanSelect | null =  ProjectUtil.getCurrentPlan(); 
+         
         return (
             <span>
                 {title}
                 {BILLING_ENABLED &&
-                    props.currentPlan &&
+                    plan &&
                     new props.modelType().readBillingPlan &&
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         new props.modelType().readBillingPlan!,
-                        props.currentPlan,
+                        plan,
                         getAllEnvVars()
                     ) && (
                         <span

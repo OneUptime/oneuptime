@@ -807,18 +807,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     ignoreHooks: true,
                 },
             });
+            
+            
+            let numberOfDocsAffected: number = 0;
 
 
-            beforeDeleteBy.query= {
-                ...beforeDeleteBy.query, 
-                _id: QueryHelper.in(items.map((i: TBaseModel)=> {
-                    return i.id!; 
-                }))
+            if (items.length > 0) {
+                beforeDeleteBy.query = {
+                    ...beforeDeleteBy.query,
+                    _id: QueryHelper.in(items.map((i: TBaseModel) => {
+                        return i.id!;
+                    }))
+                }
+
+                numberOfDocsAffected =
+                    (await this.getRepository().softDelete(beforeDeleteBy.query as any))
+                        .affected || 0;
             }
-
-            const numberOfDocsAffected: number =
-                (await this.getRepository().softDelete(beforeDeleteBy.query as any))
-                    .affected || 0;
 
             // hit workflow.
             if (
