@@ -70,14 +70,23 @@ const edgeStyle: React.CSSProperties = {
     color: '#94a3b8',
 };
 
-export const getEdgeDefaultProps: Function = (): JSONObject => {
+const selectedEdgeStyle: React.CSSProperties = {
+    strokeWidth: '2px',
+    stroke: '#818cf8',
+    color: '#818cf8',
+};
+
+export const getEdgeDefaultProps: Function = (selected: boolean): JSONObject => {
+
+    console.log(selected);
+
     return {
         type: 'smoothstep',
         markerEnd: {
             type: MarkerType.Arrow,
             color: edgeStyle.color?.toString() || '',
         },
-        style: edgeStyle,
+        style: selected ? selectedEdgeStyle : edgeStyle,
     };
 };
 
@@ -204,11 +213,14 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [edges, setEdges, onEdgesChange] = useEdgesState(
         props.initialEdges.map((edge: Edge) => {
             // add style.
-
+            
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps(),
+                ...getEdgeDefaultProps(edge.selected),
             };
+
+            console.log(edge);
+
             return edge;
         })
     );
@@ -227,7 +239,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 return addEdge(
                     {
                         ...params,
-                        ...getEdgeDefaultProps(),
+                        ...getEdgeDefaultProps(params.selected),
                     },
                     eds
                 );

@@ -14,6 +14,7 @@ import { Green } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     data: NodeDataProp;
+    selected: boolean;
 }
 
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -31,7 +32,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         width: '15rem',
         height: '10rem',
         padding: '1rem',
-        borderColor: textColor,
+        borderColor: props.selected ?  "#6366f1": textColor,
         alignItems: 'center',
         borderRadius: '0.25rem',
         borderWidth: '2px',

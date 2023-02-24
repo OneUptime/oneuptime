@@ -192,6 +192,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                                 key={
                                                                                     i
                                                                                 }
+                                                                                selected={false}
                                                                                 data={{
                                                                                     metadata:
                                                                                         componentMetadata,

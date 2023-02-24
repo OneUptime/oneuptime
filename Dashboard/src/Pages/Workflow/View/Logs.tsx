@@ -10,12 +10,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
 import WorkflowLogs from 'Model/Models/WorkflowLog';
-import Workflow from 'Model/Models/Workflow';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
-import WorkflowElement from '../../../Components/Workflow/WorkflowElement';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -113,27 +110,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     columns={[
                         {
                             field: {
-                                workflow: {
-                                    name: true,
-                                },
+                                _id: true,
                             },
-                            title: 'Workflow',
+                            title: 'Run ID',
                             type: FieldType.Text,
                             isFilterable: true,
-                            getElement: (item: JSONObject): ReactElement => {
-                                return (
-                                    <WorkflowElement
-                                        workflow={
-                                            JSONFunctions.fromJSON(
-                                                (item[
-                                                    'workflow'
-                                                ] as JSONObject) || [],
-                                                Workflow
-                                            ) as Workflow
-                                        }
-                                    />
-                                );
-                            },
                         },
                         {
                             field: {
