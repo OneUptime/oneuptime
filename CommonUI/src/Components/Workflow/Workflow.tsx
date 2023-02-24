@@ -33,7 +33,7 @@ import ComponentMetadata, {
     NodeDataProp,
     NodeType,
 } from 'Common/Types/Workflow/Component';
-import ComponentsModal from './ComponentModal';
+import ComponentsModal from './ComponentsModal';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentSettingsModal from './ComponentSettingsModal';
 import { loadComponentsAndCategories } from './Utils';
@@ -84,7 +84,7 @@ export const getEdgeDefaultProps: Function = (selected: boolean): JSONObject => 
             type: MarkerType.Arrow,
             color: edgeStyle.color?.toString() || '',
         },
-        style: selected ? {...selectedEdgeStyle} : {...edgeStyle},
+        style: selected ? { ...selectedEdgeStyle } : { ...edgeStyle },
     };
 };
 
@@ -128,23 +128,21 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
-            showComponentsPickerModal(data.metadata.componentType);
+            if(data.componentType === ComponentType.Component){
+                setShowComponentsModal(true);
+            }else{
+                setShowTriggersModal(true);
+            }
+            
         } else {
             setshowComponentSettingsModal(true);
             setSeletedNodeData(data);
         }
     };
 
-    const showComponentsPickerModal: Function = (
-        componentType: ComponentType
-    ) => {
-        setShowComponentsType(componentType);
-        setShowComponentsModal(true);
-    };
-
     useEffect(() => {
         if (props.showComponentsPickerModal) {
-            showComponentsPickerModal(ComponentType.Component);
+            setShowComponentsModal(true);
         } else {
             setShowComponentsModal(false);
         }
@@ -197,7 +195,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     }
                 );
                 return !idsToDelete.includes(edge.id);
-            }).map((edge: Edge)=>{
+            }).map((edge: Edge) => {
                 return {
                     ...edge,
                     ...getEdgeDefaultProps(edge.selected),
@@ -242,7 +240,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         ...params,
                         ...getEdgeDefaultProps(params.selected),
                     },
-                    eds.map((edge: Edge)=>{
+                    eds.map((edge: Edge) => {
                         return {
                             ...edge,
                             ...getEdgeDefaultProps(edge.selected),
@@ -272,7 +270,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         style: edgeStyle,
                     },
                     newConnection,
-                    eds.map((edge: Edge)=>{
+                    eds.map((edge: Edge) => {
                         return {
                             ...edge,
                             ...getEdgeDefaultProps(edge.selected),
@@ -289,7 +287,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setEdges((eds: Array<Edge>) => {
                 return eds.filter((e: Edge) => {
                     return e.id !== edge.id;
-                }).map((edge: Edge)=>{
+                }).map((edge: Edge) => {
                     return {
                         ...edge,
                         ...getEdgeDefaultProps(edge.selected),
@@ -304,11 +302,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
+    const [showTriggersModal, setShowTriggersModal] =
+        useState<boolean>(false);
+
     const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
-    const [showComponentType, setShowComponentsType] = useState<ComponentType>(
-        ComponentType.Component
-    );
 
     useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
@@ -317,7 +315,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     const refreshEdges: Function = (): void => {
         setEdges((eds: Array<Edge>) => {
-            return eds.map((edge: Edge)=>{
+            return eds.map((edge: Edge) => {
                 return {
                     ...edge,
                     ...getEdgeDefaultProps(edge.selected),
@@ -388,10 +386,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onEdgeClick={()=>{
+                onEdgeClick={() => {
                     refreshEdges();
                 }}
-                onNodeClick={()=>{
+                onNodeClick={() => {
                     refreshEdges();
                 }}
                 proOptions={proOptions}
@@ -411,18 +409,38 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {showComponentsModal && (
                 <ComponentsModal
-                    componentsType={showComponentType}
+                    componentsType={ComponentType.Component}
                     onCloseModal={() => {
                         setShowComponentsModal(false);
                     }}
                     categories={allComponentCategories}
                     components={allComponentMetadata.filter(
                         (comp: ComponentMetadata) => {
-                            return comp.componentType === showComponentType;
+                            return comp.componentType === ComponentType.Component;
                         }
                     )}
                     onComponentClick={(component: ComponentMetadata) => {
                         setShowComponentsModal(false);
+
+                        addToGraph(component);
+                    }}
+                />
+            )}
+
+            {showTriggersModal && (
+                <ComponentsModal
+                    componentsType={ComponentType.Trigger}
+                    onCloseModal={() => {
+                        setShowTriggersModal(false);
+                    }}
+                    categories={allComponentCategories}
+                    components={allComponentMetadata.filter(
+                        (comp: ComponentMetadata) => {
+                            return comp.componentType === ComponentType.Trigger;
+                        }
+                    )}
+                    onComponentClick={(component: ComponentMetadata) => {
+                        setShowTriggersModal(false);
 
                         addToGraph(component);
                     }}

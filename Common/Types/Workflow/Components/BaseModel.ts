@@ -156,7 +156,7 @@ export default class BaseModelComponent {
                 arguments: [],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'data',
                         name: `${model.singularName}`,
                         description: `${model.singularName} deleted in the database`,
                         type: ComponentInputType.BaseModel,
@@ -285,7 +285,7 @@ export default class BaseModelComponent {
                 arguments: [],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'data',
                         name: `${model.singularName}`,
                         description: `${model.singularName} created in the database`,
                         type: ComponentInputType.BaseModel,
@@ -416,7 +416,7 @@ export default class BaseModelComponent {
                 arguments: [],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'data',
                         name: `${model.singularName}`,
                         description: `Updated ${model.singularName}`,
                         type: ComponentInputType.BaseModel,

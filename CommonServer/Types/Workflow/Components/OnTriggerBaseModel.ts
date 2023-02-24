@@ -100,7 +100,9 @@ export default class OnTriggerBaseModel<
 
             const executeWorkflow: ExecuteWorkflowType = {
                 workflowId: workflow.id!,
-                returnValues: req.body,
+                returnValues: {
+                    data: req.body.data,
+                }
             };
 
             promises.push(props.executeWorkflow(executeWorkflow));
