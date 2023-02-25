@@ -158,7 +158,7 @@ export class Service extends DatabaseService<Model> {
                         group.order! < currentOrder
                     ) {
                         // increment order.
-                        await this.updateBy({
+                        await this.updateOneBy({
                             query: {
                                 _id: group._id!,
                             },
@@ -182,7 +182,7 @@ export class Service extends DatabaseService<Model> {
                         group.order! >= currentOrder
                     ) {
                         // increment order.
-                        await this.updateBy({
+                        await this.updateOneBy({
                             query: {
                                 _id: group._id!,
                             },
@@ -235,7 +235,7 @@ export class Service extends DatabaseService<Model> {
                 newOrder = group.order! - 1;
             }
 
-            await this.updateBy({
+            await this.updateOneBy({
                 query: {
                     _id: group._id!,
                 },

@@ -48,14 +48,15 @@ QueueWorker.getWorker(
 
 const init: Function = async (): Promise<void> => {
     try {
-        // init the app
-        await App(APP_NAME);
         // connect to the database.
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
 
-        app.use(`/${APP_NAME}/`, new ComponentCode().router);
+        app.use(`/${APP_NAME}`, new ComponentCode().router);
+
+        // init the app
+        await App(APP_NAME);
 
         // connect redis
         await Redis.connect();

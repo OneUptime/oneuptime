@@ -140,7 +140,7 @@ export class Service extends DatabaseService<Model> {
                         logger.error(err);
                     });
 
-                    await this.updateBy({
+                    await this.updateOneBy({
                         query: {
                             _id: user.id.toString(),
                         },

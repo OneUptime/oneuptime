@@ -349,10 +349,10 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                 {
                     name: 'Advanced Workflows',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
@@ -414,9 +414,9 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     name: 'Advanced Workflows',
                     plans: {
                         free: false,
-                        growth: true,
-                        scale: true,
-                        enterprise: true,
+                        growth: '500 Runs / month',
+                        scale: '2000 Runs  /month',
+                        enterprise: 'Unlimited Runs',
                     },
                 },
                 {

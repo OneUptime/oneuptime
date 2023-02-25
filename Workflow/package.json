@@ -18,6 +18,7 @@
     "bullmq": "^3.6.6",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
+    "handlebars": "^4.7.7",
     "Model": "file:../Model",
     "ts-node": "^10.9.1",
     "vm2": "^3.9.14"

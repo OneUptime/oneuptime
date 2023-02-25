@@ -33,7 +33,7 @@ import ComponentMetadata, {
     NodeDataProp,
     NodeType,
 } from 'Common/Types/Workflow/Component';
-import ComponentsModal from './ComponentModal';
+import ComponentsModal from './ComponentsModal';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentSettingsModal from './ComponentSettingsModal';
 import { loadComponentsAndCategories } from './Utils';
@@ -70,14 +70,22 @@ const edgeStyle: React.CSSProperties = {
     color: '#94a3b8',
 };
 
-export const getEdgeDefaultProps: Function = (): JSONObject => {
+const selectedEdgeStyle: React.CSSProperties = {
+    strokeWidth: '2px',
+    stroke: '#818cf8',
+    color: '#818cf8',
+};
+
+export const getEdgeDefaultProps: Function = (
+    selected: boolean
+): JSONObject => {
     return {
         type: 'smoothstep',
         markerEnd: {
             type: MarkerType.Arrow,
             color: edgeStyle.color?.toString() || '',
         },
-        style: edgeStyle,
+        style: selected ? { ...selectedEdgeStyle } : { ...edgeStyle },
     };
 };
 
@@ -121,23 +129,20 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
-            showComponentsPickerModal(data.metadata.componentType);
+            if (data.componentType === ComponentType.Component) {
+                setShowComponentsModal(true);
+            } else {
+                setShowTriggersModal(true);
+            }
         } else {
             setshowComponentSettingsModal(true);
             setSeletedNodeData(data);
         }
     };
 
-    const showComponentsPickerModal: Function = (
-        componentType: ComponentType
-    ) => {
-        setShowComponentsType(componentType);
-        setShowComponentsModal(true);
-    };
-
     useEffect(() => {
         if (props.showComponentsPickerModal) {
-            showComponentsPickerModal(ComponentType.Component);
+            setShowComponentsModal(true);
         } else {
             setShowComponentsModal(false);
         }
@@ -183,14 +188,21 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         });
 
         setEdges((eds: Array<Edge>) => {
-            return eds.filter((edge: Edge) => {
-                const idsToDelete: Array<string> = edgeToDelete.map(
-                    (e: Edge) => {
-                        return e.id;
-                    }
-                );
-                return !idsToDelete.includes(edge.id);
-            });
+            return eds
+                .filter((edge: Edge) => {
+                    const idsToDelete: Array<string> = edgeToDelete.map(
+                        (e: Edge) => {
+                            return e.id;
+                        }
+                    );
+                    return !idsToDelete.includes(edge.id);
+                })
+                .map((edge: Edge) => {
+                    return {
+                        ...edge,
+                        ...getEdgeDefaultProps(edge.selected),
+                    };
+                });
         });
     };
 
@@ -207,8 +219,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps(),
+                ...getEdgeDefaultProps(edge.selected),
             };
+
             return edge;
         })
     );
@@ -227,9 +240,14 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 return addEdge(
                     {
                         ...params,
-                        ...getEdgeDefaultProps(),
+                        ...getEdgeDefaultProps(params.selected),
                     },
-                    eds
+                    eds.map((edge: Edge) => {
+                        return {
+                            ...edge,
+                            ...getEdgeDefaultProps(edge.selected),
+                        };
+                    })
                 );
             });
         },
@@ -254,7 +272,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         style: edgeStyle,
                     },
                     newConnection,
-                    eds
+                    eds.map((edge: Edge) => {
+                        return {
+                            ...edge,
+                            ...getEdgeDefaultProps(edge.selected),
+                        };
+                    })
                 );
             });
         },
@@ -264,9 +287,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const onEdgeUpdateEnd: any = useCallback((_props: any, edge: Edge) => {
         if (!edgeUpdateSuccessful.current) {
             setEdges((eds: Array<Edge>) => {
-                return eds.filter((e: Edge) => {
-                    return e.id !== edge.id;
-                });
+                return eds
+                    .filter((e: Edge) => {
+                        return e.id !== edge.id;
+                    })
+                    .map((edge: Edge) => {
+                        return {
+                            ...edge,
+                            ...getEdgeDefaultProps(edge.selected),
+                        };
+                    });
             });
         }
 
@@ -276,15 +306,24 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
 
-    const [showRunModal, setShowRunModal] = useState<boolean>(false);
+    const [showTriggersModal, setShowTriggersModal] = useState<boolean>(false);
 
-    const [showComponentType, setShowComponentsType] = useState<ComponentType>(
-        ComponentType.Component
-    );
+    const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
     useEffect(() => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
+
+    const refreshEdges: Function = (): void => {
+        setEdges((eds: Array<Edge>) => {
+            return eds.map((edge: Edge) => {
+                return {
+                    ...edge,
+                    ...getEdgeDefaultProps(edge.selected),
+                };
+            });
+        });
+    };
 
     useEffect(() => {
         props.onRunModalUpdate(showRunModal);
@@ -314,6 +353,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             id: ObjectID.generate().toString(), // react-flow id
             type: 'node',
             position: { x: 200, y: 200 },
+            selected: true,
             data: {
                 nodeType: NodeType.Node,
                 id: `${metaDataId}-${idCounter}`,
@@ -334,11 +374,18 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             node.data.componentType === ComponentType.Component
                         );
                     })
-                    .concat(compToAdd);
+                    .map((n: Node) => {
+                        return { ...n, selected: false };
+                    })
+                    .concat({ ...compToAdd } as any);
             });
         } else {
             setNodes((nds: Array<Node>) => {
-                return nds.concat(compToAdd);
+                return nds
+                    .map((n: Node) => {
+                        return { ...n, selected: false };
+                    })
+                    .concat({ ...compToAdd } as any);
             });
         }
     };
@@ -348,10 +395,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
+                onEdgeClick={() => {
+                    refreshEdges();
+                }}
+                onNodeClick={() => {
+                    refreshEdges();
+                }}
                 proOptions={proOptions}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                multiSelectionKeyCode={null}
                 onEdgeUpdate={onEdgeUpdate}
                 nodeTypes={nodeTypes}
                 onEdgeUpdateStart={onEdgeUpdateStart}
@@ -364,18 +418,40 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             {showComponentsModal && (
                 <ComponentsModal
-                    componentsType={showComponentType}
+                    componentsType={ComponentType.Component}
                     onCloseModal={() => {
                         setShowComponentsModal(false);
                     }}
                     categories={allComponentCategories}
                     components={allComponentMetadata.filter(
                         (comp: ComponentMetadata) => {
-                            return comp.componentType === showComponentType;
+                            return (
+                                comp.componentType === ComponentType.Component
+                            );
                         }
                     )}
                     onComponentClick={(component: ComponentMetadata) => {
                         setShowComponentsModal(false);
+
+                        addToGraph(component);
+                    }}
+                />
+            )}
+
+            {showTriggersModal && (
+                <ComponentsModal
+                    componentsType={ComponentType.Trigger}
+                    onCloseModal={() => {
+                        setShowTriggersModal(false);
+                    }}
+                    categories={allComponentCategories}
+                    components={allComponentMetadata.filter(
+                        (comp: ComponentMetadata) => {
+                            return comp.componentType === ComponentType.Trigger;
+                        }
+                    )}
+                    onComponentClick={(component: ComponentMetadata) => {
+                        setShowTriggersModal(false);
 
                         addToGraph(component);
                     }}

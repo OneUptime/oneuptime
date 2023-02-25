@@ -4,10 +4,11 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
-import { ClusterKey, MailHostname } from '../Config';
+import { MailHostname } from '../Config';
 import Email from 'Common/Types/Email/EmailMessage';
 import EmailServer from 'Common/Types/Email/EmailServer';
 import Protocol from 'Common/Types/API/Protocol';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 
 export default class MailService {
     public static async sendMail(
@@ -16,7 +17,6 @@ export default class MailService {
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             ...mail,
-            clusterKey: ClusterKey.toString(),
             toEmail: mail.toEmail.toString(),
         };
 
@@ -32,7 +32,10 @@ export default class MailService {
 
         return await API.post<EmptyResponseData>(
             new URL(Protocol.HTTP, MailHostname, new Route('/email/send')),
-            body
+            body,
+            {
+                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            }
         );
     }
 }

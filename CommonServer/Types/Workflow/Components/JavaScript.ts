@@ -3,13 +3,13 @@ import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
-import ComponentCode, { RunReturnType } from '../ComponentCode';
+import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import VM, { VMScript } from 'vm2';
 import axios from 'axios';
 import http from 'http';
 import https from 'https';
 
-export default class JavaScirptCode extends ComponentCode {
+export default class JavaScriptCode extends ComponentCode {
     public constructor() {
         super();
 
@@ -27,7 +27,10 @@ export default class JavaScirptCode extends ComponentCode {
         this.setMetadata(JavaScirptComponent);
     }
 
-    public override async run(args: JSONObject): Promise<RunReturnType> {
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'success';
@@ -35,7 +38,9 @@ export default class JavaScirptCode extends ComponentCode {
         );
 
         if (!successPort) {
-            throw new BadDataException('Success port not found');
+            throw options.onError(
+                new BadDataException('Success port not found')
+            );
         }
 
         const errorPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -45,7 +50,7 @@ export default class JavaScirptCode extends ComponentCode {
         );
 
         if (!errorPort) {
-            throw new BadDataException('Error port not found');
+            throw options.onError(new BadDataException('Error port not found'));
         }
 
         try {
@@ -63,7 +68,7 @@ export default class JavaScirptCode extends ComponentCode {
                     https: https,
                     console: {
                         log: (logValue: JSONValue) => {
-                            this.log(logValue);
+                            options.log(logValue);
                         },
                     },
                 },
@@ -86,15 +91,15 @@ export default class JavaScirptCode extends ComponentCode {
                     returnValue: returnVal,
                 },
                 executePort: successPort,
-                logs: this.logs,
             };
         } catch (err: any) {
-            this.log('Error running script');
-            this.log(err.message ? err.message : JSON.stringify(err, null, 2));
+            options.log('Error running script');
+            options.log(
+                err.message ? err.message : JSON.stringify(err, null, 2)
+            );
             return {
                 returnValues: {},
                 executePort: errorPort,
-                logs: this.logs,
             };
         }
     }

@@ -21,6 +21,7 @@ import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -68,6 +69,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}
+                createEditModalWidth={ModalWidth.Large}
                 isViewable={false}
                 query={{
                     incidentId: modelId,
@@ -99,11 +101,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Public Incident Note',
                         description:
-                            'This is in markdown. This note is private to your team members and is not visible to public.',
+                            'This is in markdown. This note is visible on your Status Page.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder:
-                            'Add a private note to this incident here.',
+                        placeholder: 'Add a public note to this incident here.',
                     },
                 ]}
                 showTableAs={ShowTableAs.List}

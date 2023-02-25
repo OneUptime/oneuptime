@@ -32,7 +32,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             throw new BadDataException('incidentStateId is null');
         }
 
-        await IncidentService.updateBy({
+        await IncidentService.updateOneBy({
             query: {
                 _id: createdItem.incidentId?.toString(),
             },
@@ -190,7 +190,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
                 incidentStateTimeline &&
                 incidentStateTimeline.incidentStateId
             ) {
-                await IncidentService.updateBy({
+                await IncidentService.updateOneBy({
                     query: {
                         _id: incidentId.toString(),
                     },

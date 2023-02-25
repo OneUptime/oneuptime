@@ -164,7 +164,7 @@ export const componentInputTypeToFormFieldType: Function = (
 
     if (componentInputType === ComponentInputType.Query) {
         return {
-            fieldType: FormFieldSchemaType.Query,
+            fieldType: FormFieldSchemaType.JSON,
         };
     }
 

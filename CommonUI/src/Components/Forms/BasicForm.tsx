@@ -37,7 +37,6 @@ import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
 import Input, { InputType } from '../Input/Input';
-import Markdown from '../Markdown.tsx/MarkdownEditor';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FilePicker from '../FilePicker/FilePicker';
@@ -313,8 +312,7 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
-                    {(field.fieldType === FormFieldSchemaType.LongText ||
-                        field.fieldType === FormFieldSchemaType.JSON) && (
+                    {field.fieldType === FormFieldSchemaType.LongText && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
@@ -366,12 +364,65 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
+                    {field.fieldType === FormFieldSchemaType.JSON && (
+                        <Field name={fieldName}>
+                            {({ form }: any) => {
+                                return (
+                                    <>
+                                        <CodeEditor
+                                            error={
+                                                touched[fieldName] &&
+                                                errors[fieldName]
+                                                    ? errors[fieldName]
+                                                    : undefined
+                                            }
+                                            type={CodeType.JSON}
+                                            tabIndex={index}
+                                            onChange={async (value: string) => {
+                                                setCurrentValue({
+                                                    ...currentValue,
+                                                    [fieldName]: value,
+                                                });
+                                                field.onChange &&
+                                                    field.onChange(value, form);
+                                                await form.setFieldValue(
+                                                    fieldName,
+                                                    value,
+                                                    true
+                                                );
+                                            }}
+                                            onBlur={async () => {
+                                                await form.setFieldTouched(
+                                                    fieldName,
+                                                    true
+                                                );
+                                            }}
+                                            initialValue={
+                                                initialValues &&
+                                                (initialValues as any)[
+                                                    fieldName
+                                                ]
+                                                    ? (initialValues as any)[
+                                                          fieldName
+                                                      ]
+                                                    : ''
+                                            }
+                                            placeholder={
+                                                field.placeholder || ''
+                                            }
+                                        />
+                                    </>
+                                );
+                            }}
+                        </Field>
+                    )}
+
                     {field.fieldType === FormFieldSchemaType.Markdown && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
                                     <>
-                                        <Markdown
+                                        <CodeEditor
                                             error={
                                                 touched[fieldName] &&
                                                 errors[fieldName]
@@ -379,6 +430,7 @@ const BasicForm: Function = <T extends Object>(
                                                     : undefined
                                             }
                                             tabIndex={index}
+                                            type={CodeType.Markdown}
                                             onChange={async (value: string) => {
                                                 setCurrentValue({
                                                     ...currentValue,

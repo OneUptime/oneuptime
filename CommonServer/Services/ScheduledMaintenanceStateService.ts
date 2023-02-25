@@ -145,7 +145,7 @@ export class Service extends DatabaseService<Model> {
                 newOrder = scheduledMaintenanceState.order! - 1;
             }
 
-            await this.updateBy({
+            await this.updateOneBy({
                 query: {
                     _id: scheduledMaintenanceState._id!,
                 },

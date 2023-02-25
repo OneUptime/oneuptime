@@ -1,9 +1,9 @@
 // this class is the base class that all the component can implement
 //
 
-import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
+import Exception from 'Common/Types/Exception/Exception';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import { ExpressRouter } from '../../Utils/Express';
@@ -15,10 +15,17 @@ export interface RunProps {
     timeout: number;
 }
 
+export interface RunOptions {
+    log: Function;
+    workflowLogId: ObjectID;
+    workflowId: ObjectID;
+    projectId: ObjectID;
+    onError: (exception: Exception) => Exception;
+}
+
 export interface RunReturnType {
     returnValues: JSONObject;
     executePort?: Port | undefined;
-    logs: Array<string>;
 }
 
 export interface ExecuteWorkflowType {
@@ -37,7 +44,6 @@ export interface InitProps {
 
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
-    protected logs: Array<string> = [];
 
     public constructor() {}
 
@@ -53,29 +59,17 @@ export default class ComponentCode {
         return this.metadata;
     }
 
-    public log(data: string | JSONObject | JSONArray | JSONValue): void {
-        if (typeof data === 'string') {
-            this.logs.push(
-                OneUptimeDate.getCurrentDateAsFormattedString() + ': ' + data
-            );
-        } else {
-            this.logs.push(
-                OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ': ' +
-                    JSON.stringify(data)
-            );
-        }
-    }
-
     public async init(_props: InitProps): Promise<void> {
         return await Promise.resolve();
     }
 
-    public async run(_args: JSONObject): Promise<RunReturnType> {
+    public async run(
+        _args: JSONObject,
+        _options: RunOptions
+    ): Promise<RunReturnType> {
         return await Promise.resolve({
             returnValues: {},
             port: undefined,
-            logs: [],
         });
     }
 }

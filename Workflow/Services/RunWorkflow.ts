@@ -26,6 +26,7 @@ import { loadAllComponentMetadata } from '../Utils/ComponentMetadata';
 import Workflow from 'Model/Models/Workflow';
 import logger from 'CommonServer/Utils/Logger';
 import TimeoutException from 'Common/Types/Exception/TimeoutException';
+import Exception from 'Common/Types/Exception/Exception';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -55,15 +56,22 @@ export interface RunStack {
 
 export default class RunWorkflow {
     private logs: Array<string> = [];
+    private workflowId: ObjectID | null = null;
+    private projectId: ObjectID | null = null;
+    private workflowLogId: ObjectID | null = null;
 
     public async runWorkflow(runProps: RunProps): Promise<void> {
         // get nodes and edges.
 
         try {
-            let shouldStop: boolean = false;
+            this.workflowId = runProps.workflowId;
+            this.workflowLogId = runProps.workflowLogId;
+
+            let didWorkflowTimeOut: boolean = false;
+            let didWorkflowErrorOut: boolean = false;
 
             setTimeout(() => {
-                shouldStop = true;
+                didWorkflowTimeOut = true;
             }, runProps.timeout);
 
             const workflow: Workflow | null = await WorkflowService.findOneById(
@@ -86,6 +94,8 @@ export default class RunWorkflow {
             if (!workflow.graph) {
                 throw new BadDataException('Workflow graph not found');
             }
+
+            this.projectId = workflow.projectId || null;
 
             // update workflow log.
             await WorkflowLogService.updateOneById({
@@ -117,10 +127,13 @@ export default class RunWorkflow {
             ];
             const componentsExecuted: Array<string> = [];
 
+            const setDidErrorOut: Function = () => {
+                didWorkflowErrorOut = true;
+            };
             // make variable map
 
             while (fifoStackOfComponentsPendingExecution.length > 0) {
-                if (shouldStop) {
+                if (didWorkflowTimeOut) {
                     throw new TimeoutException(
                         'Workflow execution time was more than ' +
                             runProps.timeout +
@@ -198,13 +211,19 @@ export default class RunWorkflow {
 
                     this.log('Component Args:');
                     this.log(args);
-
+                    this.log('Component Logs: ' + executeComponentId);
                     const result: RunReturnType = await this.runComponent(
                         args,
-                        stackItem.node
+                        stackItem.node,
+                        setDidErrorOut
                     );
-                    this.log('Component Logs: ' + executeComponentId);
-                    this.logs = this.logs.concat(result.logs);
+
+                    if (didWorkflowErrorOut) {
+                        throw new BadDataException(
+                            'Workflow stopped because of an error'
+                        );
+                    }
+
                     this.log(
                         'Completed Execution Component: ' + executeComponentId
                     );
@@ -362,15 +381,28 @@ export default class RunWorkflow {
 
     public async runComponent(
         args: JSONObject,
-        node: NodeDataProp
+        node: NodeDataProp,
+        onError: Function
     ): Promise<RunReturnType> {
         // takes in args and returns values.
-        const ComponentCodeItem: typeof ComponentCode | undefined =
+        const ComponentCode: ComponentCode | undefined =
             Components[node.metadata.id];
 
-        if (ComponentCodeItem) {
-            const instance: ComponentCode = new ComponentCodeItem();
-            return await instance.run(args);
+        if (ComponentCode) {
+            const instance: ComponentCode = ComponentCode;
+            return await instance.run(args, {
+                log: (data: string | JSONObject | JSONArray) => {
+                    this.log(data);
+                },
+                workflowId: this.workflowId!,
+                workflowLogId: this.workflowLogId!,
+                projectId: this.projectId!,
+                onError: (exception: Exception) => {
+                    this.log(exception);
+                    onError();
+                    return exception;
+                },
+            });
         }
 
         throw new BadDataException(
@@ -441,7 +473,15 @@ export default class RunWorkflow {
         return newStorageMap;
     }
 
-    public log(data: string | JSONObject | JSONArray): void {
+    public log(data: string | JSONObject | JSONArray | Exception): void {
+        if (!this.logs) {
+            this.logs = [];
+        }
+
+        if (data instanceof Exception) {
+            data = data.getMessage();
+        }
+
         if (typeof data === 'string') {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() + ': ' + data

@@ -26,10 +26,17 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: `Filter on ${model.singularName}`,
-                        required: false,
-                        id: 'filter',
+                        name: 'Query',
+                        description: `Query on ${model.singularName}`,
+                        required: true,
+                        id: 'query',
+                    },
+                    {
+                        type: ComponentInputType.Query,
+                        name: 'Select Fields',
+                        description: `Select on ${model.singularName}`,
+                        required: true,
+                        id: 'select',
                     },
                 ],
                 returnValues: [
@@ -76,17 +83,38 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: 'Please fill out this filter',
+                        name: 'Query',
+                        description: 'Please fill out this query',
+                        required: true,
+                        id: 'query',
+                    },
+                    {
+                        type: ComponentInputType.Query,
+                        name: 'Select Fields',
+                        description: `Select on ${model.singularName}`,
+                        required: true,
+                        id: 'select',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Skip',
+                        description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
                         required: false,
-                        id: 'filter',
+                        id: 'skip',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Limit',
+                        description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+                        required: false,
+                        id: 'limit',
                     },
                 ],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'models',
                         name: `${model.singularName}`,
-                        description: `${model.singularName} fetched from the database`,
+                        description: `${model.singularName} array fetched from the database`,
                         type: ComponentInputType.BaseModelArray,
                         required: false,
                     },
@@ -128,7 +156,7 @@ export default class BaseModelComponent {
                 arguments: [],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'data',
                         name: `${model.singularName}`,
                         description: `${model.singularName} deleted in the database`,
                         type: ComponentInputType.BaseModel,
@@ -158,9 +186,9 @@ export default class BaseModelComponent {
                     {
                         type: ComponentInputType.Query,
                         name: 'Delete by',
-                        description: 'Please fill out this filter',
-                        required: false,
-                        id: 'filter',
+                        description: 'Please fill out this query',
+                        required: true,
+                        id: 'query',
                     },
                 ],
                 returnValues: [],
@@ -200,9 +228,23 @@ export default class BaseModelComponent {
                     {
                         type: ComponentInputType.Query,
                         name: 'Delete by',
-                        description: 'Please fill out this filter',
+                        description: 'Please fill out this query',
+                        required: true,
+                        id: 'query',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Skip',
+                        description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
                         required: false,
-                        id: 'filter',
+                        id: 'skip',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Limit',
+                        description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+                        required: false,
+                        id: 'limit',
                     },
                 ],
                 returnValues: [],
@@ -243,7 +285,7 @@ export default class BaseModelComponent {
                 arguments: [],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'data',
                         name: `${model.singularName}`,
                         description: `${model.singularName} created in the database`,
                         type: ComponentInputType.BaseModel,
@@ -283,7 +325,7 @@ export default class BaseModelComponent {
                         id: 'model',
                         name: `${model.singularName}`,
                         description: `${model.singularName} created in the database`,
-                        type: ComponentInputType.BaseModel,
+                        type: ComponentInputType.JSON,
                         required: false,
                     },
                 ],
@@ -374,7 +416,7 @@ export default class BaseModelComponent {
                 arguments: [],
                 returnValues: [
                     {
-                        id: 'model',
+                        id: 'data',
                         name: `${model.singularName}`,
                         description: `Updated ${model.singularName}`,
                         type: ComponentInputType.BaseModel,
@@ -402,28 +444,20 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: 'Please fill out this filter',
-                        required: false,
-                        id: 'filter',
+                        name: 'Query',
+                        description: 'Please fill out this query',
+                        required: true,
+                        id: 'query',
                     },
                     {
-                        id: 'json',
-                        name: 'JSON Object',
+                        id: 'data',
+                        name: 'Data (JSON Object)',
                         description: `${model.singularName} represented as JSON`,
                         type: ComponentInputType.JSON,
                         required: true,
                     },
                 ],
-                returnValues: [
-                    {
-                        id: 'model',
-                        name: `${model.singularName}`,
-                        description: `${model.singularName} updated in the database`,
-                        type: ComponentInputType.BaseModel,
-                        required: false,
-                    },
-                ],
+                returnValues: [],
                 inPorts: [
                     {
                         title: 'In',
@@ -459,28 +493,34 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Query,
-                        name: 'Filter',
-                        description: 'Please fill out this filter',
-                        required: false,
-                        id: 'filter',
+                        name: 'Query',
+                        description: 'Please fill out this query',
+                        required: true,
+                        id: 'query',
                     },
                     {
-                        id: 'json-array',
-                        name: 'JSON Array',
-                        description: 'List of models represented as JSON array',
-                        type: ComponentInputType.JSONArray,
+                        id: 'data',
+                        name: 'Data (JSON Object)',
+                        description: `${model.singularName} represented as JSON`,
+                        type: ComponentInputType.JSON,
                         required: true,
                     },
-                ],
-                returnValues: [
                     {
-                        id: 'models',
-                        name: `${model.pluralName}`,
-                        description: 'Models updated in the database',
-                        type: ComponentInputType.BaseModel,
+                        type: ComponentInputType.Number,
+                        name: 'Skip',
+                        description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
                         required: false,
+                        id: 'skip',
+                    },
+                    {
+                        type: ComponentInputType.Number,
+                        name: 'Limit',
+                        description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+                        required: false,
+                        id: 'limit',
                     },
                 ],
+                returnValues: [],
                 inPorts: [
                     {
                         title: 'In',

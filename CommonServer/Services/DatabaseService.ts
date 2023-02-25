@@ -23,7 +23,7 @@ import PostgresDatabase, {
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import { EncryptionSecret } from '../Config';
+import { EncryptionSecret, WorkflowHostname, WorkflowRoute } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
@@ -43,6 +43,15 @@ import ModelPermission, {
 import Select from '../Types/Database/Select';
 import Populate from '../Types/Database/Populate';
 import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
+import API from 'Common/Utils/API';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import Text from 'Common/Types/Text';
+
+export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 
 export interface OnCreate<TBaseModel extends BaseModel> {
     createBy: CreateBy<TBaseModel>;
@@ -66,7 +75,7 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    public entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
@@ -81,6 +90,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
+    }
+
+    public getModel(): TBaseModel {
+        return this.model;
     }
 
     public getQueryBuilder(modelName: string): SelectQueryBuilder<TBaseModel> {
@@ -464,6 +477,30 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return data;
     }
 
+    public async onTrigger(
+        model: TBaseModel,
+        projectId: ObjectID,
+        triggerType: DatabaseTriggerType
+    ): Promise<void> {
+        await API.post(
+            new URL(
+                Protocol.HTTP,
+                WorkflowHostname,
+                new Route(
+                    `${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                        this.getModel().tableName!
+                    )}/${triggerType}`
+                )
+            ),
+            {
+                data: JSONFunctions.toJSON(model, this.entityType),
+            },
+            {
+                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            }
+        );
+    }
+
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
         const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
             ? { createBy, carryForward: [] }
@@ -529,6 +566,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data
                 );
             }
+
+            // hit workflow.;
+            if (
+                this.getModel().enableWorkflowOn?.create &&
+                createBy.props.tenantId
+            ) {
+                await this.onTrigger(
+                    createBy.data,
+                    createBy.props.tenantId,
+                    'on-create'
+                );
+            }
+
             return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
@@ -706,7 +756,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async deleteOneBy(
         deleteOneBy: DeleteOneBy<TBaseModel>
     ): Promise<number> {
-        return await this._deleteBy(deleteOneBy);
+        return await this._deleteBy({ ...deleteOneBy, limit: 1, skip: 0 });
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -728,10 +778,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 deleteBy.props
             );
 
+            if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
+                beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
+            }
+
+            if (!(beforeDeleteBy.limit instanceof PositiveNumber)) {
+                beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
+            }
+
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
-                skip: 0,
-                limit: LIMIT_MAX,
+                skip: beforeDeleteBy.skip.toNumber(),
+                limit: beforeDeleteBy.limit.toNumber(),
                 populate: {},
                 select: {},
                 props: { ...beforeDeleteBy.props, ignoreHooks: true },
@@ -742,15 +800,47 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUserId: deleteBy.props.userId,
                 } as any,
+                limit: deleteBy.limit,
+                skip: deleteBy.skip,
                 props: {
                     isRoot: true,
                     ignoreHooks: true,
                 },
             });
 
-            const numberOfDocsAffected: number =
-                (await this.getRepository().delete(beforeDeleteBy.query as any))
-                    .affected || 0;
+            let numberOfDocsAffected: number = 0;
+
+            if (items.length > 0) {
+                beforeDeleteBy.query = {
+                    ...beforeDeleteBy.query,
+                    _id: QueryHelper.in(
+                        items.map((i: TBaseModel) => {
+                            return i.id!;
+                        })
+                    ),
+                };
+
+                numberOfDocsAffected =
+                    (
+                        await this.getRepository().softDelete(
+                            beforeDeleteBy.query as any
+                        )
+                    ).affected || 0;
+            }
+
+            // hit workflow.
+            if (
+                this.getModel().enableWorkflowOn?.delete &&
+                deleteBy.props.tenantId
+            ) {
+                for (const item of items) {
+                    await this.onTrigger(
+                        item,
+                        deleteBy.props.tenantId,
+                        'on-delete'
+                    );
+                }
+            }
 
             if (!deleteBy.props.ignoreHooks) {
                 await this.onDeleteSuccess(
@@ -977,10 +1067,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     true
                 )) as QueryDeepPartialEntity<TBaseModel>;
 
+            if (!(updateBy.skip instanceof PositiveNumber)) {
+                updateBy.skip = new PositiveNumber(updateBy.skip);
+            }
+
+            if (!(updateBy.limit instanceof PositiveNumber)) {
+                updateBy.limit = new PositiveNumber(updateBy.limit);
+            }
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeUpdateBy.query,
-                skip: 0,
-                limit: LIMIT_MAX,
+                skip: updateBy.skip.toNumber(),
+                limit: updateBy.limit.toNumber(),
                 populate: {},
                 select: {},
                 props: { ...beforeUpdateBy.props, ignoreHooks: true },
@@ -993,6 +1090,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } as any;
 
                 await this.getRepository().save(item);
+
+                // hit workflow.
+                if (
+                    this.getModel().enableWorkflowOn?.update &&
+                    updateBy.props.tenantId
+                ) {
+                    await this.onTrigger(
+                        item,
+                        updateBy.props.tenantId,
+                        'on-update'
+                    );
+                }
             }
 
             // Cant Update relations.
@@ -1025,7 +1134,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async updateOneBy(
         updateOneBy: UpdateOneBy<TBaseModel>
     ): Promise<number> {
-        return await this._updateBy(updateOneBy);
+        return await this._updateBy({ ...updateOneBy, limit: 1, skip: 0 });
     }
 
     public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {

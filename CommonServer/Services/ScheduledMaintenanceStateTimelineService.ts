@@ -32,7 +32,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             throw new BadDataException('scheduledMaintenanceStateId is null');
         }
 
-        await ScheduledMaintenanceService.updateBy({
+        await ScheduledMaintenanceService.updateOneBy({
             query: {
                 _id: createdItem.scheduledMaintenanceId?.toString(),
             },
@@ -200,7 +200,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                 scheduledMaintenanceStateTimeline &&
                 scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId
             ) {
-                await ScheduledMaintenanceService.updateBy({
+                await ScheduledMaintenanceService.updateOneBy({
                     query: {
                         _id: scheduledMaintenanceId.toString(),
                     },

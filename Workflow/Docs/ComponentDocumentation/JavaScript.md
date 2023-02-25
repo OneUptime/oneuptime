@@ -6,6 +6,10 @@ This trigger lets you run custom JavaScrip[t in your workflow.
 
 args['your-argument']
 
+// to return a value simply, 
+
+return yourValue;
+
 ```
 
 **Things to note:** 

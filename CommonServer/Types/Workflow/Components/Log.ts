@@ -3,7 +3,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import LogComponents from 'Common/Types/Workflow/Components/Log';
-import ComponentCode, { RunReturnType } from '../ComponentCode';
+import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 
 export default class Log extends ComponentCode {
     public constructor() {
@@ -22,7 +22,10 @@ export default class Log extends ComponentCode {
         this.setMetadata(LogComponent);
     }
 
-    public override async run(args: JSONObject): Promise<RunReturnType> {
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
         const outPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'out';
@@ -30,16 +33,15 @@ export default class Log extends ComponentCode {
         );
 
         if (!outPort) {
-            throw new BadDataException('Out port not found');
+            throw options.onError(new BadDataException('Out port not found'));
         }
 
-        this.log('Value: ');
-        this.log(args['value']);
+        options.log('Value: ');
+        options.log(args['value']);
 
         return Promise.resolve({
             returnValues: {},
             executePort: outPort,
-            logs: this.logs,
         });
     }
 }
