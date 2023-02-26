@@ -16,6 +16,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          check-latest: true
+          node-version: 18.3.0
       - run: cd ProbeAPI && npm install && npm run test
   

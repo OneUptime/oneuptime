@@ -28,6 +28,8 @@ export const DASHBOARD_API_ROUTE: Route = new Route(env('DASHBOARD_API_ROUTE'));
 
 export const IDENTITY_ROUTE: Route = new Route(env('IDENTITY_ROUTE'));
 
+export const WORKFLOW_ROUTE: Route = new Route(env('WORKFLOW_ROUTE'));
+
 export const FILE_ROUTE: Route = new Route(env('FILE_ROUTE'));
 
 export const STATUS_PAGE_ROUTE: Route = new Route(env('STATUS_PAGE_ROUTE'));
@@ -62,6 +64,8 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
     env('DOMAIN')
 );
 
+export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
@@ -84,6 +88,12 @@ export const IDENTITY_URL: URL = new URL(
     HTTP_PROTOCOL,
     IDENTITY_HOSTNAME,
     IDENTITY_ROUTE
+);
+
+export const WORKFLOW_URL: URL = new URL(
+    HTTP_PROTOCOL,
+    WORKFLOW_HOSTNAME,
+    WORKFLOW_ROUTE
 );
 
 export const STATUS_PAGE_URL: URL = new URL(

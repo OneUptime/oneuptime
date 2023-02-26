@@ -13,6 +13,9 @@ export interface ComponentProps {
     route?: undefined | Route;
     children?: undefined | ReactElement | Array<ReactElement>;
     isRenderedOnMobile?: boolean;
+    onMouseOver?: (() => void) | undefined;
+    onClick?: (() => void) | undefined;
+    onMouseLeave?: (() => void) | undefined;
 }
 
 const NavBarItem: FunctionComponent<ComponentProps> = (
@@ -41,7 +44,13 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
 
     return (
         <>
-            <Link className={classNames} to={props.route ? props.route : null}>
+            <Link
+                className={classNames}
+                to={props.route ? props.route : null}
+                onMouseOver={props.onMouseOver}
+                onClick={props.onClick}
+                onMouseLeave={props.onMouseLeave}
+            >
                 {props.icon ? (
                     <Icon
                         icon={props.icon}

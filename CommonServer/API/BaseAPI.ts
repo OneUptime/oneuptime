@@ -366,7 +366,7 @@ export default class BaseAPI<
         await this.onBeforeDelete(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        await this.service.deleteBy({
+        await this.service.deleteOneBy({
             query: {
                 _id: objectId.toString(),
             },
@@ -393,7 +393,7 @@ export default class BaseAPI<
         delete (item as any)['createdAt'];
         delete (item as any)['updatedAt'];
 
-        await this.service.updateBy({
+        await this.service.updateOneBy({
             query: {
                 _id: objectIdString,
             },

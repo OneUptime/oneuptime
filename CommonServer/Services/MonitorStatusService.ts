@@ -145,7 +145,7 @@ export class Service extends DatabaseService<Model> {
                 newPriority = monitorStatus.priority! - 1;
             }
 
-            await this.updateBy({
+            await this.updateOneBy({
                 query: {
                     _id: monitorStatus._id!,
                 },

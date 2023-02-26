@@ -36,6 +36,18 @@ export default class QueryHelper {
         });
     }
 
+    public static equalToOrNull(value: string | ObjectID): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} = :${rid} or ${alias} IS NULL`;
+            },
+            {
+                [rid]: value.toString(),
+            }
+        );
+    }
+
     public static search(name: string): FindOperator<any> {
         name = name.toLowerCase().trim();
         const rid: string = Text.generateRandomText(10);

@@ -5,7 +5,7 @@ import { ReflectionMetadataType } from '../Reflection';
 
 const uniqueColumnBy: Symbol = Symbol('UniqueColumnBy');
 
-export default (columnName: string): ReflectionMetadataType => {
+export default (columnName: string | Array<string>): ReflectionMetadataType => {
     return Reflect.metadata(uniqueColumnBy, columnName);
 };
 

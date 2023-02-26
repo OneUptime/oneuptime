@@ -26,13 +26,16 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/ComponentModal';
-import ComponentMetadata, {
-    ComponentCategory,
-    ComponentType,
-} from 'Common/Types/Workflow/Component';
+import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { NodeType } from 'CommonUI/src/Components/Workflow/Component';
+import ComponentMetadata, {
+    NodeDataProp,
+    NodeType,
+    ComponentCategory,
+} from 'Common/Types/Workflow/Component';
+import API from 'Common/Utils/API';
+import { WORKFLOW_URL } from 'CommonUI/src/Config';
+import URL from 'Common/Types/API/URL';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -47,8 +50,13 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [edges, setEdges] = useState<Array<Edge>>([]);
     const [error, setError] = useState<string>('');
 
+    const [showRunSuccessConfirmation, setShowRunSuccessConfirmation] =
+        useState<boolean>(false);
+
     const [showComponentPickerModal, setShowComponentPickerModal] =
         useState<boolean>(false);
+
+    const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
     const loadGraph: Function = async (): Promise<void> => {
         try {
@@ -63,14 +71,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
             );
 
             if (workflow) {
-                const componentsAndCategories: {
+                const allComponents: {
                     components: Array<ComponentMetadata>;
                     categories: Array<ComponentCategory>;
-                } = loadComponentsAndCategories(ComponentType.Component);
-                const triggerAndCategories: {
-                    components: Array<ComponentMetadata>;
-                    categories: Array<ComponentCategory>;
-                } = loadComponentsAndCategories(ComponentType.Trigger);
+                } = loadComponentsAndCategories();
 
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
                     if (
@@ -102,9 +106,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 continue;
                             }
 
-                            let componentMetdata:
+                            const componentMetdata:
                                 | ComponentMetadata
-                                | undefined = componentsAndCategories.components.find(
+                                | undefined = allComponents.components.find(
                                 (component: ComponentMetadata) => {
                                     return (
                                         component.id ===
@@ -112,18 +116,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     );
                                 }
                             );
-
-                            if (!componentMetdata) {
-                                componentMetdata =
-                                    triggerAndCategories.components.find(
-                                        (component: ComponentMetadata) => {
-                                            return (
-                                                component.id ===
-                                                nodes[i]?.data.metadataId
-                                            );
-                                        }
-                                    );
-                            }
 
                             if (!componentMetdata) {
                                 throw new BadDataException(
@@ -318,6 +310,15 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     }}
                                 />
                             </div>
+                            <div>
+                                <Button
+                                    title="Run Wrokflow Manually"
+                                    icon={IconProp.Play}
+                                    onClick={() => {
+                                        setShowRunModal(true);
+                                    }}
+                                />
+                            </div>
                         </div>
                     }
                 >
@@ -325,11 +326,16 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                     {!isLoading ? (
                         <Workflow
+                            workflowId={modelId}
                             showComponentsPickerModal={showComponentPickerModal}
                             onComponentPickerModalUpdate={(value: boolean) => {
                                 setShowComponentPickerModal(value);
                             }}
                             initialNodes={nodes}
+                            onRunModalUpdate={(value: boolean) => {
+                                setShowRunModal(value);
+                            }}
+                            showRunModal={showRunModal}
                             initialEdges={edges}
                             onWorkflowUpdated={async (
                                 nodes: Array<Node>,
@@ -338,6 +344,34 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 setNodes(nodes);
                                 setEdges(edges);
                                 await saveGraph(nodes, edges);
+                            }}
+                            onRun={async (component: NodeDataProp) => {
+                                try {
+                                    await API.post(
+                                        URL.fromString(
+                                            WORKFLOW_URL.toString()
+                                        ).addRoute(
+                                            '/manual/run/' + modelId.toString()
+                                        ),
+                                        {
+                                            data: component.returnValues,
+                                        }
+                                    );
+
+                                    setShowRunSuccessConfirmation(true);
+                                } catch (err) {
+                                    try {
+                                        setError(
+                                            (err as HTTPErrorResponse)
+                                                .message ||
+                                                'Server Error. Please try again'
+                                        );
+                                    } catch (e) {
+                                        setError(
+                                            'Server Error. Please try again'
+                                        );
+                                    }
+                                }
                             }}
                         />
                     ) : (
@@ -351,6 +385,18 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         submitButtonText={'Close'}
                         onSubmit={() => {
                             setError('');
+                        }}
+                        submitButtonType={ButtonStyleType.NORMAL}
+                    />
+                )}
+
+                {showRunSuccessConfirmation && (
+                    <ConfirmModal
+                        title={`Workflow scheduled to execute`}
+                        description={`This workflow is scheduled to execute soon. You can see the status of the run in the Runs and Logs section.`}
+                        submitButtonText={'Close'}
+                        onSubmit={() => {
+                            setShowRunSuccessConfirmation(false);
                         }}
                         submitButtonType={ButtonStyleType.NORMAL}
                     />

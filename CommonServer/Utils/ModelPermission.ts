@@ -24,6 +24,7 @@ import GreaterThan from 'Common/Types/Database/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
 import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
 import InBetween from 'Common/Types/Database/InBetween';
+import EqualToOrNull from 'Common/Types/Database/EqualToOrNull';
 import NotNull from 'Common/Types/Database/NotNull';
 import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
@@ -307,6 +308,14 @@ export default class ModelPermission {
                 tableColumnMetadata
             ) {
                 query[key] = QueryHelper.notNull();
+            } else if (
+                query[key] &&
+                query[key] instanceof EqualToOrNull &&
+                tableColumnMetadata
+            ) {
+                query[key] = QueryHelper.equalToOrNull(
+                    query[key] as any
+                ) as FindOperator<any> as any;
             } else if (
                 query[key] &&
                 (query[key] as any)._value &&

@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
+          node-version: 18.3.0
       - run: curl https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
       - run: echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ focal main' | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
       - run: sudo apt update

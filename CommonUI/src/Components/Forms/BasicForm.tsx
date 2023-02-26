@@ -37,7 +37,6 @@ import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
 import Input, { InputType } from '../Input/Input';
-import Markdown from '../Markdown.tsx/MarkdownEditor';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FilePicker from '../FilePicker/FilePicker';
@@ -78,6 +77,7 @@ export interface ComponentProps<T extends Object> {
     error: string | null;
     hideSubmitButton?: undefined | boolean;
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -364,12 +364,65 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
+                    {field.fieldType === FormFieldSchemaType.JSON && (
+                        <Field name={fieldName}>
+                            {({ form }: any) => {
+                                return (
+                                    <>
+                                        <CodeEditor
+                                            error={
+                                                touched[fieldName] &&
+                                                errors[fieldName]
+                                                    ? errors[fieldName]
+                                                    : undefined
+                                            }
+                                            type={CodeType.JSON}
+                                            tabIndex={index}
+                                            onChange={async (value: string) => {
+                                                setCurrentValue({
+                                                    ...currentValue,
+                                                    [fieldName]: value,
+                                                });
+                                                field.onChange &&
+                                                    field.onChange(value, form);
+                                                await form.setFieldValue(
+                                                    fieldName,
+                                                    value,
+                                                    true
+                                                );
+                                            }}
+                                            onBlur={async () => {
+                                                await form.setFieldTouched(
+                                                    fieldName,
+                                                    true
+                                                );
+                                            }}
+                                            initialValue={
+                                                initialValues &&
+                                                (initialValues as any)[
+                                                    fieldName
+                                                ]
+                                                    ? (initialValues as any)[
+                                                          fieldName
+                                                      ]
+                                                    : ''
+                                            }
+                                            placeholder={
+                                                field.placeholder || ''
+                                            }
+                                        />
+                                    </>
+                                );
+                            }}
+                        </Field>
+                    )}
+
                     {field.fieldType === FormFieldSchemaType.Markdown && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
                                     <>
-                                        <Markdown
+                                        <CodeEditor
                                             error={
                                                 touched[fieldName] &&
                                                 errors[fieldName]
@@ -377,6 +430,7 @@ const BasicForm: Function = <T extends Object>(
                                                     : undefined
                                             }
                                             tabIndex={index}
+                                            type={CodeType.Markdown}
                                             onChange={async (value: string) => {
                                                 setCurrentValue({
                                                     ...currentValue,
@@ -734,7 +788,21 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.noSpaces) {
                 if (content.trim().includes(' ')) {
-                    return `${field.title || name} should have no spaces.`;
+                    return `${field.title || name} should not have spaces.`;
+                }
+            }
+
+            if (field.validation.noSpecialCharacters) {
+                if (!content.match(/^[A-Za-z0-9]*$/)) {
+                    return `${
+                        field.title || name
+                    } should not have special characters.`;
+                }
+            }
+
+            if (field.validation.noNumbers) {
+                if (!content.match(/^[A-Za-z]*$/)) {
+                    return `${field.title || name} should not have numbers.`;
                 }
             }
         }
@@ -971,13 +1039,22 @@ const BasicForm: Function = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
+        const totalValidationErrors: FormikErrors<FormValues<T>> = {
+            ...errors,
+            ...customValidateResult,
+        } as FormikErrors<FormValues<T>>;
+
         if (props.onChange) {
             props.onChange(values);
         }
 
-        return { ...errors, ...customValidateResult } as FormikErrors<
-            FormValues<T>
-        >;
+        if (props.onFormValidationErrorChanged) {
+            props.onFormValidationErrorChanged(
+                Object.keys(totalValidationErrors).length !== 0
+            );
+        }
+
+        return totalValidationErrors;
     };
 
     const formRef: any = useRef<any>(null);

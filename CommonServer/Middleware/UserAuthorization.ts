@@ -168,6 +168,7 @@ export default class UserMiddleware {
                     ]!
                 )
             );
+
             const projectPermissionsHash: string = await HashedString.hashValue(
                 projectValue,
                 null

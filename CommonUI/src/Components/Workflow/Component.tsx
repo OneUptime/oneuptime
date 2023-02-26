@@ -1,33 +1,20 @@
-import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import ComponentMetadata, {
+import {
     ComponentType,
+    NodeDataProp,
+    NodeType,
     Port,
 } from 'Common/Types/Workflow/Component';
 import Tooltip from '../Tooltip/Toolip';
-
-export enum NodeType {
-    Node = 'Node',
-    PlaceholderNode = 'PlaceholderNode',
-}
-
-export interface NodeDataProp {
-    nodeData: JSONObject;
-    error: string;
-    id: string;
-    nodeType: NodeType;
-    onClick?: (node: NodeDataProp) => void | undefined;
-    isPreview?: boolean | undefined; // is this used to show in the components modal?
-    metadata: ComponentMetadata;
-    metadataId: string;
-    internalId: string;
-}
+import Pill from '../Pill/Pill';
+import { Green } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     data: NodeDataProp;
+    selected: boolean;
 }
 
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -45,7 +32,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         width: '15rem',
         height: '10rem',
         padding: '1rem',
-        borderColor: textColor,
+        borderColor: props.selected ? '#6366f1' : textColor,
         alignItems: 'center',
         borderRadius: '0.25rem',
         borderWidth: '2px',
@@ -68,7 +55,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         isLabel: boolean | undefined
     ): React.CSSProperties => {
         if (portCount === 1 && totalPorts === 1) {
-            return {};
+            return isLabel ? { left: 100 } : {};
         }
 
         if (portCount === 1 && totalPorts === 2) {
@@ -84,7 +71,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
 
         if (portCount === 2 && totalPorts === 3) {
-            return {};
+            return isLabel ? { left: 100 } : {};
         }
 
         if (portCount === 3 && totalPorts === 3) {
@@ -144,6 +131,13 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             }}
         >
+            <div className="flex justify-center">
+                {props.data.metadata.componentType === ComponentType.Trigger &&
+                    props.data.nodeType !== NodeType.PlaceholderNode &&
+                    !props.data.isPreview && (
+                        <Pill text="Trigger" color={Green} />
+                    )}
+            </div>
             {!props.data.isPreview &&
                 props.data.error &&
                 props.data.nodeType !== NodeType.PlaceholderNode && (
@@ -253,7 +247,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                                 textAlign: 'center',
                             }}
                         >
-                            ({props.data.id})
+                            ({props.data.id.trim()})
                         </p>
                     )}
                     <p

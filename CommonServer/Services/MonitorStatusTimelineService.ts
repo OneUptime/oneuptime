@@ -25,7 +25,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             throw new BadDataException('monitorStatusId is null');
         }
 
-        await MonitorService.updateBy({
+        await MonitorService.updateOneBy({
             query: {
                 _id: createdItem.monitorId?.toString(),
             },
@@ -110,7 +110,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                 monitorStatusTimeline &&
                 monitorStatusTimeline.monitorStatusId
             ) {
-                await MonitorService.updateBy({
+                await MonitorService.updateOneBy({
                     query: {
                         _id: monitorId.toString(),
                     },

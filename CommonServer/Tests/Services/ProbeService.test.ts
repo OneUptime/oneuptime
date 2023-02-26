@@ -455,7 +455,8 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
-
+            skip: 0,
+            limit: 1,
             props: { isRoot: true },
         });
 
@@ -496,7 +497,7 @@ describe('probeService', () => {
         expect(savedProbe).toBeTruthy();
 
         const updatedName: string = Faker.generateName();
-        await probeService.updateBy({
+        await probeService.updateOneBy({
             query: {
                 key: key,
             },
@@ -548,6 +549,8 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
+            skip: 0,
+            limit: 1,
             data: {
                 name: updatedName,
             },

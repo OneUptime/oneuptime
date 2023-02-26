@@ -14,6 +14,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Workflow from './Workflow';
+import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -51,11 +52,7 @@ import Workflow from './Workflow';
 })
 export default class WorkflowLog extends BaseModel {
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateWorkflowLog,
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -84,11 +81,7 @@ export default class WorkflowLog extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateWorkflowLog,
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -111,11 +104,7 @@ export default class WorkflowLog extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateWorkflowLog,
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -144,11 +133,7 @@ export default class WorkflowLog extends BaseModel {
     public workflow?: Workflow = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateWorkflowLog,
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -171,18 +156,14 @@ export default class WorkflowLog extends BaseModel {
     public workflowId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateWorkflowLog,
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadWorkflowLog,
         ],
-        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -190,4 +171,57 @@ export default class WorkflowLog extends BaseModel {
         type: ColumnType.VeryLongText,
     })
     public logs?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadWorkflowLog,
+        ],
+        update: [],
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+    })
+    public workflowStatus?: WorkflowStatus = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadWorkflowLog,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public startedAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadWorkflowLog,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public completedAt?: Date = undefined;
 }

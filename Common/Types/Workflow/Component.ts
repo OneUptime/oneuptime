@@ -1,28 +1,51 @@
+import Route from '../API/Route';
 import IconProp from '../Icon/IconProp';
+import { JSONObject } from '../JSON';
 
 export enum ComponentInputType {
     Text = 'Text',
+    Password = 'Password',
     Date = 'Date',
     DateTime = 'Date Time',
-    Boolean = 'Boolean',
+    Boolean = 'True or False',
     Number = 'Number',
     Decimal = 'Decimal',
     JavaScript = 'JavaScript',
-    AnyValue = 'AnyValue',
+    AnyValue = 'Any Type',
     JSON = 'JSON',
-    StringDictionary = 'StringDictionary',
+    StringDictionary = 'Dictionary of String',
     URL = 'URL',
     Email = 'Email',
     CronTab = 'CronTab',
-    Query = 'Query',
-    BaseModel = 'BaseModel',
-    BaseModelArray = 'BaseModelArray',
-    JSONArray = 'JSONArray',
+    Query = 'Database Query',
+    BaseModel = 'Database Record',
+    BaseModelArray = 'Database Records',
+    JSONArray = 'List of JSON',
+    LongText = 'Long Text',
 }
 
 export enum ComponentType {
     Trigger = 'Trigger',
     Component = 'Component',
+}
+
+export enum NodeType {
+    Node = 'Node',
+    PlaceholderNode = 'PlaceholderNode',
+}
+
+export interface NodeDataProp {
+    error: string;
+    id: string;
+    nodeType: NodeType;
+    onClick?: (node: NodeDataProp) => void | undefined;
+    isPreview?: boolean | undefined; // is this used to show in the components modal?
+    metadata: ComponentMetadata;
+    metadataId: string;
+    internalId: string;
+    arguments: JSONObject;
+    returnValues: JSONObject;
+    componentType: ComponentType;
 }
 
 export interface Port {
@@ -38,6 +61,7 @@ export interface Argument {
     type: ComponentInputType;
     id: string;
     isAdvanced?: boolean | undefined;
+    placeholder?: string | undefined;
 }
 
 export interface ReturnValue {
@@ -46,6 +70,7 @@ export interface ReturnValue {
     description: string;
     type: ComponentInputType;
     required: boolean;
+    placeholder?: string | undefined;
 }
 
 export default interface ComponentMetadata {
@@ -60,6 +85,7 @@ export default interface ComponentMetadata {
     inPorts: Array<Port>;
     outPorts: Array<Port>;
     tableName?: string | undefined;
+    documentationLink?: Route;
 }
 
 export interface ComponentCategory {

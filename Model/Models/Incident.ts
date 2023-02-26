@@ -32,6 +32,7 @@ import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import Label from './Label';
 import IncidentSeverity from './IncidentSeverity';
+import { JSONObject } from 'Common/Types/JSON';
 
 @AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
@@ -616,4 +617,35 @@ export default class Incident extends BaseModel {
         default: false,
     })
     public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectIncident,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public customFields?: JSONObject = undefined;
 }

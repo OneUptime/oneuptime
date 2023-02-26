@@ -56,6 +56,8 @@ import SubscriptionPlan, {
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import { ModalWidth } from '../Modal/Modal';
+import ProjectUtil from '../../Utils/Project';
 
 export enum ShowTableAs {
     Table,
@@ -112,6 +114,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     sortOrder?: SortOrder | undefined;
     dragDropIdField?: string | undefined;
     dragDropIndexField?: string | undefined;
+    createEditModalWidth?: ModalWidth | undefined;
     orderedStatesListProps?: {
         titleField: string;
         descriptionField?: string | undefined;
@@ -120,7 +123,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheBegining?: boolean;
     };
     onViewComplete: (item: TBaseModel) => void;
-    currentPlan?: PlanSelect | undefined;
     name: string;
 }
 
@@ -1101,15 +1103,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getCardTitle: Function = (
         title: ReactElement | string
     ): ReactElement => {
+        const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
+
         return (
             <span>
                 {title}
                 {BILLING_ENABLED &&
-                    props.currentPlan &&
+                    plan &&
                     new props.modelType().readBillingPlan &&
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         new props.modelType().readBillingPlan!,
-                        props.currentPlan,
+                        plan,
                         getAllEnvVars()
                     ) && (
                         <span
@@ -1199,6 +1203,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
+                    modalWidth={props.createEditModalWidth}
                     name={
                         modalType === ModalType.Create
                             ? `${props.name} > ${

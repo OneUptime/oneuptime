@@ -21,6 +21,7 @@ import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -71,6 +72,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}
+                createEditModalWidth={ModalWidth.Large}
                 query={{
                     scheduledMaintenanceId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),

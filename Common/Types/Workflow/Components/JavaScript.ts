@@ -1,4 +1,6 @@
+import Route from '../../API/Route';
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,19 +8,28 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'javascript',
+        id: ComponentID.JavaScriptCode,
         title: 'Run Custom JavaScript',
         category: 'Custom Code',
         description: 'Run custom JavaScript in your workflow',
         iconProp: IconProp.Code,
         componentType: ComponentType.Component,
+        documentationLink: Route.fromString('/workflow/docs/JavaScript.md'),
         arguments: [
             {
-                type: ComponentInputType.AnyValue,
-                name: 'Value',
-                description: 'Value as Input',
+                type: ComponentInputType.JavaScript,
+                name: 'JavaScript Code',
+                description: 'JavaScript Code',
                 required: true,
-                id: 'input',
+                id: 'code',
+            },
+            {
+                type: ComponentInputType.JSON,
+                name: 'Arguments',
+                description:
+                    'Pass in arguments to your JavaScript Code from this workflow',
+                required: false,
+                id: 'arguments',
             },
         ],
         returnValues: [
@@ -27,7 +38,7 @@ const components: Array<ComponentMetadata> = [
                 name: 'Value',
                 description: 'Value as Output',
                 required: false,
-                id: 'output',
+                id: 'returnValue',
             },
         ],
         inPorts: [

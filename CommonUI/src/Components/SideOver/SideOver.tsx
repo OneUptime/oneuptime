@@ -1,5 +1,6 @@
 import IconProp from 'Common/Types/Icon/IconProp';
 import React, { FunctionComponent, ReactElement } from 'react';
+import Button, { ButtonStyleType } from '../Button/Button';
 import Icon from '../Icon/Icon';
 
 export interface ComponentProps {
@@ -29,7 +30,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
                         <div className="pointer-events-auto w-screen max-w-2xl">
-                            <form className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                            <div className="flex h-full flex-col overflow-y-auto bg-white shadow-xl">
                                 <div className="flex-1">
                                     <div className="bg-gray-50 px-4 py-6 sm:px-6">
                                         <div className="flex items-start justify-between space-x-3">
@@ -75,30 +76,31 @@ const SideOver: FunctionComponent<ComponentProps> = (
                                         {props.leftFooterElement}
                                     </div>
                                     <div className="flex justify-end space-x-3">
-                                        <button
+                                        <Button
+                                            title="Cancel"
                                             onClick={() => {
                                                 props.onClose();
                                             }}
-                                            type="button"
-                                            className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
+                                            buttonStyle={ButtonStyleType.NORMAL}
+                                        />
+
+                                        <Button
+                                            title={
+                                                props.submitButtonText || 'Save'
+                                            }
                                             disabled={
                                                 props.submitButtonDisabled
                                             }
                                             onClick={() => {
                                                 props.onSubmit();
                                             }}
-                                            type="submit"
-                                            className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                        >
-                                            {props.submitButtonText || 'Save'}
-                                        </button>
+                                            buttonStyle={
+                                                ButtonStyleType.PRIMARY
+                                            }
+                                        />
                                     </div>
                                 </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>

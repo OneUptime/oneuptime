@@ -10,14 +10,14 @@ import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
 import WorkflowLogs from 'Model/Models/WorkflowLog';
-import Workflow from 'Model/Models/Workflow';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
-import WorkflowElement from '../../../Components/Workflow/WorkflowElement';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
+import WorkflowStatusElement from 'CommonUI/src/Components/Workflow/WorkflowStatus';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -110,23 +110,33 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     columns={[
                         {
                             field: {
-                                workflow: {
-                                    name: true,
-                                },
+                                _id: true,
                             },
-                            title: 'Workflow',
+                            title: 'Run ID',
                             type: FieldType.Text,
                             isFilterable: true,
+                        },
+                        {
+                            field: {
+                                workflowStatus: true,
+                            },
+                            isFilterable: true,
+
+                            title: 'Workflow Status',
+                            type: FieldType.Text,
                             getElement: (item: JSONObject): ReactElement => {
+                                if (!item['workflowStatus']) {
+                                    throw new BadDataException(
+                                        'Workflow Status not found'
+                                    );
+                                }
+
                                 return (
-                                    <WorkflowElement
-                                        workflow={
-                                            JSONFunctions.fromJSON(
-                                                (item[
-                                                    'workflow'
-                                                ] as JSONObject) || [],
-                                                Workflow
-                                            ) as Workflow
+                                    <WorkflowStatusElement
+                                        status={
+                                            item[
+                                                'workflowStatus'
+                                            ] as WorkflowStatus
                                         }
                                     />
                                 );
@@ -136,7 +146,23 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             field: {
                                 createdAt: true,
                             },
-                            title: 'Workflow Ran At',
+                            title: 'Scheduled At',
+                            type: FieldType.DateTime,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                startedAt: true,
+                            },
+                            title: 'Started At',
+                            type: FieldType.DateTime,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                completedAt: true,
+                            },
+                            title: 'Completed At',
                             type: FieldType.DateTime,
                             isFilterable: true,
                         },
@@ -156,7 +182,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         submitButtonStyleType={ButtonStyleType.NORMAL}
                     >
                         <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                            {logs}
+                            {logs.split('\n').map((log: string, i: number) => {
+                                return <div key={i}>{log}</div>;
+                            })}
                         </div>
                     </Modal>
                 )}

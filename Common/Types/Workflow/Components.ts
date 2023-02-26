@@ -6,6 +6,11 @@ import SlackComponents from './Components/Slack';
 import ConditionComponents from './Components/Condition';
 import JsonComponents from './Components/JSON';
 import JavaScriptComponents from './Components/JavaScript';
+import EmailComponents from './Components/Email';
+import WebhookComponents from './Components/Webhook';
+import ManualComponents from './Components/Manual';
+import WorkflowComponents from './Components/Workflow';
+
 import IconProp from '../Icon/IconProp';
 
 const components: Array<ComponentMetadata> = [
@@ -16,6 +21,10 @@ const components: Array<ComponentMetadata> = [
     ...ConditionComponents,
     ...JsonComponents,
     ...JavaScriptComponents,
+    ...EmailComponents,
+    ...WebhookComponents,
+    ...WorkflowComponents,
+    ...ManualComponents,
 ];
 
 export default components;
@@ -54,6 +63,11 @@ export const Categories: Array<ComponentCategory> = [
     {
         name: 'Schedule',
         description: 'Make your workflows run at regular intervals.',
+        icon: IconProp.Clock,
+    },
+    {
+        name: 'Email',
+        description: 'Send email to anyone in your workflows.',
         icon: IconProp.Clock,
     },
     {

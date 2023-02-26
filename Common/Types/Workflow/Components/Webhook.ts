@@ -3,24 +3,28 @@ import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
 } from './../Component';
+import ComponentID from '../ComponentID';
+import Route from '../../API/Route';
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'webhook',
+        id: ComponentID.Webhook,
         title: 'Webhook',
         category: 'Webhook',
         description:
             'Hook any of your external apps and services with this workflow.',
         iconProp: IconProp.AltGlobe,
         componentType: ComponentType.Trigger,
+        documentationLink: Route.fromString('/workflow/docs/Webhook.md'),
         arguments: [],
         returnValues: [
             {
-                id: 'response-headers',
-                name: 'Response Headers',
-                description: 'Response Headers for this request',
+                id: 'request-headers',
+                name: 'Request Headers',
+                description: 'Request Headers for this request',
                 type: ComponentInputType.StringDictionary,
                 required: false,
+                placeholder: '{"header1": "value1", "header2": "value2", ....}',
             },
             {
                 id: 'request-params',
@@ -28,6 +32,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Query Params for this request',
                 type: ComponentInputType.StringDictionary,
                 required: false,
+                placeholder: '{"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-body',
@@ -35,6 +40,7 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body',
                 type: ComponentInputType.JSON,
                 required: false,
+                placeholder: '{"key1": "value1", "key2": "value2", ....}',
             },
         ],
         inPorts: [],

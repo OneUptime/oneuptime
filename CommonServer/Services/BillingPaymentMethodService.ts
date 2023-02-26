@@ -7,7 +7,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
 import BillingService, { PaymentMethod } from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -53,6 +53,8 @@ export class Service extends DatabaseService<Model> {
             query: {
                 projectId: findBy.props.tenantId!,
             },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
             props: {
                 isRoot: true,
                 ignoreHooks: true,
