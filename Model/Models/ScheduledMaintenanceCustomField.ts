@@ -45,8 +45,8 @@ import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
 @CrudApiEndpoint(new Route('/scheduled-maintenance-custom-field'))
 @TableMetadata({
     tableName: 'ScheduledMaintenanceCustomField',
-    singularName: 'ScheduledMaintenance Custom Field',
-    pluralName: 'ScheduledMaintenance Custom Fields',
+    singularName: 'Scheduled Maintenance Custom Field',
+    pluralName: 'Scheduled Maintenance Custom Fields',
     icon: IconProp.TableCells,
 })
 @Entity({

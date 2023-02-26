@@ -45,8 +45,8 @@ import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
 @CrudApiEndpoint(new Route('/status-page-custom-field'))
 @TableMetadata({
     tableName: 'StatusPageCustomField',
-    singularName: 'StatusPage Custom Field',
-    pluralName: 'StatusPage Custom Fields',
+    singularName: 'Status Page Custom Field',
+    pluralName: 'Status Page Custom Fields',
     icon: IconProp.TableCells,
 })
 @Entity({
