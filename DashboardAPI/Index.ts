@@ -201,6 +201,30 @@ import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 
 import StatusPageSubscriberAPI from 'CommonServer/API/StatusPageSubscriberAPI';
 
+
+// Custom Fields API 
+import StatusPageCustomField from 'Model/Models/StatusPageCustomField';
+import StatusPageCustomFieldService, {
+    Service as StatusPageCustomFieldServiceType,
+} from 'CommonServer/Services/StatusPageCustomFieldService';
+
+
+import MonitorCustomField from 'Model/Models/MonitorCustomField';
+import MonitorCustomFieldService, {
+    Service as MonitorCustomFieldServiceType,
+} from 'CommonServer/Services/MonitorCustomFieldService';
+
+import IncidentCustomField from 'Model/Models/IncidentCustomField';
+import IncidentCustomFieldService, {
+    Service as IncidentCustomFieldServiceType,
+} from 'CommonServer/Services/IncidentCustomFieldService';
+
+import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCustomField';
+import ScheduledMaintenanceCustomFieldService, {
+    Service as ScheduledMaintenanceCustomFieldServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceCustomFieldService';
+
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -515,6 +539,47 @@ app.use(
         OnCallDutyService
     ).getRouter()
 );
+
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<ScheduledMaintenanceCustomField, ScheduledMaintenanceCustomFieldServiceType>(
+        ScheduledMaintenanceCustomField,
+        ScheduledMaintenanceCustomFieldService
+    ).getRouter()
+);
+
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
+        IncidentCustomField,
+        IncidentCustomFieldService
+    ).getRouter()
+);
+
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
+        MonitorCustomField,
+        MonitorCustomFieldService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<StatusPageCustomField, StatusPageCustomFieldServiceType>(
+        StatusPageCustomField,
+        StatusPageCustomFieldService
+    ).getRouter()
+);
+
+
 
 const init: Function = async (): Promise<void> => {
     try {
