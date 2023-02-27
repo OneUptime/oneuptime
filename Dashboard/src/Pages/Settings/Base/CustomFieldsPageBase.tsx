@@ -14,10 +14,11 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
 import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
 
-export interface ComponentProps<TBaseModel extends BaseModel> extends PageComponentProps {
+export interface ComponentProps<TBaseModel extends BaseModel>
+    extends PageComponentProps {
     title: string;
     currentRoute: Route;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
 }
 
 const CustomFieldsPageBase: Function = <TBaseModel extends BaseModel>(
@@ -52,7 +53,7 @@ const CustomFieldsPageBase: Function = <TBaseModel extends BaseModel>(
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 id="custom-fields-table"
-                name={"Settings > " + props.title}
+                name={'Settings > ' + props.title}
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
@@ -95,19 +96,19 @@ const CustomFieldsPageBase: Function = <TBaseModel extends BaseModel>(
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Please select field type.',
-                        dropdownOptions: Object.keys(CustomFieldType).map((item) => {
-                            return {
-                                label: item,
-                                value: item
+                        dropdownOptions: Object.keys(CustomFieldType).map(
+                            (item: string) => {
+                                return {
+                                    label: item,
+                                    value: item,
+                                };
                             }
-                        })
-
+                        ),
                     },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
                 columns={[
-
                     {
                         field: {
                             name: true,

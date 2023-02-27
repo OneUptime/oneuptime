@@ -46,45 +46,35 @@ enum Permission {
     CanInviteProjectTeamMembers = 'CanInviteProjectTeamMembers',
     CanEditProjectTeamPermissions = 'CanEditProjectTeamPermissions',
 
-
     CanCreateProjectProbe = 'CanCreateProjectProbe',
     CanDeleteProjectProbe = 'CanDeleteProjectProbe',
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
-
-
 
     CanCreateMonitorCustomField = 'CanCreateMonitorCustomField',
     CanDeleteMonitorCustomField = 'CanDeleteMonitorCustomField',
     CanEditMonitorCustomField = 'CanEditMonitorCustomField',
     CanReadMonitorCustomField = 'CanReadMonitorCustomField',
 
-
     CanCreateScheduledMaintenanceCustomField = 'CanCreateScheduledMaintenanceCustomField',
     CanDeleteScheduledMaintenanceCustomField = 'CanDeleteScheduledMaintenanceCustomField',
     CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
     CanReadScheduledMaintenanceCustomField = 'CanReadScheduledMaintenanceCustomField',
-
-
 
     CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
     CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
     CanEditStatusPageCustomField = 'CanEditStatusPageCustomField',
     CanReadStatusPageCustomField = 'CanReadStatusPageCustomField',
 
-
-
     CanCreateIncidentCustomField = 'CanCreateIncidentCustomField',
     CanDeleteIncidentCustomField = 'CanDeleteIncidentCustomField',
     CanEditIncidentCustomField = 'CanEditIncidentCustomField',
     CanReadIncidentCustomField = 'CanReadIncidentCustomField',
 
-
     CanCreateProjectIncident = 'CanCreateProjectIncident',
     CanDeleteProjectIncident = 'CanDeleteProjectIncident',
     CanEditProjectIncident = 'CanEditProjectIncident',
     CanReadProjectIncident = 'CanReadProjectIncident',
-
 
     CanCreateStatusPageSubscriber = 'CanCreateStatusPageSubscriber',
     CanDeleteStatusPageSubscriber = 'CanDeleteStatusPageSubscriber',
@@ -96,59 +86,49 @@ enum Permission {
     CanEditStatusPagePrivateUser = 'CanEditStatusPagePrivateUser',
     CanReadStatusPagePrivateUser = 'CanReadStatusPagePrivateUser',
 
-
     CanCreateProjectDomain = 'CanCreateProjectDomain',
     CanDeleteProjectDomain = 'CanDeleteProjectDomain',
     CanEditProjectDomain = 'CanEditProjectDomain',
     CanReadProjectDomain = 'CanReadProjectDomain',
-
 
     CanCreateStatusPageHeaderLink = 'CanCreateStatusPageHeaderLink',
     CanDeleteStatusPageHeaderLink = 'CanDeleteStatusPageHeaderLink',
     CanEditStatusPageHeaderLink = 'CanEditStatusPageHeaderLink',
     CanReadStatusPageHeaderLink = 'CanReadStatusPageHeaderLink',
 
-
     CanCreateStatusPageFooterLink = 'CanCreateStatusPageFooterLink',
     CanDeleteStatusPageFooterLink = 'CanDeleteStatusPageFooterLink',
     CanEditStatusPageFooterLink = 'CanEditStatusPageFooterLink',
     CanReadStatusPageFooterLink = 'CanReadStatusPageFooterLink',
-
 
     CanCreateStatusPageResource = 'CanCreateStatusPageResource',
     CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
     CanEditStatusPageResource = 'CanEditStatusPageResource',
     CanReadStatusPageResource = 'CanReadStatusPageResource',
 
-
     CanCreateWorkflow = 'CanCreateWorkflow',
     CanDeleteWorkflow = 'CanDeleteWorkflow',
     CanEditWorkflow = 'CanEditWorkflow',
     CanReadWorkflow = 'CanReadWorkflow',
 
-
     CanDeleteProject = 'CanDeleteProject',
     CanEditProject = 'CanEditProject',
     CanReadProject = 'CanReadProject',
-
 
     CanCreateWorkflowLog = 'CanCreateWorkflowLog',
     CanDeleteWorkflowLog = 'CanDeleteWorkflowLog',
     CanEditWorkflowLog = 'CanEditWorkflowLog',
     CanReadWorkflowLog = 'CanReadWorkflowLog',
 
-
     CanCreateWorkflowVariable = 'CanCreateWorkflowVariable',
     CanDeleteWorkflowVariable = 'CanDeleteWorkflowVariable',
     CanEditWorkflowVariable = 'CanEditWorkflowVariable',
     CanReadWorkflowVariable = 'CanReadWorkflowVariable',
 
-
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
     CanDeleteStatusPageGroup = 'CanDeleteStatusPageGroup',
     CanEditStatusPageGroup = 'CanEditStatusPageGroup',
     CanReadStatusPageGroup = 'CanReadStatusPageGroup',
-
 
     CanCreateStatusPageDomain = 'CanCreateStatusPageDomain',
     CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
@@ -186,7 +166,6 @@ enum Permission {
     CanEditScheduledMaintenancePublicNote = 'CanEditScheduledMaintenancePublicNote',
     CanDeleteScheduledMaintenancePublicNote = 'CanDeleteScheduledMaintenancePublicNote',
     CanReadScheduledMaintenancePublicNote = 'CanReadScheduledMaintenancePublicNote',
-
 
     CanCreateProjectScheduledMaintenance = 'CanCreateProjectScheduledMaintenance',
     CanDeleteProjectScheduledMaintenance = 'CanDeleteProjectScheduledMaintenance',
@@ -1444,7 +1423,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateMonitorCustomField,
                 title: 'Can Create Monitor Custom Field',
@@ -1477,7 +1455,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateIncidentCustomField,
@@ -1512,7 +1489,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateStatusPageCustomField,
                 title: 'Can Create Status Page Custom Field',
@@ -1546,8 +1522,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateScheduledMaintenanceCustomField,
                 title: 'Can Create Scheduled Maintenance Custom Field',
@@ -1580,12 +1554,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
-
-
-            
-
 
             {
                 permission: Permission.CanCreateProjectIncident,

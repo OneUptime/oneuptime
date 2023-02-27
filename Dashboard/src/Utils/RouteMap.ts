@@ -197,7 +197,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/custom-fields`
     ),
 
-
     [PageMap.MONITOR_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/delete`
     ),
@@ -309,11 +308,8 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.WORKFLOW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/delete`
     ),
-    
-   
 
-
-    /// custom fields settings. 
+    /// custom fields settings.
 
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/monitor-custom-fields`
@@ -329,10 +325,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/status-page-custom-fields`
     ),
-
-
-
-
 
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),

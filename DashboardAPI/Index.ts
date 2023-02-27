@@ -201,13 +201,11 @@ import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 
 import StatusPageSubscriberAPI from 'CommonServer/API/StatusPageSubscriberAPI';
 
-
-// Custom Fields API 
+// Custom Fields API
 import StatusPageCustomField from 'Model/Models/StatusPageCustomField';
 import StatusPageCustomFieldService, {
     Service as StatusPageCustomFieldServiceType,
 } from 'CommonServer/Services/StatusPageCustomFieldService';
-
 
 import MonitorCustomField from 'Model/Models/MonitorCustomField';
 import MonitorCustomFieldService, {
@@ -223,7 +221,6 @@ import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCu
 import ScheduledMaintenanceCustomFieldService, {
     Service as ScheduledMaintenanceCustomFieldServiceType,
 } from 'CommonServer/Services/ScheduledMaintenanceCustomFieldService';
-
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -540,17 +537,16 @@ app.use(
     ).getRouter()
 );
 
-
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<ScheduledMaintenanceCustomField, ScheduledMaintenanceCustomFieldServiceType>(
+    new BaseAPI<
+        ScheduledMaintenanceCustomField,
+        ScheduledMaintenanceCustomFieldServiceType
+    >(
         ScheduledMaintenanceCustomField,
         ScheduledMaintenanceCustomFieldService
     ).getRouter()
 );
-
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -560,8 +556,6 @@ app.use(
     ).getRouter()
 );
 
-
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
@@ -570,7 +564,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageCustomField, StatusPageCustomFieldServiceType>(
@@ -578,8 +571,6 @@ app.use(
         StatusPageCustomFieldService
     ).getRouter()
 );
-
-
 
 const init: Function = async (): Promise<void> => {
     try {

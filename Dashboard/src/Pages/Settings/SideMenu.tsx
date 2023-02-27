@@ -64,7 +64,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.AltGlobe}
                 />
-                 <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Monitor Custom Fields',
                         to: RouteUtil.populateRouteParams(
@@ -77,7 +77,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
             </SideMenuSection>
             <SideMenuSection title="Status Pages">
-                 <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Staus Page Custom Fields',
                         to: RouteUtil.populateRouteParams(
@@ -146,7 +146,8 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'Scheduled Maintenance Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}

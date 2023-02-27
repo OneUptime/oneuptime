@@ -144,8 +144,6 @@ export default class IncidentCustomField extends AccessControlModel {
     @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -172,7 +170,6 @@ export default class IncidentCustomField extends AccessControlModel {
     })
     public description?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -185,9 +182,7 @@ export default class IncidentCustomField extends AccessControlModel {
             Permission.ProjectMember,
             Permission.CanReadIncidentCustomField,
         ],
-        update: [
-           
-        ],
+        update: [],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -298,5 +293,4 @@ export default class IncidentCustomField extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

@@ -7,7 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import CustomFieldsDetail from "CommonUI/src/Components/CustomFields/CustomFieldsDetail";
+import CustomFieldsDetail from 'CommonUI/src/Components/CustomFields/CustomFieldsDetail';
 import Incident from 'Model/Models/Incident';
 import IncidentCustomField from 'Model/Models/IncidentCustomField';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
@@ -52,9 +52,9 @@ const IncidentCustomFields: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <CustomFieldsDetail 
-                title='Incident Custom Fields'
-                description='Custom fields help you add new fields to your resources in OneUptime.'
+            <CustomFieldsDetail
+                title="Incident Custom Fields"
+                description="Custom fields help you add new fields to your resources in OneUptime."
                 modelType={Incident}
                 customFieldType={IncidentCustomField}
                 name="Incident Custom Fields"

@@ -7,7 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import CustomFieldsDetail from "CommonUI/src/Components/CustomFields/CustomFieldsDetail";
+import CustomFieldsDetail from 'CommonUI/src/Components/CustomFields/CustomFieldsDetail';
 import Monitor from 'Model/Models/Monitor';
 import MonitorCustomField from 'Model/Models/MonitorCustomField';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
@@ -52,9 +52,9 @@ const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <CustomFieldsDetail 
-                title='Monitor Custom Fields'
-                description='Custom fields help you add new fields to your resources in OneUptime.'
+            <CustomFieldsDetail
+                title="Monitor Custom Fields"
+                description="Custom fields help you add new fields to your resources in OneUptime."
                 modelType={Monitor}
                 customFieldType={MonitorCustomField}
                 name="Monitor Custom Fields"

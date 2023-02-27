@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'State Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
                             ] as Route,
                             props.modelId
                         ),
@@ -70,7 +70,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.INCIDENT_VIEW_CUSTOM_FIELDS] as Route,
+                            RouteMap[
+                                PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
+                            ] as Route,
                             props.modelId
                         ),
                     }}

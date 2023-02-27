@@ -45,13 +45,13 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onValidate?:
-    | undefined
-    | ((
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>);
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -61,8 +61,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCancel?: undefined | (() => void);
     name: string;
     onSuccess?:
-    | undefined
-    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -75,8 +75,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?:
-    | ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>)
-    | undefined;
+        | ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>)
+        | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
 }
@@ -96,7 +96,6 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.fields) {
-
             const key: string | null = field.field
                 ? (Object.keys(field.field)[0] as string)
                 : null;
@@ -132,7 +131,6 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         return populate;
     };
 
-
     const hasPermissionOnField: Function = (fieldName: string): boolean => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
@@ -164,21 +162,19 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         }
 
         if (
-            (fieldPermissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    userPermissions,
-                    fieldPermissions
-                ))
+            fieldPermissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                userPermissions,
+                fieldPermissions
+            )
         ) {
-           return true; 
+            return true;
         }
 
-        return false; 
-    }
+        return false;
+    };
 
     const setFormFields: Function = async (): Promise<void> => {
-        
-
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
@@ -187,12 +183,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             if (keys.length > 0) {
                 const key: string = keys[0] as string;
 
-                const hasPermission = hasPermissionOnField(key);
+                const hasPermission: boolean = hasPermissionOnField(key);
 
-                if (
-                    field.forceShow ||
-                    hasPermission
-                ) {
+                if (field.forceShow || hasPermission) {
                     fieldsToSet.push(field);
                 }
             }
@@ -255,7 +248,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                                 isModelArray = true;
                                 idArray.push(
                                     (itemInArray as any as JSONObject)[
-                                    '_id'
+                                        '_id'
                                     ] as string
                                 );
                             }
@@ -334,7 +327,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -442,7 +435,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     Array.isArray(valuesToSend[key]) &&
                     (valuesToSend[key] as Array<any>).length > 0 &&
                     typeof (valuesToSend[key] as Array<any>)[0] ===
-                    Typeof.String
+                        Typeof.String
                 ) {
                     const arr: Array<BaseModel> = [];
                     for (const id of valuesToSend[key] as Array<string>) {
@@ -479,7 +472,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                'Server Error. Please try again'
+                    'Server Error. Please try again'
             );
         }
 

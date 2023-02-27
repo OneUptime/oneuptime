@@ -6,12 +6,11 @@ import CustomFieldsPageBase from './Base/CustomFieldsPageBase';
 import Route from 'Common/Types/API/Route';
 import IncidentCustomField from 'Model/Models/IncidentCustomField';
 
-
 const IncidentCustomFields: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
-        <CustomFieldsPageBase 
+        <CustomFieldsPageBase
             {...props}
             title="Incident Custom Fields"
             currentRoute={RouteUtil.populateRouteParams(

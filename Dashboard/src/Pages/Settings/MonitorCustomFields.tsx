@@ -6,12 +6,11 @@ import CustomFieldsPageBase from './Base/CustomFieldsPageBase';
 import Route from 'Common/Types/API/Route';
 import MonitorCustomField from 'Model/Models/MonitorCustomField';
 
-
 const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
-        <CustomFieldsPageBase 
+        <CustomFieldsPageBase
             {...props}
             title="Monitor Custom Fields"
             currentRoute={RouteUtil.populateRouteParams(
