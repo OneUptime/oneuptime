@@ -32,6 +32,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { getAllEnvVars, IsBillingEnabled } from '../Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -713,7 +714,7 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
 
-        console.log("here1")
+        
         const model: BaseModel = new modelType();
 
         const tenantColumn: string | null = model.getTenantColumn();
@@ -726,14 +727,14 @@ export default class ModelPermission {
 
         // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
         if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
-            console.log("herex");
+            
             (query as any)[tenantColumn] = props.tenantId;
         } else if (
             model.isUserQueryWithoutTenantAllowed() &&
             model.getUserColumn() &&
             props.userId
         ) {
-            console.log("herey");
+            
             (query as any)[model.getUserColumn() as string] = props.userId;
         } else if (
             tenantColumn &&
@@ -741,7 +742,7 @@ export default class ModelPermission {
             props.userGlobalAccessPermission
         ) {
 
-            console.log("herez")
+           
             // for each of these projectIds,
             // check if they have valid permissions for these projects
             // and if they do, include them in the query.
@@ -795,8 +796,6 @@ export default class ModelPermission {
                 );
             }
 
-            console.log("here2");
-            console.log(queries);
 
             return queries as any;
         }
@@ -944,7 +943,7 @@ export default class ModelPermission {
 
         if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
             // this means the record is not publicly createable and the user is not logged in.
-            throw new NotAuthorizedException(
+            throw new NotAuthenticatedException(
                 `A user should be logged in to ${type} record of ${new modelType().singularName
                 }.`
             );
