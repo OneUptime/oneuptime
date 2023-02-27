@@ -5,11 +5,14 @@ import BaseModel from 'Common/Models/BaseModel';
 import Card from '../Card/Card';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import CardModelDetail from '../ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Detail from '../Detail/Detail';
+import BasicFormModal from '../FormModal/BasicFormModal';
+import { JSONObject } from 'Common/Types/JSON';
+import { ButtonStyleType } from '../Button/Button';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     title: string;
@@ -29,7 +32,8 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     const [schemaList, setSchemaList] = useState<Array<BaseModel>>([]);
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
-
+    const [model, setModel] = useState<BaseModel | null>(null);
+    const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
     const onLoad = async () => {
 
@@ -44,10 +48,43 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                 type: true,
             } as any, {}, {})
 
+            const item = await ModelAPI.getItem<BaseModel>(props.modelType, props.modelId, {
+                customFields: true
+            } as any)
+
             setSchemaList(schemaList.data);
+            setModel(item);
 
             setIsLoading(false);
         } catch (err) {
+            setIsLoading(false);
+            try {
+                setError(
+                    (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
+                );
+            } catch (e) {
+                setError('Server Error. Please try again');
+            }
+        }
+    }
+
+
+    const onSave = async (data: JSONObject) => {
+
+        try {
+            // load schema.  
+            setIsLoading(true);
+            setShowModelForm(false);
+
+            await ModelAPI.updateById(props.modelType, props.modelId, {
+                customFields: data
+            });
+
+            await onLoad();
+
+        } catch (err) {
+            setIsLoading(false);
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
@@ -64,63 +101,64 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     }, []);
 
 
-    if (isLoading) {
-        return <ComponentLoader />
-    }
-
-
-    if (!isLoading && schemaList.length === 0) {
-        <Card title={props.title} description={props.description}>
-            <ErrorMessage error="No custom fields are added for this resource. Please add customm fields for this resource in project settings." />
-        </Card>
-    }
-
-    if (error) {
-        <Card title={props.title} description={props.description}>
-            <ErrorMessage error={error} />
-        </Card>
-    }
-
-
-    return (<CardModelDetail
-        name={props.name}
-        cardProps={{
-            title: props.title,
-            description: props.description,
-            icon: IconProp.TableCells,
-        }}
-        isEditable={true}
-        formFields={schemaList.map((schemaItem: BaseModel) => {
-            return {
-                field: {
-                    ['customFields.' + (schemaItem as any).name]: true,
+    return (<Card title={props.title} description={props.description}
+        buttons={[
+            {
+                title: "Edit Fields",
+                buttonStyle: ButtonStyleType.NORMAL,
+                onClick: () => {
+                    setShowModelForm(true)
                 },
-                title: 'customFields.' + (schemaItem as any).name,
-                description: 'customFields.' + (schemaItem as any).description,
-                fieldType: 'customFields.' + (schemaItem as any).type,
-                required: false,
-                placeholder: ''
+                icon: IconProp.Edit,
+
             }
-        })}
-        modelDetailProps={{
-            showDetailsInNumberOfColumns: 2,
-            modelType: props.modelType,
-            id: 'model-type-monitors',
-            fields: schemaList.map((schemaItem: BaseModel) => {
-                return {
-                    field: {
-                        ['customFields.' + (schemaItem as any).name]: true,
-                    },
-                    title: 'customFields.' + (schemaItem as any).name,
-                    description: 'customFields.' + (schemaItem as any).description,
-                    fieldType: 'customFields.' + (schemaItem as any).type,
+        ]}
+    >
+        <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+            {isLoading && !error && <ComponentLoader />}
+            {!isLoading && !error && schemaList.length === 0 && <ErrorMessage error="No custom fields are added for this resource. Please add customm fields for this resource in project settings." />}
+            {error && <ErrorMessage error={error} />}
+            {!model && <ErrorMessage error={"Item not found"} />}
 
-                }
-            }),
-            modelId: props.modelId,
-        }}
-    />)
+            {!isLoading && !error && model && <Detail
+                id={props.name}
+                item={(model as any)["customFields"] || {}}
+                fields={schemaList.map((schemaItem: BaseModel) => {
+                    return {
+                        key: [(schemaItem as any).name],
+                        title: (schemaItem as any).name,
+                        description: (schemaItem as any).description,
+                        fieldType: (schemaItem as any).type,
+                        placeholder: "No data entered"
+                    }
+                })}
+                showDetailsInNumberOfColumns={1}
+            />}
 
+            {showModelForm && <BasicFormModal
+                title={"Edit " + new props.modelType().singularName}
+                onClose={() => setShowModelForm(false)}
+                onSubmit={(data: JSONObject) => {
+                    onSave(data);
+                }}
+                formProps={{
+                    initialValues: (model as any)["customFields"] || {},
+                    fields: schemaList.map((schemaItem: BaseModel) => {
+                        return {
+                            field: {
+                                [(schemaItem as any).name]: true,
+                            },
+                            title: (schemaItem as any).name,
+                            description: (schemaItem as any).description,
+                            fieldType: (schemaItem as any).type,
+                            required: false,
+                            placeholder: ''
+                        }
+                    })
+                }}
+            />}
+        </div>
+    </Card >)
 };
 
 export default CustomFieldsDetail;
