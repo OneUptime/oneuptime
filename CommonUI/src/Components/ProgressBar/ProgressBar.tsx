@@ -29,13 +29,13 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
             percent = 100;
         }
 
-        setPercent(percent);
+        setPercent(Math.ceil(percent));
     }, [props.count, props.totalCount]);
 
     return (
         <div className="w-full h-4 mb-4 bg-gray-200 rounded-full dark:bg-gray-700">
             <div
-                className="h-4 bg-blue-600 rounded-full dark:bg-blue-500"
+                className="h-4 bg-indigo-600 rounded-full dark:bg-indigo-500"
                 style={{ width: percent + '%' }}
             ></div>
             <div className="text-sm text-gray-400 mt-1 flex justify-between">

@@ -100,7 +100,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key) {
+            if (key && hasPermissionOnField(key)) {
                 (select as Dictionary<boolean>)[key] = true;
             }
         }
@@ -131,7 +131,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         return populate;
     };
 
-    const setFormFields: Function = async (): Promise<void> => {
+    const hasPermissionOnField: Function = (fieldName: string): boolean => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -153,6 +153,28 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();
 
+        let fieldPermissions: Array<Permission> = [];
+
+        if (FormType.Create === props.formType) {
+            fieldPermissions = accessControl[fieldName]?.create || [];
+        } else {
+            fieldPermissions = accessControl[fieldName]?.update || [];
+        }
+
+        if (
+            fieldPermissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                userPermissions,
+                fieldPermissions
+            )
+        ) {
+            return true;
+        }
+
+        return false;
+    };
+
+    const setFormFields: Function = async (): Promise<void> => {
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
@@ -161,22 +183,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             if (keys.length > 0) {
                 const key: string = keys[0] as string;
 
-                let fieldPermissions: Array<Permission> = [];
+                const hasPermission: boolean = hasPermissionOnField(key);
 
-                if (FormType.Create === props.formType) {
-                    fieldPermissions = accessControl[key]?.create || [];
-                } else {
-                    fieldPermissions = accessControl[key]?.update || [];
-                }
-
-                if (
-                    field.forceShow ||
-                    (fieldPermissions &&
-                        PermissionHelper.doesPermissionsIntersect(
-                            userPermissions,
-                            fieldPermissions
-                        ))
-                ) {
+                if (field.forceShow || hasPermission) {
                     fieldsToSet.push(field);
                 }
             }

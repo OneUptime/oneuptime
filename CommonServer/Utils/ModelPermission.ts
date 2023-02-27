@@ -32,6 +32,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { getAllEnvVars, IsBillingEnabled } from '../Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -186,6 +187,13 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         if (!props.isRoot) {
+            //check if the user is logged in.
+            this.checkIfUserIsLoggedIn(
+                modelType,
+                props,
+                DatabaseRequestType.Read
+            );
+
             // add tenant scope.
             query = await this.addTenantScopeToQuery(
                 modelType,
@@ -926,7 +934,7 @@ export default class ModelPermission {
         return isPublicAllowed;
     }
 
-    private static checkModelLevelPermissions(
+    public static checkIfUserIsLoggedIn(
         modelType: { new (): BaseModel },
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
@@ -935,12 +943,20 @@ export default class ModelPermission {
 
         if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
             // this means the record is not publicly createable and the user is not logged in.
-            throw new NotAuthorizedException(
+            throw new NotAuthenticatedException(
                 `A user should be logged in to ${type} record of ${
                     new modelType().singularName
                 }.`
             );
         }
+    }
+
+    private static checkModelLevelPermissions(
+        modelType: { new (): BaseModel },
+        props: DatabaseCommonInteractionProps,
+        type: DatabaseRequestType
+    ): void {
+        this.checkIfUserIsLoggedIn(modelType, props, type);
 
         // 2nd CHECK: Does user have access to CRUD data on this model.
         const userPermissions: Array<UserPermission> =

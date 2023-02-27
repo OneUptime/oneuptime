@@ -55,6 +55,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
+                        title: 'Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'Delete Monitor',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,

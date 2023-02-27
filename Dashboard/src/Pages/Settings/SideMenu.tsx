@@ -64,6 +64,30 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.AltGlobe}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Monitor Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
+            </SideMenuSection>
+            <SideMenuSection title="Status Pages">
+                <SideMenuItem
+                    link={{
+                        title: 'Staus Page Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
             </SideMenuSection>
             <SideMenuSection title="Incidents">
                 <SideMenuItem
@@ -86,6 +110,17 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Alert}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Incident Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
                 {/* <SideMenuItem
                     link={{
                         title: 'Incident Templates',
@@ -105,6 +140,18 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Clock}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Scheduled Maintenance Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
                 />
             </SideMenuSection>
             <SideMenuSection title="Team">

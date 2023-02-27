@@ -44,6 +44,7 @@ import StatusPagesViewFooterStyle from './Pages/StatusPages/View/FooterStyle';
 import StatusPagesViewNavBarStyle from './Pages/StatusPages/View/NavBarStyle';
 import StatusPagesViewGroups from './Pages/StatusPages/View/Groups';
 import StatusPageViewSubscriberSettings from './Pages/StatusPages/View/SubscriberSettings';
+import StatusPageViewCustomFields from './Pages/StatusPages/View/CustomFields';
 
 import StatusPageViewPrivateUser from './Pages/StatusPages/View/PrivateUser';
 
@@ -54,6 +55,7 @@ import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
 import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
 import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
 import UnresolvedIncidents from './Pages/Incidents/Unresolved';
+import IncidentViewCustomFields from './Pages/Incidents/View/CustomFields';
 
 import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
 import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
@@ -62,6 +64,7 @@ import ScheduledMaintenanceEventViewStateTimeline from './Pages/ScheduledMainten
 import ScheduledMaintenanceEventInternalNote from './Pages/ScheduledMaintenanceEvents/View/InternalNote';
 import ScheduledMaintenanceEventPublicNote from './Pages/ScheduledMaintenanceEvents/View/PublicNote';
 import OngoingScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/Ongoing';
+import ScheduledMaintenanceEventsViewCustomFields from './Pages/ScheduledMaintenanceEvents/View/CustomFields';
 
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -84,6 +87,10 @@ import SettingsDomains from './Pages/Settings/Domains';
 import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 import SettingsBilling from './Pages/Settings/Billing';
 import SettingsInvoices from './Pages/Settings/Invoices';
+import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
+import StatusPageCustomFields from './Pages/Settings/StatusPageCustomFields';
+import IncidentCustomFields from './Pages/Settings/IncidentCustomFields';
+import ScheduledMaintenanceCustomFields from './Pages/Settings/ScheduledMaintenanceCusomFields';
 
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
 import ProjectInvitations from './Pages/Global/ProjectInvitations';
@@ -99,6 +106,7 @@ import MonitorViewDelete from './Pages/Monitor/View/Delete';
 import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
 import MonitorIncidents from './Pages/Monitor/View/Incidents';
 import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
+import MonitorViewCustomFields from './Pages/Monitor/View/CustomFields';
 
 // Import CSS
 // import 'CommonUI/src/Styles/theme.scss';
@@ -392,6 +400,24 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <MonitorViewCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
                 {/* Workflows  */}
 
                 <PageRoute
@@ -590,6 +616,24 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <StatusPageViewCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -899,6 +943,24 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={
+                        RouteMap[
+                            PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <IncidentViewCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
                         RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString() || ''
                     }
                     element={
@@ -960,6 +1022,25 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ScheduledMaintenanceEventsViewCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -1202,6 +1283,79 @@ const App: FunctionComponent = () => {
                         <SettingsApiKeyView
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <MonitorCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <StatusPageCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ScheduledMaintenanceCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <IncidentCustomFields
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />

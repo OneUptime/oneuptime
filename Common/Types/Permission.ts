@@ -46,19 +46,36 @@ enum Permission {
     CanInviteProjectTeamMembers = 'CanInviteProjectTeamMembers',
     CanEditProjectTeamPermissions = 'CanEditProjectTeamPermissions',
 
-    // Probe Permissions (Owner Permission)
     CanCreateProjectProbe = 'CanCreateProjectProbe',
     CanDeleteProjectProbe = 'CanDeleteProjectProbe',
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
 
-    // Probe Permissions (Owner Permission)
+    CanCreateMonitorCustomField = 'CanCreateMonitorCustomField',
+    CanDeleteMonitorCustomField = 'CanDeleteMonitorCustomField',
+    CanEditMonitorCustomField = 'CanEditMonitorCustomField',
+    CanReadMonitorCustomField = 'CanReadMonitorCustomField',
+
+    CanCreateScheduledMaintenanceCustomField = 'CanCreateScheduledMaintenanceCustomField',
+    CanDeleteScheduledMaintenanceCustomField = 'CanDeleteScheduledMaintenanceCustomField',
+    CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
+    CanReadScheduledMaintenanceCustomField = 'CanReadScheduledMaintenanceCustomField',
+
+    CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
+    CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
+    CanEditStatusPageCustomField = 'CanEditStatusPageCustomField',
+    CanReadStatusPageCustomField = 'CanReadStatusPageCustomField',
+
+    CanCreateIncidentCustomField = 'CanCreateIncidentCustomField',
+    CanDeleteIncidentCustomField = 'CanDeleteIncidentCustomField',
+    CanEditIncidentCustomField = 'CanEditIncidentCustomField',
+    CanReadIncidentCustomField = 'CanReadIncidentCustomField',
+
     CanCreateProjectIncident = 'CanCreateProjectIncident',
     CanDeleteProjectIncident = 'CanDeleteProjectIncident',
     CanEditProjectIncident = 'CanEditProjectIncident',
     CanReadProjectIncident = 'CanReadProjectIncident',
 
-    // Probe Permissions (Owner Permission)
     CanCreateStatusPageSubscriber = 'CanCreateStatusPageSubscriber',
     CanDeleteStatusPageSubscriber = 'CanDeleteStatusPageSubscriber',
     CanEditStatusPageSubscriber = 'CanEditStatusPageSubscriber',
@@ -69,60 +86,50 @@ enum Permission {
     CanEditStatusPagePrivateUser = 'CanEditStatusPagePrivateUser',
     CanReadStatusPagePrivateUser = 'CanReadStatusPagePrivateUser',
 
-    // Probe Permissions (Owner Permission)
     CanCreateProjectDomain = 'CanCreateProjectDomain',
     CanDeleteProjectDomain = 'CanDeleteProjectDomain',
     CanEditProjectDomain = 'CanEditProjectDomain',
     CanReadProjectDomain = 'CanReadProjectDomain',
 
-    // Probe Permissions (Owner Permission)
     CanCreateStatusPageHeaderLink = 'CanCreateStatusPageHeaderLink',
     CanDeleteStatusPageHeaderLink = 'CanDeleteStatusPageHeaderLink',
     CanEditStatusPageHeaderLink = 'CanEditStatusPageHeaderLink',
     CanReadStatusPageHeaderLink = 'CanReadStatusPageHeaderLink',
 
-    // Probe Permissions (Owner Permission)
     CanCreateStatusPageFooterLink = 'CanCreateStatusPageFooterLink',
     CanDeleteStatusPageFooterLink = 'CanDeleteStatusPageFooterLink',
     CanEditStatusPageFooterLink = 'CanEditStatusPageFooterLink',
     CanReadStatusPageFooterLink = 'CanReadStatusPageFooterLink',
 
-    // Probe Permissions (Owner Permission)
     CanCreateStatusPageResource = 'CanCreateStatusPageResource',
     CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
     CanEditStatusPageResource = 'CanEditStatusPageResource',
     CanReadStatusPageResource = 'CanReadStatusPageResource',
 
-    // Workflow Permissions (Owner Permission)
     CanCreateWorkflow = 'CanCreateWorkflow',
     CanDeleteWorkflow = 'CanDeleteWorkflow',
     CanEditWorkflow = 'CanEditWorkflow',
     CanReadWorkflow = 'CanReadWorkflow',
 
-    // Workflow Permissions (Owner Permission)
     CanDeleteProject = 'CanDeleteProject',
     CanEditProject = 'CanEditProject',
     CanReadProject = 'CanReadProject',
 
-    // Workflow Permissions (Owner Permission)
     CanCreateWorkflowLog = 'CanCreateWorkflowLog',
     CanDeleteWorkflowLog = 'CanDeleteWorkflowLog',
     CanEditWorkflowLog = 'CanEditWorkflowLog',
     CanReadWorkflowLog = 'CanReadWorkflowLog',
 
-    // Workflow Permissions (Owner Permission)
     CanCreateWorkflowVariable = 'CanCreateWorkflowVariable',
     CanDeleteWorkflowVariable = 'CanDeleteWorkflowVariable',
     CanEditWorkflowVariable = 'CanEditWorkflowVariable',
     CanReadWorkflowVariable = 'CanReadWorkflowVariable',
 
-    // Probe Permissions (Owner Permission)
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
     CanDeleteStatusPageGroup = 'CanDeleteStatusPageGroup',
     CanEditStatusPageGroup = 'CanEditStatusPageGroup',
     CanReadStatusPageGroup = 'CanReadStatusPageGroup',
 
-    // Probe Permissions (Owner Permission)
     CanCreateStatusPageDomain = 'CanCreateStatusPageDomain',
     CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
     CanEditStatusPageDomain = 'CanEditStatusPageDomain',
@@ -160,7 +167,6 @@ enum Permission {
     CanDeleteScheduledMaintenancePublicNote = 'CanDeleteScheduledMaintenancePublicNote',
     CanReadScheduledMaintenancePublicNote = 'CanReadScheduledMaintenancePublicNote',
 
-    // Probe Permissions (Owner Permission)
     CanCreateProjectScheduledMaintenance = 'CanCreateProjectScheduledMaintenance',
     CanDeleteProjectScheduledMaintenance = 'CanDeleteProjectScheduledMaintenance',
     CanEditProjectScheduledMaintenance = 'CanEditProjectScheduledMaintenance',
@@ -1413,6 +1419,138 @@ export class PermissionHelper {
                 title: 'Can Read Probe',
                 description:
                     'A user assigned this permission  can read probe of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateMonitorCustomField,
+                title: 'Can Create Monitor Custom Field',
+                description:
+                    'A user assigned this permission can create Monitor Custom Field this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorCustomField,
+                title: 'Can Delete Monitor Custom Field',
+                description:
+                    'A user assigned this permission  can delete Monitor Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorCustomField,
+                title: 'Can Edit Monitor Custom Field',
+                description:
+                    'A user assigned this permission can edit Monitor Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorCustomField,
+                title: 'Can Read Monitor Custom Field',
+                description:
+                    'A user assigned this permission  can read Monitor Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateIncidentCustomField,
+                title: 'Can Create Incident Custom Field',
+                description:
+                    'A user assigned this permission can create Incident Custom Field this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentCustomField,
+                title: 'Can Delete Incident Custom Field',
+                description:
+                    'A user assigned this permission  can delete Incident Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentCustomField,
+                title: 'Can Edit Incident Custom Field',
+                description:
+                    'A user assigned this permission can edit Incident Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentCustomField,
+                title: 'Can Read Incident Custom Field',
+                description:
+                    'A user assigned this permission  can read Incident Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateStatusPageCustomField,
+                title: 'Can Create Status Page Custom Field',
+                description:
+                    'A user assigned this permission can create Status Page Custom Field this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageCustomField,
+                title: 'Can Delete Status Page Custom Field',
+                description:
+                    'A user assigned this permission  can delete Status Page Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageCustomField,
+                title: 'Can Edit Status Page Custom Field',
+                description:
+                    'A user assigned this permission can edit Status Page Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageCustomField,
+                title: 'Can Read Status Page Custom Field',
+                description:
+                    'A user assigned this permission  can read Status Page Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateScheduledMaintenanceCustomField,
+                title: 'Can Create Scheduled Maintenance Custom Field',
+                description:
+                    'A user assigned this permission can create Scheduled Maintenance Custom Field this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenanceCustomField,
+                title: 'Can Delete Scheduled Maintenance Custom Field',
+                description:
+                    'A user assigned this permission  can delete Scheduled Maintenance Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceCustomField,
+                title: 'Can Edit Scheduled Maintenance Custom Field',
+                description:
+                    'A user assigned this permission can edit Scheduled Maintenance Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceCustomField,
+                title: 'Can Read Scheduled Maintenance Custom Field',
+                description:
+                    'A user assigned this permission  can read Scheduled Maintenance Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

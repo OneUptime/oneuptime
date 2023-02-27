@@ -25,6 +25,7 @@ import StatusPageSubscriber from './StatusPageSubscriber';
 import StatusPageFooterLink from './StatusPageFooterLink';
 import StatusPageHeaderLink from './StatusPageHeaderLink';
 import StatusPagePrivateUser from './StatusPagePrivateUser';
+import StatusPageCustomField from './StatusPageCustomField';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -33,6 +34,7 @@ import OnCallDuty from './OnCallDuty';
 import Monitor from './Monitor';
 import MonitorStatus from './MonitorStatus';
 import MonitorStatusTimeline from './MonitorStatusTimeline';
+import MonitorCustomField from './MonitorCustomField';
 
 // Incidents
 import Incident from './Incident';
@@ -41,6 +43,7 @@ import IncidentStateTimeline from './IncidentStateTimeline';
 import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
 import IncidentSeverity from './IncidentSeverity';
+import IncidentCustomField from './IncidentCustomField';
 
 // ScheduledMaintenances
 import ScheduledMaintenance from './ScheduledMaintenance';
@@ -48,6 +51,7 @@ import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeline';
 import ScheduledMaintenancePublicNote from './ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceInternalNote from './ScheduledMaintenanceInternalNote';
+import ScheduledMaintenanceCustomField from './ScheduledMaintenanceCustomField';
 
 import BillingPaymentMethods from './BillingPaymentMethod';
 
@@ -84,8 +88,10 @@ export default [
     OnCallDuty,
     Monitor,
     MonitorStatus,
+    MonitorCustomField,
     IncidentState,
     Incident,
+    IncidentCustomField,
     IncidentStateTimeline,
     MonitorStatusTimeline,
     IncidentPublicNote,
@@ -95,6 +101,7 @@ export default [
 
     StatusPageGroup,
     StatusPageDomain,
+    StatusPageCustomField,
     StatusPageResource,
     IncidentSeverity,
     StatusPageAnnouncement,
@@ -108,6 +115,7 @@ export default [
     ScheduledMaintenanceStateTimeline,
     ScheduledMaintenancePublicNote,
     ScheduledMaintenanceInternalNote,
+    ScheduledMaintenanceCustomField,
 
     BillingPaymentMethods,
     BillingInvoice,

@@ -2,6 +2,7 @@ enum IconProp {
     File = 'File',
     Automation = 'Automation',
     Workflow = 'Workflow',
+    TableCells = 'TableCells',
     Layout = 'Layout',
     Compass = 'Compass',
     User = 'User',

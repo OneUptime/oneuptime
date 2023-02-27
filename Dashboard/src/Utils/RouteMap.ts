@@ -51,6 +51,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),
 
+    [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/custom-fields`
+    ),
+
     [PageMap.INCIDENT_INTERNAL_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/internal-notes`
     ),
@@ -83,6 +87,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/internal-notes`
     ),
 
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/custom-fields`
+    ),
+
     [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/public-notes`
     ),
@@ -105,6 +113,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.STATUS_PAGE_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-fields`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_DOMAINS]: new Route(
@@ -179,6 +191,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
+    ),
+
+    [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/custom-fields`
     ),
 
     [PageMap.MONITOR_VIEW_DELETE]: new Route(
@@ -291,6 +307,23 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.WORKFLOW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/delete`
+    ),
+
+    /// custom fields settings.
+
+    [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/monitor-custom-fields`
+    ),
+
+    [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/incident-custom-fields`
+    ),
+
+    [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/scheduled-maintenance-custom-fields`
+    ),
+    [PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/status-page-custom-fields`
     ),
 
     // logout.
