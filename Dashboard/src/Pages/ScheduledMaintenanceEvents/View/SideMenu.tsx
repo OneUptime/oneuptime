@@ -23,7 +23,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW
                             ] as Route,
                             props.modelId
                         ),
@@ -35,8 +35,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'State Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap
-                                    .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                            PageMap
+                                .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                             ] as Route,
                             props.modelId
                         ),
@@ -51,7 +51,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Private Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                             ] as Route,
                             props.modelId
                         ),
@@ -63,7 +63,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Public Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                             ] as Route,
                             props.modelId
                         ),
@@ -75,10 +75,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
+                        title: 'Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
+
+                <SideMenuItem
+                    link={{
                         title: 'Delete Scheduled Maintenance',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
                             ] as Route,
                             props.modelId
                         ),

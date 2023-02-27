@@ -195,7 +195,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                     </label>
                 )}
                 {field.description && (
-                    <p className={alignClassName}>{field.description}</p>
+                    <p className={`${alignClassName} text-xs text-gray-400`}>{field.description}</p>
                 )}
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>

@@ -46,6 +46,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             } as any, LIMIT_PER_PROJECT, 0, {
                 name: true,
                 type: true,
+                description: true
             } as any, {}, {})
 
             const item = await ModelAPI.getItem<BaseModel>(props.modelType, props.modelId, {
