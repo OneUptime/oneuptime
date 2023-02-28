@@ -19,7 +19,7 @@ export default class ComponentCodeAPI {
             if (ComponentCode) {
                 const instance: ComponentCode = ComponentCode;
                 instance
-                    .init({
+                    .setupComponent({
                         router: this.router,
                         scheduleWorkflow: this.scheduleWorkflow,
                         executeWorkflow: this.executeWorkflow,
@@ -35,6 +35,11 @@ export default class ComponentCodeAPI {
         executeWorkflow: ExecuteWorkflowType,
         scheduleAt: string
     ): Promise<void> {
+
+        console.log("Schedule workflow")
+
+        
+
         /// add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow, scheduleAt);
     }
