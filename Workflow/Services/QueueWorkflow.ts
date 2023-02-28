@@ -15,6 +15,50 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export default class QueueWorkflow {
+
+    public static async removeWorkflow(workflowId: ObjectID) {
+        // get workflow to see if its enabled.
+        const workflow: Workflow | null = await WorkflowService.findOneById({
+            id: workflowId,
+            select: {
+                projectId: true,
+                repeatableJobKey: true
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!workflow) {
+            throw new BadDataException('Workflow not found');
+        }
+
+        if (!workflow.projectId) {
+            throw new BadDataException(
+                'This workflow does not belong to a project and cannot be run'
+            );
+        }
+
+        await Queue.removeJob(
+            QueueName.Workflow,
+            workflow.repeatableJobKey!
+        );
+
+        // update workflow. 
+        await WorkflowService.updateOneById({
+            id: workflow.id!,
+            data: {
+                repeatableJobKey: null!
+            },
+            props: {
+                isRoot: true,
+                ignoreHooks: true
+            }
+        });
+
+    }
+
+
     public static async addWorkflowToQueue(
         executeWorkflow: ExecuteWorkflowType,
         scheduleAt?: string
@@ -134,7 +178,7 @@ export default class QueueWorkflow {
         }
 
 
-        const job =  await Queue.addJob(
+        const job = await Queue.addJob(
             QueueName.Workflow,
             workflowLog ? workflowLog._id?.toString()! : workflow._id?.toString()!,
             workflowLog ? workflowLog._id?.toString()! : workflow._id?.toString()!,
@@ -143,21 +187,22 @@ export default class QueueWorkflow {
                 workflowLogId: workflowLog?._id || null,
                 workflowId: workflow._id,
             },
-            { scheduleAt: scheduleAt, repeatableKey: workflow.repeatableJobKey || undefined  }
+            { scheduleAt: scheduleAt, repeatableKey: workflow.repeatableJobKey || undefined }
         );
 
         // update workflow with repeatable key.
 
-        if(job.repeatJobKey){
-            
+        if (job.repeatJobKey) {
+
             // update workflow. 
             await WorkflowService.updateOneById({
-                id: workflow.id!, 
+                id: workflow.id!,
                 data: {
                     repeatableJobKey: job.repeatJobKey
                 },
                 props: {
-                    isRoot: true
+                    isRoot: true,
+                    ignoreHooks: true
                 }
             });
         }

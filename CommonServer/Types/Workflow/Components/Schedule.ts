@@ -36,6 +36,7 @@ export default class WebhookTrigger extends TriggerCode {
             select: {
                 _id: true,
                 triggerArguments: true,
+                isEnabled: true
             },
             props: {
                 isRoot: true,
@@ -53,17 +54,24 @@ export default class WebhookTrigger extends TriggerCode {
 
             if (
                 workflow.triggerArguments &&
-                workflow.triggerArguments['schedule']
+                workflow.triggerArguments['schedule'] && workflow.isEnabled
             ) {
                 await props.scheduleWorkflow(
                     executeWorkflow,
                     workflow.triggerArguments['schedule'] as string
                 );
             }
+
+            if(!workflow.isEnabled){
+                props.removeWorkflow(workflow.id!);
+            }
         }
     }
 
     public override async update(props: UpdateProps): Promise<void> {
+
+        console.log("Schedule update");
+
         const workflow: Workflow | null = await WorkflowService.findOneBy({
             query: {
                 triggerId: ComponentID.Schedule,
@@ -73,6 +81,7 @@ export default class WebhookTrigger extends TriggerCode {
             select: {
                 _id: true,
                 triggerArguments: true,
+                isEnabled: true
             },
             props: {
                 isRoot: true,
@@ -87,6 +96,9 @@ export default class WebhookTrigger extends TriggerCode {
             return;
         }
 
+        console.log("Workflow enabled");
+        console.log(workflow.isEnabled);
+
         const executeWorkflow: ExecuteWorkflowType = {
             workflowId: new ObjectID(workflow._id!),
             returnValues: {},
@@ -94,12 +106,25 @@ export default class WebhookTrigger extends TriggerCode {
 
         if (
             workflow.triggerArguments &&
-            workflow.triggerArguments['schedule']
+            workflow.triggerArguments['schedule'] && workflow.isEnabled
         ) {
             await this.scheduleWorkflow(
                 executeWorkflow,
                 workflow.triggerArguments['schedule'] as string
             );
         }
+
+        console.log("Removing workflow");
+        console.log(workflow.isEnabled);
+
+        if(!this.removeWorkflow){
+            return;
+        }
+
+        if(!workflow.isEnabled){
+            console.log("Here 2");
+            this.removeWorkflow(workflow.id!);
+        }
+
     }
 }

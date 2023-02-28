@@ -27,7 +27,7 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnUpdate<Model>> {
         /// save trigger and trigger args.
 
-        let trigger: NodeDataProp | null = null;
+
 
         if (
             onUpdate.updateBy.data &&
@@ -36,6 +36,9 @@ export class Service extends DatabaseService<Model> {
                 'nodes'
             ] as Array<JSONObject>)
         ) {
+
+            let trigger: NodeDataProp | null = null;
+
             // check if it has a trigger node.
             for (const node of ((onUpdate.updateBy.data as any).graph as any)[
                 'nodes'
@@ -49,22 +52,23 @@ export class Service extends DatabaseService<Model> {
                     trigger = nodeData;
                 }
             }
+
+            await this.updateOneById({
+                id: new ObjectID(onUpdate.updateBy.query._id! as any),
+                data: {
+                    triggerId: trigger?.metadataId! || null,
+                    triggerArguments: trigger?.arguments || {},
+                } as any,
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
         }
 
-        await this.updateOneById({
-            id: new ObjectID(onUpdate.updateBy.query._id! as any),
-            data: {
-                triggerId: trigger?.metadataId! || null,
-                triggerArguments: trigger?.arguments || {},
-            } as any,
-            props: {
-                isRoot: true,
-                ignoreHooks: true,
-            },
-        });
 
         await API.post<EmptyResponseData>(
-            new URL(Protocol.HTTP, WorkflowHostname, new Route('/workflow/update/'+onUpdate.updateBy.query._id!)),
+            new URL(Protocol.HTTP, WorkflowHostname, new Route('/workflow/update/' + onUpdate.updateBy.query._id!)),
             {},
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),

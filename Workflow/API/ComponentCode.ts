@@ -6,6 +6,7 @@ import TrigegrCode, {
 import ComponentCode from 'CommonServer/Types/Workflow/ComponentCode';
 import QueueWorkflow from '../Services/QueueWorkflow';
 import logger from 'CommonServer/Utils/Logger';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class ComponentCodeAPI {
     public router!: ExpressRouter;
@@ -24,6 +25,7 @@ export default class ComponentCodeAPI {
                         router: this.router,
                         scheduleWorkflow: this.scheduleWorkflow,
                         executeWorkflow: this.executeWorkflow,
+                        removeWorkflow: this.removeWorkflow
                     })
                     .catch((err: Error) => {
                         logger.error(err);
@@ -37,10 +39,6 @@ export default class ComponentCodeAPI {
         scheduleAt: string
     ): Promise<void> {
 
-        console.log("Schedule workflow")
-
-        
-
         /// add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow, scheduleAt);
     }
@@ -50,5 +48,15 @@ export default class ComponentCodeAPI {
     ): Promise<void> {
         // add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow);
+    }
+
+    public async removeWorkflow(
+        workflowId: ObjectID
+    ): Promise<void> {
+
+        console.log("REMOVE WORKFLOW")
+
+        // add to queue.
+        await QueueWorkflow.removeWorkflow(workflowId);
     }
 }

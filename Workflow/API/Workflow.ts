@@ -55,8 +55,13 @@ export default class WorkflowAPI {
             });
         }
 
+        if(!workflow.triggerId){
+            return Response.sendJsonObjectResponse(req, res, {
+                status: 'Trigger not found in workflow',
+            });
+        }
 
-        const componentCode: ComponentCode | undefined = Components[workflow.triggerId as string];
+        const componentCode: ComponentCode | undefined = Components[workflow.triggerId];
 
         if (!componentCode) {
             return Response.sendJsonObjectResponse(req, res, {
