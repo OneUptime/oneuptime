@@ -19,12 +19,14 @@ import UpdateManyBaseModel from './UpdateManyBaseModel';
 import OnDeleteBaseModel from './OnDeleteBaseModel';
 import DeleteOneBaseModel from './DeleteOneBaseModel';
 import DeleteManyBaseModel from './DeleteManyBaseMoidel';
+import ManualTrigger from './Manual';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
     [ComponentID.Log]: new Log(),
     [ComponentID.Schedule]: new Schedule(),
     [ComponentID.JavaScriptCode]: new JavaScirptCode(),
+    [ComponentID.Manual]: new ManualTrigger()
 };
 
 for (const baseModelService of BaseModelServices) {

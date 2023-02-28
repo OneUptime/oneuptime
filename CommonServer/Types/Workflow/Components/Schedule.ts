@@ -10,6 +10,7 @@ import QueryHelper from '../../Database/QueryHelper';
 import ComponentCode, {
     ExecuteWorkflowType,
     InitProps,
+    UpdateProps,
 } from '../ComponentCode';
 
 export default class WebhookTrigger extends ComponentCode {
@@ -59,6 +60,46 @@ export default class WebhookTrigger extends ComponentCode {
                     workflow.triggerArguments['schedule'] as string
                 );
             }
+        }
+    }
+
+    public override async update(props: UpdateProps): Promise<void> {
+        const workflow: Workflow | null = await WorkflowService.findOneBy({
+            query: {
+                triggerId: ComponentID.Schedule,
+                _id: props.workflowId.toString(),
+                triggerArguments: QueryHelper.notNull(),
+            },
+            select: {
+                _id: true,
+                triggerArguments: true,
+            },
+            props: {
+                isRoot: true,
+            }
+        });
+
+        if(!workflow){
+            return;
+        }
+
+        if(!this.scheduleWorkflow){
+            return;
+        }
+
+        const executeWorkflow: ExecuteWorkflowType = {
+            workflowId: new ObjectID(workflow._id!),
+            returnValues: {},
+        };
+
+        if (
+            workflow.triggerArguments &&
+            workflow.triggerArguments['schedule']
+        ) {
+            await this.scheduleWorkflow(
+                executeWorkflow,
+                workflow.triggerArguments['schedule'] as string
+            );
         }
     }
 }

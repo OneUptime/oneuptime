@@ -8,6 +8,13 @@ import {
     NodeDataProp,
     NodeType,
 } from 'Common/Types/Workflow/Component';
+import API from 'Common/Utils/API';
+import EmptyResponseData from 'Common/Types/API/EmptyResponse';
+import URL from 'Common/Types/API/URL';
+import Protocol from 'Common/Types/API/Protocol';
+import { WorkflowHostname } from '../Config';
+import Route from 'Common/Types/API/Route';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -55,6 +62,14 @@ export class Service extends DatabaseService<Model> {
                 ignoreHooks: true,
             },
         });
+
+        await API.post<EmptyResponseData>(
+            new URL(Protocol.HTTP, WorkflowHostname, new Route('/workflow/update/'+onUpdate.updateBy.query._id!)),
+            {},
+            {
+                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            }
+        );
 
         return onUpdate;
     }
