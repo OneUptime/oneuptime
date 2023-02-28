@@ -7,13 +7,13 @@ import ScheduleComponents from 'Common/Types/Workflow/Components/Schedule';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowService from '../../../Services/WorkflowService';
 import QueryHelper from '../../Database/QueryHelper';
-import ComponentCode, {
+import TriggerCode, {
     ExecuteWorkflowType,
     InitProps,
     UpdateProps,
-} from '../ComponentCode';
+} from '../TriggerCode';
 
-export default class WebhookTrigger extends ComponentCode {
+export default class WebhookTrigger extends TriggerCode {
     public constructor() {
         const component: ComponentMetadata | undefined =
             ScheduleComponents.find((i: ComponentMetadata) => {

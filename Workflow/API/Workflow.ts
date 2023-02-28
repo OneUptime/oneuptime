@@ -11,6 +11,7 @@ import Workflow from 'Model/Models/Workflow';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import ComponentCode from 'CommonServer/Types/Workflow/ComponentCode';
 import Components from 'CommonServer/Types/Workflow/Components/Index';
+import TriggerCode from 'CommonServer/Types/Workflow/TriggerCode';
 
 export default class WorkflowAPI {
     public router!: ExpressRouter;
@@ -18,7 +19,7 @@ export default class WorkflowAPI {
     public constructor() {
         this.router = Express.getRouter();
 
-        this.router.get(`/update/:workflowId`, ClusterKeyAuthorization.isAuthorizedServiceMiddleware,  this.updateWorkflow);
+        this.router.get(`/update/:workflowId`, ClusterKeyAuthorization.isAuthorizedServiceMiddleware, this.updateWorkflow);
 
         this.router.post(`/update/:workflowId`, ClusterKeyAuthorization.isAuthorizedServiceMiddleware, this.updateWorkflow);
     }
@@ -48,7 +49,7 @@ export default class WorkflowAPI {
             }
         });
 
-        if(!workflow){
+        if (!workflow) {
             return Response.sendJsonObjectResponse(req, res, {
                 status: 'Workflow not found',
             });
@@ -57,16 +58,18 @@ export default class WorkflowAPI {
 
         const componentCode: ComponentCode | undefined = Components[workflow.triggerId as string];
 
-        if(!componentCode){
+        if (!componentCode) {
             return Response.sendJsonObjectResponse(req, res, {
                 status: 'Component not found',
             });
         }
 
-        await componentCode.update({
-            workflowId: workflow.id!
-        });
-        
+        if (componentCode instanceof TriggerCode) {
+            await componentCode.update({
+                workflowId: workflow.id!
+            });
+        }
+
         return Response.sendJsonObjectResponse(req, res, {
             status: 'Updated',
         });

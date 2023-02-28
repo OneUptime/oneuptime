@@ -4,7 +4,7 @@ import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import Queue, { QueueName } from 'CommonServer/Infrastructure/Queue';
 import WorkflowLogService from 'CommonServer/Services/WorkflowLogService';
 import WorkflowService from 'CommonServer/Services/WorkflowService';
-import { ExecuteWorkflowType } from 'CommonServer/Types/Workflow/ComponentCode';
+import { ExecuteWorkflowType } from 'CommonServer/Types/Workflow/TriggerCode';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import ObjectID from 'Common/Types/ObjectID';
@@ -27,6 +27,7 @@ export default class QueueWorkflow {
             select: {
                 isEnabled: true,
                 projectId: true,
+                repeatableJobKey: true
             },
             props: {
                 isRoot: true,
@@ -98,8 +99,7 @@ export default class QueueWorkflow {
                 runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
                 runLog.logs =
                     OneUptimeDate.getCurrentDateAsFormattedString() +
-                    `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
-                        WorkflowPlan[projectPlan.plan]
+                    `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${WorkflowPlan[projectPlan.plan]
                     }`;
 
                 await WorkflowLogService.create({
@@ -114,32 +114,52 @@ export default class QueueWorkflow {
         }
 
         // Add Workflow Run Log.
+        let workflowLog: WorkflowLog | null = null;
+        if (!scheduleAt) {
+            // if the workflow is to be run immeidately.
+            const runLog: WorkflowLog = new WorkflowLog();
+            runLog.workflowId = workflowId;
+            runLog.projectId = workflow.projectId;
+            runLog.workflowStatus = WorkflowStatus.Scheduled;
+            runLog.logs =
+                OneUptimeDate.getCurrentDateAsFormattedString() +
+                ': Workflow Scheduled.';
 
-        const runLog: WorkflowLog = new WorkflowLog();
-        runLog.workflowId = workflowId;
-        runLog.projectId = workflow.projectId;
-        runLog.workflowStatus = WorkflowStatus.Scheduled;
-        runLog.logs =
-            OneUptimeDate.getCurrentDateAsFormattedString() +
-            ': Workflow Scheduled.';
+            workflowLog = await WorkflowLogService.create({
+                data: runLog,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
 
-        const created: WorkflowLog = await WorkflowLogService.create({
-            data: runLog,
-            props: {
-                isRoot: true,
-            },
-        });
 
-        await Queue.addJob(
+        const job =  await Queue.addJob(
             QueueName.Workflow,
-            ObjectID.generate(),
-            workflow._id?.toString() || '',
+            workflowLog ? workflowLog._id?.toString()! : workflow._id?.toString()!,
+            workflowLog ? workflowLog._id?.toString()! : workflow._id?.toString()!,
             {
                 data: executeWorkflow.returnValues,
-                workflowLogId: created._id,
+                workflowLogId: workflowLog?._id || null,
                 workflowId: workflow._id,
             },
-            scheduleAt ? { scheduleAt: scheduleAt } : undefined
+            { scheduleAt: scheduleAt, repeatableKey: workflow.repeatableJobKey || undefined  }
         );
+
+        // update workflow with repeatable key.
+
+        if(job.repeatJobKey){
+            
+            // update workflow. 
+            await WorkflowService.updateOneById({
+                id: workflow.id!, 
+                data: {
+                    repeatableJobKey: job.repeatJobKey
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+        }
     }
 }

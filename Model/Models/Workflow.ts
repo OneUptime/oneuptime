@@ -440,4 +440,22 @@ export default class Workflow extends BaseModel {
         nullable: true,
     })
     public triggerArguments?: JSONObject = undefined;
+
+
+    // This is a BullMQ job key that is used to schedule job for this workflow. This is used internally to remove existing job.
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.LongText,
+    })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+    })
+    public repeatableJobKey?: string = undefined;
 }

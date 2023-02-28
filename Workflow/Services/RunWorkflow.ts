@@ -11,9 +11,9 @@ import ComponentMetadata, {
 
 import WorkflowService from 'CommonServer/Services/WorkflowService';
 import ComponentCode, {
-    RunProps,
     RunReturnType,
 } from 'CommonServer/Types/Workflow/ComponentCode';
+import { RunProps } from "CommonServer/Types/Workflow/Workflow";
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import WorkflowVariableService from 'CommonServer/Services/WorkflowVariableService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -27,6 +27,7 @@ import Workflow from 'Model/Models/Workflow';
 import logger from 'CommonServer/Utils/Logger';
 import TimeoutException from 'Common/Types/Exception/TimeoutException';
 import Exception from 'Common/Types/Exception/Exception';
+import WorkflowLog from 'Model/Models/WorkflowLog';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -97,6 +98,27 @@ export default class RunWorkflow {
 
             this.projectId = workflow.projectId || null;
 
+
+            if (!runProps.workflowLogId) {
+                // create a new workflow log here. 
+                // if the workflow is to be run immeidately.
+                const runLog: WorkflowLog = new WorkflowLog();
+                runLog.workflowId = runProps.workflowId;
+                runLog.projectId = workflow.projectId!;
+                runLog.workflowStatus = WorkflowStatus.Scheduled;
+                runLog.logs =
+                    OneUptimeDate.getCurrentDateAsFormattedString() +
+                    ': Workflow Scheduled.';
+
+                runProps.workflowLogId = (await WorkflowLogService.create({
+                    data: runLog,
+                    props: {
+                        isRoot: true,
+                    },
+                })).id!;
+            }
+
+
             // update workflow log.
             await WorkflowLogService.updateOneById({
                 id: runProps.workflowLogId,
@@ -136,8 +158,8 @@ export default class RunWorkflow {
                 if (didWorkflowTimeOut) {
                     throw new TimeoutException(
                         'Workflow execution time was more than ' +
-                            runProps.timeout +
-                            'ms and workflow timed-out.'
+                        runProps.timeout +
+                        'ms and workflow timed-out.'
                     );
                 }
 
@@ -149,8 +171,8 @@ export default class RunWorkflow {
                 if (componentsExecuted.includes(executeComponentId)) {
                     throw new BadDataException(
                         'Cyclic Workflow Detected. Cannot execute ' +
-                            executeComponentId +
-                            ' when it has already been executed.'
+                        executeComponentId +
+                        ' when it has already been executed.'
                     );
                 }
 
@@ -164,8 +186,8 @@ export default class RunWorkflow {
                 if (!stackItem) {
                     throw new BadDataException(
                         'Component with ID ' +
-                            executeComponentId +
-                            ' not found.'
+                        executeComponentId +
+                        ' not found.'
                     );
                 }
 
@@ -231,7 +253,7 @@ export default class RunWorkflow {
                     this.log(result.returnValues);
                     this.log(
                         'Executing Port: ' + result.executePort?.title ||
-                            '<None>'
+                        '<None>'
                     );
 
                     storageMap.local.components[stackItem.node.id] = {
@@ -282,6 +304,10 @@ export default class RunWorkflow {
         } catch (err: any) {
             logger.error(err);
             this.log(err.toString());
+
+            if (!runProps.workflowLogId) {
+                return;
+            }
 
             if (err instanceof TimeoutException) {
                 this.log('Workflow Timed out.');
@@ -489,8 +515,8 @@ export default class RunWorkflow {
         } else {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ': ' +
-                    JSON.stringify(data)
+                ': ' +
+                JSON.stringify(data)
             );
         }
     }
@@ -564,7 +590,7 @@ export default class RunWorkflow {
         const trigger: any | undefined = nodes.find((n: any) => {
             return (
                 (n.data as NodeDataProp).componentType ===
-                    ComponentType.Trigger &&
+                ComponentType.Trigger &&
                 (n.data as NodeDataProp).nodeType === NodeType.Node
             );
         });

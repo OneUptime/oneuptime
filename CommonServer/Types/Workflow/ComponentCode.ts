@@ -6,14 +6,8 @@ import Exception from 'Common/Types/Exception/Exception';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import { ExpressRouter } from '../../Utils/Express';
 
-export interface RunProps {
-    arguments: JSONObject;
-    workflowId: ObjectID;
-    workflowLogId: ObjectID;
-    timeout: number;
-}
+
 
 export interface RunOptions {
     log: Function;
@@ -28,34 +22,9 @@ export interface RunReturnType {
     executePort?: Port | undefined;
 }
 
-export interface ExecuteWorkflowType {
-    workflowId: ObjectID;
-    returnValues: JSONObject;
-}
-
-export interface InitProps {
-    router: ExpressRouter;
-    executeWorkflow: (executeWorkflow: ExecuteWorkflowType) => Promise<void>;
-    scheduleWorkflow: (
-        executeWorkflow: ExecuteWorkflowType,
-        scheduleAt: string
-    ) => Promise<void>;
-}
-
-export interface UpdateProps {
-    workflowId: ObjectID;
-}
-
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
-
-    public executeWorkflow:  ((executeWorkflow: ExecuteWorkflowType) => Promise<void>) | null = null;
-
-    public scheduleWorkflow:  ((
-        executeWorkflow: ExecuteWorkflowType,
-        scheduleAt: string
-    ) => Promise<void>) | null = null;
-
+    
     public constructor() {}
 
     public setMetadata(metadata: ComponentMetadata): void {
@@ -68,22 +37,6 @@ export default class ComponentCode {
         }
 
         return this.metadata;
-    }
-
-    public async setupComponent(props: InitProps): Promise<void> {
-
-        this.executeWorkflow = props.executeWorkflow;
-        this.scheduleWorkflow = props.scheduleWorkflow;
-
-        return await this.init(props);
-    }
-
-    public async init(_props: InitProps): Promise<void> {
-        return await Promise.resolve();
-    }
-
-    public async update(_props: UpdateProps): Promise<void> {
-        return await Promise.resolve();
     }
 
     public async run(

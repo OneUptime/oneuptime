@@ -1,8 +1,9 @@
 import Express, { ExpressRouter } from 'CommonServer/Utils/Express';
 import Components from 'CommonServer/Types/Workflow/Components/Index';
-import ComponentCode, {
+import TrigegrCode, {
     ExecuteWorkflowType,
-} from 'CommonServer/Types/Workflow/ComponentCode';
+} from 'CommonServer/Types/Workflow/TriggerCode';
+import ComponentCode from 'CommonServer/Types/Workflow/ComponentCode';
 import QueueWorkflow from '../Services/QueueWorkflow';
 import logger from 'CommonServer/Utils/Logger';
 
@@ -16,8 +17,8 @@ export default class ComponentCodeAPI {
         /// Get all the components.
         for (const key in Components) {
             const ComponentCode: ComponentCode | undefined = Components[key];
-            if (ComponentCode) {
-                const instance: ComponentCode = ComponentCode;
+            if (ComponentCode instanceof TrigegrCode) {
+                const instance: TrigegrCode = ComponentCode;
                 instance
                     .setupComponent({
                         router: this.router,

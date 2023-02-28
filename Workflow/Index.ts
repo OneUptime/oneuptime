@@ -39,9 +39,13 @@ app.get(
 QueueWorker.getWorker(
     QueueName.Workflow,
     async (job: QueueJob) => {
+
+        console.log("Job Pending: ");
+        console.log(job.data);
+
         await new RunWorkflow().runWorkflow({
             workflowId: new ObjectID(job.data['workflowId'] as string),
-            workflowLogId: new ObjectID(job.data['workflowLogId'] as string),
+            workflowLogId: job.data['workflowLogId'] ? new ObjectID(job.data['workflowLogId'] as string): null,
             arguments: job.data.data as JSONObject,
             timeout: 5000,
         });

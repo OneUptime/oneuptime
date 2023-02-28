@@ -5,10 +5,10 @@ import ComponentMetadata from 'Common/Types/Workflow/Component';
 import DatabaseService from '../../../Services/DatabaseService';
 import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
 import Response from '../../../Utils/Response';
-import ComponentCode, {
+import TriggerCode, {
     ExecuteWorkflowType,
     InitProps,
-} from '../ComponentCode';
+} from '../TriggerCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import WorkflowService from '../../../Services/WorkflowService';
@@ -18,7 +18,7 @@ import ClusterKeyAuthorization from '../../../Middleware/ClusterKeyAuthorization
 
 export default class OnTriggerBaseModel<
     TBaseModel extends BaseModel
-> extends ComponentCode {
+> extends TriggerCode {
     public modelId: string = '';
     public type: string = '';
 
