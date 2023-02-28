@@ -28,7 +28,16 @@ import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import Label from './Label';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
