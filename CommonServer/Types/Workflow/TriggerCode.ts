@@ -18,9 +18,7 @@ export interface InitProps {
         executeWorkflow: ExecuteWorkflowType,
         scheduleAt: string
     ) => Promise<void>;
-    removeWorkflow: ((
-        workflowId: ObjectID
-    ) => Promise<void>);
+    removeWorkflow: (workflowId: ObjectID) => Promise<void>;
 }
 
 export interface UpdateProps {
@@ -28,26 +26,25 @@ export interface UpdateProps {
 }
 
 export default class TrigegrCode extends ComponentCode {
+    public executeWorkflow:
+        | ((executeWorkflow: ExecuteWorkflowType) => Promise<void>)
+        | null = null;
 
+    public scheduleWorkflow:
+        | ((
+              executeWorkflow: ExecuteWorkflowType,
+              scheduleAt: string
+          ) => Promise<void>)
+        | null = null;
 
-    public executeWorkflow: ((executeWorkflow: ExecuteWorkflowType) => Promise<void>) | null = null;
-
-    public scheduleWorkflow: ((
-        executeWorkflow: ExecuteWorkflowType,
-        scheduleAt: string
-    ) => Promise<void>) | null = null;
-
-    public removeWorkflow: ((
-        workflowId: ObjectID
-    ) => Promise<void>) | null = null;
+    public removeWorkflow: ((workflowId: ObjectID) => Promise<void>) | null =
+        null;
 
     public constructor() {
         super();
     }
 
-
     public async setupComponent(props: InitProps): Promise<void> {
-
         this.executeWorkflow = props.executeWorkflow;
         this.scheduleWorkflow = props.scheduleWorkflow;
         this.removeWorkflow = props.removeWorkflow;

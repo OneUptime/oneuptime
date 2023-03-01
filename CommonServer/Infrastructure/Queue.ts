@@ -21,19 +21,18 @@ export default class Queue {
 
     public static async removeJob(
         queueName: QueueName,
-        jobId: string,
+        jobId: string
     ): Promise<void> {
-
-
-        let job: Job | undefined = await this.getQueue(queueName).getJob(jobId);
+        const job: Job | undefined = await this.getQueue(queueName).getJob(
+            jobId
+        );
 
         if (job) {
             await job.remove();
         }
 
         // remove existing repeatable job
-        await this.getQueue(queueName).removeRepeatableByKey(jobId)
-
+        await this.getQueue(queueName).removeRepeatableByKey(jobId);
     }
 
     public static async addJob(
@@ -56,7 +55,9 @@ export default class Queue {
             };
         }
 
-        let job: Job | undefined = await this.getQueue(queueName).getJob(jobId);
+        const job: Job | undefined = await this.getQueue(queueName).getJob(
+            jobId
+        );
 
         if (job) {
             await job.remove();
@@ -64,10 +65,16 @@ export default class Queue {
 
         if (options?.repeatableKey) {
             // remove existing repeatable job
-            await this.getQueue(queueName).removeRepeatableByKey(options?.repeatableKey)
+            await this.getQueue(queueName).removeRepeatableByKey(
+                options?.repeatableKey
+            );
         }
 
-        const jobAdded = await this.getQueue(queueName).add(jobName, data, optionsObject);
+        const jobAdded: Job = await this.getQueue(queueName).add(
+            jobName,
+            data,
+            optionsObject
+        );
 
         return jobAdded;
     }

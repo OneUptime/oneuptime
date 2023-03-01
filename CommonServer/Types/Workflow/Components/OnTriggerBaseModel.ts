@@ -5,10 +5,7 @@ import ComponentMetadata from 'Common/Types/Workflow/Component';
 import DatabaseService from '../../../Services/DatabaseService';
 import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
 import Response from '../../../Utils/Response';
-import TriggerCode, {
-    ExecuteWorkflowType,
-    InitProps,
-} from '../TriggerCode';
+import TriggerCode, { ExecuteWorkflowType, InitProps } from '../TriggerCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import WorkflowService from '../../../Services/WorkflowService';

@@ -3,7 +3,7 @@ enum ComponentID {
     Log = 'log',
     Schedule = 'schedule',
     JavaScriptCode = 'javascript',
-    Manual = 'manual'
+    Manual = 'manual',
 }
 
 export default ComponentID;

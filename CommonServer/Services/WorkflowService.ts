@@ -27,8 +27,6 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnUpdate<Model>> {
         /// save trigger and trigger args.
 
-
-
         if (
             onUpdate.updateBy.data &&
             (onUpdate.updateBy.data as any).graph &&
@@ -36,7 +34,6 @@ export class Service extends DatabaseService<Model> {
                 'nodes'
             ] as Array<JSONObject>)
         ) {
-
             let trigger: NodeDataProp | null = null;
 
             // check if it has a trigger node.
@@ -66,9 +63,12 @@ export class Service extends DatabaseService<Model> {
             });
         }
 
-
         await API.post<EmptyResponseData>(
-            new URL(Protocol.HTTP, WorkflowHostname, new Route('/workflow/update/' + onUpdate.updateBy.query._id!)),
+            new URL(
+                Protocol.HTTP,
+                WorkflowHostname,
+                new Route('/workflow/update/' + onUpdate.updateBy.query._id!)
+            ),
             {},
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),

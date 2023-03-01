@@ -19,9 +19,17 @@ export default class WorkflowAPI {
     public constructor() {
         this.router = Express.getRouter();
 
-        this.router.get(`/update/:workflowId`, ClusterKeyAuthorization.isAuthorizedServiceMiddleware, this.updateWorkflow);
+        this.router.get(
+            `/update/:workflowId`,
+            ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+            this.updateWorkflow
+        );
 
-        this.router.post(`/update/:workflowId`, ClusterKeyAuthorization.isAuthorizedServiceMiddleware, this.updateWorkflow);
+        this.router.post(
+            `/update/:workflowId`,
+            ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+            this.updateWorkflow
+        );
     }
 
     public async updateWorkflow(
@@ -46,7 +54,7 @@ export default class WorkflowAPI {
             },
             props: {
                 isRoot: true,
-            }
+            },
         });
 
         if (!workflow) {
@@ -55,13 +63,14 @@ export default class WorkflowAPI {
             });
         }
 
-        if(!workflow.triggerId){
+        if (!workflow.triggerId) {
             return Response.sendJsonObjectResponse(req, res, {
                 status: 'Trigger not found in workflow',
             });
         }
 
-        const componentCode: ComponentCode | undefined = Components[workflow.triggerId];
+        const componentCode: ComponentCode | undefined =
+            Components[workflow.triggerId];
 
         if (!componentCode) {
             return Response.sendJsonObjectResponse(req, res, {
@@ -71,7 +80,7 @@ export default class WorkflowAPI {
 
         if (componentCode instanceof TriggerCode) {
             await componentCode.update({
-                workflowId: workflow.id!
+                workflowId: workflow.id!,
             });
         }
 

@@ -26,7 +26,7 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.Log]: new Log(),
     [ComponentID.Schedule]: new Schedule(),
     [ComponentID.JavaScriptCode]: new JavaScirptCode(),
-    [ComponentID.Manual]: new ManualTrigger()
+    [ComponentID.Manual]: new ManualTrigger(),
 };
 
 for (const baseModelService of BaseModelServices) {

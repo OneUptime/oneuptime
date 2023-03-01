@@ -7,8 +7,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 
-
-
 export interface RunOptions {
     log: Function;
     workflowLogId: ObjectID;
@@ -24,7 +22,7 @@ export interface RunReturnType {
 
 export default class ComponentCode {
     private metadata: ComponentMetadata | null = null;
-    
+
     public constructor() {}
 
     public setMetadata(metadata: ComponentMetadata): void {

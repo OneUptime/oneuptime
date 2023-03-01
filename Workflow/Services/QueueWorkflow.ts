@@ -13,16 +13,16 @@ import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import { Job } from 'bullmq';
 
 export default class QueueWorkflow {
-
-    public static async removeWorkflow(workflowId: ObjectID) {
+    public static async removeWorkflow(workflowId: ObjectID): Promise<void> {
         // get workflow to see if its enabled.
         const workflow: Workflow | null = await WorkflowService.findOneById({
             id: workflowId,
             select: {
                 projectId: true,
-                repeatableJobKey: true
+                repeatableJobKey: true,
             },
             props: {
                 isRoot: true,
@@ -39,25 +39,20 @@ export default class QueueWorkflow {
             );
         }
 
-        await Queue.removeJob(
-            QueueName.Workflow,
-            workflow.repeatableJobKey!
-        );
+        await Queue.removeJob(QueueName.Workflow, workflow.repeatableJobKey!);
 
-        // update workflow. 
+        // update workflow.
         await WorkflowService.updateOneById({
             id: workflow.id!,
             data: {
-                repeatableJobKey: null!
+                repeatableJobKey: null!,
             },
             props: {
                 isRoot: true,
-                ignoreHooks: true
-            }
+                ignoreHooks: true,
+            },
         });
-
     }
-
 
     public static async addWorkflowToQueue(
         executeWorkflow: ExecuteWorkflowType,
@@ -71,7 +66,7 @@ export default class QueueWorkflow {
             select: {
                 isEnabled: true,
                 projectId: true,
-                repeatableJobKey: true
+                repeatableJobKey: true,
             },
             props: {
                 isRoot: true,
@@ -143,7 +138,8 @@ export default class QueueWorkflow {
                 runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
                 runLog.logs =
                     OneUptimeDate.getCurrentDateAsFormattedString() +
-                    `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${WorkflowPlan[projectPlan.plan]
+                    `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
+                        WorkflowPlan[projectPlan.plan]
                     }`;
 
                 await WorkflowLogService.create({
@@ -177,33 +173,38 @@ export default class QueueWorkflow {
             });
         }
 
-
-        const job = await Queue.addJob(
+        const job: Job = await Queue.addJob(
             QueueName.Workflow,
-            workflowLog ? workflowLog._id?.toString()! : workflow._id?.toString()!,
-            workflowLog ? workflowLog._id?.toString()! : workflow._id?.toString()!,
+            workflowLog
+                ? workflowLog._id?.toString()!
+                : workflow._id?.toString()!,
+            workflowLog
+                ? workflowLog._id?.toString()!
+                : workflow._id?.toString()!,
             {
                 data: executeWorkflow.returnValues,
                 workflowLogId: workflowLog?._id || null,
                 workflowId: workflow._id,
             },
-            { scheduleAt: scheduleAt, repeatableKey: workflow.repeatableJobKey || undefined }
+            {
+                scheduleAt: scheduleAt,
+                repeatableKey: workflow.repeatableJobKey || undefined,
+            }
         );
 
         // update workflow with repeatable key.
 
         if (job.repeatJobKey) {
-
-            // update workflow. 
+            // update workflow.
             await WorkflowService.updateOneById({
                 id: workflow.id!,
                 data: {
-                    repeatableJobKey: job.repeatJobKey
+                    repeatableJobKey: job.repeatJobKey,
                 },
                 props: {
                     isRoot: true,
-                    ignoreHooks: true
-                }
+                    ignoreHooks: true,
+                },
             });
         }
     }

@@ -25,7 +25,7 @@ export default class ComponentCodeAPI {
                         router: this.router,
                         scheduleWorkflow: this.scheduleWorkflow,
                         executeWorkflow: this.executeWorkflow,
-                        removeWorkflow: this.removeWorkflow
+                        removeWorkflow: this.removeWorkflow,
                     })
                     .catch((err: Error) => {
                         logger.error(err);
@@ -38,7 +38,6 @@ export default class ComponentCodeAPI {
         executeWorkflow: ExecuteWorkflowType,
         scheduleAt: string
     ): Promise<void> {
-
         /// add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow, scheduleAt);
     }
@@ -50,12 +49,7 @@ export default class ComponentCodeAPI {
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow);
     }
 
-    public async removeWorkflow(
-        workflowId: ObjectID
-    ): Promise<void> {
-
-        console.log("REMOVE WORKFLOW")
-
+    public async removeWorkflow(workflowId: ObjectID): Promise<void> {
         // add to queue.
         await QueueWorkflow.removeWorkflow(workflowId);
     }

@@ -7,10 +7,11 @@ import TriggerCode from '../TriggerCode';
 export default class ManualTrigger extends TriggerCode {
     public constructor() {
         super();
-        const Component: ComponentMetadata | undefined =
-            ManualComponents.find((i: ComponentMetadata) => {
+        const Component: ComponentMetadata | undefined = ManualComponents.find(
+            (i: ComponentMetadata) => {
                 return i.id === ComponentID.Manual;
-            });
+            }
+        );
 
         if (!Component) {
             throw new BadDataException('Component not found.');
