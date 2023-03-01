@@ -27,8 +27,6 @@ export default class Email extends ComponentCode {
         args: JSONObject,
         options: RunOptions
     ): Promise<RunReturnType> {
-
-
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'success';
@@ -52,93 +50,84 @@ export default class Email extends ComponentCode {
         }
 
         if (!args['to']) {
-            throw options.onError(
-                new BadDataException('to not found')
-            );
+            throw options.onError(new BadDataException('to not found'));
         }
 
-        if (args['to'] && typeof args["to"] !== "string") {
+        if (args['to'] && typeof args['to'] !== 'string') {
             throw options.onError(
                 new BadDataException('to is not type of string')
             );
         }
 
         if (!args['from']) {
-            throw options.onError(
-                new BadDataException('from not found')
-            );
+            throw options.onError(new BadDataException('from not found'));
         }
 
-        if (args['from'] && typeof args["from"] !== "string") {
+        if (args['from'] && typeof args['from'] !== 'string') {
             throw options.onError(
                 new BadDataException('from is not type of string')
             );
         }
 
-
         if (!args['smtp-username']) {
-            throw options.onError(
-                new BadDataException('email not found')
-            );
+            throw options.onError(new BadDataException('email not found'));
         }
 
-        if (args['smtp-username'] && typeof args["smtp-username"] !== "string") {
+        if (
+            args['smtp-username'] &&
+            typeof args['smtp-username'] !== 'string'
+        ) {
             throw options.onError(
                 new BadDataException('smtp-username is not type of string')
             );
         }
 
-
         if (!args['smtp-password']) {
-            throw options.onError(
-                new BadDataException('email not found')
-            );
+            throw options.onError(new BadDataException('email not found'));
         }
 
-        if (args['smtp-password'] && typeof args["smtp-password"] !== "string") {
+        if (
+            args['smtp-password'] &&
+            typeof args['smtp-password'] !== 'string'
+        ) {
             throw options.onError(
                 new BadDataException('smtp-username is not type of string')
             );
         }
 
         if (!args['smtp-host']) {
-            throw options.onError(
-                new BadDataException('email not found')
-            );
+            throw options.onError(new BadDataException('email not found'));
         }
 
-        if (args['smtp-host'] && typeof args["smtp-host"] !== "string") {
+        if (args['smtp-host'] && typeof args['smtp-host'] !== 'string') {
             throw options.onError(
                 new BadDataException('smtp-host is not type of string')
             );
         }
 
         if (!args['smtp-port']) {
-            throw options.onError(
-                new BadDataException('email not found')
-            );
+            throw options.onError(new BadDataException('email not found'));
         }
 
-        if (args['smtp-port'] && typeof args["smtp-port"] === "string") {
+        if (args['smtp-port'] && typeof args['smtp-port'] === 'string') {
             args['smtp-port'] = parseInt(args['smtp-port']);
         }
 
-        if (args['smtp-port'] && typeof args["smtp-port"] !== "number") {
+        if (args['smtp-port'] && typeof args['smtp-port'] !== 'number') {
             throw options.onError(
                 new BadDataException('smtp-host is not type of number')
             );
         }
 
         try {
-
             const mailer: Transporter = nodemailer.createTransport({
                 host: args['smtp-host']?.toString(),
                 port: args['smtp-port'] as number,
-                secure: !!args['secure'],
+                secure: Boolean(args['secure']),
                 auth: {
                     user: args['smtp-username'] as string,
                     pass: args['smtp-password'] as string,
-                }
+                },
             });
 
             await mailer.sendMail({
@@ -148,15 +137,14 @@ export default class Email extends ComponentCode {
                 html: args['body']?.toString() || '',
             });
 
-            options.log("Email sent."); 
-            
+            options.log('Email sent.');
+
             return Promise.resolve({
                 returnValues: {},
                 executePort: successPort,
             });
-
         } catch (err) {
-            options.log(err); 
+            options.log(err);
             return Promise.resolve({
                 returnValues: {},
                 executePort: successPort,

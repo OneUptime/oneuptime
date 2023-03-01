@@ -28,7 +28,8 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: false,
-                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
+                placeholder:
+                    'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -37,7 +38,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
+                placeholder:
+                    'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -46,7 +48,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
+                placeholder:
+                    'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -123,7 +126,8 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: false,
-                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
+                placeholder:
+                    'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -132,7 +136,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
+                placeholder:
+                    'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -141,7 +146,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
+                placeholder:
+                    'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -218,7 +224,8 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: false,
-                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
+                placeholder:
+                    'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -227,7 +234,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
+                placeholder:
+                    'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -236,7 +244,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
+                placeholder:
+                    'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -313,7 +322,8 @@ const components: Array<ComponentMetadata> = [
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
                 required: false,
-                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
+                placeholder:
+                    'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -322,7 +332,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
+                placeholder:
+                    'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -331,7 +342,8 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
+                placeholder:
+                    'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [

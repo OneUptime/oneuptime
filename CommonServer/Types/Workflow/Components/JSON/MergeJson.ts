@@ -49,14 +49,11 @@ export default class MergeJSON extends ComponentCode {
         }
 
         if (!args['json1']) {
-            throw options.onError(
-                new BadDataException('JSON1 is undefined.')
-            );
+            throw options.onError(new BadDataException('JSON1 is undefined.'));
         }
 
         if (typeof args['json1'] === 'string') {
             args['json1'] = JSON.parse(args['json1'] as string);
-
         }
 
         if (typeof args['json2'] !== 'object') {
@@ -65,16 +62,12 @@ export default class MergeJSON extends ComponentCode {
             );
         }
 
-
         if (!args['json2']) {
-            throw options.onError(
-                new BadDataException('JSON2 is undefined.')
-            );
+            throw options.onError(new BadDataException('JSON2 is undefined.'));
         }
 
         if (typeof args['json2'] === 'string') {
             args['json2'] = JSON.parse(args['json2'] as string);
-
         }
 
         if (typeof args['json2'] !== 'object') {
@@ -86,9 +79,9 @@ export default class MergeJSON extends ComponentCode {
         return Promise.resolve({
             returnValues: {
                 json: {
-                    ...args['json1'] as JSONObject,
-                    ...args['json2'] as JSONObject
-                }
+                    ...(args['json1'] as JSONObject),
+                    ...(args['json2'] as JSONObject),
+                },
             },
             executePort: successPort,
         });

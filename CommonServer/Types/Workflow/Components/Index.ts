@@ -44,9 +44,7 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.ApiDelete]: new ApiPost(),
     [ComponentID.ApiPut]: new ApiPut(),
     [ComponentID.SendEmail]: new Email(),
-    [ComponentID.IfElse]: new IfElse()
-    
-
+    [ComponentID.IfElse]: new IfElse(),
 };
 
 for (const baseModelService of BaseModelServices) {

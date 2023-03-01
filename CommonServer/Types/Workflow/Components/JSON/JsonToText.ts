@@ -49,14 +49,11 @@ export default class JsonToText extends ComponentCode {
         }
 
         if (!args['json']) {
-            throw options.onError(
-                new BadDataException('JSON is undefined.')
-            );
+            throw options.onError(new BadDataException('JSON is undefined.'));
         }
 
         if (typeof args['json'] === 'string') {
             args['json'] = JSON.parse(args['json'] as string);
-
         }
 
         if (typeof args['json'] !== 'object') {
@@ -66,17 +63,17 @@ export default class JsonToText extends ComponentCode {
         }
 
         try {
-
-            const returnValue: string = JSON.stringify(args['json'] as JSONObject);
+            const returnValue: string = JSON.stringify(
+                args['json'] as JSONObject
+            );
             return Promise.resolve({
                 returnValues: {
-                    text: returnValue
+                    text: returnValue,
                 },
                 executePort: successPort,
             });
-
         } catch (err) {
-            options.log("JSON is not in the correct format.");
+            options.log('JSON is not in the correct format.');
             return Promise.resolve({
                 returnValues: {},
                 executePort: errorPort,

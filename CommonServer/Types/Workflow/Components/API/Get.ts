@@ -33,22 +33,24 @@ export default class ApiGet extends ComponentCode {
         args: JSONObject,
         options: RunOptions
     ): Promise<RunReturnType> {
+        const result: { args: JSONObject; successPort: Port; errorPort: Port } =
+            ApiComponentUtils.sanitizeArgs(this.getMetadata(), args, options);
 
-        const result: { args: JSONObject, successPort: Port, errorPort: Port } = ApiComponentUtils.sanitizeArgs(this.getMetadata(), args, options);
-
-        let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
+        let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
+            null;
 
         try {
-
-            apiResult = await API.get(args['url'] as URL, args['request-body'] as JSONObject, args['request-headers'] as Dictionary<string>);
+            apiResult = await API.get(
+                args['url'] as URL,
+                args['request-body'] as JSONObject,
+                args['request-headers'] as Dictionary<string>
+            );
 
             return Promise.resolve({
                 returnValues: ApiComponentUtils.getReturnValues(apiResult),
                 executePort: result.successPort,
             });
-
         } catch (err) {
-
             if (err instanceof HTTPErrorResponse) {
                 return Promise.resolve({
                     returnValues: ApiComponentUtils.getReturnValues(err),
@@ -63,7 +65,9 @@ export default class ApiGet extends ComponentCode {
                 });
             }
 
-            throw options.onError(new APIException("Something wrong happened."));
+            throw options.onError(
+                new APIException('Something wrong happened.')
+            );
         }
     }
 }

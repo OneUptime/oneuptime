@@ -18,7 +18,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.Text,
                 name: 'Expression',
                 description: 'Expression',
-                placeholder: "x === y",
+                placeholder: 'x === y',
                 required: true,
                 id: 'expression',
             },

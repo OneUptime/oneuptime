@@ -10,10 +10,11 @@ export default class IfElse extends ComponentCode {
     public constructor() {
         super();
 
-        const Component: ComponentMetadata | undefined =
-            Components.find((i: ComponentMetadata) => {
+        const Component: ComponentMetadata | undefined = Components.find(
+            (i: ComponentMetadata) => {
                 return i.id === ComponentID.IfElse;
-            });
+            }
+        );
 
         if (!Component) {
             throw new BadDataException(
@@ -35,9 +36,7 @@ export default class IfElse extends ComponentCode {
         );
 
         if (!yesPort) {
-            throw options.onError(
-                new BadDataException('Yes port not found')
-            );
+            throw options.onError(new BadDataException('Yes port not found'));
         }
 
         const noPort: Port | undefined = this.getMetadata().outPorts.find(
@@ -69,7 +68,8 @@ export default class IfElse extends ComponentCode {
             });
 
             const script: VMScript = new VMScript(
-                `module.exports = async function() { return ${(args['expression'] as string) || ''
+                `module.exports = async function() { return ${
+                    (args['expression'] as string) || ''
                 } }`
             ).compile();
 
@@ -79,19 +79,14 @@ export default class IfElse extends ComponentCode {
 
             if (returnVal) {
                 return {
-                    returnValues: {
-
-                    },
+                    returnValues: {},
                     executePort: yesPort,
                 };
-            } else {
-                return {
-                    returnValues: {
-
-                    },
-                    executePort: noPort,
-                };
             }
+            return {
+                returnValues: {},
+                executePort: noPort,
+            };
         } catch (err: any) {
             options.log('Error running script');
             options.log(

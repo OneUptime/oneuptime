@@ -107,11 +107,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 props.onFocus && props.onFocus();
             }}
         >
-
-            {helpText && <p
-                className="bg-gray-50 text-gray-500 p-3 mt-2 mb-2 rounded text-base text-sm"
-               
-            > {helpText} </p>}
+            {helpText && (
+                <p className="bg-gray-50 text-gray-500 p-3 mt-2 mb-2 rounded text-base text-sm">
+                    {' '}
+                    {helpText}{' '}
+                </p>
+            )}
 
             <Editor
                 defaultLanguage={props.type}

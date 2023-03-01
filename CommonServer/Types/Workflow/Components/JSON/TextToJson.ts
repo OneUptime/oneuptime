@@ -49,11 +49,8 @@ export default class TextToJSON extends ComponentCode {
         }
 
         if (!args['text']) {
-            throw options.onError(
-                new BadDataException('text is undefined.')
-            );
+            throw options.onError(new BadDataException('text is undefined.'));
         }
-
 
         if (typeof args['text'] !== 'string') {
             throw options.onError(
@@ -62,17 +59,15 @@ export default class TextToJSON extends ComponentCode {
         }
 
         try {
-
             const returnValue: JSONObject = JSON.parse(args['text'] as string);
             return Promise.resolve({
                 returnValues: {
-                    json: returnValue
+                    json: returnValue,
                 },
                 executePort: successPort,
             });
-
         } catch (err) {
-            options.log("text is not in the correct format.");
+            options.log('text is not in the correct format.');
             return Promise.resolve({
                 returnValues: {},
                 executePort: errorPort,
