@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,7 +7,7 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'api-get',
+        id: ComponentID.ApiGet,
         title: 'API Get (JSON)',
         category: 'API',
         description: 'Send Get API Request and get JSON Response',
@@ -26,8 +27,8 @@ const components: Array<ComponentMetadata> = [
                 name: 'Request Body',
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}',
+                required: false,
+                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -36,7 +37,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}',
+                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -45,7 +46,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}',
+                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -57,7 +58,7 @@ const components: Array<ComponentMetadata> = [
                 required: false,
             },
             {
-                id: 'status',
+                id: 'response-status',
                 name: 'Response Status',
                 description: 'Response Status (200, for example)',
                 type: ComponentInputType.Number,
@@ -101,7 +102,7 @@ const components: Array<ComponentMetadata> = [
         ],
     },
     {
-        id: 'api-post',
+        id: ComponentID.ApiPost,
         title: 'API Post (JSON)',
         category: 'API',
         description: 'Send a POST Request and get JSON Response',
@@ -121,8 +122,8 @@ const components: Array<ComponentMetadata> = [
                 name: 'Request Body',
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}',
+                required: false,
+                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -131,7 +132,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}',
+                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -140,7 +141,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}',
+                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -152,7 +153,7 @@ const components: Array<ComponentMetadata> = [
                 required: false,
             },
             {
-                id: 'status',
+                id: 'response-status',
                 name: 'Response Status',
                 description: 'Response Status (200, for example)',
                 type: ComponentInputType.Number,
@@ -196,8 +197,8 @@ const components: Array<ComponentMetadata> = [
         ],
     },
     {
-        id: 'api-patch',
-        title: 'API Patch (JSON)',
+        id: ComponentID.ApiPut,
+        title: 'API Put (JSON)',
         category: 'API',
         description: 'Send a PATCH Request and get JSON Response',
         iconProp: IconProp.Globe,
@@ -216,8 +217,8 @@ const components: Array<ComponentMetadata> = [
                 name: 'Request Body',
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}',
+                required: false,
+                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -226,7 +227,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}',
+                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -235,7 +236,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}',
+                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -247,7 +248,7 @@ const components: Array<ComponentMetadata> = [
                 required: false,
             },
             {
-                id: 'status',
+                id: 'response-status',
                 name: 'Response Status',
                 description: 'Response Status (200, for example)',
                 type: ComponentInputType.Number,
@@ -291,7 +292,7 @@ const components: Array<ComponentMetadata> = [
         ],
     },
     {
-        id: 'api-delete',
+        id: ComponentID.ApiDelete,
         title: 'API Delete (JSON)',
         category: 'API',
         description: 'Send a PATCH Request and get JSON Response',
@@ -311,8 +312,8 @@ const components: Array<ComponentMetadata> = [
                 name: 'Request Body',
                 description: 'Request Body in JSON',
                 type: ComponentInputType.JSON,
-                required: true,
-                placeholder: '{"key1": "value1", "key2": "value2", ....}',
+                required: false,
+                placeholder: 'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
                 id: 'query-string',
@@ -321,7 +322,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"query1": "value1", "query2": "value2", ....}',
+                placeholder: 'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -330,7 +331,7 @@ const components: Array<ComponentMetadata> = [
                 type: ComponentInputType.StringDictionary,
                 required: false,
                 isAdvanced: true,
-                placeholder: '{"header1": "value1", "header2": "value2", ....}',
+                placeholder: 'Example: {"header1": "value1", "header2": "value2", ....}',
             },
         ],
         returnValues: [
@@ -342,7 +343,7 @@ const components: Array<ComponentMetadata> = [
                 required: false,
             },
             {
-                id: 'status',
+                id: 'response-status',
                 name: 'Response Status',
                 description: 'Response Status (200, for example)',
                 type: ComponentInputType.Number,

@@ -6,7 +6,11 @@ enum ComponentID {
     Manual = 'manual',
     JsonToText = 'json-to-text',
     TextToJson = 'text-to-json',
-    MergeJson = 'merge-json'
+    MergeJson = 'merge-json',
+    ApiGet = 'api-get',
+    ApiPut = 'api-get',
+    ApiPost = 'api-get',
+    ApiDelete = 'api-get',
 }
 
 export default ComponentID;

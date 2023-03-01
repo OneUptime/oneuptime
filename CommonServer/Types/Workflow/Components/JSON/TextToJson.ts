@@ -5,7 +5,7 @@ import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JSONComponents from 'Common/Types/Workflow/Components/JSON';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 
-export default class JsonToText extends ComponentCode {
+export default class TextToJSON extends ComponentCode {
     public constructor() {
         super();
 

@@ -20,6 +20,9 @@ import OnDeleteBaseModel from './BaseModel/OnDeleteBaseModel';
 import DeleteOneBaseModel from './BaseModel/DeleteOneBaseModel';
 import DeleteManyBaseModel from './BaseModel/DeleteManyBaseMoidel';
 import ManualTrigger from './Manual';
+import JsonToText from './JSON/JsonToText';
+import MergeJSON from './JSON/MergeJson';
+import TextToJSON from './JSON/TextToJson';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
@@ -27,6 +30,9 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.Schedule]: new Schedule(),
     [ComponentID.JavaScriptCode]: new JavaScirptCode(),
     [ComponentID.Manual]: new ManualTrigger(),
+    [ComponentID.JsonToText]: new JsonToText(),
+    [ComponentID.MergeJson]: new MergeJSON(),
+    [ComponentID.TextToJson]: new TextToJSON(),
 };
 
 for (const baseModelService of BaseModelServices) {
