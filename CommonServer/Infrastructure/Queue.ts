@@ -23,8 +23,7 @@ export default class Queue {
         queueName: QueueName,
         jobId: string
     ): Promise<void> {
-
-        if(!jobId){
+        if (!jobId) {
             return;
         }
 
