@@ -23,6 +23,10 @@ import ManualTrigger from './Manual';
 import JsonToText from './JSON/JsonToText';
 import MergeJSON from './JSON/MergeJson';
 import TextToJSON from './JSON/TextToJson';
+import ApiGet from './API/Get';
+import ApiDelete from './API/Delete';
+import ApiPost from './API/Post';
+import ApiPut from './API/Put';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
@@ -33,6 +37,11 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.JsonToText]: new JsonToText(),
     [ComponentID.MergeJson]: new MergeJSON(),
     [ComponentID.TextToJson]: new TextToJSON(),
+    [ComponentID.ApiGet]: new ApiGet(),
+    [ComponentID.ApiPost]: new ApiDelete(),
+    [ComponentID.ApiDelete]: new ApiPost(),
+    [ComponentID.ApiPut]: new ApiPut(),
+
 };
 
 for (const baseModelService of BaseModelServices) {
