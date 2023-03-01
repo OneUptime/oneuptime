@@ -56,9 +56,9 @@ export default class MergeJSON extends ComponentCode {
             args['json1'] = JSON.parse(args['json1'] as string);
         }
 
-        if (typeof args['json2'] !== 'object') {
+        if (typeof args['json1'] !== 'object') {
             throw options.onError(
-                new BadDataException('JSON2 is should be of type object.')
+                new BadDataException('JSON1 is should be of type object.')
             );
         }
 

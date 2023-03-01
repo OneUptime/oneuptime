@@ -149,6 +149,12 @@ const components: Array<ComponentMetadata> = [
                     'This is executed when the JSON is successfully merged',
                 id: 'success',
             },
+            {
+                title: 'Error',
+                description:
+                    'This is executed when the JSON is not successfully merged',
+                id: 'error',
+            },
         ],
     },
 ];
