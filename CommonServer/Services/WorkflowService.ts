@@ -8,6 +8,13 @@ import {
     NodeDataProp,
     NodeType,
 } from 'Common/Types/Workflow/Component';
+import API from 'Common/Utils/API';
+import EmptyResponseData from 'Common/Types/API/EmptyResponse';
+import URL from 'Common/Types/API/URL';
+import Protocol from 'Common/Types/API/Protocol';
+import { WorkflowHostname } from '../Config';
+import Route from 'Common/Types/API/Route';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -20,8 +27,6 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnUpdate<Model>> {
         /// save trigger and trigger args.
 
-        let trigger: NodeDataProp | null = null;
-
         if (
             onUpdate.updateBy.data &&
             (onUpdate.updateBy.data as any).graph &&
@@ -29,6 +34,8 @@ export class Service extends DatabaseService<Model> {
                 'nodes'
             ] as Array<JSONObject>)
         ) {
+            let trigger: NodeDataProp | null = null;
+
             // check if it has a trigger node.
             for (const node of ((onUpdate.updateBy.data as any).graph as any)[
                 'nodes'
@@ -42,19 +49,31 @@ export class Service extends DatabaseService<Model> {
                     trigger = nodeData;
                 }
             }
+
+            await this.updateOneById({
+                id: new ObjectID(onUpdate.updateBy.query._id! as any),
+                data: {
+                    triggerId: trigger?.metadataId! || null,
+                    triggerArguments: trigger?.arguments || {},
+                } as any,
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
         }
 
-        await this.updateOneById({
-            id: new ObjectID(onUpdate.updateBy.query._id! as any),
-            data: {
-                triggerId: trigger?.metadataId! || null,
-                triggerArguments: trigger?.arguments || {},
-            } as any,
-            props: {
-                isRoot: true,
-                ignoreHooks: true,
-            },
-        });
+        await API.post<EmptyResponseData>(
+            new URL(
+                Protocol.HTTP,
+                WorkflowHostname,
+                new Route('/workflow/update/' + onUpdate.updateBy.query._id!)
+            ),
+            {},
+            {
+                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            }
+        );
 
         return onUpdate;
     }

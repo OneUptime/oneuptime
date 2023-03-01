@@ -65,6 +65,10 @@ export const componentInputTypeToFormFieldType: Function = (
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: [
                 {
+                    label: 'Every Minute',
+                    value: '* * * * *',
+                },
+                {
                     label: 'Every 30 minutes',
                     value: '*/30 * * * *',
                 },

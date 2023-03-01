@@ -14,12 +14,15 @@ import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 import RunWorkflow from './Services/RunWorkflow';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
+import WorkflowAPI from './API/Workflow';
 
 const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
+
+app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 
 app.get(
     `/${APP_NAME}/docs/:componentName`,
@@ -38,7 +41,9 @@ QueueWorker.getWorker(
     async (job: QueueJob) => {
         await new RunWorkflow().runWorkflow({
             workflowId: new ObjectID(job.data['workflowId'] as string),
-            workflowLogId: new ObjectID(job.data['workflowLogId'] as string),
+            workflowLogId: job.data['workflowLogId']
+                ? new ObjectID(job.data['workflowLogId'] as string)
+                : null,
             arguments: job.data.data as JSONObject,
             timeout: 5000,
         });

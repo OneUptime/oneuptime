@@ -1,6 +1,5 @@
 import { Queue as BullQueue, JobsOptions, Job } from 'bullmq';
 import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
 import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 
 export enum QueueName {
@@ -20,15 +19,32 @@ export default class Queue {
         });
     }
 
+    public static async removeJob(
+        queueName: QueueName,
+        jobId: string
+    ): Promise<void> {
+        const job: Job | undefined = await this.getQueue(queueName).getJob(
+            jobId
+        );
+
+        if (job) {
+            await job.remove();
+        }
+
+        // remove existing repeatable job
+        await this.getQueue(queueName).removeRepeatableByKey(jobId);
+    }
+
     public static async addJob(
         queueName: QueueName,
-        jobId: ObjectID,
+        jobId: string,
         jobName: string,
         data: JSONObject,
         options?: {
-            scheduleAt?: string;
+            scheduleAt?: string | undefined;
+            repeatableKey?: string | undefined;
         }
-    ): Promise<void> {
+    ): Promise<Job> {
         const optionsObject: JobsOptions = {
             jobId: jobId.toString(),
         };
@@ -39,6 +55,27 @@ export default class Queue {
             };
         }
 
-        await this.getQueue(queueName).add(jobName, data, { ...optionsObject });
+        const job: Job | undefined = await this.getQueue(queueName).getJob(
+            jobId
+        );
+
+        if (job) {
+            await job.remove();
+        }
+
+        if (options?.repeatableKey) {
+            // remove existing repeatable job
+            await this.getQueue(queueName).removeRepeatableByKey(
+                options?.repeatableKey
+            );
+        }
+
+        const jobAdded: Job = await this.getQueue(queueName).add(
+            jobName,
+            data,
+            optionsObject
+        );
+
+        return jobAdded;
     }
 }

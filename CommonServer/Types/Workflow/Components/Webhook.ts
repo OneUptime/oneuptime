@@ -5,12 +5,9 @@ import ComponentID from 'Common/Types/Workflow/ComponentID';
 import WebhookComponents from 'Common/Types/Workflow/Components/Webhook';
 import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
 import Response from '../../../Utils/Response';
-import ComponentCode, {
-    ExecuteWorkflowType,
-    InitProps,
-} from '../ComponentCode';
+import TriggerCode, { ExecuteWorkflowType, InitProps } from '../TriggerCode';
 
-export default class WebhookTrigger extends ComponentCode {
+export default class WebhookTrigger extends TriggerCode {
     public constructor() {
         super();
         const WebhookComponent: ComponentMetadata | undefined =

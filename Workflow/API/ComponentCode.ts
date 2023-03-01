@@ -1,10 +1,12 @@
 import Express, { ExpressRouter } from 'CommonServer/Utils/Express';
 import Components from 'CommonServer/Types/Workflow/Components/Index';
-import ComponentCode, {
+import TrigegrCode, {
     ExecuteWorkflowType,
-} from 'CommonServer/Types/Workflow/ComponentCode';
+} from 'CommonServer/Types/Workflow/TriggerCode';
+import ComponentCode from 'CommonServer/Types/Workflow/ComponentCode';
 import QueueWorkflow from '../Services/QueueWorkflow';
 import logger from 'CommonServer/Utils/Logger';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class ComponentCodeAPI {
     public router!: ExpressRouter;
@@ -16,13 +18,14 @@ export default class ComponentCodeAPI {
         /// Get all the components.
         for (const key in Components) {
             const ComponentCode: ComponentCode | undefined = Components[key];
-            if (ComponentCode) {
-                const instance: ComponentCode = ComponentCode;
+            if (ComponentCode instanceof TrigegrCode) {
+                const instance: TrigegrCode = ComponentCode;
                 instance
-                    .init({
+                    .setupComponent({
                         router: this.router,
                         scheduleWorkflow: this.scheduleWorkflow,
                         executeWorkflow: this.executeWorkflow,
+                        removeWorkflow: this.removeWorkflow,
                     })
                     .catch((err: Error) => {
                         logger.error(err);
@@ -44,5 +47,10 @@ export default class ComponentCodeAPI {
     ): Promise<void> {
         // add to queue.
         await QueueWorkflow.addWorkflowToQueue(executeWorkflow);
+    }
+
+    public async removeWorkflow(workflowId: ObjectID): Promise<void> {
+        // add to queue.
+        await QueueWorkflow.removeWorkflow(workflowId);
     }
 }

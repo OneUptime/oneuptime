@@ -6,14 +6,6 @@ import Exception from 'Common/Types/Exception/Exception';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import { ExpressRouter } from '../../Utils/Express';
-
-export interface RunProps {
-    arguments: JSONObject;
-    workflowId: ObjectID;
-    workflowLogId: ObjectID;
-    timeout: number;
-}
 
 export interface RunOptions {
     log: Function;
@@ -26,20 +18,6 @@ export interface RunOptions {
 export interface RunReturnType {
     returnValues: JSONObject;
     executePort?: Port | undefined;
-}
-
-export interface ExecuteWorkflowType {
-    workflowId: ObjectID;
-    returnValues: JSONObject;
-}
-
-export interface InitProps {
-    router: ExpressRouter;
-    executeWorkflow: (executeWorkflow: ExecuteWorkflowType) => Promise<void>;
-    scheduleWorkflow: (
-        executeWorkflow: ExecuteWorkflowType,
-        scheduleAt: string
-    ) => Promise<void>;
 }
 
 export default class ComponentCode {
@@ -57,10 +35,6 @@ export default class ComponentCode {
         }
 
         return this.metadata;
-    }
-
-    public async init(_props: InitProps): Promise<void> {
-        return await Promise.resolve();
     }
 
     public async run(
