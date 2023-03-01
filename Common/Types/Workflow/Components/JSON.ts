@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,7 +7,7 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'json-to-text',
+        id: ComponentID.JsonToText,
         title: 'JSON to Text',
         category: 'JSON',
         description: 'Converts JSON Object to Text',
@@ -54,7 +55,7 @@ const components: Array<ComponentMetadata> = [
         ],
     },
     {
-        id: 'text-to-json',
+        id: ComponentID.TextToJson,
         title: 'Text to JSON',
         category: 'JSON',
         description: 'Converts Text to JSON Object',
@@ -102,7 +103,7 @@ const components: Array<ComponentMetadata> = [
         ],
     },
     {
-        id: 'json-merge',
+        id: ComponentID.MergeJson,
         title: 'Merge JSON',
         category: 'JSON',
         description: 'Merge two JSON Objects into one',

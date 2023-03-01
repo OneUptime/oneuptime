@@ -1,16 +1,16 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import DatabaseService from '../../../Services/DatabaseService';
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
+import DatabaseService from '../../../../Services/DatabaseService';
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
-import Query from '../../Database/Query';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import Query from '../../../Database/Query';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import Select from '../../../Database/Select';
 
-export default class DeleteManyBaseModel<
+export default class FindOneBaseModel<
     TBaseModel extends BaseModel
 > extends ComponentCode {
     private modelService: DatabaseService<TBaseModel> | null = null;
@@ -25,14 +25,14 @@ export default class DeleteManyBaseModel<
                         i.id ===
                         `${Text.pascalCaseToDashes(
                             modelService.getModel().tableName!
-                        )}-delete-many`
+                        )}-find-one`
                     );
                 }
             );
 
         if (!BaseModelComponent) {
             throw new BadDataException(
-                'Delete many component for ' +
+                'Find one component for ' +
                     modelService.getModel().tableName +
                     ' not found.'
             );
@@ -90,55 +90,56 @@ export default class DeleteManyBaseModel<
                 );
             }
 
-            if (args['skip'] && typeof args['skip'] === 'string') {
-                args['skip'] = parseInt(args['skip']);
-            }
-
-            if (args['limit'] && typeof args['limit'] === 'string') {
-                args['limit'] = parseInt(args['limit']);
-            }
-
-            if (typeof args['skip'] !== 'number') {
-                args['skip'] = 0;
-            }
-
-            if (typeof args['limit'] !== 'number') {
-                args['limit'] = 10;
-            }
-
-            if (
-                typeof args['limit'] === 'number' &&
-                args['limit'] > LIMIT_PER_PROJECT
-            ) {
-                options.log('Limit cannot be ' + args['limit']);
-                options.log('Setting the limit to ' + LIMIT_PER_PROJECT);
-                args['limit'] = LIMIT_PER_PROJECT;
-            }
-
             if (this.modelService.getModel().getTenantColumn()) {
                 (args['query'] as JSONObject)[
                     this.modelService.getModel().getTenantColumn() as string
                 ] = options.projectId;
             }
 
-            await this.modelService.deleteBy({
+            if (!args['select']) {
+                throw options.onError(
+                    new BadDataException('Select Fields is undefined.')
+                );
+            }
+
+            if (typeof args['select'] === 'string') {
+                args['select'] = JSON.parse(args['select'] as string);
+            }
+
+            if (typeof args['select'] !== 'object') {
+                throw options.onError(
+                    new BadDataException(
+                        'Select Fields is should be of type object.'
+                    )
+                );
+            }
+
+            const model: TBaseModel | null = await this.modelService.findOneBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
-                limit: new PositiveNumber(args['limit'] as number),
-                skip: new PositiveNumber(args['skip'] as number),
+                select: args['select'] as Select<TBaseModel>,
                 props: {
                     isRoot: true,
                 },
             });
 
             return {
-                returnValues: {},
+                returnValues: {
+                    model: model
+                        ? JSONFunctions.toJSON(
+                              model,
+                              this.modelService.entityType
+                          )
+                        : null,
+                },
                 executePort: successPort,
             };
         } catch (err: any) {
             options.log('Error runnning component');
+
             options.log(
                 err.message ? err.message : JSON.stringify(err, null, 2)
             );
+
             return {
                 returnValues: {},
                 executePort: errorPort,

@@ -1,15 +1,15 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import DatabaseService from '../../../Services/DatabaseService';
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
+import DatabaseService from '../../../../Services/DatabaseService';
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import Exception from 'Common/Types/Exception/Exception';
+import Query from '../../../Database/Query';
+import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
 
-export default class CreateOneBaseModel<
+export default class UpdateOneBaseModel<
     TBaseModel extends BaseModel
 > extends ComponentCode {
     private modelService: DatabaseService<TBaseModel> | null = null;
@@ -24,14 +24,14 @@ export default class CreateOneBaseModel<
                         i.id ===
                         `${Text.pascalCaseToDashes(
                             modelService.getModel().tableName!
-                        )}-create-one`
+                        )}-update-one`
                     );
                 }
             );
 
         if (!BaseModelComponent) {
             throw new BadDataException(
-                'Create one component for ' +
+                'Update one component for ' +
                     modelService.getModel().tableName +
                     ' not found.'
             );
@@ -73,56 +73,67 @@ export default class CreateOneBaseModel<
                 );
             }
 
-            if (!args['json']) {
+            if (!args['data']) {
                 throw options.onError(
                     new BadDataException('JSON is undefined.')
                 );
             }
 
-            if (typeof args['json'] === 'string') {
-                args['json'] = JSON.parse(args['json'] as string);
+            if (typeof args['data'] === 'string') {
+                args['data'] = JSON.parse(args['data'] as string);
             }
 
-            if (typeof args['json'] !== 'object') {
+            if (typeof args['data'] !== 'object') {
                 throw options.onError(
                     new BadDataException('JSON is should be of type object.')
                 );
             }
 
             if (this.modelService.getModel().getTenantColumn()) {
-                (args['json'] as JSONObject)[
+                (args['data'] as JSONObject)[
                     this.modelService.getModel().getTenantColumn() as string
                 ] = options.projectId;
             }
 
-            const model: TBaseModel = (await this.modelService.create({
-                data: JSONFunctions.fromJSON<TBaseModel>(
-                    (args['json'] as JSONObject) || {},
-                    this.modelService.entityType
-                ) as TBaseModel,
-                props: {
-                    isRoot: true,
-                },
-            })) as TBaseModel;
-
-            return {
-                returnValues: {
-                    model: JSONFunctions.toJSON(
-                        model,
-                        this.modelService.entityType
-                    ),
-                },
-                executePort: successPort,
-            };
-        } catch (err: any) {
-            if (err instanceof Exception) {
-                options.log(err.getMessage());
-            } else {
-                options.log(
-                    err.message ? err.message : JSON.stringify(err, null, 2)
+            if (!args['query']) {
+                throw options.onError(
+                    new BadDataException('Query is undefined.')
                 );
             }
 
+            if (typeof args['query'] === 'string') {
+                args['query'] = JSON.parse(args['query'] as string);
+            }
+
+            if (typeof args['query'] !== 'object') {
+                throw options.onError(
+                    new BadDataException('Query is should be of type object.')
+                );
+            }
+
+            if (this.modelService.getModel().getTenantColumn()) {
+                (args['query'] as JSONObject)[
+                    this.modelService.getModel().getTenantColumn() as string
+                ] = options.projectId;
+            }
+
+            await this.modelService.updateOneBy({
+                query: (args['query'] as Query<TBaseModel>) || {},
+                data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            return {
+                returnValues: {},
+                executePort: successPort,
+            };
+        } catch (err: any) {
+            options.log('Error runnning component');
+            options.log(
+                err.message ? err.message : JSON.stringify(err, null, 2)
+            );
             return {
                 returnValues: {},
                 executePort: errorPort,

@@ -8,17 +8,17 @@ import JavaScirptCode from './JavaScript';
 import BaseModelServices from '../../../Services/Index';
 import BaseModel from 'Common/Models/BaseModel';
 import Text from 'Common/Types/Text';
-import OnCreateBaseModel from './OnCreateBaseModel';
-import CreateOneBaseModel from './CreateOneBaseModel';
-import CreateManyBaseModel from './CreateManyBaseModel';
-import FindOneBaseModel from './FindOneBaseModel';
-import FindManyBaseModel from './FindManyBaseModel';
-import OnUpdateBaseModel from './OnUpdateBaseModel';
-import UpdateOneBaseModel from './UpdateOneBaseModel';
-import UpdateManyBaseModel from './UpdateManyBaseModel';
-import OnDeleteBaseModel from './OnDeleteBaseModel';
-import DeleteOneBaseModel from './DeleteOneBaseModel';
-import DeleteManyBaseModel from './DeleteManyBaseMoidel';
+import OnCreateBaseModel from './BaseModel/OnCreateBaseModel';
+import CreateOneBaseModel from './BaseModel/CreateOneBaseModel';
+import CreateManyBaseModel from './BaseModel/CreateManyBaseModel';
+import FindOneBaseModel from './BaseModel/FindOneBaseModel';
+import FindManyBaseModel from './BaseModel/FindManyBaseModel';
+import OnUpdateBaseModel from './BaseModel/OnUpdateBaseModel';
+import UpdateOneBaseModel from './BaseModel/UpdateOneBaseModel';
+import UpdateManyBaseModel from './BaseModel/UpdateManyBaseModel';
+import OnDeleteBaseModel from './BaseModel/OnDeleteBaseModel';
+import DeleteOneBaseModel from './BaseModel/DeleteOneBaseModel';
+import DeleteManyBaseModel from './BaseModel/DeleteManyBaseMoidel';
 import ManualTrigger from './Manual';
 
 const Components: Dictionary<ComponentCode> = {

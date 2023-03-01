@@ -1,5 +1,5 @@
 import BaseModel from 'Common/Models/BaseModel';
-import DatabaseService from '../../../Services/DatabaseService';
+import DatabaseService from '../../../../Services/DatabaseService';
 import OnTriggerBaseModel from './OnTriggerBaseModel';
 
 export default class OnUpdateBaseModel<
