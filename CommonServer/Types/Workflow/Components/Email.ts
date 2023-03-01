@@ -134,7 +134,7 @@ export default class Email extends ComponentCode {
                 from: args['from'].toString(),
                 to: args['to'].toString(),
                 subject: args['subject']?.toString() || '',
-                html: args['body']?.toString() || '',
+                html: args['email-body']?.toString() || '',
             });
 
             options.log('Email sent.');
