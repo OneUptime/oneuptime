@@ -32,16 +32,6 @@ const components: Array<ComponentMetadata> = [
                     'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
-                id: 'query-string',
-                name: 'Query String',
-                description: 'Send query string params.',
-                type: ComponentInputType.StringDictionary,
-                required: false,
-                isAdvanced: true,
-                placeholder:
-                    'Example: {"query1": "value1", "query2": "value2", ....}',
-            },
-            {
                 id: 'request-headers',
                 name: 'Request Headers',
                 description: 'Request headers to send.',
@@ -128,16 +118,6 @@ const components: Array<ComponentMetadata> = [
                 required: false,
                 placeholder:
                     'Example: {"key1": "value1", "key2": "value2", ....}',
-            },
-            {
-                id: 'query-string',
-                name: 'Query String',
-                description: 'Send query string params.',
-                type: ComponentInputType.StringDictionary,
-                required: false,
-                isAdvanced: true,
-                placeholder:
-                    'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',
@@ -228,16 +208,6 @@ const components: Array<ComponentMetadata> = [
                     'Example: {"key1": "value1", "key2": "value2", ....}',
             },
             {
-                id: 'query-string',
-                name: 'Query String',
-                description: 'Send query string params.',
-                type: ComponentInputType.StringDictionary,
-                required: false,
-                isAdvanced: true,
-                placeholder:
-                    'Example: {"query1": "value1", "query2": "value2", ....}',
-            },
-            {
                 id: 'request-headers',
                 name: 'Request Headers',
                 description: 'Request headers to send.',
@@ -324,16 +294,6 @@ const components: Array<ComponentMetadata> = [
                 required: false,
                 placeholder:
                     'Example: {"key1": "value1", "key2": "value2", ....}',
-            },
-            {
-                id: 'query-string',
-                name: 'Query String',
-                description: 'Send query string params.',
-                type: ComponentInputType.StringDictionary,
-                required: false,
-                isAdvanced: true,
-                placeholder:
-                    'Example: {"query1": "value1", "query2": "value2", ....}',
             },
             {
                 id: 'request-headers',

@@ -58,10 +58,6 @@ export class ApiComponentUtils {
             args['request-body'] = JSON.parse(args['request-body'] as string);
         }
 
-        if (args['query-string'] && typeof args['query-string'] === 'string') {
-            args['query-string'] = JSON.parse(args['query-string'] as string);
-        }
-
         if (
             args['request-headers'] &&
             typeof args['request-headers'] === 'string'

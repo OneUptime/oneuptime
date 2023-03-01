@@ -8,9 +8,9 @@ enum ComponentID {
     TextToJson = 'text-to-json',
     MergeJson = 'merge-json',
     ApiGet = 'api-get',
-    ApiPut = 'api-get',
-    ApiPost = 'api-get',
-    ApiDelete = 'api-get',
+    ApiPut = 'api-put',
+    ApiPost = 'api-post',
+    ApiDelete = 'api-delete',
     SendEmail = 'send-email',
     IfElse = 'if-else',
 }

@@ -158,8 +158,8 @@ export default class RunWorkflow {
                 if (didWorkflowTimeOut) {
                     throw new TimeoutException(
                         'Workflow execution time was more than ' +
-                            runProps.timeout +
-                            'ms and workflow timed-out.'
+                        runProps.timeout +
+                        'ms and workflow timed-out.'
                     );
                 }
 
@@ -171,8 +171,8 @@ export default class RunWorkflow {
                 if (componentsExecuted.includes(executeComponentId)) {
                     throw new BadDataException(
                         'Cyclic Workflow Detected. Cannot execute ' +
-                            executeComponentId +
-                            ' when it has already been executed.'
+                        executeComponentId +
+                        ' when it has already been executed.'
                     );
                 }
 
@@ -186,8 +186,8 @@ export default class RunWorkflow {
                 if (!stackItem) {
                     throw new BadDataException(
                         'Component with ID ' +
-                            executeComponentId +
-                            ' not found.'
+                        executeComponentId +
+                        ' not found.'
                     );
                 }
 
@@ -253,7 +253,7 @@ export default class RunWorkflow {
                     this.log(result.returnValues);
                     this.log(
                         'Executing Port: ' + result.executePort?.title ||
-                            '<None>'
+                        '<None>'
                     );
 
                     storageMap.local.components[stackItem.node.id] = {
@@ -387,16 +387,32 @@ export default class RunWorkflow {
                 argumentContent.toString().includes('{{') &&
                 argumentContent.toString().includes('}}')
             ) {
-                // this is dynamic content. Pick from storageMap.
-                argumentContent = argumentContent
-                    .toString()
-                    .replace('{{', '')
-                    .replace('}}', '');
 
-                argumentContent = deepFind(
-                    storageMap as any,
-                    argumentContent as any
-                );
+
+
+                let argumentContentCopy = argumentContent.toString();
+                const variablesInArgument = [];
+
+                const regex = /{{(.*?)}}/g // Find all matches of the regular expression and capture the word between the braces {{x}} => x
+
+
+                let match;
+
+                while ((match = regex.exec(argumentContentCopy)) !== null) {
+                    variablesInArgument.push(match[1]);
+                }
+
+                for(const variable of variablesInArgument){
+                   
+                    const value = deepFind(
+                        storageMap as any,
+                        variable as any
+                    );
+
+                    argumentContentCopy = argumentContentCopy.replace("{{"+variable+"}}", value);
+                }
+
+                argumentContent = argumentContentCopy;
             }
 
             argumentObj[argument.id] = argumentContent;
@@ -515,8 +531,8 @@ export default class RunWorkflow {
         } else {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ': ' +
-                    JSON.stringify(data)
+                ': ' +
+                JSON.stringify(data)
             );
         }
     }
@@ -590,7 +606,7 @@ export default class RunWorkflow {
         const trigger: any | undefined = nodes.find((n: any) => {
             return (
                 (n.data as NodeDataProp).componentType ===
-                    ComponentType.Trigger &&
+                ComponentType.Trigger &&
                 (n.data as NodeDataProp).nodeType === NodeType.Node
             );
         });
