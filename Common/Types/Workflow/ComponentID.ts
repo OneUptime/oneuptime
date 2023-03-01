@@ -11,7 +11,8 @@ enum ComponentID {
     ApiPut = 'api-get',
     ApiPost = 'api-get',
     ApiDelete = 'api-get',
-    SendEmail = 'send-email'
+    SendEmail = 'send-email',
+    IfElse = 'if-else'
 }
 
 export default ComponentID;

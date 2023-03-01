@@ -27,6 +27,8 @@ import ApiGet from './API/Get';
 import ApiDelete from './API/Delete';
 import ApiPost from './API/Post';
 import ApiPut from './API/Put';
+import Email from './Email';
+import IfElse from './Conditions/IfElse';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
@@ -41,6 +43,9 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.ApiPost]: new ApiDelete(),
     [ComponentID.ApiDelete]: new ApiPost(),
     [ComponentID.ApiPut]: new ApiPut(),
+    [ComponentID.SendEmail]: new Email(),
+    [ComponentID.IfElse]: new IfElse()
+    
 
 };
 
