@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,7 +7,7 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'send-email',
+        id: ComponentID.SendEmail,
         title: 'Send Email',
         category: 'Email',
         description: 'Send email from your workflows',
@@ -15,10 +16,19 @@ const components: Array<ComponentMetadata> = [
         arguments: [
             {
                 type: ComponentInputType.Text,
-                name: 'Email',
-                description: 'Email to send to',
+                name: 'From Email',
+                description: 'Email to send from',
+                placeholder: "Name <email@company.com>",
                 required: true,
-                id: 'email',
+                id: 'from',
+            },
+            {
+                type: ComponentInputType.Text,
+                name: 'To Email',
+                description: 'Email to send to',
+                placeholder: "email@company.com; email2@company.com; ...",
+                required: true,
+                id: 'to',
             },
             {
                 type: ComponentInputType.Text,
@@ -28,7 +38,7 @@ const components: Array<ComponentMetadata> = [
                 id: 'subject',
             },
             {
-                type: ComponentInputType.LongText,
+                type: ComponentInputType.HTML,
                 name: 'Email Body',
                 description: 'Email to send to',
                 required: false,
@@ -39,28 +49,28 @@ const components: Array<ComponentMetadata> = [
                 name: 'SMTP HOST',
                 description: 'SMTP Host to send emails from',
                 required: true,
-                id: 'smtp_host',
+                id: 'smtp-host',
             },
             {
                 type: ComponentInputType.Text,
                 name: 'SMTP Username',
                 description: 'SMTP Username to send emails from',
                 required: true,
-                id: 'smtp_username',
+                id: 'smtp-username',
             },
             {
                 type: ComponentInputType.Password,
                 name: 'SMTP Password',
                 description: 'SMTP Password to send emails from',
                 required: true,
-                id: 'smtp_password',
+                id: 'smtp-password',
             },
             {
                 type: ComponentInputType.Number,
                 name: 'SMTP Port',
                 description: 'SMTP Port to send emails from',
                 required: true,
-                id: 'smtp_port',
+                id: 'smtp-port',
             },
             {
                 type: ComponentInputType.Boolean,
@@ -82,10 +92,15 @@ const components: Array<ComponentMetadata> = [
         ],
         outPorts: [
             {
-                title: 'Email Sent',
+                title: 'Success',
                 description:
-                    'Connect to this port if you want other componets to execute after the email is sent.',
-                id: 'out',
+                    'This is executed when the message is successfully posted',
+                id: 'success',
+            },
+            {
+                title: 'Error',
+                description: 'This is executed when there is an error',
+                id: 'error',
             },
         ],
     },

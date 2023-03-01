@@ -60,6 +60,13 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
+    if (componentInputType === ComponentInputType.HTML) {
+        return {
+            fieldType: FormFieldSchemaType.HTML,
+            dropdownOptions: [],
+        };
+    }
+
     if (componentInputType === ComponentInputType.CronTab) {
         return {
             fieldType: FormFieldSchemaType.Dropdown,

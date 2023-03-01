@@ -2,7 +2,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
-import JSONComponents from 'Common/Types/Workflow/Components/API';
+import APIComponents from 'Common/Types/Workflow/Components/API';
 import API from 'Common/Utils/API';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import { ApiComponentUtils } from './Utils';
@@ -16,7 +16,7 @@ export default class ApiPut extends ComponentCode {
     public constructor() {
         super();
 
-        const Component: ComponentMetadata | undefined = JSONComponents.find(
+        const Component: ComponentMetadata | undefined = APIComponents.find(
             (i: ComponentMetadata) => {
                 return i.id === ComponentID.ApiPut;
             }
