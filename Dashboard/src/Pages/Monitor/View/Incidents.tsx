@@ -213,6 +213,50 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            incidentSeverity: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        isFilterable: true,
+                        filterEntityType: IncidentSeverity,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        title: 'Severity',
+                        type: FieldType.Entity,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['incidentSeverity']) {
+                                return (
+                                    <Pill
+                                        color={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
+                                                ] as JSONObject
+                                            )['color'] as Color
+                                        }
+                                        text={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
+                                                ] as JSONObject
+                                            )['name'] as string
+                                        }
+                                    />
+                                );
+                            }
+    
+                            return <></>;
+                        },
+                    },
+                    {
+                        field: {
                             monitors: {
                                 name: true,
                                 _id: true,
