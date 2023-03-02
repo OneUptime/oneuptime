@@ -20,6 +20,7 @@ import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -123,6 +124,21 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                         },
                         required: true,
                         placeholder: 'Monitors affected',
+                    },
+                    {
+                        field: {
+                            incidentSeverity: true,
+                        },
+                        title: 'Incident Severity',
+                        description: 'What type of incident is this?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: IncidentSeverity,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Incident Severity',
                     },
                     {
                         field: {
