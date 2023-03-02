@@ -24,9 +24,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-
     const [cnameModalText, setCnameModalText] = useState<string>('');
-    const [showSslProvisioningModal, setShowSslProvisioningModal] = useState<boolean>(false);
+    const [showSslProvisioningModal, setShowSslProvisioningModal] =
+        useState<boolean>(false);
 
     return (
         <Page
@@ -67,7 +67,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 <ModelTable<StatusPageDomain>
                     modelType={StatusPageDomain}
                     query={{
-                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
                         statusPageId: modelId,
                     }}
                     name="Status Page > Domains"
@@ -83,7 +84,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         item: StatusPageDomain
                     ): Promise<StatusPageDomain> => {
                         if (!props.currentProject || !props.currentProject.id) {
-                            throw new BadDataException('Project ID cannot be null');
+                            throw new BadDataException(
+                                'Project ID cannot be null'
+                            );
                         }
                         item.statusPageId = modelId;
                         item.projectId = props.currentProject.id;
@@ -121,7 +124,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
                             isVisible: (item: JSONObject): boolean => {
-                                if (item['isCnameVerified'] && !item['isSslProvisioned']) {
+                                if (
+                                    item['isCnameVerified'] &&
+                                    !item['isSslProvisioned']
+                                ) {
                                     return true;
                                 }
 
@@ -133,7 +139,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 onError: (err: Error) => void
                             ) => {
                                 try {
-                                    setShowSslProvisioningModal(true)
+                                    setShowSslProvisioningModal(true);
 
                                     onCompleteAction();
                                 } catch (err) {
@@ -214,49 +220,55 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
 
-                {cnameModalText && <ConfirmModal
-                    title={`Add CNAME`}
-                    description={ <div>
-                        <span>
-                            Please add CNAME record to your domain. Details of
-                            the CNAME records are:
-                        </span>
-                        <br />
-                        <br />
-                        <span>
-                            <b>Record Type: </b> CNAME
-                        </span>
-                        <br />
-                        <span>
-                            <b>Name: </b> 
-                            {cnameModalText}
-                        </span>
-                        <br />
-                        <span>
-                            <b>Content: </b>
-                            {StatusPageCNameRecord}
-                        </span>
-                        <br />
-                        <br />
-                        <span>
-                            Once you have done this, it should take 24 hours to automatically verify.
-                        </span>
-                    </div>}
-                    submitButtonText={'Close'}
-                    onSubmit={() => {
-                        return setCnameModalText('')
-                    }}
-                />}
+                {cnameModalText && (
+                    <ConfirmModal
+                        title={`Add CNAME`}
+                        description={
+                            <div>
+                                <span>
+                                    Please add CNAME record to your domain.
+                                    Details of the CNAME records are:
+                                </span>
+                                <br />
+                                <br />
+                                <span>
+                                    <b>Record Type: </b> CNAME
+                                </span>
+                                <br />
+                                <span>
+                                    <b>Name: </b>
+                                    {cnameModalText}
+                                </span>
+                                <br />
+                                <span>
+                                    <b>Content: </b>
+                                    {StatusPageCNameRecord}
+                                </span>
+                                <br />
+                                <br />
+                                <span>
+                                    Once you have done this, it should take 24
+                                    hours to automatically verify.
+                                </span>
+                            </div>
+                        }
+                        submitButtonText={'Close'}
+                        onSubmit={() => {
+                            return setCnameModalText('');
+                        }}
+                    />
+                )}
 
-                {showSslProvisioningModal && <ConfirmModal
-                    title={`Provision SSL`}
-                    description={`This is an automatic process and takes around 24 hours to complete. If you do not see your SSL provisioned in 24 hours. Please contact support@oneuptime.com`}
-                    submitButtonText={'Close'}
-                    onSubmit={() => {
-                        return setShowSslProvisioningModal(false)
-                    }}
-                />}
-
+                {showSslProvisioningModal && (
+                    <ConfirmModal
+                        title={`Provision SSL`}
+                        description={`This is an automatic process and takes around 24 hours to complete. If you do not see your SSL provisioned in 24 hours. Please contact support@oneuptime.com`}
+                        submitButtonText={'Close'}
+                        onSubmit={() => {
+                            return setShowSslProvisioningModal(false);
+                        }}
+                    />
+                )}
             </>
         </Page>
     );

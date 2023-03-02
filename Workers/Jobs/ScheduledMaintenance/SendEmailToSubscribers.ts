@@ -20,249 +20,266 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 
-RunCron('Incident:SendEmailToSubscribers', { schedule: EVERY_MINUTE, runOnStartup: false}, async () => {
-    // get all scheduled events of all the projects.
-    const scheduledEvents: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
-            query: {
-                isStatusPageSubscribersNotifiedOnEventScheduled: false,
-                createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
-            },
-            props: {
-                isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                title: true,
-                description: true,
-                startsAt: true,
-            },
-            populate: {
-                monitors: {
-                    _id: true,
-                },
-            },
-        });
-
-    const ongoingEvents: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
-            query: {
-                isStatusPageSubscribersNotifiedOnEventOngoing: false,
-                startsAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
-            },
-            props: {
-                isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                title: true,
-                description: true,
-                startsAt: true,
-            },
-            populate: {
-                monitors: {
-                    _id: true,
-                },
-            },
-        });
-
-    const scheduledEventsIds: Array<string | undefined> = scheduledEvents.map(
-        (i: ScheduledMaintenance) => {
-            return i._id?.toString();
-        }
-    );
-    const ongoingEventIds: Array<string | undefined> = ongoingEvents.map(
-        (i: ScheduledMaintenance) => {
-            return i._id?.toString();
-        }
-    );
-
-    const totalEvents: Array<ScheduledMaintenance> = [
-        ...ongoingEvents,
-        ...scheduledEvents,
-    ];
-
-    for (const event of totalEvents) {
-        if (!event.monitors || event.monitors.length === 0) {
-            continue;
-        }
-
-        let isOngoing: boolean = false;
-
-        if (ongoingEventIds.includes(event._id?.toString())) {
-            isOngoing = true;
-            await ScheduledMaintenanceService.updateOneById({
-                id: event.id!,
-                data: {
-                    isStatusPageSubscribersNotifiedOnEventOngoing: true,
-                },
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
-        }
-
-        if (scheduledEventsIds.includes(event._id?.toString())) {
-            await ScheduledMaintenanceService.updateOneById({
-                id: event.id!,
-                data: {
-                    isStatusPageSubscribersNotifiedOnEventScheduled: true,
-                },
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
-        }
-
-        // get status page resources from monitors.
-
-        const sattusPageResources: Array<StatusPageResource> =
-            await StatusPageResourceService.findBy({
+RunCron(
+    'Incident:SendEmailToSubscribers',
+    { schedule: EVERY_MINUTE, runOnStartup: false },
+    async () => {
+        // get all scheduled events of all the projects.
+        const scheduledEvents: Array<ScheduledMaintenance> =
+            await ScheduledMaintenanceService.findBy({
                 query: {
-                    monitorId: QueryHelper.in(
-                        event.monitors
-                            .filter((m: Monitor) => {
-                                return m._id;
-                            })
-                            .map((m: Monitor) => {
-                                return new ObjectID(m._id!);
-                            })
+                    isStatusPageSubscribersNotifiedOnEventScheduled: false,
+                    createdAt: QueryHelper.lessThan(
+                        OneUptimeDate.getCurrentDate()
                     ),
                 },
                 props: {
                     isRoot: true,
-                    ignoreHooks: true,
                 },
+                limit: LIMIT_MAX,
                 skip: 0,
-                limit: LIMIT_PER_PROJECT,
                 select: {
                     _id: true,
-                    displayName: true,
-                    statusPageId: true,
+                    title: true,
+                    description: true,
+                    startsAt: true,
+                },
+                populate: {
+                    monitors: {
+                        _id: true,
+                    },
                 },
             });
 
-        const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
+        const ongoingEvents: Array<ScheduledMaintenance> =
+            await ScheduledMaintenanceService.findBy({
+                query: {
+                    isStatusPageSubscribersNotifiedOnEventOngoing: false,
+                    startsAt: QueryHelper.lessThan(
+                        OneUptimeDate.getCurrentDate()
+                    ),
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    title: true,
+                    description: true,
+                    startsAt: true,
+                },
+                populate: {
+                    monitors: {
+                        _id: true,
+                    },
+                },
+            });
 
-        for (const resource of sattusPageResources) {
-            if (!resource.statusPageId) {
+        const scheduledEventsIds: Array<string | undefined> =
+            scheduledEvents.map((i: ScheduledMaintenance) => {
+                return i._id?.toString();
+            });
+        const ongoingEventIds: Array<string | undefined> = ongoingEvents.map(
+            (i: ScheduledMaintenance) => {
+                return i._id?.toString();
+            }
+        );
+
+        const totalEvents: Array<ScheduledMaintenance> = [
+            ...ongoingEvents,
+            ...scheduledEvents,
+        ];
+
+        for (const event of totalEvents) {
+            if (!event.monitors || event.monitors.length === 0) {
                 continue;
             }
 
-            if (!statusPageToResources[resource.statusPageId?.toString()]) {
-                statusPageToResources[resource.statusPageId?.toString()] = [];
-            }
+            let isOngoing: boolean = false;
 
-            statusPageToResources[resource.statusPageId?.toString()]?.push(
-                resource
-            );
-        }
-
-        const statusPages: Array<StatusPage> = await StatusPageService.findBy({
-            query: {
-                _id: QueryHelper.in(
-                    Object.keys(statusPageToResources).map((i: string) => {
-                        return new ObjectID(i);
-                    })
-                ),
-            },
-            props: {
-                isRoot: true,
-                ignoreHooks: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            select: {
-                _id: true,
-                name: true,
-                pageTitle: true,
-                isPublicStatusPage: true,
-                logoFileId: true,
-            },
-        });
-
-        for (const statuspage of statusPages) {
-            if (!statuspage.id) {
-                continue;
-            }
-
-            const subscribers: Array<StatusPageSubscriber> =
-                await StatusPageSubscriberService.getSubscribersByStatusPage(
-                    statuspage.id!,
-                    {
+            if (ongoingEventIds.includes(event._id?.toString())) {
+                isOngoing = true;
+                await ScheduledMaintenanceService.updateOneById({
+                    id: event.id!,
+                    data: {
+                        isStatusPageSubscribersNotifiedOnEventOngoing: true,
+                    },
+                    props: {
                         isRoot: true,
                         ignoreHooks: true,
-                    }
-                );
+                    },
+                });
+            }
 
-            const statusPageURL: string =
-                await StatusPageService.getStatusPageURL(statuspage.id);
+            if (scheduledEventsIds.includes(event._id?.toString())) {
+                await ScheduledMaintenanceService.updateOneById({
+                    id: event.id!,
+                    data: {
+                        isStatusPageSubscribersNotifiedOnEventScheduled: true,
+                    },
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                });
+            }
 
-            const statusPageName: string =
-                statuspage.pageTitle || statuspage.name || 'Status Page';
+            // get status page resources from monitors.
 
-            // Send email to Email subscribers.
+            const sattusPageResources: Array<StatusPageResource> =
+                await StatusPageResourceService.findBy({
+                    query: {
+                        monitorId: QueryHelper.in(
+                            event.monitors
+                                .filter((m: Monitor) => {
+                                    return m._id;
+                                })
+                                .map((m: Monitor) => {
+                                    return new ObjectID(m._id!);
+                                })
+                        ),
+                    },
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    select: {
+                        _id: true,
+                        displayName: true,
+                        statusPageId: true,
+                    },
+                });
 
-            for (const subscriber of subscribers) {
-                if (!subscriber._id) {
+            const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+                {};
+
+            for (const resource of sattusPageResources) {
+                if (!resource.statusPageId) {
                     continue;
                 }
 
-                if (subscriber.subscriberEmail) {
-                    // send email here.
+                if (!statusPageToResources[resource.statusPageId?.toString()]) {
+                    statusPageToResources[resource.statusPageId?.toString()] =
+                        [];
+                }
 
-                    MailService.sendMail({
-                        toEmail: subscriber.subscriberEmail,
-                        templateType:
-                            EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
-                        vars: {
-                            statusPageName: statusPageName,
-                            statusPageUrl: statusPageURL,
-                            logoUrl: statuspage.logoFileId
-                                ? new URL(HttpProtocol, Domain)
-                                    .addRoute(FileRoute)
+                statusPageToResources[resource.statusPageId?.toString()]?.push(
+                    resource
+                );
+            }
+
+            const statusPages: Array<StatusPage> =
+                await StatusPageService.findBy({
+                    query: {
+                        _id: QueryHelper.in(
+                            Object.keys(statusPageToResources).map(
+                                (i: string) => {
+                                    return new ObjectID(i);
+                                }
+                            )
+                        ),
+                    },
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    select: {
+                        _id: true,
+                        name: true,
+                        pageTitle: true,
+                        isPublicStatusPage: true,
+                        logoFileId: true,
+                    },
+                });
+
+            for (const statuspage of statusPages) {
+                if (!statuspage.id) {
+                    continue;
+                }
+
+                const subscribers: Array<StatusPageSubscriber> =
+                    await StatusPageSubscriberService.getSubscribersByStatusPage(
+                        statuspage.id!,
+                        {
+                            isRoot: true,
+                            ignoreHooks: true,
+                        }
+                    );
+
+                const statusPageURL: string =
+                    await StatusPageService.getStatusPageURL(statuspage.id);
+
+                const statusPageName: string =
+                    statuspage.pageTitle || statuspage.name || 'Status Page';
+
+                // Send email to Email subscribers.
+
+                for (const subscriber of subscribers) {
+                    if (!subscriber._id) {
+                        continue;
+                    }
+
+                    if (subscriber.subscriberEmail) {
+                        // send email here.
+
+                        MailService.sendMail({
+                            toEmail: subscriber.subscriberEmail,
+                            templateType:
+                                EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                            vars: {
+                                statusPageName: statusPageName,
+                                statusPageUrl: statusPageURL,
+                                logoUrl: statuspage.logoFileId
+                                    ? new URL(HttpProtocol, Domain)
+                                          .addRoute(FileRoute)
+                                          .addRoute(
+                                              '/image/' + statuspage.logoFileId
+                                          )
+                                          .toString()
+                                    : '',
+                                isPublicStatusPage:
+                                    statuspage.isPublicStatusPage
+                                        ? 'true'
+                                        : 'false',
+                                resourcesAffected:
+                                    statusPageToResources[statuspage._id!]
+                                        ?.map((r: StatusPageResource) => {
+                                            return r.displayName;
+                                        })
+                                        .join(', ') || 'None',
+                                eventStatus: isOngoing
+                                    ? 'Ongoing'
+                                    : 'Scheduled',
+                                scheduledAt:
+                                    OneUptimeDate.getDateAsFormattedString(
+                                        event.startsAt!
+                                    ),
+                                eventTitle: event.title || '',
+                                eventDescription: event.description || '',
+                                unsubscribeUrl: new URL(HttpProtocol, Domain)
                                     .addRoute(
-                                        '/image/' + statuspage.logoFileId
+                                        '/api/status-page-subscriber/unsubscribe/' +
+                                            subscriber._id.toString()
                                     )
-                                    .toString()
-                                : '',
-                            isPublicStatusPage: statuspage.isPublicStatusPage
-                                ? 'true'
-                                : 'false',
-                            resourcesAffected:
-                                statusPageToResources[statuspage._id!]
-                                    ?.map((r: StatusPageResource) => {
-                                        return r.displayName;
-                                    })
-                                    .join(', ') || 'None',
-                            eventStatus: isOngoing ? 'Ongoing' : 'Scheduled',
-                            scheduledAt: OneUptimeDate.getDateAsFormattedString(
-                                event.startsAt!
-                            ),
-                            eventTitle: event.title || '',
-                            eventDescription: event.description || '',
-                            unsubscribeUrl: new URL(HttpProtocol, Domain)
-                                .addRoute(
-                                    '/api/status-page-subscriber/unsubscribe/' +
-                                    subscriber._id.toString()
-                                )
-                                .toString(),
-                        },
-                        subject:
-                            statusPageName +
-                            ` - ${isOngoing ? 'Ongoing' : 'Scheduled'
-                            } Maintenance Event`,
-                    }).catch((err: Error) => {
-                        logger.error(err);
-                    });
+                                    .toString(),
+                            },
+                            subject:
+                                statusPageName +
+                                ` - ${
+                                    isOngoing ? 'Ongoing' : 'Scheduled'
+                                } Maintenance Event`,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
+                    }
                 }
             }
         }
     }
-});
+);

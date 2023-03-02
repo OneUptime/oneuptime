@@ -29,13 +29,11 @@ app.get(
     (req: ExpressRequest, res: ExpressResponse) => {
         res.sendFile(
             __dirname +
-            '/Docs/ComponentDocumentation/' +
-            req.params['componentName']
+                '/Docs/ComponentDocumentation/' +
+                req.params['componentName']
         );
     }
 );
-
-
 
 const init: Function = async (): Promise<void> => {
     try {
@@ -52,7 +50,6 @@ const init: Function = async (): Promise<void> => {
         // connect redis
         await Redis.connect();
 
-
         // Job process.
         QueueWorker.getWorker(
             QueueName.Workflow,
@@ -68,7 +65,6 @@ const init: Function = async (): Promise<void> => {
             },
             { concurrency: 10 }
         );
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

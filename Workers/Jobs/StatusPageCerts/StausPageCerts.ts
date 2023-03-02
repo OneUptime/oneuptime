@@ -523,18 +523,10 @@ const checkCnameValidation: Function = async (
     try {
         const result: AxiosResponse = await axios.get(
             'http://' +
-            fulldomain +
-            '/status-page-api/cname-verification/' +
-            token
+                fulldomain +
+                '/status-page-api/cname-verification/' +
+                token
         );
-
-
-        console.log("CNAME VALIDFATION");
-        console.log(result);
-        console.log('http://' +
-            fulldomain +
-            '/status-page-api/cname-verification/' +
-            token)
 
         if (result.status === 200) {
             return true;
@@ -555,9 +547,9 @@ const isSslProvisioned: Function = async (
     try {
         const result: AxiosResponse = await axios.get(
             'https://' +
-            fulldomain +
-            '/status-page-api/cname-verification/' +
-            token
+                fulldomain +
+                '/status-page-api/cname-verification/' +
+                token
         );
 
         if (result.status === 200) {

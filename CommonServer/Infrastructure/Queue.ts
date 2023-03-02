@@ -4,7 +4,7 @@ import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 
 export enum QueueName {
     Workflow = 'Workflow',
-    Worker = 'Worker'
+    Worker = 'Worker',
 }
 
 export type QueueJob = Job;

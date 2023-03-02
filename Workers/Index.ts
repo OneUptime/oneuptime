@@ -43,17 +43,16 @@ const init: Function = async (): Promise<void> => {
         // connect redis
         await Redis.connect();
 
-         // Job process.
-         QueueWorker.getWorker(
+        // Job process.
+        QueueWorker.getWorker(
             QueueName.Worker,
             async (job: QueueJob) => {
-                const name: string =  job.name;
-                const funcToRun = JobDictonary.getJobFunction(name);
+                const name: string = job.name;
+                const funcToRun: Function = JobDictonary.getJobFunction(name);
                 await funcToRun();
             },
             { concurrency: 10 }
         );
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
