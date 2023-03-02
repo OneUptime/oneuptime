@@ -38,12 +38,12 @@ export default class Database {
                     );
                     const dataSource: DataSource =
                         await PostgresDataSource.initialize();
-                    logger.info('Posgres Database Connected');
+                    logger.info('Postgres Database Connected');
                     this.dataSource = dataSource;
                     return dataSource;
                 } catch (err) {
                     if(retry<3){
-                        logger.info("Cannot connect to Postgres. Retrying again in 5 second");
+                        logger.info("Cannot connect to Postgres. Retrying again in 5 seconds");
                         // sleep for 5 seconds. 
 
                         await Sleep.sleep(5000);
@@ -60,7 +60,7 @@ export default class Database {
 
         } catch (err) {
 
-            logger.error('Posgres Database Connection Failed');
+            logger.error('Postgres Database Connection Failed');
             logger.error(err);
             throw err;
         }

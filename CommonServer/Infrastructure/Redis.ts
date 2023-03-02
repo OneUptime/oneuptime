@@ -1,3 +1,4 @@
+import Sleep from 'Common/Types/Sleep';
 import { createClient, RedisClientType } from 'redis';
 import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 import logger from '../Utils/Logger';
@@ -20,7 +21,11 @@ export default abstract class Redis {
     }
 
     public static async connect(): Promise<RedisClientType> {
+
+        let retry = 0;
+
         try {
+
             this.client = createClient({
                 password: RedisPassword,
                 socket: {
@@ -29,7 +34,26 @@ export default abstract class Redis {
                 },
             });
 
-            await this.client.connect();
+            const connectToDatabase: Function = async (client: RedisClientType): Promise<void> => {
+                try {
+                    await client.connect();
+                } catch (err) {
+                    if (retry < 3) {
+                        logger.info("Cannot connect to Redis. Retrying again in 5 seconds");
+                        // sleep for 5 seconds. 
+
+                        await Sleep.sleep(5000);
+
+                        retry++;
+                        return await connectToDatabase(client);
+                    } else {
+                        throw err;
+                    }
+                }
+            }
+
+            await connectToDatabase(this.client);
+
             logger.info(
                 `Redis connected on ${RedisHostname}:${RedisPort.toNumber()}`
             );
