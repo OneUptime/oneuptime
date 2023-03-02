@@ -30,6 +30,7 @@ export default class BaseModelComponent {
                         description: `Query on ${model.singularName}`,
                         required: true,
                         id: 'query',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                     },
                     {
                         type: ComponentInputType.Query,
@@ -37,6 +38,7 @@ export default class BaseModelComponent {
                         description: `Select on ${model.singularName}`,
                         required: true,
                         id: 'select',
+                        placeholder: "Example: {'columnName': true, ...}",
                     },
                 ],
                 returnValues: [
@@ -87,6 +89,7 @@ export default class BaseModelComponent {
                         description: 'Please fill out this query',
                         required: true,
                         id: 'query',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                     },
                     {
                         type: ComponentInputType.Query,
@@ -94,6 +97,7 @@ export default class BaseModelComponent {
                         description: `Select on ${model.singularName}`,
                         required: true,
                         id: 'select',
+                        placeholder: "Example: {'columnName': true, ...}",
                     },
                     {
                         type: ComponentInputType.Number,
@@ -189,6 +193,7 @@ export default class BaseModelComponent {
                         description: 'Please fill out this query',
                         required: true,
                         id: 'query',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                     },
                 ],
                 returnValues: [],
@@ -231,6 +236,7 @@ export default class BaseModelComponent {
                         description: 'Please fill out this query',
                         required: true,
                         id: 'query',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                     },
                     {
                         type: ComponentInputType.Number,
@@ -314,6 +320,7 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         id: 'json',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                         name: 'JSON Object',
                         description: `${model.singularName} represented as JSON`,
                         type: ComponentInputType.JSON,
@@ -365,6 +372,8 @@ export default class BaseModelComponent {
                     {
                         id: 'json-array',
                         name: 'JSON Array',
+                        placeholder:
+                            "Example: [{'columnName': 'value', ...}, {...}]",
                         description: 'List of models represented as JSON array',
                         type: ComponentInputType.JSONArray,
                         required: true,
@@ -448,9 +457,11 @@ export default class BaseModelComponent {
                         description: 'Please fill out this query',
                         required: true,
                         id: 'query',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                     },
                     {
                         id: 'data',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                         name: 'Data (JSON Object)',
                         description: `${model.singularName} represented as JSON`,
                         type: ComponentInputType.JSON,
@@ -497,10 +508,12 @@ export default class BaseModelComponent {
                         description: 'Please fill out this query',
                         required: true,
                         id: 'query',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                     },
                     {
                         id: 'data',
                         name: 'Data (JSON Object)',
+                        placeholder: "Example: {'columnName': 'value', ...}",
                         description: `${model.singularName} represented as JSON`,
                         type: ComponentInputType.JSON,
                         required: true,

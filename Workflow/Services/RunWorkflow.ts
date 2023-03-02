@@ -387,16 +387,32 @@ export default class RunWorkflow {
                 argumentContent.toString().includes('{{') &&
                 argumentContent.toString().includes('}}')
             ) {
-                // this is dynamic content. Pick from storageMap.
-                argumentContent = argumentContent
-                    .toString()
-                    .replace('{{', '')
-                    .replace('}}', '');
+                let argumentContentCopy: string = argumentContent.toString();
+                const variablesInArgument: Array<string> = [];
 
-                argumentContent = deepFind(
-                    storageMap as any,
-                    argumentContent as any
-                );
+                const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
+
+                let match: RegExpExecArray | null = null;
+
+                while ((match = regex.exec(argumentContentCopy)) !== null) {
+                    if (match[1]) {
+                        variablesInArgument.push(match[1]);
+                    }
+                }
+
+                for (const variable of variablesInArgument) {
+                    const value: string = deepFind(
+                        storageMap as any,
+                        variable as any
+                    );
+
+                    argumentContentCopy = argumentContentCopy.replace(
+                        '{{' + variable + '}}',
+                        value
+                    );
+                }
+
+                argumentContent = argumentContentCopy;
             }
 
             argumentObj[argument.id] = argumentContent;

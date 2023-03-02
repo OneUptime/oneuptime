@@ -2,16 +2,16 @@ import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata from 'Common/Types/Workflow/Component';
-import DatabaseService from '../../../Services/DatabaseService';
-import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
-import Response from '../../../Utils/Response';
-import TriggerCode, { ExecuteWorkflowType, InitProps } from '../TriggerCode';
+import DatabaseService from '../../../../Services/DatabaseService';
+import { ExpressRequest, ExpressResponse } from '../../../../Utils/Express';
+import Response from '../../../../Utils/Response';
+import TriggerCode, { ExecuteWorkflowType, InitProps } from '../../TriggerCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
-import WorkflowService from '../../../Services/WorkflowService';
+import WorkflowService from '../../../../Services/WorkflowService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Workflow from 'Model/Models/Workflow';
-import ClusterKeyAuthorization from '../../../Middleware/ClusterKeyAuthorization';
+import ClusterKeyAuthorization from '../../../../Middleware/ClusterKeyAuthorization';
 
 export default class OnTriggerBaseModel<
     TBaseModel extends BaseModel

@@ -8,18 +8,27 @@ import JavaScirptCode from './JavaScript';
 import BaseModelServices from '../../../Services/Index';
 import BaseModel from 'Common/Models/BaseModel';
 import Text from 'Common/Types/Text';
-import OnCreateBaseModel from './OnCreateBaseModel';
-import CreateOneBaseModel from './CreateOneBaseModel';
-import CreateManyBaseModel from './CreateManyBaseModel';
-import FindOneBaseModel from './FindOneBaseModel';
-import FindManyBaseModel from './FindManyBaseModel';
-import OnUpdateBaseModel from './OnUpdateBaseModel';
-import UpdateOneBaseModel from './UpdateOneBaseModel';
-import UpdateManyBaseModel from './UpdateManyBaseModel';
-import OnDeleteBaseModel from './OnDeleteBaseModel';
-import DeleteOneBaseModel from './DeleteOneBaseModel';
-import DeleteManyBaseModel from './DeleteManyBaseMoidel';
+import OnCreateBaseModel from './BaseModel/OnCreateBaseModel';
+import CreateOneBaseModel from './BaseModel/CreateOneBaseModel';
+import CreateManyBaseModel from './BaseModel/CreateManyBaseModel';
+import FindOneBaseModel from './BaseModel/FindOneBaseModel';
+import FindManyBaseModel from './BaseModel/FindManyBaseModel';
+import OnUpdateBaseModel from './BaseModel/OnUpdateBaseModel';
+import UpdateOneBaseModel from './BaseModel/UpdateOneBaseModel';
+import UpdateManyBaseModel from './BaseModel/UpdateManyBaseModel';
+import OnDeleteBaseModel from './BaseModel/OnDeleteBaseModel';
+import DeleteOneBaseModel from './BaseModel/DeleteOneBaseModel';
+import DeleteManyBaseModel from './BaseModel/DeleteManyBaseMoidel';
 import ManualTrigger from './Manual';
+import JsonToText from './JSON/JsonToText';
+import MergeJSON from './JSON/MergeJson';
+import TextToJSON from './JSON/TextToJson';
+import ApiGet from './API/Get';
+import ApiDelete from './API/Delete';
+import ApiPost from './API/Post';
+import ApiPut from './API/Put';
+import Email from './Email';
+import IfElse from './Conditions/IfElse';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
@@ -27,6 +36,15 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.Schedule]: new Schedule(),
     [ComponentID.JavaScriptCode]: new JavaScirptCode(),
     [ComponentID.Manual]: new ManualTrigger(),
+    [ComponentID.JsonToText]: new JsonToText(),
+    [ComponentID.MergeJson]: new MergeJSON(),
+    [ComponentID.TextToJson]: new TextToJSON(),
+    [ComponentID.ApiGet]: new ApiGet(),
+    [ComponentID.ApiPost]: new ApiPost(),
+    [ComponentID.ApiDelete]: new ApiDelete(),
+    [ComponentID.ApiPut]: new ApiPut(),
+    [ComponentID.SendEmail]: new Email(),
+    [ComponentID.IfElse]: new IfElse(),
 };
 
 for (const baseModelService of BaseModelServices) {

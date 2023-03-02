@@ -1,14 +1,14 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import DatabaseService from '../../../Services/DatabaseService';
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
+import DatabaseService from '../../../../Services/DatabaseService';
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
-import Query from '../../Database/Query';
+import Query from '../../../Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import Select from '../../Database/Select';
+import Select from '../../../Database/Select';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 

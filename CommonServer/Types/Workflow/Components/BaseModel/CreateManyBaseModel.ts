@@ -1,8 +1,8 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import DatabaseService from '../../../Services/DatabaseService';
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
+import DatabaseService from '../../../../Services/DatabaseService';
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';

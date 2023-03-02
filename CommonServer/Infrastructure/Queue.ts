@@ -23,6 +23,10 @@ export default class Queue {
         queueName: QueueName,
         jobId: string
     ): Promise<void> {
+        if (!jobId) {
+            return;
+        }
+
         const job: Job | undefined = await this.getQueue(queueName).getJob(
             jobId
         );

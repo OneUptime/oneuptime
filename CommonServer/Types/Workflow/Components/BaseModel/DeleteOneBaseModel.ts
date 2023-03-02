@@ -1,15 +1,14 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import DatabaseService from '../../../Services/DatabaseService';
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
+import DatabaseService from '../../../../Services/DatabaseService';
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
-import Query from '../../Database/Query';
-import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
+import Query from '../../../Database/Query';
 
-export default class UpdateOneBaseModel<
+export default class DeleteOneBaseModel<
     TBaseModel extends BaseModel
 > extends ComponentCode {
     private modelService: DatabaseService<TBaseModel> | null = null;
@@ -24,14 +23,14 @@ export default class UpdateOneBaseModel<
                         i.id ===
                         `${Text.pascalCaseToDashes(
                             modelService.getModel().tableName!
-                        )}-update-one`
+                        )}-delete-one`
                     );
                 }
             );
 
         if (!BaseModelComponent) {
             throw new BadDataException(
-                'Update one component for ' +
+                'Delete one component for ' +
                     modelService.getModel().tableName +
                     ' not found.'
             );
@@ -73,28 +72,6 @@ export default class UpdateOneBaseModel<
                 );
             }
 
-            if (!args['data']) {
-                throw options.onError(
-                    new BadDataException('JSON is undefined.')
-                );
-            }
-
-            if (typeof args['data'] === 'string') {
-                args['data'] = JSON.parse(args['data'] as string);
-            }
-
-            if (typeof args['data'] !== 'object') {
-                throw options.onError(
-                    new BadDataException('JSON is should be of type object.')
-                );
-            }
-
-            if (this.modelService.getModel().getTenantColumn()) {
-                (args['data'] as JSONObject)[
-                    this.modelService.getModel().getTenantColumn() as string
-                ] = options.projectId;
-            }
-
             if (!args['query']) {
                 throw options.onError(
                     new BadDataException('Query is undefined.')
@@ -117,9 +94,8 @@ export default class UpdateOneBaseModel<
                 ] = options.projectId;
             }
 
-            await this.modelService.updateOneBy({
+            await this.modelService.deleteOneBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
-                data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 props: {
                     isRoot: true,
                 },

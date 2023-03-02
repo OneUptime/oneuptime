@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,87 +7,7 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'if-true',
-        title: 'If True',
-        category: 'Conditions',
-        description: 'If the inputs are true then proceed',
-        iconProp: IconProp.Check,
-        componentType: ComponentType.Component,
-        arguments: [
-            {
-                type: ComponentInputType.Text,
-                name: 'Expression 1',
-                description: 'Expression 1',
-                required: true,
-                id: 'expression-1',
-            },
-            {
-                type: ComponentInputType.Text,
-                name: 'Expression 2',
-                description: 'Expression 2',
-                required: true,
-                id: 'expression-2',
-            },
-        ],
-        returnValues: [],
-        inPorts: [
-            {
-                title: 'In',
-                description:
-                    'Please connect components to this port for this component to work.',
-                id: 'in',
-            },
-        ],
-        outPorts: [
-            {
-                title: 'Yes',
-                description: 'If, yes then this port will be executed',
-                id: 'yes',
-            },
-        ],
-    },
-    {
-        id: 'if-false',
-        title: 'If False',
-        category: 'Conditions',
-        description: 'If the inputs are false then proceed',
-        iconProp: IconProp.Close,
-        componentType: ComponentType.Component,
-        arguments: [
-            {
-                type: ComponentInputType.Text,
-                name: 'Expression 1',
-                description: 'Expression 1',
-                required: true,
-                id: 'expression-1',
-            },
-            {
-                type: ComponentInputType.Text,
-                name: 'Expression 2',
-                description: 'Expression 2',
-                required: true,
-                id: 'expression-2',
-            },
-        ],
-        returnValues: [],
-        inPorts: [
-            {
-                title: 'In',
-                description:
-                    'Please connect components to this port for this component to work.',
-                id: 'in',
-            },
-        ],
-        outPorts: [
-            {
-                title: 'Yes',
-                description: 'If, yes then this port will be executed',
-                id: 'yes',
-            },
-        ],
-    },
-    {
-        id: 'if-else',
+        id: ComponentID.IfElse,
         title: 'If / Else',
         category: 'Conditions',
         description: 'Branch based on Inputs',
@@ -95,17 +16,11 @@ const components: Array<ComponentMetadata> = [
         arguments: [
             {
                 type: ComponentInputType.Text,
-                name: 'Expression 1',
-                description: 'Expression 1',
+                name: 'Expression',
+                description: 'Expression',
+                placeholder: 'x === y',
                 required: true,
-                id: 'expression-1',
-            },
-            {
-                type: ComponentInputType.Text,
-                name: 'Expression 2',
-                description: 'Expression 2',
-                required: true,
-                id: 'expression-2',
+                id: 'expression',
             },
         ],
         returnValues: [],

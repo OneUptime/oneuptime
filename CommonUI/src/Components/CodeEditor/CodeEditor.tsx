@@ -31,6 +31,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     let className: string = '';
 
     const [placeholder, setPlaceholder] = useState<string>('');
+    const [helpText, setHelpText] = useState<string>('');
 
     useEffect(() => {
         if (props.type === CodeType.Markdown) {
@@ -50,7 +51,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         }
 
         if (props.type === CodeType.JSON) {
-            setPlaceholder(`// ${props.placeholder}. This is in JSON.`);
+            setHelpText(`${props.placeholder}`);
         }
 
         if (props.type === CodeType.CSS) {
@@ -106,6 +107,13 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 props.onFocus && props.onFocus();
             }}
         >
+            {helpText && (
+                <p className="bg-gray-50 text-gray-500 p-3 mt-2 mb-2 rounded text-base text-sm">
+                    {' '}
+                    {helpText}{' '}
+                </p>
+            )}
+
             <Editor
                 defaultLanguage={props.type}
                 height="25vh"
