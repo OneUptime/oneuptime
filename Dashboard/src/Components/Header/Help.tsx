@@ -14,13 +14,23 @@ const Help: FunctionComponent = (): ReactElement => {
                     <IconDropdwonItem
                         title="Support Email"
                         icon={IconProp.Email}
+                        openInNewTab={true}
                         url={URL.fromString('mailto:support@oneuptime.com')}
                     />
                     <IconDropdwonItem
                         title="Chat on Slack"
                         icon={IconProp.Slack}
+                        openInNewTab={true}
                         url={URL.fromString(
                             'https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ'
+                        )}
+                    />
+                    <IconDropdwonItem
+                        title="Request Demo"
+                        icon={IconProp.Window}
+                        openInNewTab={true}
+                        url={URL.fromString(
+                            'https://oneuptime.com/enterprise/demo'
                         )}
                     />
                 </IconDropdwonRow>
