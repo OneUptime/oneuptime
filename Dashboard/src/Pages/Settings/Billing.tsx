@@ -200,19 +200,18 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         ? 'Custom Price'
                                         : isSubsriptionPlanYearly
                                         ? '$' +
-                                          (
-                                              plan.getYearlySubscriptionAmountInUSD() *
-                                              12
-                                          ).toString()
-                                        : '$' +
-                                          plan
-                                              .getMonthlySubscriptionAmountInUSD()
-                                              .toString(),
-                                    sideDescription: plan.isCustomPricing()
-                                        ? ''
-                                        : isSubsriptionPlanYearly
-                                        ? `/year per user`
-                                        : `/month per user`,
+                                        (
+                                            plan.getYearlySubscriptionAmountInUSD()
+                                        ).toString() +"/mo billed yearly"
+                                      : '$' +
+                                        plan
+                                            .getMonthlySubscriptionAmountInUSD()
+                                            .toString(),
+                                  sideDescription: plan.isCustomPricing()
+                                      ? ''
+                                      : isSubsriptionPlanYearly
+                                      ?  `~ $${plan.getYearlySubscriptionAmountInUSD() * 12} per user / year`
+                                      : `/month per user`,
                                 };
                             }),
                         title: 'Please select a plan.',
