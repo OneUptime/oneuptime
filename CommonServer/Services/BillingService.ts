@@ -4,6 +4,7 @@ import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Typeof from 'Common/Types/Typeof';
+import logger from '../Utils/Logger';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';
 
@@ -94,6 +95,16 @@ export class BillingService {
             );
         }
 
+        const paymentMethods = await this.getPaymentMethods(customerId);
+
+        if (
+            paymentMethods.length === 0
+        ) {
+            throw new BadDataException(
+                'No payment methods added. Please add your card to this project to change your plan'
+            );
+        }
+
         let trialDate: Date | null = null;
 
         if (typeof trial === Typeof.Boolean) {
@@ -107,6 +118,7 @@ export class BillingService {
         const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.create({
                 customer: customerId,
+                default_payment_method: paymentMethods[0]?.id || '',
                 items: [
                     {
                         price: isYearly
@@ -167,6 +179,7 @@ export class BillingService {
         id: string;
         trialEndsAt?: Date | undefined;
     }> {
+
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -190,6 +203,10 @@ export class BillingService {
         }
 
         await this.cancelSubscription(subscriptionId);
+
+        if(endTrialAt && !OneUptimeDate.isInTheFuture(endTrialAt)){
+            endTrialAt = undefined;
+        }
 
         const subscribetoPlan: {
             id: string;
@@ -300,6 +317,10 @@ export class BillingService {
             });
         });
 
+        console.log("Payment methofs");
+        console.log(paymenMethods);
+        console.log(customerId);
+
         return paymenMethods;
     }
 
@@ -328,8 +349,11 @@ export class BillingService {
                 'Billing is not enabled for this server.'
             );
         }
-
-        await this.stripe.subscriptions.del(subscriptionId);
+        try{
+            await this.stripe.subscriptions.del(subscriptionId);
+        }catch(err){
+            logger.error(err);
+        }
     }
 
     public static async getSubscriptionStatus(
