@@ -96,8 +96,6 @@ export class BillingService {
             );
         }
 
-       
-
         let trialDate: Date | null = null;
 
         if (typeof trial === Typeof.Boolean) {
@@ -110,7 +108,7 @@ export class BillingService {
 
         const subscriptionParams: Stripe.SubscriptionCreateParams = {
             customer: customerId,
-            
+
             items: [
                 {
                     price: isYearly
@@ -125,10 +123,9 @@ export class BillingService {
                     : 'now',
         };
 
-        if(defaultPaymentMethodId){
+        if (defaultPaymentMethodId) {
             subscriptionParams.default_payment_method = defaultPaymentMethodId;
         }
-
 
         const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.create(subscriptionParams);
@@ -179,7 +176,6 @@ export class BillingService {
         id: string;
         trialEndsAt?: Date | undefined;
     }> {
-
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -191,13 +187,12 @@ export class BillingService {
 
         if (!subscription) {
             throw new BadDataException('Subscription not found');
-        }   
+        }
 
-        const paymentMethods: Array<PaymentMethod> = await this.getPaymentMethods(subscription.customer.toString());
+        const paymentMethods: Array<PaymentMethod> =
+            await this.getPaymentMethods(subscription.customer.toString());
 
-        if (
-            paymentMethods.length === 0
-        ) {
+        if (paymentMethods.length === 0) {
             throw new BadDataException(
                 'No payment methods added. Please add your card to this project to change your plan'
             );
@@ -205,7 +200,7 @@ export class BillingService {
 
         await this.cancelSubscription(subscriptionId);
 
-        if(endTrialAt && !OneUptimeDate.isInTheFuture(endTrialAt)){
+        if (endTrialAt && !OneUptimeDate.isInTheFuture(endTrialAt)) {
             endTrialAt = undefined;
         }
 
@@ -319,10 +314,6 @@ export class BillingService {
             });
         });
 
-        console.log("Payment methofs");
-        console.log(paymenMethods);
-        console.log(customerId);
-
         return paymenMethods;
     }
 
@@ -351,9 +342,9 @@ export class BillingService {
                 'Billing is not enabled for this server.'
             );
         }
-        try{
+        try {
             await this.stripe.subscriptions.del(subscriptionId);
-        }catch(err){
+        } catch (err) {
             logger.error(err);
         }
     }

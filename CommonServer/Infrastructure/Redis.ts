@@ -21,11 +21,9 @@ export default abstract class Redis {
     }
 
     public static async connect(): Promise<RedisClientType> {
-
-        let retry = 0;
+        let retry: number = 0;
 
         try {
-
             this.client = createClient({
                 password: RedisPassword,
                 socket: {
@@ -34,23 +32,26 @@ export default abstract class Redis {
                 },
             });
 
-            const connectToDatabase: Function = async (client: RedisClientType): Promise<void> => {
+            const connectToDatabase: Function = async (
+                client: RedisClientType
+            ): Promise<void> => {
                 try {
                     await client.connect();
                 } catch (err) {
                     if (retry < 3) {
-                        logger.info("Cannot connect to Redis. Retrying again in 5 seconds");
-                        // sleep for 5 seconds. 
+                        logger.info(
+                            'Cannot connect to Redis. Retrying again in 5 seconds'
+                        );
+                        // sleep for 5 seconds.
 
                         await Sleep.sleep(5000);
 
                         retry++;
                         return await connectToDatabase(client);
-                    } else {
-                        throw err;
                     }
+                    throw err;
                 }
-            }
+            };
 
             await connectToDatabase(this.client);
 

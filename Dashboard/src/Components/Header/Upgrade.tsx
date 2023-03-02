@@ -122,18 +122,23 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                         ? 'Custom Price'
                                                         : isSubsriptionPlanYearly
                                                         ? '$' +
-                                                        (
-                                                            plan.getYearlySubscriptionAmountInUSD()
-                                                        ).toString() +"/mo billed yearly"
-                                                      : '$' +
-                                                        plan
-                                                            .getMonthlySubscriptionAmountInUSD()
-                                                            .toString(),
-                                                  sideDescription: plan.isCustomPricing()
-                                                      ? ''
-                                                      : isSubsriptionPlanYearly
-                                                      ? `~ $${plan.getYearlySubscriptionAmountInUSD() * 12} per user / year`
-                                                      : `/month per user`,
+                                                          plan
+                                                              .getYearlySubscriptionAmountInUSD()
+                                                              .toString() +
+                                                          '/mo billed yearly'
+                                                        : '$' +
+                                                          plan
+                                                              .getMonthlySubscriptionAmountInUSD()
+                                                              .toString(),
+                                                sideDescription:
+                                                    plan.isCustomPricing()
+                                                        ? ''
+                                                        : isSubsriptionPlanYearly
+                                                        ? `~ $${
+                                                              plan.getYearlySubscriptionAmountInUSD() *
+                                                              12
+                                                          } per user / year`
+                                                        : `/month per user`,
                                             };
                                         }
                                     ),

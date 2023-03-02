@@ -116,7 +116,6 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnUpdate<Model>> {
         if (IsBillingEnabled) {
             if (updateBy.data.paymentProviderPlanId) {
-
                 // payment provider id changed.
                 const project: Model | null = await this.findOneById({
                     id: new ObjectID(updateBy.query._id! as string),

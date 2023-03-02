@@ -174,9 +174,10 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                                 ? 'Custom Price'
                                 : isSubsriptionPlanYearly
                                 ? '$' +
-                                  (
-                                      plan.getYearlySubscriptionAmountInUSD()
-                                  ).toString() +"/mo billed yearly"
+                                  plan
+                                      .getYearlySubscriptionAmountInUSD()
+                                      .toString() +
+                                  '/mo billed yearly'
                                 : '$' +
                                   plan
                                       .getMonthlySubscriptionAmountInUSD()
@@ -184,7 +185,10 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                             sideDescription: plan.isCustomPricing()
                                 ? ''
                                 : isSubsriptionPlanYearly
-                                ?  `~ $${plan.getYearlySubscriptionAmountInUSD() * 12} per user / year`
+                                ? `~ $${
+                                      plan.getYearlySubscriptionAmountInUSD() *
+                                      12
+                                  } per user / year`
                                 : `/month per user`,
                         };
                     }),

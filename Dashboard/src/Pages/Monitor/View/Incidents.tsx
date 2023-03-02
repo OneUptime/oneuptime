@@ -251,7 +251,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             }
-    
+
                             return <></>;
                         },
                     },
