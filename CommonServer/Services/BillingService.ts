@@ -84,7 +84,8 @@ export class BillingService {
         plan: SubscriptionPlan,
         quantity: number,
         isYearly: boolean,
-        trial: boolean | Date | undefined
+        trial: boolean | Date | undefined,
+        defaultPaymentMethodId?: string | undefined
     ): Promise<{
         id: string;
         trialEndsAt: Date | null;
@@ -95,15 +96,7 @@ export class BillingService {
             );
         }
 
-        const paymentMethods = await this.getPaymentMethods(customerId);
-
-        if (
-            paymentMethods.length === 0
-        ) {
-            throw new BadDataException(
-                'No payment methods added. Please add your card to this project to change your plan'
-            );
-        }
+       
 
         let trialDate: Date | null = null;
 
@@ -115,23 +108,30 @@ export class BillingService {
             trialDate = trial;
         }
 
+        const subscriptionParams: Stripe.SubscriptionCreateParams = {
+            customer: customerId,
+            
+            items: [
+                {
+                    price: isYearly
+                        ? plan.getYearlyPlanId()
+                        : plan.getMonthlyPlanId(),
+                    quantity: quantity,
+                },
+            ],
+            trial_end:
+                trialDate && plan.getTrialPeriod() > 0
+                    ? OneUptimeDate.toUnixTimestamp(trialDate)
+                    : 'now',
+        };
+
+        if(defaultPaymentMethodId){
+            subscriptionParams.default_payment_method = defaultPaymentMethodId;
+        }
+
+
         const subscription: Stripe.Response<Stripe.Subscription> =
-            await this.stripe.subscriptions.create({
-                customer: customerId,
-                default_payment_method: paymentMethods[0]?.id || '',
-                items: [
-                    {
-                        price: isYearly
-                            ? plan.getYearlyPlanId()
-                            : plan.getMonthlyPlanId(),
-                        quantity: quantity,
-                    },
-                ],
-                trial_end:
-                    trialDate && plan.getTrialPeriod() > 0
-                        ? OneUptimeDate.toUnixTimestamp(trialDate)
-                        : 'now',
-            });
+            await this.stripe.subscriptions.create(subscriptionParams);
 
         return {
             id: subscription.id,
@@ -191,11 +191,12 @@ export class BillingService {
 
         if (!subscription) {
             throw new BadDataException('Subscription not found');
-        }
+        }   
+
+        const paymentMethods: Array<PaymentMethod> = await this.getPaymentMethods(subscription.customer.toString());
 
         if (
-            (await this.getPaymentMethods(subscription.customer.toString()))
-                .length === 0
+            paymentMethods.length === 0
         ) {
             throw new BadDataException(
                 'No payment methods added. Please add your card to this project to change your plan'
@@ -216,7 +217,8 @@ export class BillingService {
             newPlan,
             quantity,
             isYearly,
-            endTrialAt
+            endTrialAt,
+            paymentMethods[0]?.id
         );
 
         return {
