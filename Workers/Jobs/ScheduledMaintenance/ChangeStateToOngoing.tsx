@@ -8,7 +8,7 @@ import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from 'CommonServer/Services/ScheduledMaintenanceStateService';
 import RunCron from '../../Utils/Cron';
 
-RunCron('ScheduledMaintenance:ChangeStateToOngoing', EVERY_MINUTE, async () => {
+RunCron('ScheduledMaintenance:ChangeStateToOngoing', { schedule: EVERY_MINUTE, runOnStartup: false}, async () => {
     // get all scheduled events of all the projects.
     const events: Array<ScheduledMaintenance> =
         await ScheduledMaintenanceService.findBy({

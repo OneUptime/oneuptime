@@ -14,7 +14,7 @@ import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 
-RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
+RunCron('Announcement:SendEmailToSubscribers', { schedule: EVERY_MINUTE, runOnStartup: false}, async () => {
     // get all scheduled events of all the projects.
     const announcements: Array<StatusPageAnnouncement> =
         await StatusPageAnnouncementService.findBy({

@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 
 RunCron(
     'PaymentProvider:CheckSubscriptionStatus',
-    IsDevelopment ? EVERY_MINUTE : EVERY_DAY,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: true } ,
     async () => {
         // get all projects.
         if (!IsBillingEnabled) {

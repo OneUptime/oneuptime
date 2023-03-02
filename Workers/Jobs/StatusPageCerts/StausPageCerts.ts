@@ -158,7 +158,7 @@ router.get(
 
 RunCron(
     'StatusPageCerts:OrderCerts',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -192,7 +192,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:AddCerts',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         const domains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
@@ -266,7 +266,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:RemoveCerts',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -403,7 +403,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:WriteGreelockCertsToDisk',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -459,7 +459,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -523,10 +523,18 @@ const checkCnameValidation: Function = async (
     try {
         const result: AxiosResponse = await axios.get(
             'http://' +
-                fulldomain +
-                '/status-page-api/cname-verification/' +
-                token
+            fulldomain +
+            '/status-page-api/cname-verification/' +
+            token
         );
+
+
+        console.log("CNAME VALIDFATION");
+        console.log(result);
+        console.log('http://' +
+            fulldomain +
+            '/status-page-api/cname-verification/' +
+            token)
 
         if (result.status === 200) {
             return true;
@@ -547,9 +555,9 @@ const isSslProvisioned: Function = async (
     try {
         const result: AxiosResponse = await axios.get(
             'https://' +
-                fulldomain +
-                '/status-page-api/cname-verification/' +
-                token
+            fulldomain +
+            '/status-page-api/cname-verification/' +
+            token
         );
 
         if (result.status === 200) {

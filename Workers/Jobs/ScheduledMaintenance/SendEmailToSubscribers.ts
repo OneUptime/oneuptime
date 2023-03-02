@@ -20,7 +20,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 
-RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
+RunCron('Incident:SendEmailToSubscribers', { schedule: EVERY_MINUTE, runOnStartup: false}, async () => {
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
         await ScheduledMaintenanceService.findBy({
@@ -226,11 +226,11 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             statusPageUrl: statusPageURL,
                             logoUrl: statuspage.logoFileId
                                 ? new URL(HttpProtocol, Domain)
-                                      .addRoute(FileRoute)
-                                      .addRoute(
-                                          '/image/' + statuspage.logoFileId
-                                      )
-                                      .toString()
+                                    .addRoute(FileRoute)
+                                    .addRoute(
+                                        '/image/' + statuspage.logoFileId
+                                    )
+                                    .toString()
                                 : '',
                             isPublicStatusPage: statuspage.isPublicStatusPage
                                 ? 'true'
@@ -250,14 +250,13 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             unsubscribeUrl: new URL(HttpProtocol, Domain)
                                 .addRoute(
                                     '/api/status-page-subscriber/unsubscribe/' +
-                                        subscriber._id.toString()
+                                    subscriber._id.toString()
                                 )
                                 .toString(),
                         },
                         subject:
                             statusPageName +
-                            ` - ${
-                                isOngoing ? 'Ongoing' : 'Scheduled'
+                            ` - ${isOngoing ? 'Ongoing' : 'Scheduled'
                             } Maintenance Event`,
                     }).catch((err: Error) => {
                         logger.error(err);

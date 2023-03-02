@@ -20,7 +20,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 
-RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
+RunCron('Incident:SendEmailToSubscribers', { schedule: EVERY_MINUTE, runOnStartup: false}, async () => {
     // get all scheduled events of all the projects.
     const incidents: Array<Incident> = await IncidentService.findBy({
         query: {
