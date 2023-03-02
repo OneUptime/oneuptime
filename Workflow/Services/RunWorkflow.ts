@@ -64,6 +64,8 @@ export default class RunWorkflow {
     public async runWorkflow(runProps: RunProps): Promise<void> {
         // get nodes and edges.
 
+        let variables: Array<WorkflowVariable> = [];
+
         try {
             this.workflowId = runProps.workflowId;
             this.workflowLogId = runProps.workflowLogId;
@@ -135,11 +137,14 @@ export default class RunWorkflow {
 
             const runStack: RunStack = await this.makeRunStack(workflow.graph);
 
-            // get storage map with variables.
-            const storageMap: StorageMap = await this.getVariables(
+            const getVariableResult: { storageMap: StorageMap, variables: Array<WorkflowVariable> } = await this.getVariables(
                 workflow.projectId!,
                 workflow.id!
             );
+
+            // get storage map with variables.
+            const storageMap: StorageMap = getVariableResult.storageMap;
+            variables = getVariableResult.variables;
 
             // start execute different components.
             let executeComponentId: string = runStack.startWithComponentId;
@@ -158,8 +163,8 @@ export default class RunWorkflow {
                 if (didWorkflowTimeOut) {
                     throw new TimeoutException(
                         'Workflow execution time was more than ' +
-                            runProps.timeout +
-                            'ms and workflow timed-out.'
+                        runProps.timeout +
+                        'ms and workflow timed-out.'
                     );
                 }
 
@@ -171,8 +176,8 @@ export default class RunWorkflow {
                 if (componentsExecuted.includes(executeComponentId)) {
                     throw new BadDataException(
                         'Cyclic Workflow Detected. Cannot execute ' +
-                            executeComponentId +
-                            ' when it has already been executed.'
+                        executeComponentId +
+                        ' when it has already been executed.'
                     );
                 }
 
@@ -186,8 +191,8 @@ export default class RunWorkflow {
                 if (!stackItem) {
                     throw new BadDataException(
                         'Component with ID ' +
-                            executeComponentId +
-                            ' not found.'
+                        executeComponentId +
+                        ' not found.'
                     );
                 }
 
@@ -253,7 +258,7 @@ export default class RunWorkflow {
                     this.log(result.returnValues);
                     this.log(
                         'Executing Port: ' + result.executePort?.title ||
-                            '<None>'
+                        '<None>'
                     );
 
                     storageMap.local.components[stackItem.node.id] = {
@@ -288,7 +293,7 @@ export default class RunWorkflow {
             }
 
             // collect logs and update status.
-
+            this.cleanLogs(variables);
             // update workflow log.
             await WorkflowLogService.updateOneById({
                 id: runProps.workflowLogId,
@@ -308,6 +313,8 @@ export default class RunWorkflow {
             if (!runProps.workflowLogId) {
                 return;
             }
+
+            this.cleanLogs(variables);
 
             if (err instanceof TimeoutException) {
                 this.log('Workflow Timed out.');
@@ -337,6 +344,25 @@ export default class RunWorkflow {
                         isRoot: true,
                     },
                 });
+            }
+        }
+    }
+
+    public cleanLogs(variables: Array<WorkflowVariable>) {
+
+        for (let i = 0; i < this.logs.length; i++) {
+
+            if (!this.logs[i]) {
+                continue;
+            }
+
+            for (const variable of variables) {
+                if (variable.isSecret) {
+                    if (this.logs[i]!.includes(variable.content!)) {
+                        console.log(this.logs[i]!);
+                        this.logs[i] = this.logs[i]!.replace(variable.content!, "<secret-variable-" + variable.name + ">")
+                    }
+                }
             }
         }
     }
@@ -455,7 +481,7 @@ export default class RunWorkflow {
     public async getVariables(
         projectId: ObjectID,
         workflowId: ObjectID
-    ): Promise<StorageMap> {
+    ): Promise<{ storageMap: StorageMap, variables: Array<WorkflowVariable> }> {
         /// get local and global variables.
         const localVariables: Array<WorkflowVariable> =
             await WorkflowVariableService.findBy({
@@ -512,7 +538,7 @@ export default class RunWorkflow {
                 variable.content as string;
         }
 
-        return newStorageMap;
+        return { storageMap: newStorageMap, variables: [...localVariables, ...globalVariables] };
     }
 
     public log(data: string | JSONObject | JSONArray | Exception): void {
@@ -531,8 +557,8 @@ export default class RunWorkflow {
         } else {
             this.logs.push(
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                    ': ' +
-                    JSON.stringify(data)
+                ': ' +
+                JSON.stringify(data)
             );
         }
     }
@@ -606,7 +632,7 @@ export default class RunWorkflow {
         const trigger: any | undefined = nodes.find((n: any) => {
             return (
                 (n.data as NodeDataProp).componentType ===
-                    ComponentType.Trigger &&
+                ComponentType.Trigger &&
                 (n.data as NodeDataProp).nodeType === NodeType.Node
             );
         });
