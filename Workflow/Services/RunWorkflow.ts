@@ -360,7 +360,7 @@ export default class RunWorkflow {
                 if (variable.isSecret) {
                     if (this.logs[i]!.includes(variable.content!)) {
                         console.log(this.logs[i]!);
-                        this.logs[i] = this.logs[i]!.replace(variable.content!, "<secret-variable-" + variable.name + ">")
+                        this.logs[i] = this.logs[i]!.replace(variable.content!, "xxxxxxxxxxxxxxx")
                     }
                 }
             }
