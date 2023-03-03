@@ -106,7 +106,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         description: "Paste in your x509 certificate here.",
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder: 'https://example.com',
+                        placeholder: 'Paste in your x509 certificate here.',
                     },
                     {
                         field: {
