@@ -187,7 +187,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showCurrentStatus: true,
                         },
                         title: 'Show Current Resource Status',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         defaultValue: true,
                         description:
@@ -198,7 +198,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showStatusHistoryChart: true,
                         },
                         title: 'Show Status History Chart',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         description:
                             'Show resource status history for the past 90 days. ',

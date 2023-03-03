@@ -93,7 +93,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             isEnabled: true,
                         },
                         title: 'Enabled',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                     },
                     {
                         field: {

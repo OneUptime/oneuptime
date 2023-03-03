@@ -30,6 +30,13 @@ import WorkflowLogService, {
     Service as WorkflowLogServiceType,
 } from 'CommonServer/Services/WorkflowLogService';
 
+
+import ProjectSSO from 'Model/Models/ProjectSso';
+import ProjectSSOService, {
+    Service as ProjectSSOServiceType,
+} from 'CommonServer/Services/ProjectSsoService';
+
+
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
@@ -466,6 +473,15 @@ app.use(
     new BaseAPI<Monitor, MonitorServiceType>(
         Monitor,
         MonitorService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<ProjectSSO, ProjectSSOServiceType>(
+        ProjectSSO,
+        ProjectSSOService
     ).getRouter()
 );
 

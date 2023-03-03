@@ -94,6 +94,9 @@ enum PageMap {
     // Labels.
     SETTINGS_LABELS = 'SETTINGS_LABELS',
 
+    // SSO.
+    SETTINGS_SSO = 'SETTINGS_SSO',
+
     // Domains
 
     SETTINGS_DOMAINS = 'SETTINGS_DOMAINS',

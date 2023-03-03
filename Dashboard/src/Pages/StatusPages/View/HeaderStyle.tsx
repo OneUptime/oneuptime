@@ -305,7 +305,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showHeader: true,
                         },
                         title: 'Show Header on Status Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                 ]}

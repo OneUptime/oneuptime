@@ -114,7 +114,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             isExpandedByDefault: true,
                         },
                         title: 'Is this group expanded by default on the staus page?',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                 ]}

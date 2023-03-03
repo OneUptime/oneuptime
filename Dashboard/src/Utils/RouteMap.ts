@@ -243,6 +243,7 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`
     ),
 
+
     [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/scheduled-maintenance-state`
     ),
@@ -253,6 +254,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_DOMAINS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/domains`
+    ),
+
+    [PageMap.SETTINGS_SSO]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/sso`
     ),
 
     [PageMap.SETTINGS_TEAMS]: new Route(

@@ -1,5 +1,4 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -19,6 +18,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import BaseModel from 'Common/Models/BaseModel';
 
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
@@ -60,7 +60,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 @Entity({
     name: 'StatusPageCustomField',
 })
-export default class StatusPageCustomField extends AccessControlModel {
+export default class StatusPageCustomField extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

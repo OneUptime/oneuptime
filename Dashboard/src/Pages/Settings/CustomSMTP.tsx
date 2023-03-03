@@ -102,7 +102,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             secure: true,
                         },
                         title: 'Use SSL / TLS',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         description: 'Make email communication secure?',
                     },
                     {

@@ -7,7 +7,6 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
@@ -15,63 +14,67 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
-import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
+import BaseModel from 'Common/Models/BaseModel';
+import URL from 'Common/Types/API/URL';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import BaseModel from 'Common/Models/BaseModel';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import SignatureMethod from "Common/Types/SSO/SignatureMethod";
+import DigestMethod from "Common/Types/SSO/DigestMethod";
+
 
 @TableBillingAccessControl({
-    create: PlanSelect.Growth,
-    read: PlanSelect.Growth,
-    update: PlanSelect.Growth,
-    delete: PlanSelect.Growth,
+    create: PlanSelect.Scale,
+    read: PlanSelect.Scale,
+    update: PlanSelect.Scale,
+    delete: PlanSelect.Scale,
 })
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateScheduledMaintenanceCustomField,
+        Permission.CanCreateProjectSSO,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadScheduledMaintenanceCustomField,
+        Permission.CanReadProjectSSO,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteScheduledMaintenanceCustomField,
+        Permission.CanDeleteProjectSSO,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditScheduledMaintenanceCustomField,
+        Permission.CanEditProjectSSO,
     ],
 })
-@CrudApiEndpoint(new Route('/scheduled-maintenance-custom-field'))
+@CrudApiEndpoint(new Route('/project-sso'))
 @TableMetadata({
-    tableName: 'ScheduledMaintenanceCustomField',
-    singularName: 'Scheduled Maintenance Custom Field',
-    pluralName: 'Scheduled Maintenance Custom Fields',
-    icon: IconProp.TableCells,
+    tableName: 'ProjectSSO',
+    singularName: 'SSO',
+    pluralName: 'SSO',
+    icon: IconProp.Lock,
 })
 @Entity({
-    name: 'ScheduledMaintenanceCustomField',
+    name: 'ProjectSSO',
 })
-export default class ScheduledMaintenanceCustomField extends BaseModel {
+export default class ProjectSSO extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [],
     })
@@ -98,13 +101,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [],
     })
@@ -121,22 +124,23 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditScheduledMaintenanceCustomField,
+            Permission.CanEditProjectSSO,
         ],
     })
     @TableColumn({
@@ -152,65 +156,176 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
     @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditScheduledMaintenanceCustomField,
+            Permission.CanEditProjectSSO,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
-    @Column({
-        nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnPopulate: true,
     })
-    public description?: string = undefined;
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public signatureMethod?: SignatureMethod = undefined;
+
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
-        update: [],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnPopulate: true,
+    })
     @Column({
-        nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
-    public type?: CustomFieldType = undefined;
+    public digestMethod?: DigestMethod = undefined;
+
+    
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.LongURL,
+        canReadOnPopulate: true,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongURL,
+        transformer: URL.getDatabaseTransformer()
+    })
+    @UniqueColumnBy('projectId')
+    public signOnURL?: URL = undefined;
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.LongURL,
+        canReadOnPopulate: true,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongURL,
+        transformer: URL.getDatabaseTransformer()
+    })
+    public issuerURL?: URL = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.LongText,
+        canReadOnPopulate: true,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongText,
+    })
+    public publicCertificate?: string = undefined;
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectSSO,
         ],
         update: [],
     })
@@ -237,13 +352,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CanCreateProjectSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [],
     })
@@ -261,7 +376,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [],
     })
@@ -290,7 +405,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.CanReadProjectSSO,
         ],
         update: [],
     })
@@ -301,4 +416,31 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isEnabled?: boolean = undefined;
+
 }

@@ -68,7 +68,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             enableSubscribers: true,
                         },
                         title: 'Enable Subscribers',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         placeholder:
                             'Can subscribers subscribe to this status page?',

@@ -125,7 +125,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showOverviewPage: true,
                         },
                         title: 'Show Overview Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                     {
@@ -133,7 +133,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showIncidentsPage: true,
                         },
                         title: 'Show Incidents Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                     {
@@ -141,7 +141,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showAnouncementsPage: true,
                         },
                         title: 'Show Announcements Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                     {
@@ -149,7 +149,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showScheduledMaintenancePage: true,
                         },
                         title: 'Show Scheduled Maintenance Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                     {
@@ -157,7 +157,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             enableSubscribers: true,
                         },
                         title: 'Enable Subscribers',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                     // {
@@ -165,7 +165,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     //         showRssPage: true,
                     //     },
                     //     title: 'Enable RSS Page',
-                    //     fieldType: FormFieldSchemaType.Checkbox,
+                    //     fieldType: FormFieldSchemaType.Toggle,
                     //     required: false,
                     // },
                 ]}
@@ -237,7 +237,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showNavbar: true,
                         },
                         title: 'Show Navigation Menu on Status Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                 ]}
