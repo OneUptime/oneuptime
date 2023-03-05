@@ -15,7 +15,7 @@ const SSO: FunctionComponent<PageComponentProps> = (
         <Page title={''} breadcrumbLinks={[]}>
             <div className='flex justify-center w-full mt-20'>
                 <div className='w-1/3 min-w-lg'>
-                    <Card title={'Single Sign on'} description="Please select an SSO provider to log in to this project.">
+                    <Card title={'Single Sign On (SSO)'} description="Please select an SSO provider to log in to this project.">
                         <div className="mt-6 -ml-6 -mr-6 border-t border-gray-200">
                             <div className="ml-6 mr-6  pt-6">
                                 <ModelList<ProjectSSO>
