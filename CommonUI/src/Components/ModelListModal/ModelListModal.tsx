@@ -3,7 +3,7 @@ import Modal from '../Modal/Modal';
 import Query from '../../Utils/ModelAPI/Query';
 import BaseModel from 'Common/Models/BaseModel';
 import Select from '../../Utils/ModelAPI/Select';
-import ModelList from '../ModelList/StaticModelList';
+import ModelList from '../ModelList/ModelList';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
