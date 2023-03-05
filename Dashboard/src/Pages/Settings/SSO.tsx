@@ -15,6 +15,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ProjectSSO from 'Model/Models/ProjectSso';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import Project from 'Model/Models/Project';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -169,6 +171,45 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
+
+             {/* API Key View  */}
+             <CardModelDetail
+                name="SSO Settings"
+                editButtonText={"Edit Settings"}
+                cardProps={{
+                    title: 'SSO Settings',
+                    description: "Configure settings for SSO.",
+                    icon: IconProp.Lock,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            requireSsoForLogin: true,
+                        },
+                        title: 'Force SSO for Login',
+                        description: "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.", 
+                        fieldType: FormFieldSchemaType.Toggle,
+                    },
+                ]}
+                modelDetailProps={{
+                    modelType: Project,
+                    id: 'sso-settings',
+                    fields: [
+                        {
+                            field: {
+                                requireSsoForLogin: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Force SSO for Login',
+                            description: "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.", 
+                        },
+                    ],
+                    modelId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+            />
+
+            
         </Page>
     );
 };
