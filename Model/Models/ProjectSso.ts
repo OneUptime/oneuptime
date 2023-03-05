@@ -174,6 +174,35 @@ export default class ProjectSSO extends BaseModel {
     })
     @TableColumn({
         required: true,
+        type: TableColumnType.LongText,
+        canReadOnPopulate: true,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongText,
+    })
+    public description?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
+    })
+    @TableColumn({
+        required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
     })
@@ -430,4 +459,28 @@ export default class ProjectSSO extends BaseModel {
         default: false,
     })
     public isEnabled?: boolean = undefined;
+
+    // Is this integration tested?
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+           
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isTested?: boolean = undefined;
 }

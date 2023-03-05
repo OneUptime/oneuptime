@@ -80,6 +80,19 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        description: 'Friendly description to help you remember.',
+                        placeholder: 'Sign in with Okta',
+                        validation: {
+                            minLength: 2,
+                        },
+                    },
+                    {
+                        field: {
                             signOnURL: true,
                         },
                         title: 'Sign On URL',
@@ -158,6 +171,14 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
                     },
