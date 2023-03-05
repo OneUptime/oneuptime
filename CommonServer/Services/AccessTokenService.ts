@@ -156,6 +156,12 @@ export default class AccessTokenService {
             _type: 'UserPermission',
         });
 
+        userPermissions.push({
+            permission: Permission.ProjectUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
         const permission: UserTenantAccessPermission = {
             projectId,
             permissions: userPermissions,
