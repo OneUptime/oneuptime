@@ -11,6 +11,8 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.WELCOME]: new Route(`/dashboard/welcome`),
 
+    [PageMap.PROJECT_SSO]: new Route(`/dashboard/${RouteParams.ProjectID}/sso`),
+
     [PageMap.INIT_PROJECT]: new Route(`/dashboard/${RouteParams.ProjectID}`),
 
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),

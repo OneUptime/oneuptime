@@ -12,6 +12,12 @@ export interface PermissionProps {
 }
 
 enum Permission {
+
+
+    // All users in the project will have this permission.
+    ProjectUser = 'ProjectUser',
+
+
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 

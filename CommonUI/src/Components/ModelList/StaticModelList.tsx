@@ -12,7 +12,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     titleField: string;
 }
 
-const ModelList: Function = <TBaseModel extends BaseModel>(
+const StaticModelList: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
 
@@ -90,4 +90,4 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
     );
 };
 
-export default ModelList;
+export default StaticModelList;
