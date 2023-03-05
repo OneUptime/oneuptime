@@ -5,6 +5,10 @@ import Card from 'CommonUI/src/Components/Card/Card';
 import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
 import ProjectSSO from 'Model/Models/ProjectSso';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import URL from 'Common/Types/API/URL';
+import { IDENTITY_URL } from 'CommonUI/src/Config';
+import Route from 'Common/Types/API/Route';
 
 
 
@@ -29,12 +33,18 @@ const SSO: FunctionComponent<PageComponentProps> = (
                                     select={
                                         {
                                             name: true,
-                                            description: true
+                                            description: true,
+                                            _id: true,
+                                            
                                         }
                                     }
                                     noItemsMessage="No SSO Providers Configured or Enabled"
                                     onSelectChange={(list: Array<ProjectSSO>) => {
-                                        console.log(list);
+                                        if(list && list.length > 0){
+                                            Navigation.navigate(URL.fromURL(IDENTITY_URL).addRoute(
+                                                new Route(`/sso/${DashboardNavigation.getProjectId()}/${list[0]?._id}`)
+                                            ))
+                                        }
                                     }}
                                 />
                             </div>

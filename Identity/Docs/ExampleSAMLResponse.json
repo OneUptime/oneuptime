@@ -1,0 +1,259 @@
+{
+    "saml2p:Response": {
+      "$": {
+        "Destination": "http://localhost/identity/idp-login/19462af5-a3c5-414d-bef8-20681c708579/56489843-5440-4305-a46a-c64215451b65",
+        "ID": "id397086821029112924757763",
+        "IssueInstant": "2023-03-05T17:44:26.808Z",
+        "Version": "2.0",
+        "xmlns:saml2p": "urn:oasis:names:tc:SAML:2.0:protocol"
+      },
+      "saml2:Issuer": [
+        {
+          "_": "http://www.okta.com/exk4fi36tv3SJZtRv697",
+          "$": {
+            "Format": "urn:oasis:names:tc:SAML:2.0:nameid-format:entity",
+            "xmlns:saml2": "urn:oasis:names:tc:SAML:2.0:assertion"
+          }
+        }
+      ],
+      "ds:Signature": [
+        {
+          "$": {
+            "xmlns:ds": "http://www.w3.org/2000/09/xmldsig#"
+          },
+          "ds:SignedInfo": [
+            {
+              "ds:CanonicalizationMethod": [
+                {
+                  "$": {
+                    "Algorithm": "http://www.w3.org/2001/10/xml-exc-c14n#"
+                  }
+                }
+              ],
+              "ds:SignatureMethod": [
+                {
+                  "$": {
+                    "Algorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                  }
+                }
+              ],
+              "ds:Reference": [
+                {
+                  "$": {
+                    "URI": "#id397086821029112924757763"
+                  },
+                  "ds:Transforms": [
+                    {
+                      "ds:Transform": [
+                        {
+                          "$": {
+                            "Algorithm": "http://www.w3.org/2000/09/xmldsig#enveloped-signature"
+                          }
+                        },
+                        {
+                          "$": {
+                            "Algorithm": "http://www.w3.org/2001/10/xml-exc-c14n#"
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "ds:DigestMethod": [
+                    {
+                      "$": {
+                        "Algorithm": "http://www.w3.org/2001/04/xmlenc#sha256"
+                      }
+                    }
+                  ],
+                  "ds:DigestValue": [
+                    "+tsuTZP7BGip7e83ZYPts5m5cYrzMqhrARClHNoRbpc="
+                  ]
+                }
+              ]
+            }
+          ],
+          "ds:SignatureValue": [
+            "Bcq6j2LXUzrK7ZHSmvR/PkPrkNVmoeInyKxQOlAQ6CQPKSaEBn73jMlZU+AeaDmwwkb0UepX1yIiIkiX93202XDjeUxFe2QsZlKz7hm2JdZrTJTan1dg3sdSxwm3RAwGas03M7UDbtUuphdVfxO4aFavMAFlylXrvSN+dOE7pMpClSuIfk3ugmMysnfd0HlK7vosiD/GFEfUvpiVVyyzlJFdAijT1n4S5QkYPjBNJVkllwTiPTe7SVlmz/49fg16324UTczcuwOepFHNvqrskFT0T3pRDtFNdsnI94xpRYmTjJykdr59CshSElrZHZcne6zRkwb85pEn+qk3Npcg5A=="
+          ],
+          "ds:KeyInfo": [
+            {
+              "ds:X509Data": [
+                {
+                  "ds:X509Certificate": [
+                    "MIIDqjCCApKgAwIBAgIGAYao8ch8MA0GCSqGSIb3DQEBCwUAMIGVMQswCQYDVQQGEwJVUzETMBEG\nA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\nMBIGA1UECwwLU1NPUHJvdmlkZXIxFjAUBgNVBAMMDXRyaWFsLTk5NTU3NzUxHDAaBgkqhkiG9w0B\nCQEWDWluZm9Ab2t0YS5jb20wHhcNMjMwMzAzMTkyNjQzWhcNMzMwMzAzMTkyNzQzWjCBlTELMAkG\nA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTAL\nBgNVBAoMBE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRYwFAYDVQQDDA10cmlhbC05OTU1Nzc1\nMRwwGgYJKoZIhvcNAQkBFg1pbmZvQG9rdGEuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\nCgKCAQEAx2HI6ri2hhgrdkBvLz3YJ1InOY3gQsbT/s/wtCw1dE9dmZnsurPSUPGZsf9Cof8WoIvq\nTPpTDjS0g4wx0mVjY6qejmVF4OFUCHrJPDNvO0Mey2cfK4tCBtvFtnUsntl1c2HCfdi/mMNVV3Di\nTATlWeCMf++HBHE65HKO8B+PCRHbt2jYYT1CtBGGk9yFP4SN0iBAFE+az5QAf86iW2ZYuUmkt87G\nYxBSuwj9h1rW9g6yr2sDX+9cXBPB4/4nq5lKBzaAt/O+UMXBoMiWP2xh+KyyccOv13xtDJpBhZDH\nEVQp5X10I1bm5/Y8QpXG9qEd1C6pa76w4VoPernnYYRa9QIDAQABMA0GCSqGSIb3DQEBCwUAA4IB\nAQBrE+qga2ZbF99L3wa0oy9sfSq9/6B6E8KODNeYOZ6OCTXij8EMcKYZGRXV22qHr7AwA0MVfYi5\ntt5jAuHTnKBPHaoYzYjQlu7/QXbte8WoximdliQraiD/zAps61Qj+c1Pctt1dwH3xu2Ppx0P3KvL\nBNE/LDMSADNpTL/o0jQnOzH9KP47iCI8lzdboHtegXuAnlCLj3uSYFy/W4KPm1FZHjZFkmmZz0SH\n/W2tTtkPfeSC+c0G8IhhUHLJ2QUEmH4Sk+l4PM5Jklb4RnABUKfiuel1zKlBE5hpWcn4cYWrHwCl\n1NKiHj2mkWIwVey813T/7M+nk93WK1G6psCleczN"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "saml2p:Status": [
+        {
+          "$": {
+            "xmlns:saml2p": "urn:oasis:names:tc:SAML:2.0:protocol"
+          },
+          "saml2p:StatusCode": [
+            {
+              "$": {
+                "Value": "urn:oasis:names:tc:SAML:2.0:status:Success"
+              }
+            }
+          ]
+        }
+      ],
+      "saml2:Assertion": [
+        {
+          "$": {
+            "ID": "id397086821197064596402169",
+            "IssueInstant": "2023-03-05T17:44:26.808Z",
+            "Version": "2.0",
+            "xmlns:saml2": "urn:oasis:names:tc:SAML:2.0:assertion"
+          },
+          "saml2:Issuer": [
+            {
+              "_": "http://www.okta.com/exk4fi36tv3SJZtRv697",
+              "$": {
+                "Format": "urn:oasis:names:tc:SAML:2.0:nameid-format:entity",
+                "xmlns:saml2": "urn:oasis:names:tc:SAML:2.0:assertion"
+              }
+            }
+          ],
+          "ds:Signature": [
+            {
+              "$": {
+                "xmlns:ds": "http://www.w3.org/2000/09/xmldsig#"
+              },
+              "ds:SignedInfo": [
+                {
+                  "ds:CanonicalizationMethod": [
+                    {
+                      "$": {
+                        "Algorithm": "http://www.w3.org/2001/10/xml-exc-c14n#"
+                      }
+                    }
+                  ],
+                  "ds:SignatureMethod": [
+                    {
+                      "$": {
+                        "Algorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                      }
+                    }
+                  ],
+                  "ds:Reference": [
+                    {
+                      "$": {
+                        "URI": "#id397086821197064596402169"
+                      },
+                      "ds:Transforms": [
+                        {
+                          "ds:Transform": [
+                            {
+                              "$": {
+                                "Algorithm": "http://www.w3.org/2000/09/xmldsig#enveloped-signature"
+                              }
+                            },
+                            {
+                              "$": {
+                                "Algorithm": "http://www.w3.org/2001/10/xml-exc-c14n#"
+                              }
+                            }
+                          ]
+                        }
+                      ],
+                      "ds:DigestMethod": [
+                        {
+                          "$": {
+                            "Algorithm": "http://www.w3.org/2001/04/xmlenc#sha256"
+                          }
+                        }
+                      ],
+                      "ds:DigestValue": [
+                        "eLop0iyvMdT62i2FD7hbULG3PfPuOsVaM/bBTgwBQJM="
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "ds:SignatureValue": [
+                "CkCV6PDaVUckuxCwI23p//eS+SXI6VwJXoLmftW8waF5wGIDLku9nXK+McbcroWHMBvyXa+hOeoFLEtb9YCy37yQMohKRvacKXI7waOx85egMYcZtGXMrK4BGt7m+A9Kqbu0LO0b52W3HyIJxXDlnJFYq8QnQzdX62KujnhtS61rjKoud/2TBzlu/dY/EAnLcCd1YlR737nnABMmRisAnf8E2NfEQ6eJV/Pf7EeO8jdB/QOqOFR2nt6N+oeBf6UG0Gsj5RBt9SD2FwmDYgB0s2jW5LYhw3bY0/6M8vUrADpraedIUg+M8+yByiHS6QRHJMWNdeJcZRu8RY4gkSrLUQ=="
+              ],
+              "ds:KeyInfo": [
+                {
+                  "ds:X509Data": [
+                    {
+                      "ds:X509Certificate": [
+                        "MIIDqjCCApKgAwIBAgIGAYao8ch8MA0GCSqGSIb3DQEBCwUAMIGVMQswCQYDVQQGEwJVUzETMBEG\nA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\nMBIGA1UECwwLU1NPUHJvdmlkZXIxFjAUBgNVBAMMDXRyaWFsLTk5NTU3NzUxHDAaBgkqhkiG9w0B\nCQEWDWluZm9Ab2t0YS5jb20wHhcNMjMwMzAzMTkyNjQzWhcNMzMwMzAzMTkyNzQzWjCBlTELMAkG\nA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTAL\nBgNVBAoMBE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRYwFAYDVQQDDA10cmlhbC05OTU1Nzc1\nMRwwGgYJKoZIhvcNAQkBFg1pbmZvQG9rdGEuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\nCgKCAQEAx2HI6ri2hhgrdkBvLz3YJ1InOY3gQsbT/s/wtCw1dE9dmZnsurPSUPGZsf9Cof8WoIvq\nTPpTDjS0g4wx0mVjY6qejmVF4OFUCHrJPDNvO0Mey2cfK4tCBtvFtnUsntl1c2HCfdi/mMNVV3Di\nTATlWeCMf++HBHE65HKO8B+PCRHbt2jYYT1CtBGGk9yFP4SN0iBAFE+az5QAf86iW2ZYuUmkt87G\nYxBSuwj9h1rW9g6yr2sDX+9cXBPB4/4nq5lKBzaAt/O+UMXBoMiWP2xh+KyyccOv13xtDJpBhZDH\nEVQp5X10I1bm5/Y8QpXG9qEd1C6pa76w4VoPernnYYRa9QIDAQABMA0GCSqGSIb3DQEBCwUAA4IB\nAQBrE+qga2ZbF99L3wa0oy9sfSq9/6B6E8KODNeYOZ6OCTXij8EMcKYZGRXV22qHr7AwA0MVfYi5\ntt5jAuHTnKBPHaoYzYjQlu7/QXbte8WoximdliQraiD/zAps61Qj+c1Pctt1dwH3xu2Ppx0P3KvL\nBNE/LDMSADNpTL/o0jQnOzH9KP47iCI8lzdboHtegXuAnlCLj3uSYFy/W4KPm1FZHjZFkmmZz0SH\n/W2tTtkPfeSC+c0G8IhhUHLJ2QUEmH4Sk+l4PM5Jklb4RnABUKfiuel1zKlBE5hpWcn4cYWrHwCl\n1NKiHj2mkWIwVey813T/7M+nk93WK1G6psCleczN"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "saml2:Subject": [
+            {
+              "$": {
+                "xmlns:saml2": "urn:oasis:names:tc:SAML:2.0:assertion"
+              },
+              "saml2:NameID": [
+                {
+                  "_": "simon.larsen@oneuptime.com",
+                  "$": {
+                    "Format": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
+                  }
+                }
+              ],
+              "saml2:SubjectConfirmation": [
+                {
+                  "$": {
+                    "Method": "urn:oasis:names:tc:SAML:2.0:cm:bearer"
+                  },
+                  "saml2:SubjectConfirmationData": [
+                    {
+                      "$": {
+                        "NotOnOrAfter": "2023-03-05T17:49:26.809Z",
+                        "Recipient": "http://localhost/identity/idp-login/19462af5-a3c5-414d-bef8-20681c708579/56489843-5440-4305-a46a-c64215451b65"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "saml2:Conditions": [
+            {
+              "$": {
+                "NotBefore": "2023-03-05T17:39:26.809Z",
+                "NotOnOrAfter": "2023-03-05T17:49:26.809Z",
+                "xmlns:saml2": "urn:oasis:names:tc:SAML:2.0:assertion"
+              },
+              "saml2:AudienceRestriction": [
+                {
+                  "saml2:Audience": [
+                    "oneuptime-org-test"
+                  ]
+                }
+              ]
+            }
+          ],
+          "saml2:AuthnStatement": [
+            {
+              "$": {
+                "AuthnInstant": "2023-03-05T17:04:56.046Z",
+                "SessionIndex": "id1678038266807.2057378521",
+                "xmlns:saml2": "urn:oasis:names:tc:SAML:2.0:assertion"
+              },
+              "saml2:AuthnContext": [
+                {
+                  "saml2:AuthnContextClassRef": [
+                    "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }

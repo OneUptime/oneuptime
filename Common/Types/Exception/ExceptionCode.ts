@@ -6,6 +6,7 @@ enum ExceptionCode {
     BadOperationException = 5,
     BadDataException = 400,
     BadRequestException = 400,
+    ServerException = 500,
     NotAuthorizedException = 403,
     NotAuthenticatedxception = 401,
     PaymentRequiredException = 402,

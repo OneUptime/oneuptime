@@ -3,14 +3,18 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
-import AuthenticationAPI from './API/AuthenticationAPI';
-import StatusPageAuthenticationAPI from './API/StatusPageAuthenticationAPI';
+import AuthenticationAPI from './API/Authentication';
+import SsoAPI from './API/SSO';
+import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
+
 
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'identity';
 
 app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
+
+app.use([`/${APP_NAME}`, '/'], SsoAPI);
 
 app.use(
     [`/${APP_NAME}/status-page`, '/staus-page'],

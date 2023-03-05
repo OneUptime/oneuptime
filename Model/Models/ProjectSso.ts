@@ -258,9 +258,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
             Permission.CanReadProjectSSO,
-            Permission.ProjectUser,
         ],
         update: [
             Permission.ProjectOwner,
