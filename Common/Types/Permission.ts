@@ -135,7 +135,6 @@ enum Permission {
     CanEditStatusPageDomain = 'CanEditStatusPageDomain',
     CanReadStatusPageDomain = 'CanReadStatusPageDomain',
 
-
     CanCreateProjectSSO = 'CanCreateProjectSSO',
     CanDeleteProjectSSO = 'CanDeleteProjectSSO',
     CanEditProjectSSO = 'CanEditProjectSSO',
@@ -1017,9 +1016,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
             {
                 permission: Permission.CanCreateProjectSSO,
                 title: 'Can Create Project SSO',
@@ -1052,9 +1048,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
-
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,

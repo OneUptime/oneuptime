@@ -437,4 +437,32 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public workflowRunsInLast30Days?: number = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProject,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Boolean,
+        isDefaultValueColumn: true,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public requireSsoForLogin?: boolean = undefined;
 }

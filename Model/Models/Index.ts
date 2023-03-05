@@ -72,7 +72,7 @@ import Workflow from './Workflow';
 import WorkflowVariables from './WorkflowVariable';
 import WorkflowLog from './WorkflowLog';
 
-//SSO 
+//SSO
 import ProjectSSO from './ProjectSso';
 
 export default [
@@ -130,5 +130,5 @@ export default [
     WorkflowVariables,
     WorkflowLog,
 
-    ProjectSSO
+    ProjectSSO,
 ];

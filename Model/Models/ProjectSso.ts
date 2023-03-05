@@ -19,9 +19,8 @@ import URL from 'Common/Types/API/URL';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
-import SignatureMethod from "Common/Types/SSO/SignatureMethod";
-import DigestMethod from "Common/Types/SSO/DigestMethod";
-
+import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
+import DigestMethod from 'Common/Types/SSO/DigestMethod';
 
 @TableBillingAccessControl({
     create: PlanSelect.Scale,
@@ -124,7 +123,6 @@ export default class ProjectSSO extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -156,7 +154,6 @@ export default class ProjectSSO extends BaseModel {
     @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -186,7 +183,6 @@ export default class ProjectSSO extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public signatureMethod?: SignatureMethod = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -218,8 +214,6 @@ export default class ProjectSSO extends BaseModel {
     })
     public digestMethod?: DigestMethod = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -246,13 +240,11 @@ export default class ProjectSSO extends BaseModel {
     @Column({
         nullable: false,
         type: ColumnType.LongURL,
-        transformer: URL.getDatabaseTransformer()
+        transformer: URL.getDatabaseTransformer(),
     })
     @UniqueColumnBy('projectId')
     public signOnURL?: URL = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -279,10 +271,9 @@ export default class ProjectSSO extends BaseModel {
     @Column({
         nullable: false,
         type: ColumnType.LongURL,
-        transformer: URL.getDatabaseTransformer()
+        transformer: URL.getDatabaseTransformer(),
     })
     public issuerURL?: URL = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -312,8 +303,6 @@ export default class ProjectSSO extends BaseModel {
         type: ColumnType.LongText,
     })
     public publicCertificate?: string = undefined;
-
-
 
     @ColumnAccessControl({
         create: [
@@ -417,7 +406,6 @@ export default class ProjectSSO extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -442,5 +430,4 @@ export default class ProjectSSO extends BaseModel {
         default: false,
     })
     public isEnabled?: boolean = undefined;
-
 }
