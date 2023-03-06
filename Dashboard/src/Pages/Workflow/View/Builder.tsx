@@ -17,7 +17,7 @@ import Workflow, {
     getPlaceholderTriggerNode,
 } from 'CommonUI/src/Components/Workflow/Workflow';
 import Card from 'CommonUI/src/Components/Card/Card';
-import { Edge, Node } from 'reactflow';
+import { Edge, Node } from 'reactflow'
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import WorkflowModel from 'Model/Models/Workflow';
@@ -32,7 +32,7 @@ import ComponentMetadata, {
     NodeType,
     ComponentCategory,
 } from 'Common/Types/Workflow/Component';
-import API from 'Common/Utils/API';
+import API from 'CommonUI/src/Utils/API/API';
 import { WORKFLOW_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 
