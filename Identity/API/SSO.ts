@@ -380,7 +380,12 @@ router.post(
             }
 
             const token: string = JSONWebToken.sign(
-                `sso:${req.params['projectId']}-${alreadySavedUser._id}`,
+                {
+                    userId: alreadySavedUser.id!,
+                    projectId: new ObjectID(req.params['projectId']),
+                    email: email,
+                    isMasterAdmin: false
+                },
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
 

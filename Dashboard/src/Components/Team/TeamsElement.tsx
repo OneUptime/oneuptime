@@ -23,9 +23,7 @@ const TeamsElement: FunctionComponent<ComponentProps> = (
                             team={team}
                             onNavigateComplete={props.onNavigateComplete}
                         />
-                        {i !== props.teams.length - 1 && (
-                            <span>,&nbsp;</span>
-                        )}
+                        {i !== props.teams.length - 1 && <span>,&nbsp;</span>}
                     </span>
                 );
             })}

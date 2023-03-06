@@ -13,8 +13,7 @@ const TeamElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     if (
         props.team._id &&
-        (props.team.projectId ||
-            (props.team.project && props.team.project._id))
+        (props.team.projectId || (props.team.project && props.team.project._id))
     ) {
         const projectId: string | undefined = props.team.projectId
             ? props.team.projectId.toString()

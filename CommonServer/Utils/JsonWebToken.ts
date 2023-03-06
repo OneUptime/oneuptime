@@ -37,7 +37,7 @@ class JSONWebToken {
             jsonObj = {
                 userId: data.userId.toString(),
                 email: data.email.toString(),
-                name: data.name.toString(),
+                name: data.name?.toString() || '',
                 isMasterAdmin: data.isMasterAdmin,
             };
         }
