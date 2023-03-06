@@ -18,6 +18,7 @@ import AccessTokenService from '../Services/AccessTokenService';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HashedString from 'Common/Types/HashedString';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class UserMiddleware {
     /*
@@ -43,6 +44,22 @@ export default class UserMiddleware {
         }
 
         return accessToken;
+    }
+
+    public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
+        const ssoTokens: Dictionary<string> = {};
+
+        for(const key of Object.keys(req.headers)){
+            if(key.startsWith("sso:")){
+                const projectId: string | undefined = key.split(":")[1];
+                const value = req.headers[key];
+                if(projectId && value && typeof value === "string" && typeof projectId === "string"){
+                    ssoTokens[projectId] = req.headers[key] as string;
+                }
+            }
+        }
+
+        return ssoTokens;
     }
 
     public static async getUserMiddleware(

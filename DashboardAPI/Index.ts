@@ -77,7 +77,7 @@ import TeamService, {
 
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService, {
-    Service as TeamMemberServiceType,
+    TeamMemberService as TeamMemberServiceType,
 } from 'CommonServer/Services/TeamMemberService';
 
 import TeamPermission from 'Model/Models/TeamPermission';
