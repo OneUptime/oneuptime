@@ -26,6 +26,16 @@ abstract class Navigation {
         return this.params;
     }
 
+    public static getQueryStringByName(paramName: string): string | null {
+        const urlSearchParams = new URLSearchParams(window.location.search);
+        const params = Object.fromEntries(urlSearchParams.entries());
+        if(params && params[paramName]){
+            return params[paramName] as string; 
+        }
+
+        return null; 
+    }
+
     public static getParamByName(
         paramName: string,
         routeTemplate: Route

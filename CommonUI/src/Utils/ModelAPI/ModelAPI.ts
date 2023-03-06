@@ -18,6 +18,7 @@ import ProjectUtil from '../Project';
 import Sort from './Sort';
 import Project from 'Model/Models/Project';
 import Populate from './Populate';
+import User from '../User';
 
 export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
     data: Array<TBaseModel>;
@@ -280,7 +281,7 @@ export default class ModelAPI {
     public static getCommonHeaders(
         requestOptions?: RequestOptions
     ): Dictionary<string> {
-        const headers: Dictionary<string> = {};
+        let headers: Dictionary<string> = {};
 
         if (!requestOptions || !requestOptions.isMultiTenantRequest) {
             const project: Project | null = ProjectUtil.getCurrentProject();
@@ -288,6 +289,13 @@ export default class ModelAPI {
             if (project && project.id) {
                 headers['tenantid'] = project.id.toString();
             }
+        }
+
+        // add SSO headers. 
+
+        headers = {
+            ...headers, 
+            ...User.getAllSsoTokens()
         }
 
         if (requestOptions && requestOptions.isMultiTenantRequest) {

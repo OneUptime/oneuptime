@@ -3,6 +3,7 @@ import Email from 'Common/Types/Email';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import Typeof from 'Common/Types/Typeof';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import { Dictionary } from 'lodash';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {
@@ -36,5 +37,9 @@ export default class LocalStorage {
 
     public static clear(): void {
         localStorage.clear();
+    }
+
+    public static getAllItems(): Dictionary<string> {
+        return { ...localStorage };
     }
 }

@@ -5,6 +5,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class User {
     public static getAccessToken(): string {
@@ -13,6 +14,14 @@ export default class User {
 
     public static setAccessToken(token: string): void {
         LocalStorage.setItem('access_token', token);
+    }
+
+    public static setSsoToken(projectId: ObjectID, token: string): void {
+        LocalStorage.setItem('sso:'+projectId.toString(), token);
+    }
+
+    public static getSsoToken(projectId: ObjectID): string | null {
+        return LocalStorage.getItem('sso:'+projectId.toString()) as string | null;
     }
 
     public static isCardRegistered(): boolean {
@@ -62,6 +71,26 @@ export default class User {
     // TODO: Fix project type
     public static setProject(project: JSONObject): void {
         LocalStorage.setItem('project', project);
+    }
+
+
+    public static getAllSsoTokens(): Dictionary<string>{
+        const localStorageItems = LocalStorage.getAllItems();
+        const result: Dictionary<string> = {};
+
+        for(const key in localStorageItems){
+
+            if(!localStorageItems[key]){
+                continue; 
+            }
+
+            if(key.startsWith("sso:")){
+                result[key] = localStorageItems[key] as string; 
+            }   
+        }
+
+        return result;
+
     }
 
     public static getProject(): JSONObject {
