@@ -75,7 +75,10 @@ export default class UserMiddleware {
         return ssoTokens;
     }
 
-    public static doesSsoTokenForProjectExist(req: ExpressRequest, projectId: ObjectID): boolean {
+    public static doesSsoTokenForProjectExist(
+        req: ExpressRequest,
+        projectId: ObjectID
+    ): boolean {
         const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
         if (ssoTokens && ssoTokens[projectId.toString()]) {
             return true;
@@ -147,23 +150,33 @@ export default class UserMiddleware {
         }
 
         if (tenantId) {
-
             const project: Project | null = await ProjectService.findOneById({
                 id: tenantId,
                 select: {
-                    requireSsoForLogin: true
+                    requireSsoForLogin: true,
                 },
                 props: {
                     isRoot: true,
-                }
+                },
             });
 
-            if(!project){
-                return Response.sendErrorResponse(req, res, new BadDataException("Invlaid tenantId"));
+            if (!project) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('Invlaid tenantId')
+                );
             }
 
-            if(project.requireSsoForLogin && !this.doesSsoTokenForProjectExist(req, tenantId)){
-                return Response.sendErrorResponse(req, res, new SsoAuthorizationException());
+            if (
+                project.requireSsoForLogin &&
+                !this.doesSsoTokenForProjectExist(req, tenantId)
+            ) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new SsoAuthorizationException()
+                );
             }
 
             // get project level permissions if projectid exists in request.
@@ -186,25 +199,37 @@ export default class UserMiddleware {
 
             const projects: Array<Project> = await ProjectService.findBy({
                 query: {
-                    _id: QueryHelper.in(userGlobalAccessPermission?.projectIds.map((i) => i.toString()) || [])
+                    _id: QueryHelper.in(
+                        userGlobalAccessPermission?.projectIds.map(
+                            (i: ObjectID) => {
+                                return i.toString();
+                            }
+                        ) || []
+                    ),
                 },
                 select: {
-                    requireSsoForLogin: true
+                    requireSsoForLogin: true,
                 },
                 limit: LIMIT_PER_PROJECT,
                 skip: 0,
                 props: {
                     isRoot: true,
-                }
+                },
             });
-
 
             for (const projectId of userGlobalAccessPermission?.projectIds ||
                 []) {
+                // check if the force sso login is required. and if it is, then check then token.
 
-                // check if the force sso login is required. and if it is, then check then token. 
-
-                if(projects.find((p: Project)=> p._id === projectId.toString() && p.requireSsoForLogin) && !this.doesSsoTokenForProjectExist(req, projectId)){
+                if (
+                    projects.find((p: Project) => {
+                        return (
+                            p._id === projectId.toString() &&
+                            p.requireSsoForLogin
+                        );
+                    }) &&
+                    !this.doesSsoTokenForProjectExist(req, projectId)
+                ) {
                     continue;
                 }
 
@@ -247,7 +272,7 @@ export default class UserMiddleware {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userTenantAccessPermission[
-                    tenantId.toString()
+                        tenantId.toString()
                     ]!
                 )
             );
@@ -262,7 +287,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['project-permissions-hash'] &&
                     req.headers['project-permissions-hash'] ===
-                    projectPermissionsHash
+                        projectPermissionsHash
                 )
             ) {
                 res.set('project-permissions', projectValue);

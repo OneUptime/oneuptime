@@ -384,7 +384,7 @@ router.post(
                     userId: alreadySavedUser.id!,
                     projectId: new ObjectID(req.params['projectId']),
                     email: email,
-                    isMasterAdmin: false
+                    isMasterAdmin: false,
                 },
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
