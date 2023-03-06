@@ -26,6 +26,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Response from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 
 export default class UserMiddleware {
     /*
@@ -77,11 +78,17 @@ export default class UserMiddleware {
 
     public static doesSsoTokenForProjectExist(
         req: ExpressRequest,
-        projectId: ObjectID
+        projectId: ObjectID,
+        userId: ObjectID
     ): boolean {
         const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
         if (ssoTokens && ssoTokens[projectId.toString()]) {
-            return true;
+            const decodedData: JSONWebTokenData = JSONWebToken.decode(ssoTokens[projectId.toString()] as string)
+            if(decodedData.projectId?.toString() === projectId.toString() && decodedData.userId.toString() === userId.toString()){
+                return true;
+            }
+
+            
         }
 
         return false;
@@ -131,9 +138,11 @@ export default class UserMiddleware {
             oneuptimeRequest.userType = UserType.User;
         }
 
+        const userId: string = oneuptimeRequest.userAuthorization.userId.toString();
+
         await UserService.updateOneBy({
             query: {
-                _id: oneuptimeRequest.userAuthorization.userId.toString(),
+                _id: userId,
             },
             props: { isRoot: true },
             data: { lastActive: OneUptimeDate.getCurrentDate() },
@@ -170,7 +179,7 @@ export default class UserMiddleware {
 
             if (
                 project.requireSsoForLogin &&
-                !this.doesSsoTokenForProjectExist(req, tenantId)
+                !this.doesSsoTokenForProjectExist(req, tenantId, new ObjectID(userId))
             ) {
                 return Response.sendErrorResponse(
                     req,
@@ -228,7 +237,7 @@ export default class UserMiddleware {
                             p.requireSsoForLogin
                         );
                     }) &&
-                    !this.doesSsoTokenForProjectExist(req, projectId)
+                    !this.doesSsoTokenForProjectExist(req, projectId, new ObjectID(userId))
                 ) {
                     continue;
                 }
