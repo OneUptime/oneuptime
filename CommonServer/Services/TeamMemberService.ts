@@ -33,7 +33,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import TeamMember from 'Model/Models/TeamMember';
 
-export class Service extends DatabaseService<TeamMember> {
+export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(TeamMember, postgresDatabase);
     }
@@ -323,4 +323,4 @@ export class Service extends DatabaseService<TeamMember> {
     }
 }
 
-export default new Service();
+export default new TeamMemberService();

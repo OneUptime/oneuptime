@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -21,6 +21,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
+import Team from './Team';
 
 @TableBillingAccessControl({
     create: PlanSelect.Scale,
@@ -278,6 +279,51 @@ export default class ProjectSSO extends BaseModel {
     })
     @UniqueColumnBy('projectId')
     public signOnURL?: URL = undefined;
+
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectSSO,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSSO,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSSO,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Team,
+    })
+    @ManyToMany(
+        () => {
+            return Team;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'ProjectSsoTeam',
+        inverseJoinColumn: {
+            name: 'teamId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'projectSsoId',
+            referencedColumnName: '_id',
+        },
+    })
+    public teams?: Array<Team> = undefined; // teams that teammember should be added to when they sign into SSO for the first time.
+
 
     @ColumnAccessControl({
         create: [

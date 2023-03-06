@@ -13,9 +13,20 @@ import ProjectSSOService from 'CommonServer/Services/ProjectSSOService';
 import ObjectID from 'Common/Types/ObjectID';
 import xml2js from 'xml2js';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import KJUR from 'jsrsasign';
 import logger from 'CommonServer/Utils/Logger';
-import XMLCrypto from 'xml-crypto';
+import Email from 'Common/Types/Email';
+import User from 'Model/Models/User';
+import UserService from 'CommonServer/Services/UserService';
+import AuthenticationEmail from '../Utils/AuthenticationEmail';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import OneUptimeDate from 'Common/Types/Date';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
+import URL from 'Common/Types/API/URL';
+import { DashboardHostname, DashboardRoute, HttpProtocol } from 'CommonServer/Config';
+import Route from 'Common/Types/API/Route';
+import TeamMember from 'Model/Models/TeamMember';
+import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -170,7 +181,8 @@ router.post(
                 select: {
                     signOnURL: true,
                     issuerURL: true,
-                    publicCertificate: true
+                    publicCertificate: true,
+                    teams: true
                 },
                 props: {
                     isRoot: true,
@@ -225,37 +237,149 @@ router.post(
                 );
             }
 
-            const signatureBlocks = response["ds:Signature"] as JSONArray;
+
+            // TODO: Verify signed message with certificate. 
+
+            const samlAssertion = response["saml2:Assertion"] as JSONArray;
+
+            if (!samlAssertion || samlAssertion.length === 0) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadRequestException('SAML Assertion not found')
+                );
+            }
+
+            const samlSubject = (samlAssertion[0] as JSONObject)['saml2:Subject'] as JSONArray;
+
+            if (!samlSubject || samlSubject.length === 0) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadRequestException('SAML Subject not found')
+                );
+            }
 
 
+            const samlNameId = (samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray;
 
-            const signatureValueBlocks = (signatureBlocks[0] as any)["ds:SignatureValue"] as Array<string>;
+            if (!samlNameId || samlNameId.length === 0) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadRequestException('SAML NAME ID not found')
+                );
+            }
 
-            const signatureValue = signatureValueBlocks[0] as string;
+            const emailString: string = (samlNameId[0] as JSONObject)["_"] as string;
 
-
-
-            const certificate = projectSSO.publicCertificate;
-
-            const signature = signatureValue;
-
-
-
-
-
-            // Step 2: Extract the public key from the x509 certificate
-            // Step 2: Extract the public key from the x509 certificate
-            const cert = new KJUR.X509();
-            cert.readCertPEM(certificate);
-            const publicKey = cert.getPublicKey();
-
-            var sig = new XMLCrypto.SignedXml()
-            var isValid = sig.checkSignature(samlResponse)
-
-            console.log(JSON.stringify(response, null, 2));
+            if (!emailString) {
+                if (!samlNameId || samlNameId.length === 0) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadRequestException('SAML Email not found')
+                    );
+                }
+            }
 
 
-            Response.sendEmptyResponse(req, res);
+            // Now we have the user email.
+            const email: Email = new Email(emailString);
+
+            // Check if he already belongs to the project, If he does - then log in.
+
+            const alreadySavedUser: User | null = await UserService.findOneBy({
+                query: { email: email },
+                select: {
+                    _id: true,
+                    name: true,
+                    email: true,
+                    isMasterAdmin: true,
+                    isEmailVerified: true,
+                    profilePictureId: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+
+            if (!alreadySavedUser) {
+                // this should never happen because user is logged in before he signs in with SSO. 
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadRequestException('User with email ' + email.toString() + ' not found')
+                );
+            }
+
+            // If he does not then add him to teams that he should belong and log in.
+            if (!alreadySavedUser.isEmailVerified) {
+
+                await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
+
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.'
+                    )
+                );
+            }
+
+
+            // check if the user already belongs to the project
+            const teamMemberCount = await TeamMemberService.countBy({
+                query: {
+                    projectId: new ObjectID(req.params['projectId'] as string),
+                    userId: alreadySavedUser.id!
+                },
+                props: {
+                    isRoot: true
+                }
+            })
+
+            if (teamMemberCount.toNumber() === 0) {
+                // user not in project, add him to default teams. 
+
+                if (!projectSSO.teams || projectSSO.teams.length === 0) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadDataException(
+                            'No teams have been added to this SSO config. Please contact your admin and have default teams added.'
+                        )
+                    );
+                }
+
+                for (const team of projectSSO.teams) {
+                    // add user to team 
+                    let teamMember: TeamMember = new TeamMember();
+                    teamMember.projectId =  new ObjectID(req.params['projectId'] as string);
+                    teamMember.userId = alreadySavedUser.id!;
+                    teamMember.hasAcceptedInvitation = true;
+                    teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+                    teamMember.teamId = team.id!;
+
+                    teamMember = await TeamMemberService.create({
+                        data: teamMember,
+                        props: {
+                            isRoot: true,
+                            ignoreHooks: true,
+                        },
+                    });
+                }
+            }
+
+
+            const token: string = JSONWebToken.sign(
+                `sso:${req.params['projectId']}-${alreadySavedUser._id}`,
+                OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
+            );
+
+            return Response.redirect(req, res, new URL(HttpProtocol, DashboardHostname, new Route(DashboardRoute.toString()).addRoute("/" + req.params['projectId']), "sso_token=" + token));
+
         } catch (err) {
             logger.error(err);
             Response.sendErrorResponse(req, res, new ServerException());
