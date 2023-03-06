@@ -17,6 +17,10 @@ import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Project from 'Model/Models/Project';
+import Team from 'Model/Models/Team';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import TeamsElement from '../../Components/Team/TeamsElement';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -163,6 +167,22 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         title: 'Enabled',
                         fieldType: FormFieldSchemaType.Toggle,
                     },
+                    {
+                        field: {
+                            teams: true,
+                        },
+                        title: 'Teams',
+                        description:
+                            'Add users to these teams when they sign up',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Team,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Select Teams',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -182,6 +202,30 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            teams: {
+                                name: true,
+                                _id: true,
+                                projectId: true,
+                            },
+                        },
+                        title: 'Add User to Team',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <TeamsElement
+                                    teams={
+                                        JSONFunctions.fromJSON(
+                                            (item['teams'] as JSONArray) ||
+                                            [],
+                                            Team
+                                        ) as Array<Team>
+                                    }
+                                />
+                            );
+                        },
                     },
                     {
                         field: {
