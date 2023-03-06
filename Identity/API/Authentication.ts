@@ -486,8 +486,9 @@ router.post(
                 }
 
                 if (!alreadySavedUser.isEmailVerified) {
-                    
-                    await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
+                    await AuthenticationEmail.sendVerificationEmail(
+                        alreadySavedUser
+                    );
 
                     return Response.sendErrorResponse(
                         req,

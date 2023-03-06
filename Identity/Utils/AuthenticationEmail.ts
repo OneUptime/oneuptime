@@ -1,11 +1,4 @@
-import {
-
-    HttpProtocol,
-
-    Domain,
-    AccountsRoute,
-} from 'CommonServer/Config';
-
+import { HttpProtocol, Domain, AccountsRoute } from 'CommonServer/Config';
 
 import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 
@@ -31,8 +24,7 @@ export default class AuthenticationEmail {
         emailVerificationToken.userId = user?.id!;
         emailVerificationToken.email = user?.email!;
         emailVerificationToken.token = generatedToken;
-        emailVerificationToken.expires =
-            OneUptimeDate.getOneDayAfter();
+        emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
 
         await EmailVerificationTokenService.create({
             data: emailVerificationToken,

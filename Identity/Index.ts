@@ -7,7 +7,6 @@ import AuthenticationAPI from './API/Authentication';
 import SsoAPI from './API/SSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
 
-
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'identity';

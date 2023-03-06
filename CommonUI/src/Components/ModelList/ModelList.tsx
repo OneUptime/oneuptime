@@ -13,7 +13,7 @@ import WorkflowVariable from 'Model/Models/WorkflowVariable';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
@@ -21,7 +21,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     select: Select<TBaseModel>;
     noItemsMessage: string;
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
-    onSelectChange: (list: Array<TBaseModel>)=> void;
+    onSelectChange: (list: Array<TBaseModel>) => void;
 }
 
 const ModelList: Function = <TBaseModel extends BaseModel>(
@@ -34,11 +34,9 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
     const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
     const [searchText, setSearchText] = useState<string>('');
 
-
-    useEffect(()=> {
+    useEffect(() => {
         props.onSelectChange(selectedList);
-    }, [selectedList])
-
+    }, [selectedList]);
 
     useEffect(() => {
         fetchItems().catch();
@@ -74,7 +72,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -163,14 +161,12 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                             if (isSelected) {
                                 // remove the item.
                                 setSelectedList(
-                                    selectedList.filter(
-                                        (i: TBaseModel) => {
-                                            return (
-                                                i._id?.toString() !==
-                                                model._id?.toString()
-                                            );
-                                        }
-                                    )
+                                    selectedList.filter((i: TBaseModel) => {
+                                        return (
+                                            i._id?.toString() !==
+                                            model._id?.toString()
+                                        );
+                                    })
                                 );
                             } else {
                                 setSelectedList([
@@ -182,7 +178,6 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                             setSelectedList([{ ...model }]);
                         }
                     }}
-
                 />
             </div>
         </div>

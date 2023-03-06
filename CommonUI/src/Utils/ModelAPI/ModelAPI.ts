@@ -291,12 +291,12 @@ export default class ModelAPI {
             }
         }
 
-        // add SSO headers. 
+        // add SSO headers.
 
         headers = {
-            ...headers, 
-            ...User.getAllSsoTokens()
-        }
+            ...headers,
+            ...User.getAllSsoTokens(),
+        };
 
         if (requestOptions && requestOptions.isMultiTenantRequest) {
             headers['is-multi-tenant-query'] = 'true';

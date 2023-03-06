@@ -438,7 +438,6 @@ export default class Model extends TenantModel {
     })
     public workflowRunsInLast30Days?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [

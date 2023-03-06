@@ -17,17 +17,16 @@ export interface ComponentProps extends PageComponentProps {
 const Init: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     useEffect(() => {
-        // if there is an SSO token. We need to save that to localstorage. 
+        // if there is an SSO token. We need to save that to localstorage.
 
-        const sso_token = Navigation.getQueryStringByName("sso_token");
+        const sso_token: string | null =
+            Navigation.getQueryStringByName('sso_token');
 
         if (sso_token && props.currentProject && props.currentProject.id) {
-            // set token. 
+            // set token.
             User.setSsoToken(props.currentProject.id, sso_token);
         }
-
     }, []);
 
     useEffect(() => {

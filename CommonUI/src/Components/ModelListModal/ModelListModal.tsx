@@ -9,7 +9,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onClose: () => void;
     onSave: (modals: Array<TBaseModel>) => void;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
@@ -24,7 +24,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const ModelListModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-   
     const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
 
     return (
@@ -41,9 +40,12 @@ const ModelListModal: Function = <TBaseModel extends BaseModel>(
                 props.onSave(selectedList);
             }}
         >
-            <ModelList {...props} onSelectChange={(list: Array<TBaseModel>)=>{
-                setSelectedList([...list]);
-            }} />
+            <ModelList
+                {...props}
+                onSelectChange={(list: Array<TBaseModel>) => {
+                    setSelectedList([...list]);
+                }}
+            />
         </Modal>
     );
 };

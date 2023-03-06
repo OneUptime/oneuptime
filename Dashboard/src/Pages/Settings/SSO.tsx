@@ -85,7 +85,8 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        description: 'Friendly description to help you remember.',
+                        description:
+                            'Friendly description to help you remember.',
                         placeholder: 'Sign in with Okta',
                         validation: {
                             minLength: 2,
@@ -193,13 +194,13 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-             {/* API Key View  */}
-             <CardModelDetail
+            {/* API Key View  */}
+            <CardModelDetail
                 name="SSO Settings"
-                editButtonText={"Edit Settings"}
+                editButtonText={'Edit Settings'}
                 cardProps={{
                     title: 'SSO Settings',
-                    description: "Configure settings for SSO.",
+                    description: 'Configure settings for SSO.',
                     icon: IconProp.Lock,
                 }}
                 isEditable={true}
@@ -209,7 +210,8 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             requireSsoForLogin: true,
                         },
                         title: 'Force SSO for Login',
-                        description: "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.", 
+                        description:
+                            'Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.',
                         fieldType: FormFieldSchemaType.Toggle,
                     },
                 ]}
@@ -223,14 +225,13 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Force SSO for Login',
-                            description: "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.", 
+                            description:
+                                'Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.',
                         },
                     ],
                     modelId: DashboardNavigation.getProjectId()?.toString(),
                 }}
             />
-
-            
         </Page>
     );
 };

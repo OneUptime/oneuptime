@@ -557,8 +557,6 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-       
-
         return createdItem;
     }
 

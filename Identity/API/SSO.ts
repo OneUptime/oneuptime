@@ -1,4 +1,3 @@
-
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -23,7 +22,11 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import URL from 'Common/Types/API/URL';
-import { DashboardHostname, DashboardRoute, HttpProtocol } from 'CommonServer/Config';
+import {
+    DashboardHostname,
+    DashboardRoute,
+    HttpProtocol,
+} from 'CommonServer/Config';
 import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
@@ -38,7 +41,6 @@ router.get(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             if (!req.params['projectId']) {
                 return Response.sendErrorResponse(
                     req,
@@ -55,21 +57,20 @@ router.get(
                 );
             }
 
-
-            const projectSSO: ProjectSSO | null = await ProjectSSOService.findOneBy({
-                query: {
-                    projectId: new ObjectID(req.params['projectId']),
-                    _id: req.params['projectSsoId'],
-                    isEnabled: true
-                },
-                select: {
-                    signOnURL: true,
-                },
-                props: {
-                    isRoot: true,
-                }
-            });
-
+            const projectSSO: ProjectSSO | null =
+                await ProjectSSOService.findOneBy({
+                    query: {
+                        projectId: new ObjectID(req.params['projectId']),
+                        _id: req.params['projectSsoId'],
+                        isEnabled: true,
+                    },
+                    select: {
+                        signOnURL: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (!projectSSO) {
                 return Response.sendErrorResponse(
@@ -79,7 +80,7 @@ router.get(
                 );
             }
 
-            // redirect to Identity Provider. 
+            // redirect to Identity Provider.
 
             if (!projectSSO.signOnURL) {
                 return Response.sendErrorResponse(
@@ -90,30 +91,28 @@ router.get(
             }
 
             return Response.redirect(req, res, projectSSO.signOnURL);
-
         } catch (err) {
             return next(err);
         }
     }
 );
 
-
 router.post(
     '/idp-login/:projectId/:projectSsoId',
-    async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-    ): Promise<void> => {
-
+    async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         try {
-
             const samlResponseBase64: string = req.body.SAMLResponse;
 
-            const samlResponse = Buffer.from(samlResponseBase64, 'base64').toString();
+            const samlResponse: string = Buffer.from(
+                samlResponseBase64,
+                'base64'
+            ).toString();
 
-            let response: JSONObject = await xml2js.parseStringPromise(samlResponse);
+            let response: JSONObject = await xml2js.parseStringPromise(
+                samlResponse
+            );
 
-            if (!response["saml2p:Response"]) {
+            if (!response['saml2p:Response']) {
                 return Response.sendErrorResponse(
                     req,
                     res,
@@ -121,10 +120,9 @@ router.post(
                 );
             }
 
+            response = response['saml2p:Response'] as JSONObject;
 
-            response = response["saml2p:Response"] as JSONObject;
-
-            const issuers = response["saml2:Issuer"] as JSONArray;
+            const issuers: JSONArray = response['saml2:Issuer'] as JSONArray;
 
             if (issuers.length === 0) {
                 return Response.sendErrorResponse(
@@ -134,7 +132,7 @@ router.post(
                 );
             }
 
-            const issuer = issuers[0];
+            const issuer: JSONObject | undefined = issuers[0];
 
             if (!issuer) {
                 return Response.sendErrorResponse(
@@ -144,16 +142,17 @@ router.post(
                 );
             }
 
-            const issuerUrl = issuer["_"] as string;
+            const issuerUrl: string = issuer['_'] as string;
 
             if (!issuerUrl) {
                 return Response.sendErrorResponse(
                     req,
                     res,
-                    new BadRequestException('Issuer URL not found in SAML response')
+                    new BadRequestException(
+                        'Issuer URL not found in SAML response'
+                    )
                 );
             }
-
 
             if (!req.params['projectId']) {
                 return Response.sendErrorResponse(
@@ -171,23 +170,23 @@ router.post(
                 );
             }
 
-
-            const projectSSO: ProjectSSO | null = await ProjectSSOService.findOneBy({
-                query: {
-                    projectId: new ObjectID(req.params['projectId']),
-                    _id: req.params['projectSsoId'],
-                    isEnabled: true
-                },
-                select: {
-                    signOnURL: true,
-                    issuerURL: true,
-                    publicCertificate: true,
-                    teams: true
-                },
-                props: {
-                    isRoot: true,
-                }
-            });
+            const projectSSO: ProjectSSO | null =
+                await ProjectSSOService.findOneBy({
+                    query: {
+                        projectId: new ObjectID(req.params['projectId']),
+                        _id: req.params['projectSsoId'],
+                        isEnabled: true,
+                    },
+                    select: {
+                        signOnURL: true,
+                        issuerURL: true,
+                        publicCertificate: true,
+                        teams: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (!projectSSO) {
                 return Response.sendErrorResponse(
@@ -197,7 +196,7 @@ router.post(
                 );
             }
 
-            // redirect to Identity Provider. 
+            // redirect to Identity Provider.
 
             if (!projectSSO.issuerURL) {
                 return Response.sendErrorResponse(
@@ -207,9 +206,7 @@ router.post(
                 );
             }
 
-
-
-            // redirect to Identity Provider. 
+            // redirect to Identity Provider.
 
             if (!projectSSO.signOnURL) {
                 return Response.sendErrorResponse(
@@ -219,7 +216,6 @@ router.post(
                 );
             }
 
-
             if (projectSSO.issuerURL.toString() !== issuerUrl) {
                 return Response.sendErrorResponse(
                     req,
@@ -227,7 +223,6 @@ router.post(
                     new BadRequestException('Issuer URL does not match')
                 );
             }
-
 
             if (!projectSSO.publicCertificate) {
                 return Response.sendErrorResponse(
@@ -237,10 +232,11 @@ router.post(
                 );
             }
 
+            // TODO: Verify signed message with certificate.
 
-            // TODO: Verify signed message with certificate. 
-
-            const samlAssertion = response["saml2:Assertion"] as JSONArray;
+            const samlAssertion: JSONArray = response[
+                'saml2:Assertion'
+            ] as JSONArray;
 
             if (!samlAssertion || samlAssertion.length === 0) {
                 return Response.sendErrorResponse(
@@ -250,7 +246,9 @@ router.post(
                 );
             }
 
-            const samlSubject = (samlAssertion[0] as JSONObject)['saml2:Subject'] as JSONArray;
+            const samlSubject: JSONArray = (samlAssertion[0] as JSONObject)[
+                'saml2:Subject'
+            ] as JSONArray;
 
             if (!samlSubject || samlSubject.length === 0) {
                 return Response.sendErrorResponse(
@@ -260,8 +258,9 @@ router.post(
                 );
             }
 
-
-            const samlNameId = (samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray;
+            const samlNameId: JSONArray = (samlSubject[0] as JSONObject)[
+                'saml2:NameID'
+            ] as JSONArray;
 
             if (!samlNameId || samlNameId.length === 0) {
                 return Response.sendErrorResponse(
@@ -271,7 +270,9 @@ router.post(
                 );
             }
 
-            const emailString: string = (samlNameId[0] as JSONObject)["_"] as string;
+            const emailString: string = (samlNameId[0] as JSONObject)[
+                '_'
+            ] as string;
 
             if (!emailString) {
                 if (!samlNameId || samlNameId.length === 0) {
@@ -282,7 +283,6 @@ router.post(
                     );
                 }
             }
-
 
             // Now we have the user email.
             const email: Email = new Email(emailString);
@@ -304,20 +304,22 @@ router.post(
                 },
             });
 
-
             if (!alreadySavedUser) {
-                // this should never happen because user is logged in before he signs in with SSO. 
+                // this should never happen because user is logged in before he signs in with SSO.
                 return Response.sendErrorResponse(
                     req,
                     res,
-                    new BadRequestException('User with email ' + email.toString() + ' not found')
+                    new BadRequestException(
+                        'User with email ' + email.toString() + ' not found'
+                    )
                 );
             }
 
             // If he does not then add him to teams that he should belong and log in.
             if (!alreadySavedUser.isEmailVerified) {
-
-                await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
+                await AuthenticationEmail.sendVerificationEmail(
+                    alreadySavedUser
+                );
 
                 return Response.sendErrorResponse(
                     req,
@@ -328,20 +330,22 @@ router.post(
                 );
             }
 
-
             // check if the user already belongs to the project
-            const teamMemberCount = await TeamMemberService.countBy({
-                query: {
-                    projectId: new ObjectID(req.params['projectId'] as string),
-                    userId: alreadySavedUser.id!
-                },
-                props: {
-                    isRoot: true
-                }
-            })
+            const teamMemberCount: PositiveNumber =
+                await TeamMemberService.countBy({
+                    query: {
+                        projectId: new ObjectID(
+                            req.params['projectId'] as string
+                        ),
+                        userId: alreadySavedUser.id!,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (teamMemberCount.toNumber() === 0) {
-                // user not in project, add him to default teams. 
+                // user not in project, add him to default teams.
 
                 if (!projectSSO.teams || projectSSO.teams.length === 0) {
                     return Response.sendErrorResponse(
@@ -354,12 +358,15 @@ router.post(
                 }
 
                 for (const team of projectSSO.teams) {
-                    // add user to team 
+                    // add user to team
                     let teamMember: TeamMember = new TeamMember();
-                    teamMember.projectId =  new ObjectID(req.params['projectId'] as string);
+                    teamMember.projectId = new ObjectID(
+                        req.params['projectId'] as string
+                    );
                     teamMember.userId = alreadySavedUser.id!;
                     teamMember.hasAcceptedInvitation = true;
-                    teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+                    teamMember.invitationAcceptedAt =
+                        OneUptimeDate.getCurrentDate();
                     teamMember.teamId = team.id!;
 
                     teamMember = await TeamMemberService.create({
@@ -372,20 +379,28 @@ router.post(
                 }
             }
 
-
             const token: string = JSONWebToken.sign(
                 `sso:${req.params['projectId']}-${alreadySavedUser._id}`,
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
 
-            return Response.redirect(req, res, new URL(HttpProtocol, DashboardHostname, new Route(DashboardRoute.toString()).addRoute("/" + req.params['projectId']), "sso_token=" + token));
-
+            return Response.redirect(
+                req,
+                res,
+                new URL(
+                    HttpProtocol,
+                    DashboardHostname,
+                    new Route(DashboardRoute.toString()).addRoute(
+                        '/' + req.params['projectId']
+                    ),
+                    'sso_token=' + token
+                )
+            );
         } catch (err) {
             logger.error(err);
             Response.sendErrorResponse(req, res, new ServerException());
         }
     }
 );
-
 
 export default router;

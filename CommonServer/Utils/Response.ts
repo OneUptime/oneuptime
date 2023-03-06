@@ -147,13 +147,11 @@ export default class Response {
         );
     }
 
-
     public static redirect(
         req: ExpressRequest,
         res: ExpressResponse,
-        url: URL,
+        url: URL
     ): void {
-
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -163,7 +161,7 @@ export default class Response {
         );
         oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
-        this.logResponse(req, res, {"redirct": url.toString()});
+        this.logResponse(req, res, { redirct: url.toString() });
 
         return res.redirect(url.toString());
     }

@@ -4,6 +4,7 @@ import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
 import ObjectID from 'Common/Types/ObjectID';
+import { Dictionary } from 'lodash';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
@@ -27,13 +28,17 @@ abstract class Navigation {
     }
 
     public static getQueryStringByName(paramName: string): string | null {
-        const urlSearchParams = new URLSearchParams(window.location.search);
-        const params = Object.fromEntries(urlSearchParams.entries());
-        if(params && params[paramName]){
-            return params[paramName] as string; 
+        const urlSearchParams: URLSearchParams = new URLSearchParams(
+            window.location.search
+        );
+        const params: Dictionary<string> = Object.fromEntries(
+            urlSearchParams.entries()
+        );
+        if (params && params[paramName]) {
+            return params[paramName] as string;
         }
 
-        return null; 
+        return null;
     }
 
     public static getParamByName(

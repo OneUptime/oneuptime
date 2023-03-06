@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -40,7 +48,7 @@ import Team from './Team';
         Permission.ProjectOwner,
         Permission.ProjectUser,
         Permission.ProjectAdmin,
-        
+
         Permission.CanReadProjectSSO,
     ],
     delete: [
@@ -70,13 +78,12 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanCreateProjectSSO,
-           
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [],
@@ -109,7 +116,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
         ],
@@ -137,7 +144,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
         ],
@@ -169,7 +176,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
         ],
@@ -199,7 +206,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [
@@ -229,7 +236,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [
@@ -280,9 +287,6 @@ export default class ProjectSSO extends BaseModel {
     @UniqueColumnBy('projectId')
     public signOnURL?: URL = undefined;
 
-
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -324,7 +328,6 @@ export default class ProjectSSO extends BaseModel {
     })
     public teams?: Array<Team> = undefined; // teams that teammember should be added to when they sign into SSO for the first time.
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -334,7 +337,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [
@@ -364,7 +367,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [
@@ -393,7 +396,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [],
@@ -426,7 +429,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [],
@@ -444,7 +447,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [],
@@ -473,7 +476,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
         update: [],
@@ -521,12 +524,10 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadProjectSSO,
         ],
-        update: [
-           
-        ],
+        update: [],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
