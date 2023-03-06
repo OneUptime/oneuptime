@@ -109,8 +109,6 @@ import MonitorIncidents from './Pages/Monitor/View/Incidents';
 import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
 import MonitorViewCustomFields from './Pages/Monitor/View/CustomFields';
 
-// Import CSS
-// import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';

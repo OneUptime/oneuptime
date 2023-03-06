@@ -97,6 +97,7 @@ class BaseAPI extends API {
     protected static override handleError(
         error: HTTPErrorResponse | APIException
     ): HTTPErrorResponse | APIException {
+
         if (error instanceof HTTPErrorResponse && error.statusCode === 401) {
             const cookies: Cookies = new Cookies();
             cookies.remove('admin-data', { path: '/' });

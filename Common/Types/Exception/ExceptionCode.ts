@@ -12,6 +12,7 @@ enum ExceptionCode {
     PaymentRequiredException = 402,
     NotFoundException = 404,
     TimeoutException = 408,
+    SsoAuthorizationException = 406,
 }
 
 export default ExceptionCode;

@@ -19,6 +19,7 @@ import Sort from './Sort';
 import Project from 'Model/Models/Project';
 import Populate from './Populate';
 import User from '../User';
+import Navigation from '../Navigation';
 
 export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
     data: Array<TBaseModel>;
@@ -106,6 +107,9 @@ export default class ModelAPI {
         if (result.isSuccess()) {
             return result;
         }
+
+        this.checkStatusCode(result);
+        
         throw result;
     }
 
@@ -158,6 +162,9 @@ export default class ModelAPI {
         if (result.isSuccess()) {
             return result;
         }
+
+        this.checkStatusCode(result);
+
         throw result;
     }
 
@@ -227,6 +234,10 @@ export default class ModelAPI {
                 limit: result.limit,
             };
         }
+
+        this.checkStatusCode(result);
+
+
         throw result;
     }
 
@@ -274,6 +285,8 @@ export default class ModelAPI {
 
             return count;
         }
+
+        this.checkStatusCode(result);
 
         throw result;
     }
@@ -346,6 +359,9 @@ export default class ModelAPI {
         if (result.isSuccess()) {
             return result.data as TBaseModel;
         }
+
+        this.checkStatusCode(result);
+
         throw result;
     }
 
@@ -383,6 +399,18 @@ export default class ModelAPI {
             return;
         }
 
+        this.checkStatusCode(result);
+
         throw result;
+    }
+
+    private static checkStatusCode<TBaseModel extends BaseModel>(result: HTTPResponse<TBaseModel | JSONObject | JSONArray | Array<TBaseModel>> | HTTPErrorResponse){
+        if(result.statusCode === 406){
+            const project: Project | null = ProjectUtil.getCurrentProject();
+
+            if(project && project.id){
+                Navigation.navigate(new Route(`/dashboard/${project._id}/sso`));
+            }
+        }
     }
 }
