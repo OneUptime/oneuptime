@@ -17,7 +17,7 @@ import Workflow, {
     getPlaceholderTriggerNode,
 } from 'CommonUI/src/Components/Workflow/Workflow';
 import Card from 'CommonUI/src/Components/Card/Card';
-import { Edge, Node } from 'reactflow'
+import { Edge, Node } from 'reactflow';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import WorkflowModel from 'Model/Models/Workflow';

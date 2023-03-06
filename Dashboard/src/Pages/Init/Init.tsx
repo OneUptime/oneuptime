@@ -28,21 +28,24 @@ const Init: FunctionComponent<ComponentProps> = (
         if (sso_token) {
             // set token.
 
-            const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(sso_token) as JSONWebTokenData;
+            const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
+                sso_token
+            ) as JSONWebTokenData;
 
-            if(!decodedtoken){
-                alert("Invalid SSO Token. Logging out.")
+            if (!decodedtoken) {
+                alert('Invalid SSO Token. Logging out.');
                 return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
             }
 
-
-            if(decodedtoken.userId.toString() !== User.getUserId().toString()){
-                alert("SSO Token does not belong to this user. Logging out.")
+            if (
+                decodedtoken.userId.toString() !== User.getUserId().toString()
+            ) {
+                alert('SSO Token does not belong to this user. Logging out.');
                 return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
             }
 
-            if(!decodedtoken.projectId){
-                alert("Project ID not found in the SSO token. Logging out.")
+            if (!decodedtoken.projectId) {
+                alert('Project ID not found in the SSO token. Logging out.');
                 return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
             }
 

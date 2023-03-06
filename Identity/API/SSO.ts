@@ -21,11 +21,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import URL from 'Common/Types/API/URL';
-import {
-    DashboardRoute,
-    Domain,
-    HttpProtocol,
-} from 'CommonServer/Config';
+import { DashboardRoute, Domain, HttpProtocol } from 'CommonServer/Config';
 import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
@@ -184,8 +180,8 @@ router.post(
                     },
                     populate: {
                         teams: {
-                            _id: true
-                        }
+                            _id: true,
+                        },
                     },
                     props: {
                         isRoot: true,
@@ -308,21 +304,18 @@ router.post(
                 },
             });
 
-
-            let isNewUser: boolean = false; 
+            let isNewUser: boolean = false;
 
             if (!alreadySavedUser) {
                 // this should never happen because user is logged in before he signs in with SSO UNLESS he initiates the login though the IDP.
 
-
-                /// Create a user. 
+                /// Create a user.
 
                 alreadySavedUser = await UserService.createByEmail(email, {
                     isRoot: true,
                 });
 
                 isNewUser = true;
-                
             }
 
             // If he does not then add him to teams that he should belong and log in.
@@ -331,9 +324,10 @@ router.post(
                     alreadySavedUser
                 );
 
-                return Response.render(req, res, "../Views/Message.ejs", {
-                    title: "Email not verified.",
-                    message:'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.'
+                return Response.render(req, res, '../Views/Message.ejs', {
+                    title: 'Email not verified.',
+                    message:
+                        'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.',
                 });
             }
 
@@ -355,10 +349,10 @@ router.post(
                 // user not in project, add him to default teams.
 
                 if (!projectSSO.teams || projectSSO.teams.length === 0) {
-
-                    return Response.render(req, res, "../Views/Message.ejs", {
-                        title: "No teams added.",
-                        message:'No teams have been added to this SSO config. Please contact your admin and have default teams added.'
+                    return Response.render(req, res, '../Views/Message.ejs', {
+                        title: 'No teams added.',
+                        message:
+                            'No teams have been added to this SSO config. Please contact your admin and have default teams added.',
                     });
                 }
 
@@ -384,10 +378,13 @@ router.post(
                 }
             }
 
-            if(isNewUser){
-                return Response.render(req, res, "../Views/Message.ejs", {
-                    title: "You have not signed up so far.",
-                    message: 'You need to sign up for an account on OneUptime with this email:' + email.toString() + '. Once you have signed up, you can use SSO to log in to your project.'
+            if (isNewUser) {
+                return Response.render(req, res, '../Views/Message.ejs', {
+                    title: 'You have not signed up so far.',
+                    message:
+                        'You need to sign up for an account on OneUptime with this email:' +
+                        email.toString() +
+                        '. Once you have signed up, you can use SSO to log in to your project.',
                 });
             }
 
