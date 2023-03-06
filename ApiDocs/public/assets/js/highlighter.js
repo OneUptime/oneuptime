@@ -1,2 +1,0 @@
-
-Highlighter={},Highlighter.highlight=function(e: $TSFixMe){$(e).find("span.highlight_js").each(function(e: $TSFixMe,t: $TSFixMe){hljs.highlightBlock(t)})},$(document).ready(function(){Highlighter.highlight(document)});

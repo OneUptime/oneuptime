@@ -8,6 +8,8 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
+import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 
 export interface ComponentProps extends PageComponentProps {
     isLoadingProjects: boolean;
@@ -23,9 +25,28 @@ const Init: FunctionComponent<ComponentProps> = (
         const sso_token: string | null =
             Navigation.getQueryStringByName('sso_token');
 
-        if (sso_token && props.currentProject && props.currentProject.id) {
+        if (sso_token) {
             // set token.
-            User.setSsoToken(props.currentProject.id, sso_token);
+
+            const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(sso_token) as JSONWebTokenData;
+
+            if(!decodedtoken){
+                alert("Invalid SSO Token. Logging out.")
+                return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
+            }
+
+
+            if(decodedtoken.userId.toString() !== User.getUserId().toString()){
+                alert("SSO Token does not belong to this user. Logging out.")
+                return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
+            }
+
+            if(!decodedtoken.projectId){
+                alert("Project ID not found in the SSO token. Logging out.")
+                return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
+            }
+
+            User.setSsoToken(decodedtoken.projectId, sso_token);
         }
     }, []);
 

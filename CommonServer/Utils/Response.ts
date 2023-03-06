@@ -89,6 +89,22 @@ export default class Response {
         this.logResponse(req, res);
     }
 
+    public static render(req: ExpressRequest, res: ExpressResponse, path: string, vars: JSONObject){
+        const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        oneUptimeResponse.set(
+            'ExpressRequest-Id',
+            oneUptimeRequest.id.toString()
+        );
+        oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+            
+        oneUptimeResponse.render(path, vars);
+
+        return this.logResponse(req, res, { "render": path, vars: vars });
+    }
+
     public static sendErrorResponse(
         req: ExpressRequest,
         res: ExpressResponse,

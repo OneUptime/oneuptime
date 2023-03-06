@@ -1,0 +1,51 @@
+<html>
+
+<head>
+    <%- include('./Partials/Head.ejs') -%>
+    <title> <%= title %> </title>
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="h-full">
+
+        <main class="mx-auto max-w-7xl pb-10 lg:py-12 lg:px-8">
+            
+            <div class="sm:mx-auto sm:w-full sm:max-w-md flex justify-center mt-10 mb-10">
+                <img
+                    class="mx-auto h-12 w-auto"
+                    src="/img/3-transparent.svg"
+                    alt="OneUptime"
+                />
+            </div>
+
+
+            <div class="">
+                <!-- Payment details -->
+                <div class="space-y-6 sm:px-6 lg:col-span-9 lg:px-0">
+                    <section aria-labelledby="payment-details-heading">
+                        <form action="#" method="POST">
+                            <div class="shadow sm:overflow-hidden sm:rounded-md">
+                                <div class="bg-white py-6 px-4 sm:p-6">
+                                    <div>
+                                        <h2 id="payment-details-heading"
+                                            class="text-lg font-medium leading-6 text-gray-900"><%= title %></h2>
+                                        <p class="mt-1 text-sm text-gray-500"><%= message %></p>
+                                    </div>
+
+
+                                </div>
+
+                            </div>
+                        </form>
+                    </section>
+
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>

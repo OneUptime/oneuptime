@@ -38,7 +38,7 @@ export default class AuthenticationEmail {
             subject: 'Please verify email.',
             templateType: EmailTemplateType.SignupWelcomeEmail,
             vars: {
-                name: user.name!.toString(),
+                name: user.name?.toString() || '',
                 tokenVerifyUrl: new URL(
                     HttpProtocol,
                     Domain,
