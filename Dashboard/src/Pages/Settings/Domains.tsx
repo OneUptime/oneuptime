@@ -20,9 +20,10 @@ import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import API from 'CommonUI/src/Utils/API/API';
+
 const Domains: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -216,14 +217,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             setShowVerificationModal(false);
                             setRefreshToggle(!refreshToggle);
                         } catch (err) {
-                            try {
-                                setError(
-                                    (err as HTTPErrorResponse).message ||
-                                        'Server Error. Please try again'
-                                );
-                            } catch (e) {
-                                setError('Server Error. Please try again');
-                            }
+                            setError(API.getFriendlyMessage(err));
                             setIsVerificationLoading(false);
                         }
                     }}

@@ -17,6 +17,7 @@ import {
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import LocalStorage from '../LocalStorage';
+import Exception from 'Common/Types/Exception/Exception';
 
 class BaseAPI extends API {
     public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
@@ -97,7 +98,6 @@ class BaseAPI extends API {
     protected static override handleError(
         error: HTTPErrorResponse | APIException
     ): HTTPErrorResponse | APIException {
-
         if (error instanceof HTTPErrorResponse && error.statusCode === 401) {
             const cookies: Cookies = new Cookies();
             cookies.remove('admin-data', { path: '/' });
@@ -107,6 +107,19 @@ class BaseAPI extends API {
         }
 
         return error;
+    }
+
+    public static getFriendlyMessage(
+        err: HTTPErrorResponse | Exception | unknown
+    ): string {
+        if (err instanceof HTTPErrorResponse) {
+            if (err.statusCode === 502) {
+                return 'Error connecting to server. Please try again in few minutes.';
+            }
+
+            return err.message;
+        }
+        return 'Server Error. Please try again';
     }
 }
 

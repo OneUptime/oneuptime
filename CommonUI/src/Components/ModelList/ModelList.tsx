@@ -6,10 +6,10 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Input from '../Input/Input';
 import StaicModelList from '../ModelList/StaticModelList';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
+import API from '../../Utils/API/API';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
@@ -69,14 +69,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
 
             setModalList(listResult.data);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

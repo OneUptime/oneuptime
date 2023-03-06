@@ -13,7 +13,6 @@ import ModelAPI, {
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 
@@ -58,6 +57,7 @@ import { Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ModalWidth } from '../Modal/Modal';
 import ProjectUtil from '../../Utils/Project';
+import API from '../../Utils/API/API';
 
 export enum ShowTableAs {
     Table,
@@ -235,14 +235,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
             await fetchItems();
         } catch (err) {
-            try {
-                setErrorModalText(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setErrorModalText('Server Error. Please try again');
-            }
+            setErrorModalText(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
@@ -348,14 +341,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             setColumns(classicColumns);
         } catch (err) {
-            try {
-                setTableFilterError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setTableFilterError('Server Error. Please try again');
-            }
+            setTableFilterError(API.getFriendlyMessage(err));
         }
 
         setIsTableFilterFetchLoading(false);
@@ -397,14 +383,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             setTotalItemsCount(listResult.count);
             setData(listResult.data);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

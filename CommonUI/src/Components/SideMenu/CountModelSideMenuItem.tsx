@@ -3,10 +3,9 @@ import React, { useEffect, useState } from 'react';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
-
+import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -52,14 +51,7 @@ const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
 
             setCount(count);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

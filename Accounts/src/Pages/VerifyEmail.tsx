@@ -10,7 +10,7 @@ import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import URL from 'Common/Types/API/URL';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import API from 'CommonUI/src/Utils/API/API';
 
 const VerifyEmail: FunctionComponent = () => {
     const apiUrl: URL = VERIFY_EMAIL_API_URL;
@@ -39,10 +39,7 @@ const VerifyEmail: FunctionComponent = () => {
                 {}
             );
         } catch (err) {
-            setError(
-                (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
-            );
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

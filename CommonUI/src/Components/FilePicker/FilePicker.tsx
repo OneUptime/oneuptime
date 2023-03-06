@@ -14,8 +14,8 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import Icon, { SizeProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Dictionary from 'Common/Types/Dictionary';
+import API from '../../Utils/API/API';
 
 export interface ComponentProps {
     initialValue?: undefined | Array<FileModel> | FileModel;
@@ -119,14 +119,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 props.onBlur && props.onBlur();
                 props.onChange && props.onChange(filesResult);
             } catch (err) {
-                try {
-                    setError(
-                        (err as HTTPErrorResponse).message ||
-                            'Server Error. Please try again'
-                    );
-                } catch (e) {
-                    setError('Server Error. Please try again');
-                }
+                setError(API.getFriendlyMessage(err));
             }
             setIsLoading(false);
         },

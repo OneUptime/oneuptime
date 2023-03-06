@@ -25,7 +25,6 @@ import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Modal from 'CommonUI/src/Components/Modal/Modal';
 import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
@@ -84,14 +83,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             setSetupIntent(data['setupIntent'] as string);
             setIsModalLoading(false);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(BaseAPI.getFriendlyMessage(err));
             setIsModalLoading(false);
         }
     };

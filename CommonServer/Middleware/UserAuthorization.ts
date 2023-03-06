@@ -83,12 +83,15 @@ export default class UserMiddleware {
     ): boolean {
         const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
         if (ssoTokens && ssoTokens[projectId.toString()]) {
-            const decodedData: JSONWebTokenData = JSONWebToken.decode(ssoTokens[projectId.toString()] as string)
-            if(decodedData.projectId?.toString() === projectId.toString() && decodedData.userId.toString() === userId.toString()){
+            const decodedData: JSONWebTokenData = JSONWebToken.decode(
+                ssoTokens[projectId.toString()] as string
+            );
+            if (
+                decodedData.projectId?.toString() === projectId.toString() &&
+                decodedData.userId.toString() === userId.toString()
+            ) {
                 return true;
             }
-
-            
         }
 
         return false;
@@ -138,7 +141,8 @@ export default class UserMiddleware {
             oneuptimeRequest.userType = UserType.User;
         }
 
-        const userId: string = oneuptimeRequest.userAuthorization.userId.toString();
+        const userId: string =
+            oneuptimeRequest.userAuthorization.userId.toString();
 
         await UserService.updateOneBy({
             query: {
@@ -179,7 +183,11 @@ export default class UserMiddleware {
 
             if (
                 project.requireSsoForLogin &&
-                !this.doesSsoTokenForProjectExist(req, tenantId, new ObjectID(userId))
+                !this.doesSsoTokenForProjectExist(
+                    req,
+                    tenantId,
+                    new ObjectID(userId)
+                )
             ) {
                 return Response.sendErrorResponse(
                     req,
@@ -237,7 +245,11 @@ export default class UserMiddleware {
                             p.requireSsoForLogin
                         );
                     }) &&
-                    !this.doesSsoTokenForProjectExist(req, projectId, new ObjectID(userId))
+                    !this.doesSsoTokenForProjectExist(
+                        req,
+                        projectId,
+                        new ObjectID(userId)
+                    )
                 ) {
                     continue;
                 }

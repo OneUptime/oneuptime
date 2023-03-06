@@ -21,7 +21,6 @@ import { Edge, Node } from 'reactflow';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import WorkflowModel from 'Model/Models/Workflow';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
@@ -160,14 +159,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 setError('Workflow not found');
             }
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
@@ -233,14 +225,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                     setSaveStatus('Changes Saved.');
                 } catch (err) {
-                    try {
-                        setError(
-                            (err as HTTPErrorResponse).message ||
-                                'Server Error. Please try again'
-                        );
-                    } catch (e) {
-                        setError('Server Error. Please try again');
-                    }
+                    setError(API.getFriendlyMessage(err));
 
                     setSaveStatus('Save Error.');
                 }
@@ -360,17 +345,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                                     setShowRunSuccessConfirmation(true);
                                 } catch (err) {
-                                    try {
-                                        setError(
-                                            (err as HTTPErrorResponse)
-                                                .message ||
-                                                'Server Error. Please try again'
-                                        );
-                                    } catch (e) {
-                                        setError(
-                                            'Server Error. Please try again'
-                                        );
-                                    }
+                                    setError(API.getFriendlyMessage(err));
                                 }
                             }}
                         />

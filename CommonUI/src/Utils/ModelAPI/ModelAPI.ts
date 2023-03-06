@@ -109,7 +109,7 @@ export default class ModelAPI {
         }
 
         this.checkStatusCode(result);
-        
+
         throw result;
     }
 
@@ -236,7 +236,6 @@ export default class ModelAPI {
         }
 
         this.checkStatusCode(result);
-
 
         throw result;
     }
@@ -404,11 +403,17 @@ export default class ModelAPI {
         throw result;
     }
 
-    private static checkStatusCode<TBaseModel extends BaseModel>(result: HTTPResponse<TBaseModel | JSONObject | JSONArray | Array<TBaseModel>> | HTTPErrorResponse){
-        if(result.statusCode === 406){
+    private static checkStatusCode<TBaseModel extends BaseModel>(
+        result:
+            | HTTPResponse<
+                  TBaseModel | JSONObject | JSONArray | Array<TBaseModel>
+              >
+            | HTTPErrorResponse
+    ): void {
+        if (result.statusCode === 406) {
             const project: Project | null = ProjectUtil.getCurrentProject();
 
-            if(project && project.id){
+            if (project && project.id) {
                 Navigation.navigate(new Route(`/dashboard/${project._id}/sso`));
             }
         }

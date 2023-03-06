@@ -2,7 +2,6 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Select from '../../Utils/ModelAPI/Select';
 import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
@@ -14,6 +13,7 @@ import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessC
 import Field from './Field';
 import Detail from '../Detail/Detail';
 import Populate from '../../Utils/ModelAPI/Populate';
+import API from '../../Utils/API/API';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -183,16 +183,8 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
 
             setItem(item);
         } catch (err) {
-            let error: string = '';
-            try {
-                error =
-                    (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again';
-            } catch (e) {
-                error = 'Server Error. Please try again';
-            }
-            setError(error);
-            props.onError && props.onError(error);
+            setError(API.getFriendlyMessage(err));
+            props.onError && props.onError(API.getFriendlyMessage(err));
         }
         setIsLoading(false);
         props.onLoadingChange && props.onLoadingChange(false);

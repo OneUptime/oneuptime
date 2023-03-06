@@ -1,11 +1,10 @@
 import BaseModel from 'Common/Models/BaseModel';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ObjectID from 'Common/Types/ObjectID';
 import React, { ReactElement, useState } from 'react';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { ButtonStyleType } from '../Button/Button';
 import Card from '../Card/Card';
-
+import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from '../Modal/ConfirmModal';
 
@@ -33,14 +32,7 @@ const ModelDelete: Function = <TBaseModel extends BaseModel>(
             );
             props.onDeleteSuccess && props.onDeleteSuccess();
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
             setShowErrorModal(true);
         }
 

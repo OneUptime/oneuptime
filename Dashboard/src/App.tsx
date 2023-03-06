@@ -113,13 +113,13 @@ import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import Welcome from './Pages/Onboarding/Welcome';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from './Utils/EventName';
 
 import Sso from './Pages/Onboarding/SSO';
+import API from 'CommonUI/src/Utils/API/API';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -198,10 +198,7 @@ const App: FunctionComponent = () => {
             );
             setProjects(result.data);
         } catch (err) {
-            setError(
-                (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
-            );
+            setError(API.getFriendlyMessage(err));
         }
 
         setLoading(false);

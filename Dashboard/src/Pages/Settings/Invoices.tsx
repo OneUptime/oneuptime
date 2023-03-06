@@ -19,7 +19,6 @@ import { Green, Yellow } from 'Common/Types/BrandColors';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -54,14 +53,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             Navigation.reload();
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(BaseAPI.getFriendlyMessage(err));
             setIsLoading(false);
         }
     };
