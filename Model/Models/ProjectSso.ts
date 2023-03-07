@@ -48,7 +48,7 @@ import Team from './Team';
         Permission.ProjectOwner,
         Permission.ProjectUser,
         Permission.ProjectAdmin,
-
+        Permission.ProjectUser,
         Permission.CanReadProjectSSO,
     ],
     delete: [
@@ -83,7 +83,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
-
+            Permission.ProjectUser,
             Permission.CanReadProjectSSO,
         ],
         update: [],
@@ -116,7 +116,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-
+            Permission.ProjectUser,
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
         ],
@@ -144,7 +144,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-
+            Permission.ProjectUser,
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
         ],
@@ -176,7 +176,7 @@ export default class ProjectSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-
+            Permission.ProjectUser,
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
         ],
@@ -267,6 +267,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanReadProjectSSO,
+            Permission.ProjectUser,
         ],
         update: [
             Permission.ProjectOwner,

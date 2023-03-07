@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Card from 'CommonUI/src/Components/Card/Card';
@@ -9,14 +9,20 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import URL from 'Common/Types/API/URL';
 import { IDENTITY_URL } from 'CommonUI/src/Config';
 import Route from 'Common/Types/API/Route';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
 const SSO: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+
     return (
         <Page title={''} breadcrumbLinks={[]}>
             <div className="flex justify-center w-full mt-20">
-                <div className="w-1/3 min-w-lg">
+                {isLoading && <PageLoader isVisible={true} />}
+                {!isLoading && <div className="w-1/3 min-w-lg">
                     <Card
                         title={'Single Sign On (SSO)'}
                         description="Please select an SSO provider to log in to this project."
@@ -42,13 +48,13 @@ const SSO: FunctionComponent<PageComponentProps> = (
                                         list: Array<ProjectSSO>
                                     ) => {
                                         if (list && list.length > 0) {
+                                            setIsLoading(true);
                                             Navigation.navigate(
                                                 URL.fromURL(
                                                     IDENTITY_URL
                                                 ).addRoute(
                                                     new Route(
-                                                        `/sso/${DashboardNavigation.getProjectId()}/${
-                                                            list[0]?._id
+                                                        `/sso/${DashboardNavigation.getProjectId()}/${list[0]?._id
                                                         }`
                                                     )
                                                 )
@@ -59,7 +65,7 @@ const SSO: FunctionComponent<PageComponentProps> = (
                             </div>
                         </div>
                     </Card>
-                </div>
+                </div>}
             </div>
         </Page>
     );
