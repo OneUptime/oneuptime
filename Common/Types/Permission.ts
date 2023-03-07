@@ -15,6 +15,9 @@ enum Permission {
     // All users in the project will have this permission.
     ProjectUser = 'ProjectUser',
 
+    // Users who are in the project but do not have SSO authorization.
+    UnAuthorizedSsoUser = 'UnAuthorizedSsoUser',
+
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 

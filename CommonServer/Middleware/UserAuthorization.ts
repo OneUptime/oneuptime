@@ -262,22 +262,29 @@ export default class UserMiddleware {
                         projectId,
                         new ObjectID(userId)
                     )
-                ) {
-                    // Just add ProjectUser Permission in this case.
-                }
-
-                // get project level permissions if projectid exists in request.
-                const userTenantAccessPermission: UserTenantAccessPermission | null =
-                    await AccessTokenService.getUserTenantAccessPermission(
-                        oneuptimeRequest.userAuthorization.userId,
-                        projectId
-                    );
-
-                if (userTenantAccessPermission) {
+                ) { 
+                    // Add default permissions. 
+                    const userTenantAccessPermission: UserTenantAccessPermission | null = AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
                     oneuptimeRequest.userTenantAccessPermission[
                         projectId.toString()
                     ] = userTenantAccessPermission;
+
+                } else {
+                    // get project level permissions if projectid exists in request.
+                    const userTenantAccessPermission: UserTenantAccessPermission | null =
+                        await AccessTokenService.getUserTenantAccessPermission(
+                            oneuptimeRequest.userAuthorization.userId,
+                            projectId
+                        );
+
+                    if (userTenantAccessPermission) {
+                        oneuptimeRequest.userTenantAccessPermission[
+                            projectId.toString()
+                        ] = userTenantAccessPermission;
+                    }
                 }
+
+
             }
         }
 
@@ -305,7 +312,7 @@ export default class UserMiddleware {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userTenantAccessPermission[
-                        tenantId.toString()
+                    tenantId.toString()
                     ]!
                 )
             );
@@ -320,7 +327,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['project-permissions-hash'] &&
                     req.headers['project-permissions-hash'] ===
-                        projectPermissionsHash
+                    projectPermissionsHash
                 )
             ) {
                 res.set('project-permissions', projectValue);

@@ -72,7 +72,7 @@ export default class AccessTokenService {
         });
 
         userPermissions.push({
-            permission: Permission.ProjectUser,
+            permission: Permission.UnAuthorizedSsoUser,
             labelIds: [],
             _type: 'UserPermission',
         });
