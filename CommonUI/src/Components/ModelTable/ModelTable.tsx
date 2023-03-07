@@ -67,14 +67,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -206,8 +206,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 alignItem: column.alignItem,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                        return column.getElement!(item, onBeforeFetchData);
-                    }
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
                     : undefined,
             });
 
@@ -374,8 +374,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                            [sortBy as any]: sortOrder,
-                        }
+                              [sortBy as any]: sortOrder,
+                          }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -493,8 +493,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                    }`,
+                title: `${props.createVerb || 'Create'} ${
+                    props.singularName || model.singularName
+                }`,
                 buttonStyle: ButtonStyleType.NORMAL,
                 className:
                     props.showFilterButton || props.showRefreshButton
@@ -628,7 +629,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return userPermissions;
     };
 
-    const serializeToTableColumns = () => {
+    const serializeToTableColumns: Function = (): void => {
         // Convert ModelColumns to TableColumns.
 
         const columns: Array<TableColumn> = [];
@@ -729,7 +730,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setActionSchema();
         setHeaderButtons();
         setColumns(columns);
-    }
+    };
 
     useEffect(() => {
         serializeToTableColumns();
@@ -993,9 +994,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                item: JSONObject,
-                onBeforeFetchData?: JSONObject | undefined
-            ) => ReactElement)
+                  item: JSONObject,
+                  onBeforeFetchData?: JSONObject | undefined
+              ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -1039,10 +1040,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                            setOrderedStatesListNewItemOrder(order);
-                            setModalType(ModalType.Create);
-                            setShowModal(true);
-                        }
+                              setOrderedStatesListNewItemOrder(order);
+                              setModalType(ModalType.Create);
+                              setShowModal(true);
+                          }
                         : undefined
                 }
                 singularLabel={
@@ -1109,8 +1110,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             }}
                         >
                             <Pill
-                                text={`${new props.modelType().readBillingPlan
-                                    } Plan`}
+                                text={`${
+                                    new props.modelType().readBillingPlan
+                                } Plan`}
                                 color={Yellow}
                             />
                         </span>
@@ -1210,17 +1212,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} New ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     modalWidth={props.createEditModalWidth}
                     name={
                         modalType === ModalType.Create
-                            ? `${props.name} > ${props.createVerb || 'Create'
-                            } New ${props.singularName || model.singularName}`
-                            : `${props.name} > Edit ${props.singularName || model.singularName
-                            }`
+                            ? `${props.name} > ${
+                                  props.createVerb || 'Create'
+                              } New ${props.singularName || model.singularName}`
+                            : `${props.name} > Edit ${
+                                  props.singularName || model.singularName
+                              }`
                     }
                     initialValues={
                         modalType === ModalType.Create
@@ -1232,8 +1237,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Save Changes`
                     }
                     onSuccess={async (item: TBaseModel) => {
