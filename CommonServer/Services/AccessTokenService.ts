@@ -60,8 +60,9 @@ export default class AccessTokenService {
         return permissionToStore;
     }
 
-    public static getDefaultUserTenantAccessPermission(projectId: ObjectID): UserTenantAccessPermission {
-
+    public static getDefaultUserTenantAccessPermission(
+        projectId: ObjectID
+    ): UserTenantAccessPermission {
         const userPermissions: Array<UserPermission> = [];
 
         userPermissions.push({
@@ -176,11 +177,10 @@ export default class AccessTokenService {
             });
         }
 
-
-        const permission: UserTenantAccessPermission = AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
+        const permission: UserTenantAccessPermission =
+            AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
 
         permission.permissions = permission.permissions.concat(userPermissions);
-
 
         await GlobalCache.setJSON(
             PermissionNamespace.ProjectPermission,

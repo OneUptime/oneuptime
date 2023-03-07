@@ -80,7 +80,7 @@ export default class User {
             LocalStorage.getAllItems();
         const result: Dictionary<string> = {};
 
-        let numberOfTokens = 1; 
+        let numberOfTokens: number = 1;
 
         for (const key in localStorageItems) {
             if (!localStorageItems[key]) {
@@ -88,7 +88,9 @@ export default class User {
             }
 
             if (key.startsWith('sso_')) {
-                result['sso-'+numberOfTokens] = localStorageItems[key] as string;
+                result['sso-' + numberOfTokens] = localStorageItems[
+                    key
+                ] as string;
                 numberOfTokens++;
             }
         }

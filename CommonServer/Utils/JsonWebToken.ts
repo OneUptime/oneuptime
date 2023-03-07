@@ -71,7 +71,9 @@ class JSONWebToken {
                 userId: new ObjectID(decoded['userId'] as string),
                 email: new Email(decoded['email'] as string),
                 name: new Name(decoded['name'] as string),
-                projectId: decoded['projectId'] ? new ObjectID(decoded['projectId'] as string) : undefined,
+                projectId: decoded['projectId']
+                    ? new ObjectID(decoded['projectId'] as string)
+                    : undefined,
                 isMasterAdmin: Boolean(decoded['isMasterAdmin']),
             };
         } catch (e) {

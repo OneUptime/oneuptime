@@ -3,7 +3,10 @@ import Query from '../../Utils/ModelAPI/Query';
 import BaseModel from 'Common/Models/BaseModel';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import ModelAPI, { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, {
+    ListResult,
+    RequestOptions,
+} from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
 import Input from '../Input/Input';
@@ -134,45 +137,47 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                     <></>
                 )}
 
-                {!error && !isLoading && <StaicModelList<WorkflowVariable>
-                    list={searchedList}
-                    headerField={props.headerField}
-                    descriptionField={props.descriptionField}
-                    titleField={props.titleField}
-                    selectedItems={selectedList}
-                    onClick={(model: TBaseModel) => {
-                        if (props.selectMultiple) {
-                            // if added to the list, then remove or add to list
-                            const isSelected: boolean =
-                                selectedList.filter(
-                                    (selectedItem: TBaseModel) => {
-                                        return (
-                                            selectedItem._id?.toString() ===
-                                            model._id?.toString()
-                                        );
-                                    }
-                                ).length > 0;
-                            if (isSelected) {
-                                // remove the item.
-                                setSelectedList(
-                                    selectedList.filter((i: TBaseModel) => {
-                                        return (
-                                            i._id?.toString() !==
-                                            model._id?.toString()
-                                        );
-                                    })
-                                );
+                {!error && !isLoading && (
+                    <StaicModelList<WorkflowVariable>
+                        list={searchedList}
+                        headerField={props.headerField}
+                        descriptionField={props.descriptionField}
+                        titleField={props.titleField}
+                        selectedItems={selectedList}
+                        onClick={(model: TBaseModel) => {
+                            if (props.selectMultiple) {
+                                // if added to the list, then remove or add to list
+                                const isSelected: boolean =
+                                    selectedList.filter(
+                                        (selectedItem: TBaseModel) => {
+                                            return (
+                                                selectedItem._id?.toString() ===
+                                                model._id?.toString()
+                                            );
+                                        }
+                                    ).length > 0;
+                                if (isSelected) {
+                                    // remove the item.
+                                    setSelectedList(
+                                        selectedList.filter((i: TBaseModel) => {
+                                            return (
+                                                i._id?.toString() !==
+                                                model._id?.toString()
+                                            );
+                                        })
+                                    );
+                                } else {
+                                    setSelectedList([
+                                        ...selectedList,
+                                        { ...model },
+                                    ]);
+                                }
                             } else {
-                                setSelectedList([
-                                    ...selectedList,
-                                    { ...model },
-                                ]);
+                                setSelectedList([{ ...model }]);
                             }
-                        } else {
-                            setSelectedList([{ ...model }]);
-                        }
-                    }}
-                />}
+                        }}
+                    />
+                )}
             </div>
         </div>
     );

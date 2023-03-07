@@ -60,17 +60,16 @@ export default class UserMiddleware {
 
         for (const key of Object.keys(req.headers)) {
             if (key.startsWith('sso-')) {
-
                 const value: string | undefined | Array<string> =
                     req.headers[key];
                 let projectId: string | undefined = undefined;
-                
+
                 try {
                     projectId = JSONWebToken.decode(
                         value as string
                     ).projectId?.toString();
                 } catch (err) {
-                    logger.error(err)
+                    logger.error(err);
                     continue;
                 }
 
@@ -93,15 +92,7 @@ export default class UserMiddleware {
         projectId: ObjectID,
         userId: ObjectID
     ): boolean {
-
-
-        console.log("HEADERS");
-        console.log(req.headers);
-
         const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
-
-        console.log("SSO TOKENS");
-        console.log(ssoTokens);
 
         if (ssoTokens && ssoTokens[projectId.toString()]) {
             const decodedData: JSONWebTokenData = JSONWebToken.decode(
@@ -123,7 +114,6 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-
         const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
@@ -203,7 +193,6 @@ export default class UserMiddleware {
                 );
             }
 
-
             if (
                 project.requireSsoForLogin &&
                 !UserMiddleware.doesSsoTokenForProjectExist(
@@ -274,9 +263,7 @@ export default class UserMiddleware {
                         new ObjectID(userId)
                     )
                 ) {
-                    // Just add ProjectUser Permission in this case. 
-
-
+                    // Just add ProjectUser Permission in this case.
                 }
 
                 // get project level permissions if projectid exists in request.
@@ -318,7 +305,7 @@ export default class UserMiddleware {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userTenantAccessPermission[
-                    tenantId.toString()
+                        tenantId.toString()
                     ]!
                 )
             );
@@ -333,7 +320,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['project-permissions-hash'] &&
                     req.headers['project-permissions-hash'] ===
-                    projectPermissionsHash
+                        projectPermissionsHash
                 )
             ) {
                 res.set('project-permissions', projectValue);
