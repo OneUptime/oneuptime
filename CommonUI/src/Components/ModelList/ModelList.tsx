@@ -3,7 +3,7 @@ import Query from '../../Utils/ModelAPI/Query';
 import BaseModel from 'Common/Models/BaseModel';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
 import Input from '../Input/Input';
@@ -19,6 +19,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     descriptionField?: string | undefined;
     selectMultiple?: boolean | undefined;
     select: Select<TBaseModel>;
+    fetchRequestOptions?: RequestOptions | undefined;
     noItemsMessage: string;
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
     onSelectChange: (list: Array<TBaseModel>) => void;
@@ -64,7 +65,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                     props.select,
                     {},
                     {},
-                    {}
+                    props.fetchRequestOptions
                 );
 
             setModalList(listResult.data);

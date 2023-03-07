@@ -35,6 +35,9 @@ const SSO: FunctionComponent<PageComponentProps> = (
                                             DashboardNavigation.getProjectId()?.toString(),
                                         isEnabled: true,
                                     }}
+                                    fetchRequestOptions={{
+                                        isMultiTenantRequest: true,
+                                    }}
                                     modelType={ProjectSSO}
                                     titleField="name"
                                     descriptionField="description"

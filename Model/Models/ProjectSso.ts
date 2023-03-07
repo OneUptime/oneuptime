@@ -30,7 +30,9 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import Team from './Team';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@MultiTenentQueryAllowed(true)
 @TableBillingAccessControl({
     create: PlanSelect.Scale,
     read: PlanSelect.Scale,

@@ -17,11 +17,11 @@ export default class User {
     }
 
     public static setSsoToken(projectId: ObjectID, token: string): void {
-        LocalStorage.setItem('sso:' + projectId.toString(), token);
+        LocalStorage.setItem('sso_' + projectId.toString(), token);
     }
 
     public static getSsoToken(projectId: ObjectID): string | null {
-        return LocalStorage.getItem('sso:' + projectId.toString()) as
+        return LocalStorage.getItem('sso_' + projectId.toString()) as
             | string
             | null;
     }
@@ -80,13 +80,16 @@ export default class User {
             LocalStorage.getAllItems();
         const result: Dictionary<string> = {};
 
+        let numberOfTokens = 1; 
+
         for (const key in localStorageItems) {
             if (!localStorageItems[key]) {
                 continue;
             }
 
-            if (key.startsWith('sso:')) {
-                result[key] = localStorageItems[key] as string;
+            if (key.startsWith('sso_')) {
+                result['sso-'+numberOfTokens] = localStorageItems[key] as string;
+                numberOfTokens++;
             }
         }
 

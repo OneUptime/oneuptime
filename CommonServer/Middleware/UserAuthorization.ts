@@ -27,6 +27,7 @@ import Response from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import logger from '../Utils/Logger';
 
 export default class UserMiddleware {
     /*
@@ -58,10 +59,21 @@ export default class UserMiddleware {
         const ssoTokens: Dictionary<string> = {};
 
         for (const key of Object.keys(req.headers)) {
-            if (key.startsWith('sso:')) {
-                const projectId: string | undefined = key.split(':')[1];
+            if (key.startsWith('sso-')) {
+
                 const value: string | undefined | Array<string> =
                     req.headers[key];
+                let projectId: string | undefined = undefined;
+                
+                try {
+                    projectId = JSONWebToken.decode(
+                        value as string
+                    ).projectId?.toString();
+                } catch (err) {
+                    logger.error(err)
+                    continue;
+                }
+
                 if (
                     projectId &&
                     value &&
@@ -81,7 +93,16 @@ export default class UserMiddleware {
         projectId: ObjectID,
         userId: ObjectID
     ): boolean {
+
+
+        console.log("HEADERS");
+        console.log(req.headers);
+
         const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
+
+        console.log("SSO TOKENS");
+        console.log(ssoTokens);
+
         if (ssoTokens && ssoTokens[projectId.toString()]) {
             const decodedData: JSONWebTokenData = JSONWebToken.decode(
                 ssoTokens[projectId.toString()] as string
@@ -102,6 +123,7 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
+
         const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
@@ -254,7 +276,7 @@ export default class UserMiddleware {
                 ) {
                     // Just add ProjectUser Permission in this case. 
 
-                    
+
                 }
 
                 // get project level permissions if projectid exists in request.
