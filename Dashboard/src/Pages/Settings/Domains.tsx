@@ -119,7 +119,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             domain: true,
                         },
                         title: 'Domain',
-                        fieldType: FormFieldSchemaType.Text,
+                        fieldType: FormFieldSchemaType.Domain,
                         required: true,
                         placeholder: 'acme-inc.com',
                         validation: {
