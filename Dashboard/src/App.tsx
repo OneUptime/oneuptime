@@ -219,6 +219,7 @@ const App: FunctionComponent = () => {
                 setShowProjectModal(false);
             }}
             selectedProject={selectedProject}
+            hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
         >
             <Routes>
                 <PageRoute

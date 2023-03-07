@@ -111,11 +111,30 @@ abstract class Navigation {
         if (route instanceof Route) {
             const current: Route = this.getCurrentRoute();
 
-            if (current.toString() === route.toString()) {
-                return true;
+            let isOnThisPage = true; 
+
+            const routeItems = route.toString().split("/");
+            const currentPathItems = current.toString().split("/");
+            if(routeItems.length !== currentPathItems.length){
+                return false;
             }
 
-            return false;
+            let start = 0; 
+            for(const item of currentPathItems){
+                if(routeItems[start]?.startsWith(":") && item){
+                    start++;
+                    continue; 
+                }
+
+                if(routeItems[start]?.toString() !== item.toString()){
+                    isOnThisPage = false;
+                    break;
+                }   
+                
+                start++;
+            }  
+            
+            return isOnThisPage;
         }
 
         if (route instanceof URL) {
