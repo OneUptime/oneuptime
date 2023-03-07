@@ -12,6 +12,7 @@ import TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Label from 'Model/Models/Label';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',
@@ -112,11 +113,14 @@ export default class AccessTokenService {
             return null;
         }
 
+        console.log("Teams");
+        console.log(teamIds);
+
         // get team permissions.
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
                 query: {
-                    teamId: teamIds,
+                    teamId: QueryHelper.in(teamIds),
                 },
                 select: {
                     permission: true,

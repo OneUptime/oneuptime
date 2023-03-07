@@ -32,6 +32,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
         Permission.CanManageProjectBilling,
         Permission.CanEditProject,
     ],

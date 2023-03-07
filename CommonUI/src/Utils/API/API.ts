@@ -117,6 +117,10 @@ class BaseAPI extends API {
                 return 'Error connecting to server. Please try again in few minutes.';
             }
 
+            if (err.statusCode === 504) {
+                return 'Error connecting to server. Please try again in few minutes.';
+            }
+
             return err.message;
         }
         return 'Server Error. Please try again';
