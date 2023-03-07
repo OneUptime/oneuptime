@@ -21,6 +21,10 @@ import Team from 'Model/Models/Team';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import TeamsElement from '../../Components/Team/TeamsElement';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import Card from 'CommonUI/src/Components/Card/Card';
+import Link from 'CommonUI/src/Components/Link/Link';
+import URL from 'Common/Types/API/URL';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -235,6 +239,24 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                     },
                 ]}
+            />
+
+
+            <Card
+                title={`Test Single Sign On (SSO)`}
+                description={
+                    <span>
+                        Here&apos;s a link which will help you test SSO integration before you force it on your organization:{' '}
+                        <Link
+                            openInNewTab={true}
+                            to={URL.fromString(
+                                `${DASHBOARD_URL.toString()}/${DashboardNavigation.getProjectId()?.toString()}/sso`
+                            )}
+                        >
+                            <span>{`${DASHBOARD_URL.toString()}/${DashboardNavigation.getProjectId()?.toString()}/sso`}</span>
+                        </Link>
+                    </span>
+                }
             />
 
             {/* API Key View  */}
