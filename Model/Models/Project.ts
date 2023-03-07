@@ -457,7 +457,7 @@ export default class Model extends TenantModel {
             Permission.ProjectMember,
             Permission.CanReadProject,
             Permission.UnAuthorizedSsoUser,
-            Permission.CanReadWorkflow
+            Permission.CanReadWorkflow,
         ],
         update: [],
     })

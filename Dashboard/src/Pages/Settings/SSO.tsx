@@ -241,12 +241,12 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-
             <Card
                 title={`Test Single Sign On (SSO)`}
                 description={
                     <span>
-                        Here&apos;s a link which will help you test SSO integration before you force it on your organization:{' '}
+                        Here&apos;s a link which will help you test SSO
+                        integration before you force it on your organization:{' '}
                         <Link
                             openInNewTab={true}
                             to={URL.fromString(

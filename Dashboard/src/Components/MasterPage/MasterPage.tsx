@@ -16,17 +16,16 @@ export interface ComponentProps {
     showProjectModal: boolean;
     onProjectModalClose: () => void;
     selectedProject: Project | null;
-    hideNavBarOn: Array<Route>
+    hideNavBarOn: Array<Route>;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    let isOnHideNavbarPage: boolean = false;
 
-    let isOnHideNavbarPage = false; 
-
-    for(const route of props.hideNavBarOn){
-        if(Navigation.isOnThisPage(route)){
+    for (const route of props.hideNavBarOn) {
+        if (Navigation.isOnThisPage(route)) {
             isOnHideNavbarPage = true;
         }
     }
@@ -43,7 +42,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     selectedProject={props.selectedProject || null}
                 />
             }
-            navBar={<NavBar show={props.projects.length > 0 && !isOnHideNavbarPage} />}
+            navBar={
+                <NavBar
+                    show={props.projects.length > 0 && !isOnHideNavbarPage}
+                />
+            }
             isLoading={props.isLoading}
             error={props.error}
         >
