@@ -8,7 +8,7 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import ServerException from 'Common/Types/Exception/ServerException';
 import Response from 'CommonServer/Utils/Response';
 import ProjectSSO from 'Model/Models/ProjectSso';
-import ProjectSSOService from 'CommonServer/Services/ProjectSSOService';
+import ProjectSSOService from 'CommonServer/Services/ProjectSsoService';
 import ObjectID from 'Common/Types/ObjectID';
 import xml2js from 'xml2js';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
