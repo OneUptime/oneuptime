@@ -60,6 +60,31 @@ export default class AccessTokenService {
         return permissionToStore;
     }
 
+    public static getDefaultUserTenantAccessPermission(projectId: ObjectID): UserTenantAccessPermission {
+
+        const userPermissions: Array<UserPermission> = [];
+
+        userPermissions.push({
+            permission: Permission.CurrentUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        userPermissions.push({
+            permission: Permission.ProjectUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        const permission: UserTenantAccessPermission = {
+            projectId,
+            permissions: userPermissions,
+            _type: 'UserTenantAccessPermission',
+        };
+
+        return permission;
+    }
+
     public static async getUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission | null> {
@@ -113,9 +138,6 @@ export default class AccessTokenService {
             return null;
         }
 
-        console.log("Teams");
-        console.log(teamIds);
-
         // get team permissions.
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
@@ -154,23 +176,11 @@ export default class AccessTokenService {
             });
         }
 
-        userPermissions.push({
-            permission: Permission.CurrentUser,
-            labelIds: [],
-            _type: 'UserPermission',
-        });
 
-        userPermissions.push({
-            permission: Permission.ProjectUser,
-            labelIds: [],
-            _type: 'UserPermission',
-        });
+        const permission: UserTenantAccessPermission = AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
 
-        const permission: UserTenantAccessPermission = {
-            projectId,
-            permissions: userPermissions,
-            _type: 'UserTenantAccessPermission',
-        };
+        permission.permissions = permission.permissions.concat(userPermissions);
+
 
         await GlobalCache.setJSON(
             PermissionNamespace.ProjectPermission,

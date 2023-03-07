@@ -121,7 +121,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                 {error ? <ErrorMessage error={error} /> : <></>}
                 {isLoading ? <ComponentLoader /> : <></>}
 
-                {!isLoading && searchedList.length === 0 ? (
+                {!isLoading && !error && searchedList.length === 0 ? (
                     <ErrorMessage
                         error={
                             searchText
@@ -133,7 +133,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                     <></>
                 )}
 
-                <StaicModelList<WorkflowVariable>
+                {!error && !isLoading && <StaicModelList<WorkflowVariable>
                     list={searchedList}
                     headerField={props.headerField}
                     descriptionField={props.descriptionField}
@@ -171,7 +171,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                             setSelectedList([{ ...model }]);
                         }
                     }}
-                />
+                />}
             </div>
         </div>
     );

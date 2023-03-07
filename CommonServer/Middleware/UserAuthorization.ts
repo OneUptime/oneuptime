@@ -181,9 +181,10 @@ export default class UserMiddleware {
                 );
             }
 
+
             if (
                 project.requireSsoForLogin &&
-                !this.doesSsoTokenForProjectExist(
+                !UserMiddleware.doesSsoTokenForProjectExist(
                     req,
                     tenantId,
                     new ObjectID(userId)
@@ -245,13 +246,15 @@ export default class UserMiddleware {
                             p.requireSsoForLogin
                         );
                     }) &&
-                    !this.doesSsoTokenForProjectExist(
+                    !UserMiddleware.doesSsoTokenForProjectExist(
                         req,
                         projectId,
                         new ObjectID(userId)
                     )
                 ) {
-                    continue;
+                    // Just add ProjectUser Permission in this case. 
+
+                    
                 }
 
                 // get project level permissions if projectid exists in request.
@@ -293,7 +296,7 @@ export default class UserMiddleware {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userTenantAccessPermission[
-                        tenantId.toString()
+                    tenantId.toString()
                     ]!
                 )
             );
@@ -308,7 +311,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['project-permissions-hash'] &&
                     req.headers['project-permissions-hash'] ===
-                        projectPermissionsHash
+                    projectPermissionsHash
                 )
             ) {
                 res.set('project-permissions', projectValue);

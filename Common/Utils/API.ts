@@ -244,7 +244,7 @@ export default class API {
             }
 
             this.handleError(errorResponse);
-            throw errorResponse;
+            return errorResponse;
         }
     }
 
