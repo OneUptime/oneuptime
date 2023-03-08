@@ -145,7 +145,7 @@ const BasicForm: Function = <T extends Object>(
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={index}>
                 <label className="block text-sm font-medium text-gray-700 flex justify-between">
-                    <span>{field.title}</span>
+                    <span>{field.title} <span className='text-gray-400 text-xs'>{field.required? "Required": "Optional"}</span></span>
                     {field.sideLink &&
                         field.sideLink?.text &&
                         field.sideLink?.url && (

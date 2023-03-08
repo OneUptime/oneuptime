@@ -123,7 +123,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         field: {
                             monitors: true,
                         },
-                        title: 'Monitors affected (Optional)',
+                        title: 'Monitors affected ',
                         description:
                             'Select monitors affected by this scheduled maintenance.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -139,7 +139,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         field: {
                             statusPages: true,
                         },
-                        title: 'Show event on these status pages (Optional)',
+                        title: 'Show event on these status pages ',
                         description:
                             'Select status pages to show this event on',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -155,7 +155,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
-                        title: 'Labels (Optional)',
+                        title: 'Labels ',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,

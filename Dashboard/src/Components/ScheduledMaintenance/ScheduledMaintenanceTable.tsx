@@ -102,7 +102,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     field: {
                         monitors: true,
                     },
-                    title: 'Monitors affected (Optional)',
+                    title: 'Monitors affected ',
                     description:
                         'Select monitors affected by this scheduled maintenance.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -118,7 +118,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     field: {
                         changeMonitorStatusTo: true,
                     },
-                    title: 'Change Monitor Status to (optional)',
+                    title: 'Change Monitor Status to ',
                     description:
                         'This will change the status of all the monitors attached when the event starts.',
                     fieldType: FormFieldSchemaType.Dropdown,
@@ -134,7 +134,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     field: {
                         statusPages: true,
                     },
-                    title: 'Show event on these status pages (Optional)',
+                    title: 'Show event on these status pages ',
                     description: 'Select status pages to show this event on',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
@@ -149,7 +149,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     field: {
                         labels: true,
                     },
-                    title: 'Labels (Optional)',
+                    title: 'Labels ',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,

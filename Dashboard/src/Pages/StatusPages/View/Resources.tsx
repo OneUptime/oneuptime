@@ -159,7 +159,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             displayDescription: true,
                         },
-                        title: 'Description (Optional)',
+                        title: 'Description ',
                         fieldType: FormFieldSchemaType.LongText,
                         required: false,
                         description: 'This will be visible on the status page.',
@@ -169,7 +169,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             displayTooltip: true,
                         },
-                        title: 'Tooltip (Optional)',
+                        title: 'Tooltip ',
                         fieldType: FormFieldSchemaType.LongText,
                         required: false,
                         description:

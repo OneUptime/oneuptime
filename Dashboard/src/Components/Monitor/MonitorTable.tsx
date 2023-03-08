@@ -87,7 +87,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         labels: true,
                     },
-                    title: 'Labels (Optional)',
+                    title: 'Labels ',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
