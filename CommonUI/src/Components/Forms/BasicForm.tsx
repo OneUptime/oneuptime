@@ -5,22 +5,13 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import {
-    Field,
-    FieldProps,
-    Form,
-    Formik,
-    FormikErrors,
-    FormikProps,
-    FormikValues,
-} from 'formik';
 import Button, { ButtonStyleType } from '../Button/Button';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 import Link from '../Link/Link';
@@ -76,7 +67,7 @@ export interface ComponentProps<T extends Object> {
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
     hideSubmitButton?: undefined | boolean;
-    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    formRef?: undefined | MutableRefObject<any>;
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
@@ -108,7 +99,28 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
 const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const [currentValue, setCurrentValue] = useState<FormValues<T>>({});
+
+    const [currentValue, setCurrentValue] = useState<FormValues<T>>(props.initialValues);
+    const [errors, setErrors] = useState<Dictionary<string>>({});
+    const [touched, setTouched] = useState<Dictionary<boolean>>({});
+
+    useEffect(() => {
+        validate(currentValue);
+    },[currentValue])
+
+    const setFieldTouched = (fieldName: string, value: boolean) => {
+        setTouched({ ...touched, [fieldName]: value });
+    }
+
+    const setFieldValue = (fieldName: string, value: JSONValue) => {
+        setCurrentValue({ ...currentValue, [fieldName]: value as any });
+    }
+
+
+    const submitForm: Function = () :void=> {
+        formRef.current.handleSubmit();
+    }
+
 
     const getFormField: Function = (
         field: DataField<T>,
@@ -130,7 +142,7 @@ const BasicForm: Function = <T extends Object>(
         if (props.showAsColumns && props.showAsColumns > 2) {
             throw new BadDataException(
                 'showAsCOlumns should be <= 2. It is currently ' +
-                    props.showAsColumns
+                props.showAsColumns
             );
         }
 
@@ -142,10 +154,26 @@ const BasicForm: Function = <T extends Object>(
             return <></>;
         }
 
+
+        let codeType: CodeType = CodeType.HTML;
+
+        if (
+            field.fieldType === FormFieldSchemaType.CSS
+        ) {
+            codeType = CodeType.CSS;
+        }
+
+        if (
+            field.fieldType ===
+            FormFieldSchemaType.JavaScript
+        ) {
+            codeType = CodeType.JavaScript;
+        }
+
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={index}>
                 <label className="block text-sm font-medium text-gray-700 flex justify-between">
-                    <span>{field.title} <span className='text-gray-400 text-xs'>{field.required? "Required": "Optional"}</span></span>
+                    <span>{field.title} <span className='text-gray-400 text-xs'>{field.required ? "Required" : "Optional"}</span></span>
                     {field.sideLink &&
                         field.sideLink?.text &&
                         field.sideLink?.url && (
@@ -168,528 +196,457 @@ const BasicForm: Function = <T extends Object>(
 
                 <div className="mt-1">
                     {field.fieldType === FormFieldSchemaType.Color && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <ColorPicker
-                                        error={
-                                            touched[fieldName] &&
-                                            errors[fieldName]
-                                                ? errors[fieldName]
-                                                : undefined
-                                        }
-                                        onChange={async (
-                                            value: Color | null
-                                        ) => {
-                                            setCurrentValue({
-                                                ...currentValue,
-                                                [fieldName]: value,
-                                            });
-                                            field.onChange &&
-                                                field.onChange(value, form);
-                                            await form.setFieldValue(
-                                                fieldName,
-                                                value,
-                                                true
-                                            );
-                                        }}
-                                        tabIndex={index}
-                                        onFocus={async () => {
-                                            await form.setFieldTouched(
-                                                fieldName,
-                                                true
-                                            );
-                                        }}
-                                        placeholder={field.placeholder || ''}
-                                        initialValue={
-                                            initialValues &&
-                                            (initialValues as any)[fieldName]
-                                                ? (initialValues as any)[
-                                                      fieldName
-                                                  ]
-                                                : ''
-                                        }
-                                    />
+
+                        <ColorPicker
+                            error={
+                                touched[fieldName] &&
+                                    errors[fieldName]
+                                    ? errors[fieldName]
+                                    : undefined
+                            }
+                            onChange={async (
+                                value: Color | null
+                            ) => {
+                                setCurrentValue({
+                                    ...currentValue,
+                                    [fieldName]: value,
+                                });
+                                field.onChange &&
+                                    field.onChange(value);
+                                setFieldValue(
+                                    fieldName,
+                                    value
                                 );
                             }}
-                        </Field>
+                            tabIndex={index}
+                            onFocus={async () => {
+                                setFieldTouched(
+                                    fieldName,
+                                    true
+                                );
+                            }}
+                            placeholder={field.placeholder || ''}
+                            initialValue={
+                                initialValues &&
+                                    (initialValues as any)[fieldName]
+                                    ? (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    : ''
+                            }
+                        />
+
                     )}
 
                     {(field.fieldType === FormFieldSchemaType.Dropdown ||
                         field.fieldType ===
-                            FormFieldSchemaType.MultiSelectDropdown) && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <Dropdown
-                                        error={
-                                            touched[fieldName] &&
-                                            errors[fieldName]
-                                                ? errors[fieldName]
-                                                : undefined
-                                        }
-                                        tabIndex={index}
-                                        onChange={async (
-                                            value:
-                                                | DropdownValue
-                                                | Array<DropdownValue>
-                                                | null
-                                        ) => {
-                                            setCurrentValue({
-                                                ...currentValue,
-                                                [fieldName]: value,
-                                            });
-                                            field.onChange &&
-                                                field.onChange(value, form);
-                                            await form.setFieldValue(
-                                                fieldName,
-                                                value,
-                                                true
-                                            );
-                                        }}
-                                        onBlur={async () => {
-                                            await form.setFieldTouched(
-                                                fieldName,
-                                                true
-                                            );
-                                        }}
-                                        isMultiSelect={
-                                            field.fieldType ===
-                                            FormFieldSchemaType.MultiSelectDropdown
-                                        }
-                                        options={field.dropdownOptions || []}
-                                        placeholder={field.placeholder || ''}
-                                        initialValue={
-                                            initialValues &&
-                                            (initialValues as any)[fieldName]
-                                                ? (initialValues as any)[
-                                                      fieldName
-                                                  ]
-                                                : ''
-                                        }
-                                    />
-                                );
-                            }}
-                        </Field>
-                    )}
+                        FormFieldSchemaType.MultiSelectDropdown) && (
+
+                            <Dropdown
+                                error={
+                                    touched[fieldName] &&
+                                        errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
+                                }
+                                tabIndex={index}
+                                onChange={async (
+                                    value:
+                                        | DropdownValue
+                                        | Array<DropdownValue>
+                                        | null
+                                ) => {
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        [fieldName]: value,
+                                    });
+
+                                    field.onChange &&
+                                        field.onChange(value);
+                                    setFieldValue(
+                                        fieldName,
+                                        value
+                                    );
+                                }}
+                                onBlur={async () => {
+                                    setFieldTouched(
+                                        fieldName,
+                                        true
+                                    );
+                                }}
+                                isMultiSelect={
+                                    field.fieldType ===
+                                    FormFieldSchemaType.MultiSelectDropdown
+                                }
+                                options={field.dropdownOptions || []}
+                                placeholder={field.placeholder || ''}
+                                initialValue={
+                                    initialValues &&
+                                        (initialValues as any)[fieldName]
+                                        ? (initialValues as any)[
+                                        fieldName
+                                        ]
+                                        : ''
+                                }
+                            />
+
+
+                        )}
 
                     {field.fieldType === FormFieldSchemaType.RadioButton && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <RadioButtons
-                                        error={
-                                            touched[fieldName] &&
-                                            errors[fieldName]
-                                                ? errors[fieldName]
-                                                : undefined
-                                        }
-                                        onChange={async (value: string) => {
-                                            setCurrentValue({
-                                                ...currentValue,
-                                                [fieldName]: value,
-                                            });
-                                            field.onChange &&
-                                                field.onChange(value, form);
-                                            await form.setFieldValue(
-                                                fieldName,
-                                                value,
-                                                true
-                                            );
-                                        }}
-                                        options={field.radioButtonOptions || []}
-                                        initialValue={
-                                            initialValues &&
-                                            (initialValues as any)[fieldName]
-                                                ? (initialValues as any)[
-                                                      fieldName
-                                                  ]
-                                                : ''
-                                        }
-                                    />
+
+                        <RadioButtons
+                            error={
+                                touched[fieldName] &&
+                                    errors[fieldName]
+                                    ? errors[fieldName]
+                                    : undefined
+                            }
+                            onChange={async (value: string) => {
+                                setCurrentValue({
+                                    ...currentValue,
+                                    [fieldName]: value,
+                                });
+                                field.onChange &&
+                                    field.onChange(value);
+                                setFieldValue(
+                                    fieldName,
+                                    value
                                 );
                             }}
-                        </Field>
+                            options={field.radioButtonOptions || []}
+                            initialValue={
+                                initialValues &&
+                                    (initialValues as any)[fieldName]
+                                    ? (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    : ''
+                            }
+                        />
+
                     )}
 
                     {field.fieldType === FormFieldSchemaType.LongText && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <>
-                                        <TextArea
-                                            error={
-                                                touched[fieldName] &&
-                                                errors[fieldName]
-                                                    ? errors[fieldName]
-                                                    : undefined
-                                            }
-                                            tabIndex={index}
-                                            onChange={async (value: string) => {
-                                                setCurrentValue({
-                                                    ...currentValue,
-                                                    [fieldName]: value,
-                                                });
-                                                field.onChange &&
-                                                    field.onChange(value, form);
-                                                await form.setFieldValue(
-                                                    fieldName,
-                                                    value,
-                                                    true
-                                                );
-                                            }}
-                                            onBlur={async () => {
-                                                await form.setFieldTouched(
-                                                    fieldName,
-                                                    true
-                                                );
-                                            }}
-                                            initialValue={
-                                                initialValues &&
-                                                (initialValues as any)[
-                                                    fieldName
-                                                ]
-                                                    ? (initialValues as any)[
-                                                          fieldName
-                                                      ]
-                                                    : ''
-                                            }
-                                            placeholder={
-                                                field.placeholder || ''
-                                            }
-                                        />
-                                    </>
+
+                        <TextArea
+                            error={
+                                touched[fieldName] &&
+                                    errors[fieldName]
+                                    ? errors[fieldName]
+                                    : undefined
+                            }
+                            tabIndex={index}
+                            onChange={async (value: string) => {
+                                setCurrentValue({
+                                    ...currentValue,
+                                    [fieldName]: value,
+                                });
+                                field.onChange &&
+                                    field.onChange(value);
+                                setFieldValue(
+                                    fieldName,
+                                    value,
                                 );
                             }}
-                        </Field>
+                            onBlur={async () => {
+                                setFieldTouched(
+                                    fieldName,
+                                    true
+                                );
+                            }}
+                            initialValue={
+                                initialValues &&
+                                    (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    ? (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    : ''
+                            }
+                            placeholder={
+                                field.placeholder || ''
+                            }
+                        />
+
                     )}
 
                     {field.fieldType === FormFieldSchemaType.JSON && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <>
-                                        <CodeEditor
-                                            error={
-                                                touched[fieldName] &&
-                                                errors[fieldName]
-                                                    ? errors[fieldName]
-                                                    : undefined
-                                            }
-                                            type={CodeType.JSON}
-                                            tabIndex={index}
-                                            onChange={async (value: string) => {
-                                                setCurrentValue({
-                                                    ...currentValue,
-                                                    [fieldName]: value,
-                                                });
-                                                field.onChange &&
-                                                    field.onChange(value, form);
-                                                await form.setFieldValue(
-                                                    fieldName,
-                                                    value,
-                                                    true
-                                                );
-                                            }}
-                                            onBlur={async () => {
-                                                await form.setFieldTouched(
-                                                    fieldName,
-                                                    true
-                                                );
-                                            }}
-                                            initialValue={
-                                                initialValues &&
-                                                (initialValues as any)[
-                                                    fieldName
-                                                ]
-                                                    ? (initialValues as any)[
-                                                          fieldName
-                                                      ]
-                                                    : ''
-                                            }
-                                            placeholder={
-                                                field.placeholder || ''
-                                            }
-                                        />
-                                    </>
+
+                        <CodeEditor
+                            error={
+                                touched[fieldName] &&
+                                    errors[fieldName]
+                                    ? errors[fieldName]
+                                    : undefined
+                            }
+                            type={CodeType.JSON}
+                            tabIndex={index}
+                            onChange={async (value: string) => {
+                                setCurrentValue({
+                                    ...currentValue,
+                                    [fieldName]: value,
+                                });
+                                field.onChange &&
+                                    field.onChange(value);
+                                setFieldValue(
+                                    fieldName,
+                                    value
                                 );
                             }}
-                        </Field>
+                            onBlur={async () => {
+                                setFieldTouched(
+                                    fieldName,
+                                    true
+                                );
+                            }}
+                            initialValue={
+                                initialValues &&
+                                    (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    ? (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    : ''
+                            }
+                            placeholder={
+                                field.placeholder || ''
+                            }
+                        />
+
                     )}
 
                     {field.fieldType === FormFieldSchemaType.Markdown && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <>
-                                        <CodeEditor
-                                            error={
-                                                touched[fieldName] &&
-                                                errors[fieldName]
-                                                    ? errors[fieldName]
-                                                    : undefined
-                                            }
-                                            tabIndex={index}
-                                            type={CodeType.Markdown}
-                                            onChange={async (value: string) => {
-                                                setCurrentValue({
-                                                    ...currentValue,
-                                                    [fieldName]: value,
-                                                });
-                                                field.onChange &&
-                                                    field.onChange(value, form);
-                                                await form.setFieldValue(
-                                                    fieldName,
-                                                    value,
-                                                    true
-                                                );
-                                            }}
-                                            onBlur={async () => {
-                                                await form.setFieldTouched(
-                                                    fieldName,
-                                                    true
-                                                );
-                                            }}
-                                            initialValue={
-                                                initialValues &&
-                                                (initialValues as any)[
-                                                    fieldName
-                                                ]
-                                                    ? (initialValues as any)[
-                                                          fieldName
-                                                      ]
-                                                    : ''
-                                            }
-                                            placeholder={
-                                                field.placeholder || ''
-                                            }
-                                        />
-                                    </>
+
+                        <CodeEditor
+                            error={
+                                touched[fieldName] &&
+                                    errors[fieldName]
+                                    ? errors[fieldName]
+                                    : undefined
+                            }
+                            tabIndex={index}
+                            type={CodeType.Markdown}
+                            onChange={async (value: string) => {
+                                setCurrentValue({
+                                    ...currentValue,
+                                    [fieldName]: value,
+                                });
+                                field.onChange &&
+                                    field.onChange(value);
+                                setFieldValue(
+                                    fieldName,
+                                    value
                                 );
                             }}
-                        </Field>
+                            onBlur={async () => {
+                                setFieldTouched(
+                                    fieldName,
+                                    true
+                                );
+                            }}
+                            initialValue={
+                                initialValues &&
+                                    (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    ? (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    : ''
+                            }
+                            placeholder={
+                                field.placeholder || ''
+                            }
+                        />
+
                     )}
 
                     {(field.fieldType === FormFieldSchemaType.HTML ||
                         field.fieldType === FormFieldSchemaType.CSS ||
                         field.fieldType === FormFieldSchemaType.JavaScript) && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                let codeType: CodeType = CodeType.HTML;
 
-                                if (
-                                    field.fieldType === FormFieldSchemaType.CSS
-                                ) {
-                                    codeType = CodeType.CSS;
+                            <CodeEditor
+                                error={
+                                    touched[fieldName] &&
+                                        errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
                                 }
-
-                                if (
-                                    field.fieldType ===
-                                    FormFieldSchemaType.JavaScript
-                                ) {
-                                    codeType = CodeType.JavaScript;
+                                tabIndex={index}
+                                onChange={async (value: string) => {
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        [fieldName]: value,
+                                    });
+                                    field.onChange &&
+                                        field.onChange(value);
+                                    setFieldValue(
+                                        fieldName,
+                                        value
+                                    );
+                                }}
+                                onBlur={async () => {
+                                    setFieldTouched(
+                                        fieldName,
+                                        true
+                                    );
+                                }}
+                                type={codeType}
+                                initialValue={
+                                    initialValues &&
+                                        (initialValues as any)[
+                                        fieldName
+                                        ]
+                                        ? (initialValues as any)[
+                                        fieldName
+                                        ]
+                                        : ''
                                 }
+                                placeholder={
+                                    field.placeholder || ''
+                                }
+                            />
 
-                                return (
-                                    <>
-                                        <CodeEditor
-                                            error={
-                                                touched[fieldName] &&
-                                                errors[fieldName]
-                                                    ? errors[fieldName]
-                                                    : undefined
-                                            }
-                                            tabIndex={index}
-                                            onChange={async (value: string) => {
-                                                setCurrentValue({
-                                                    ...currentValue,
-                                                    [fieldName]: value,
-                                                });
-                                                field.onChange &&
-                                                    field.onChange(value, form);
-                                                await form.setFieldValue(
-                                                    fieldName,
-                                                    value,
-                                                    true
-                                                );
-                                            }}
-                                            onBlur={async () => {
-                                                await form.setFieldTouched(
-                                                    fieldName,
-                                                    true
-                                                );
-                                            }}
-                                            type={codeType}
-                                            initialValue={
-                                                initialValues &&
-                                                (initialValues as any)[
-                                                    fieldName
-                                                ]
-                                                    ? (initialValues as any)[
-                                                          fieldName
-                                                      ]
-                                                    : ''
-                                            }
-                                            placeholder={
-                                                field.placeholder || ''
-                                            }
-                                        />
-                                    </>
-                                );
-                            }}
-                        </Field>
-                    )}
+                        )}
 
                     {(field.fieldType === FormFieldSchemaType.File ||
                         field.fieldType === FormFieldSchemaType.ImageFile) && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <>
-                                        <FilePicker
-                                            error={
-                                                touched[fieldName] &&
-                                                errors[fieldName]
-                                                    ? errors[fieldName]
-                                                    : undefined
-                                            }
-                                            tabIndex={index}
-                                            onChange={async (
-                                                files: Array<FileModel>
-                                            ) => {
-                                                let fileResult:
-                                                    | FileModel
-                                                    | Array<FileModel>
-                                                    | null = files.map(
-                                                    (i: FileModel) => {
-                                                        const strippedModel: FileModel =
-                                                            new FileModel();
-                                                        strippedModel._id =
-                                                            i._id!;
-                                                        return strippedModel;
-                                                    }
-                                                );
 
-                                                if (
-                                                    (field.fieldType ===
-                                                        FormFieldSchemaType.File ||
-                                                        field.fieldType ===
-                                                            FormFieldSchemaType.ImageFile) &&
-                                                    Array.isArray(fileResult)
-                                                ) {
-                                                    if (fileResult.length > 0) {
-                                                        fileResult =
-                                                            fileResult[0] as FileModel;
-                                                    } else {
-                                                        fileResult = null;
-                                                    }
-                                                }
-                                                setCurrentValue({
-                                                    ...currentValue,
-                                                    fieldName: fileResult,
-                                                });
-                                                field.onChange &&
-                                                    field.onChange(
-                                                        fileResult,
-                                                        form
-                                                    );
-                                                await form.setFieldValue(
-                                                    fieldName,
-                                                    fileResult,
-                                                    true
-                                                );
-                                            }}
-                                            onBlur={async () => {
-                                                await form.setFieldTouched(
-                                                    fieldName,
-                                                    true
-                                                );
-                                            }}
-                                            mimeTypes={
-                                                field.fieldType ===
-                                                FormFieldSchemaType.ImageFile
-                                                    ? [
-                                                          MimeType.png,
-                                                          MimeType.jpeg,
-                                                          MimeType.jpg,
-                                                      ]
-                                                    : []
+                            <FilePicker
+                                error={
+                                    touched[fieldName] &&
+                                        errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
+                                }
+                                tabIndex={index}
+                                onChange={async (
+                                    files: Array<FileModel>
+                                ) => {
+                                    let fileResult:
+                                        | FileModel
+                                        | Array<FileModel>
+                                        | null = files.map(
+                                            (i: FileModel) => {
+                                                const strippedModel: FileModel =
+                                                    new FileModel();
+                                                strippedModel._id =
+                                                    i._id!;
+                                                return strippedModel;
                                             }
-                                            initialValue={
-                                                initialValues &&
-                                                (initialValues as any)[
-                                                    fieldName
-                                                ]
-                                                    ? (initialValues as any)[
-                                                          fieldName
-                                                      ]
-                                                    : []
-                                            }
-                                            placeholder={
-                                                field.placeholder || ''
-                                            }
-                                        />
-                                    </>
-                                );
-                            }}
-                        </Field>
-                    )}
+                                        );
+
+                                    if (
+                                        (field.fieldType ===
+                                            FormFieldSchemaType.File ||
+                                            field.fieldType ===
+                                            FormFieldSchemaType.ImageFile) &&
+                                        Array.isArray(fileResult)
+                                    ) {
+                                        if (fileResult.length > 0) {
+                                            fileResult =
+                                                fileResult[0] as FileModel;
+                                        } else {
+                                            fileResult = null;
+                                        }
+                                    }
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        fieldName: fileResult,
+                                    });
+                                    field.onChange &&
+                                        field.onChange(
+                                            fileResult
+                                        );
+                                    setFieldValue(
+                                        fieldName,
+                                        fileResult,
+                                    );
+                                }}
+                                onBlur={async () => {
+                                    setFieldTouched(
+                                        fieldName,
+                                        true
+                                    );
+                                }}
+                                mimeTypes={
+                                    field.fieldType ===
+                                        FormFieldSchemaType.ImageFile
+                                        ? [
+                                            MimeType.png,
+                                            MimeType.jpeg,
+                                            MimeType.jpg,
+                                        ]
+                                        : []
+                                }
+                                initialValue={
+                                    initialValues &&
+                                        (initialValues as any)[
+                                        fieldName
+                                        ]
+                                        ? (initialValues as any)[
+                                        fieldName
+                                        ]
+                                        : []
+                                }
+                                placeholder={
+                                    field.placeholder || ''
+                                }
+                            />
+
+                        )}
 
                     {field.fieldType === FormFieldSchemaType.Toggle && (
-                        <Field name={fieldName}>
-                            {({ form }: any) => {
-                                return (
-                                    <>
-                                        <Toggle
-                                            error={
-                                                touched[fieldName] &&
-                                                errors[fieldName]
-                                                    ? errors[fieldName]
-                                                    : undefined
-                                            }
-                                            onChange={async (
-                                                value: boolean
-                                            ) => {
-                                                setCurrentValue({
-                                                    ...currentValue,
-                                                    [fieldName]: value,
-                                                });
-                                                field.onChange &&
-                                                    field.onChange(value, form);
-                                                await form.setFieldValue(
-                                                    fieldName,
-                                                    value,
-                                                    true
-                                                );
-                                            }}
-                                            onBlur={async () => {
-                                                await form.setFieldTouched(
-                                                    fieldName,
-                                                    true
-                                                );
-                                            }}
-                                            initialValue={
-                                                initialValues &&
-                                                (initialValues as any)[
-                                                    fieldName
-                                                ] &&
-                                                ((initialValues as any)[
-                                                    fieldName
-                                                ] === true ||
-                                                    (initialValues as any)[
-                                                        fieldName
-                                                    ] === false)
-                                                    ? (initialValues as any)[
-                                                          fieldName
-                                                      ]
-                                                    : field.defaultValue ||
-                                                      false
-                                            }
-                                        />
-                                    </>
+
+                        <Toggle
+                            error={
+                                touched[fieldName] &&
+                                    errors[fieldName]
+                                    ? errors[fieldName]
+                                    : undefined
+                            }
+                            onChange={async (
+                                value: boolean
+                            ) => {
+                                setCurrentValue({
+                                    ...currentValue,
+                                    [fieldName]: value,
+                                });
+                                field.onChange &&
+                                    field.onChange(value);
+                                setFieldValue(
+                                    fieldName,
+                                    value
                                 );
                             }}
-                        </Field>
+                            onBlur={async () => {
+                                setFieldTouched(
+                                    fieldName,
+                                    true
+                                );
+                            }}
+                            initialValue={
+                                initialValues &&
+                                    (initialValues as any)[
+                                    fieldName
+                                    ] &&
+                                    ((initialValues as any)[
+                                        fieldName
+                                    ] === true ||
+                                        (initialValues as any)[
+                                        fieldName
+                                        ] === false)
+                                    ? (initialValues as any)[
+                                    fieldName
+                                    ]
+                                    : field.defaultValue ||
+                                    false
+                            }
+                        />
+
                     )}
 
                     {/* Default Field */}
@@ -708,58 +665,51 @@ const BasicForm: Function = <T extends Object>(
                         field.fieldType === FormFieldSchemaType.Phone ||
                         field.fieldType === FormFieldSchemaType.Domain ||
                         field.fieldType ===
-                            FormFieldSchemaType.PositveNumber) && (
-                        <Field
-                            tabIndex={index + 1}
-                            name={fieldName}
-                            disabled={isDisabled || field.disabled}
-                        >
-                            {({ form }: FieldProps) => {
-                                return (
-                                    <Input
-                                        tabIndex={index}
-                                        error={
-                                            touched[fieldName] &&
-                                            errors[fieldName]
-                                                ? errors[fieldName]
-                                                : undefined
-                                        }
-                                        dataTestId={fieldType}
-                                        type={fieldType as InputType}
-                                        onChange={(value: string) => {
-                                            setCurrentValue({
-                                                ...currentValue,
-                                                [fieldName]: value,
-                                            });
-                                            form.setFieldValue(
-                                                fieldName,
-                                                value,
-                                                true
-                                            );
-                                        }}
-                                        onEnterPress={async () => {
-                                            await form.submitForm();
-                                        }}
-                                        onBlur={() => {
-                                            form.setFieldTouched(
-                                                fieldName,
-                                                true
-                                            );
-                                        }}
-                                        initialValue={
-                                            initialValues &&
-                                            (initialValues as any)[fieldName]
-                                                ? (initialValues as any)[
-                                                      fieldName
-                                                  ]
-                                                : field.defaultValue || ''
-                                        }
-                                        placeholder={field.placeholder || ''}
-                                    />
-                                );
-                            }}
-                        </Field>
-                    )}
+                        FormFieldSchemaType.PositveNumber) && (
+
+                            <Input
+                                tabIndex={index}
+
+                                disabled={isDisabled || field.disabled}
+                                error={
+                                    touched[fieldName] &&
+                                        errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
+                                }
+                                dataTestId={fieldType}
+                                type={fieldType as InputType}
+                                onChange={(value: string) => {
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        [fieldName]: value,
+                                    });
+                                    setFieldValue(
+                                        fieldName,
+                                        value
+                                    );
+                                }}
+                                onEnterPress={() => {
+                                    submitForm();
+                                }}
+                                onBlur={() => {
+                                    setFieldTouched(
+                                        fieldName,
+                                        true
+                                    );
+                                }}
+                                initialValue={
+                                    initialValues &&
+                                        (initialValues as any)[fieldName]
+                                        ? (initialValues as any)[
+                                        fieldName
+                                        ]
+                                        : field.defaultValue || ''
+                                }
+                                placeholder={field.placeholder || ''}
+                            />
+
+                        )}
                 </div>
             </div>
         );
@@ -772,17 +722,15 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${
-                        field.validation.minLength
-                    } characters.`;
+                    return `${field.title || name} cannot be less than ${field.validation.minLength
+                        } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${
-                        field.validation.maxLength
-                    } characters.`;
+                    return `${field.title || name} cannot be more than ${field.validation.maxLength
+                        } characters.`;
                 }
             }
 
@@ -794,9 +742,8 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.noSpecialCharacters) {
                 if (!content.match(/^[A-Za-z0-9]*$/)) {
-                    return `${
-                        field.title || name
-                    } should not have special characters.`;
+                    return `${field.title || name
+                        } should not have special characters.`;
                 }
             }
 
@@ -838,17 +785,15 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.maxValue) {
                 if (content > field.validation?.maxValue) {
-                    return `${field.title || name} should not be more than ${
-                        field.validation?.maxValue
-                    }.`;
+                    return `${field.title || name} should not be more than ${field.validation?.maxValue
+                        }.`;
                 }
             }
 
             if (field.validation.minValue) {
                 if (content < field.validation?.minValue) {
-                    return `${field.title || name} should not be less than ${
-                        field.validation?.minValue
-                    }.`;
+                    return `${field.title || name} should not be less than ${field.validation?.minValue
+                        }.`;
                 }
             }
         }
@@ -966,10 +911,9 @@ const BasicForm: Function = <T extends Object>(
         return null;
     };
 
-    const validate: ((
+    const validate: Function = (
         values: FormValues<T>
-    ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
-        Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
+    ): void => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -1039,10 +983,10 @@ const BasicForm: Function = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
-        const totalValidationErrors: FormikErrors<FormValues<T>> = {
+        const totalValidationErrors: Dictionary<string> = {
             ...errors,
             ...customValidateResult,
-        } as FormikErrors<FormValues<T>>;
+        } as Dictionary<string>;
 
         if (props.onChange) {
             props.onChange(values);
@@ -1054,7 +998,7 @@ const BasicForm: Function = <T extends Object>(
             );
         }
 
-        return totalValidationErrors;
+        setErrors(totalValidationErrors);
     };
 
     const formRef: any = useRef<any>(null);
@@ -1115,171 +1059,160 @@ const BasicForm: Function = <T extends Object>(
     return (
         <div className="row">
             <div className="col-lg-1">
-                <Formik
-                    innerRef={props.formRef ? props.formRef : formRef}
-                    initialValues={initialValues}
-                    validate={validate}
-                    validateOnChange={true}
-                    enableReinitialize={true}
-                    validateOnBlur={true}
-                    onSubmit={(
-                        values: FormValues<T>,
-                        { setSubmitting }: { setSubmitting: Function }
-                    ) => {
-                        // check for any boolean values and if they dont exist in values - mark them as false.
 
-                        for (const field of props.fields) {
-                            if (
-                                field.fieldType === FormFieldSchemaType.Toggle
-                            ) {
-                                const fieldName: string = field.overideFieldKey
-                                    ? field.overideFieldKey
-                                    : (Object.keys(field.field)[0] as string);
-                                if (!(values as any)[fieldName]) {
-                                    (values as any)[fieldName] = false;
-                                }
-                            }
+                <form onSubmit={(
+                    e: React.FormEvent
+                ) => {
+                    // check for any boolean values and if they dont exist in values - mark them as false.
 
-                            if (
-                                field.fieldType === FormFieldSchemaType.Password
-                            ) {
-                                const fieldName: string = field.overideFieldKey
-                                    ? field.overideFieldKey
-                                    : (Object.keys(field.field)[0] as string);
-                                if (
-                                    (values as any)[fieldName] &&
-                                    typeof (values as any)[fieldName] ===
-                                        Typeof.String
-                                ) {
-                                    (values as any)[fieldName] =
-                                        new HashedString(
-                                            (values as any)[fieldName],
-                                            false
-                                        );
-                                }
+                    e.preventDefault();
+
+                    const values: FormValues<T> = currentValue;
+
+                    for (const field of props.fields) {
+                        if (
+                            field.fieldType === FormFieldSchemaType.Toggle
+                        ) {
+                            const fieldName: string = field.overideFieldKey
+                                ? field.overideFieldKey
+                                : (Object.keys(field.field)[0] as string);
+                            if (!(values as any)[fieldName]) {
+                                (values as any)[fieldName] = false;
                             }
                         }
 
-                        UiAnalytics.capture('FORM SUBMIT: ' + props.name);
+                        if (
+                            field.fieldType === FormFieldSchemaType.Password
+                        ) {
+                            const fieldName: string = field.overideFieldKey
+                                ? field.overideFieldKey
+                                : (Object.keys(field.field)[0] as string);
+                            if (
+                                (values as any)[fieldName] &&
+                                typeof (values as any)[fieldName] ===
+                                Typeof.String
+                            ) {
+                                (values as any)[fieldName] =
+                                    new HashedString(
+                                        (values as any)[fieldName],
+                                        false
+                                    );
+                            }
+                        }
+                    }
 
-                        props.onSubmit(values);
-                        setSubmitting(false);
-                    }}
-                >
-                    {({ errors, touched }: any) => {
-                        return (
-                            <Form autoComplete="off">
-                                {props.title && (
-                                    <h1 className="text-lg text-gray-700 mt-5">
-                                        {props.title}
-                                    </h1>
+                    UiAnalytics.capture('FORM SUBMIT: ' + props.name);
+
+                    props.onSubmit(values);
+                }} ref={props.formRef ? props.formRef : formRef} autoComplete="off">
+                    {props.title && (
+                        <h1 className="text-lg text-gray-700 mt-5">
+                            {props.title}
+                        </h1>
+                    )}
+
+                    {Boolean(props.description) && (
+                        <p className="text-sm text-gray-500 mb-5">
+                            {props.description}
+                        </p>
+                    )}
+
+                    {props.error && (
+                        <div className="mb-3">
+                            <Alert
+                                title={props.error}
+                                type={AlertType.DANGER}
+                            />
+                        </div>
+                    )}
+
+                    <div>
+                        <div
+                            className={`grid md:grid-cols-${props.showAsColumns || 1
+                                } grid-cols-1 gap-4`}
+                        >
+                            {props.fields &&
+                                props.fields.map(
+                                    (
+                                        field: DataField<T>,
+                                        i: number
+                                    ) => {
+                                        return (
+                                            <div key={i}>
+                                                {getFormField(
+                                                    field,
+                                                    i,
+                                                    props.isLoading,
+                                                    errors,
+                                                    touched
+                                                )}
+                                                {
+                                                    field.footerElement
+                                                }
+                                            </div>
+                                        );
+                                    }
                                 )}
+                        </div>
+                    </div>
 
-                                {Boolean(props.description) && (
-                                    <p className="text-sm text-gray-500 mb-5">
-                                        {props.description}
-                                    </p>
-                                )}
+                    <div className="flex w-full justify-end">
+                        {!props.hideSubmitButton && (
+                            <div
+                                className="mt-3"
+                                style={{
+                                    width: props.maxPrimaryButtonWidth
+                                        ? '100%'
+                                        : ' auto',
+                                }}
+                            >
+                                <Button
+                                    title={
+                                        props.submitButtonText ||
+                                        'Submit'
+                                    }
+                                    dataTestId={
+                                        props.submitButtonText!
+                                    }
+                                    type={ButtonTypes.Submit}
+                                    id={`${props.id}-submit-button`}
+                                    isLoading={
+                                        props.isLoading || false
+                                    }
+                                    buttonStyle={
+                                        props.submitButtonStyleType ||
+                                        ButtonStyleType.PRIMARY
+                                    }
+                                    style={primaryButtonStyle}
+                                />
+                            </div>
+                        )}
+                        {props.onCancel && (
+                            <div>
+                                <Button
+                                    title={
+                                        props.cancelButtonText ||
+                                        'Cancel'
+                                    }
+                                    type={ButtonTypes.Button}
+                                    id={`${props.id}-cancel-button`}
+                                    disabled={
+                                        props.isLoading || false
+                                    }
+                                    buttonStyle={
+                                        ButtonStyleType.NORMAL
+                                    }
+                                    onClick={() => {
+                                        props.onCancel &&
+                                            props.onCancel();
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    {props.footer}
+                </form>
 
-                                {props.error && (
-                                    <div className="mb-3">
-                                        <Alert
-                                            title={props.error}
-                                            type={AlertType.DANGER}
-                                        />
-                                    </div>
-                                )}
-
-                                <div>
-                                    <div
-                                        className={`grid md:grid-cols-${
-                                            props.showAsColumns || 1
-                                        } grid-cols-1 gap-4`}
-                                    >
-                                        {props.fields &&
-                                            props.fields.map(
-                                                (
-                                                    field: DataField<T>,
-                                                    i: number
-                                                ) => {
-                                                    return (
-                                                        <div key={i}>
-                                                            {getFormField(
-                                                                field,
-                                                                i,
-                                                                props.isLoading,
-                                                                errors,
-                                                                touched
-                                                            )}
-                                                            {
-                                                                field.footerElement
-                                                            }
-                                                        </div>
-                                                    );
-                                                }
-                                            )}
-                                    </div>
-                                </div>
-
-                                <div className="flex w-full justify-end">
-                                    {!props.hideSubmitButton && (
-                                        <div
-                                            className="mt-3"
-                                            style={{
-                                                width: props.maxPrimaryButtonWidth
-                                                    ? '100%'
-                                                    : ' auto',
-                                            }}
-                                        >
-                                            <Button
-                                                title={
-                                                    props.submitButtonText ||
-                                                    'Submit'
-                                                }
-                                                dataTestId={
-                                                    props.submitButtonText!
-                                                }
-                                                type={ButtonTypes.Submit}
-                                                id={`${props.id}-submit-button`}
-                                                isLoading={
-                                                    props.isLoading || false
-                                                }
-                                                buttonStyle={
-                                                    props.submitButtonStyleType ||
-                                                    ButtonStyleType.PRIMARY
-                                                }
-                                                style={primaryButtonStyle}
-                                            />
-                                        </div>
-                                    )}
-                                    {props.onCancel && (
-                                        <div>
-                                            <Button
-                                                title={
-                                                    props.cancelButtonText ||
-                                                    'Cancel'
-                                                }
-                                                type={ButtonTypes.Button}
-                                                id={`${props.id}-cancel-button`}
-                                                disabled={
-                                                    props.isLoading || false
-                                                }
-                                                buttonStyle={
-                                                    ButtonStyleType.NORMAL
-                                                }
-                                                onClick={() => {
-                                                    props.onCancel &&
-                                                        props.onCancel();
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                {props.footer}
-                            </Form>
-                        );
-                    }}
-                </Formik>
             </div>
         </div>
     );
