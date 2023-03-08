@@ -46,7 +46,7 @@ export interface ComponentProps<T extends Object> {
     id: string;
     name: string;
     submitButtonStyleType?: ButtonStyleType | undefined;
-    currentValue: FormValues<T>;
+    initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
@@ -95,7 +95,7 @@ const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [currentValue, setCurrentValue] = useState<FormValues<T>>(
-        props.currentValue
+        props.initialValues
     );
     const [errors, setErrors] = useState<Dictionary<string>>({});
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
@@ -263,11 +263,9 @@ const BasicForm: Function = <T extends Object>(
                                 });
                                 field.onChange && field.onChange(value);
                                 setFieldValue(fieldName, value);
-                            }}
-                            tabIndex={index}
-                            onFocus={async () => {
                                 setFieldTouched(fieldName, true);
                             }}
+                            tabIndex={index}
                             placeholder={field.placeholder || ''}
                             initialValue={
                                 currentValue && (currentValue as any)[fieldName]
@@ -893,7 +891,7 @@ const BasicForm: Function = <T extends Object>(
     };
 
     useEffect(() => {
-        const values: FormValues<T> = { ...props.currentValue };
+        const values: FormValues<T> = { ...props.initialValues };
         for (const field of props.fields) {
             const fieldName: string = getFieldName(field);
 
@@ -933,7 +931,7 @@ const BasicForm: Function = <T extends Object>(
             }
         }
         setCurrentValue(values);
-    }, [props.currentValue]);
+    }, [props.initialValues]);
 
     const primaryButtonStyle: React.CSSProperties = {};
 

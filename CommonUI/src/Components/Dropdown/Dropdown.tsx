@@ -15,13 +15,13 @@ export interface DropdownOption {
 
 export interface ComponentProps {
     options: Array<DropdownOption>;
-    initialValue?: undefined | DropdownOption;
+    initialValue?: undefined | DropdownOption | Array<DropdownOption>;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-        | undefined
-        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+    | undefined
+    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -40,6 +40,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | null
     >(null);
 
+
+    const [initialValueSet, setInitialValueSet] = useState<DropdownOption | Array<DropdownOption> | undefined>(undefined);
+
     useEffect(() => {
         if (props.initialValue) {
             setValue(props.initialValue);
@@ -57,9 +60,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.value]);
 
     useEffect(() => {
-        if (props.initialValue) {
-            setValue(props.initialValue ? props.initialValue : null);
+        
+        if (initialValueSet !== props.initialValue) {
+            setValue(props.initialValue || null);
         }
+
+        setInitialValueSet(props.initialValue);
     }, [props.initialValue]);
 
     useEffect(() => {
@@ -106,10 +112,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`${
-                props.className ||
+            className={`${props.className ||
                 'relative mt-2 mb-1 rounded-md w-full'
-            }`}
+                }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
