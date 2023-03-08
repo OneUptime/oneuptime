@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
 import BasicForm, {
@@ -19,7 +19,7 @@ const BasicFormModal: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [formSubmitTrigger, setFormSubmitTrigger] = useState<boolean>(false);
+    const formRef: any = useRef<any>(null);
 
     return (
         <Modal
@@ -27,12 +27,13 @@ const BasicFormModal: Function = <T extends Object>(
             submitButtonType={ButtonType.Submit}
             isLoading={isLoading}
             onSubmit={() => {
-                setFormSubmitTrigger(!formSubmitTrigger);
+                formRef.current.submitForm();
             }}
         >
             <BasicForm<T>
                 {...props.formProps}
                 hideSubmitButton={true}
+                ref={formRef}
                 onLoadingChange={(isFormLoading: boolean) => {
                     setIsLoading(isFormLoading);
                 }}

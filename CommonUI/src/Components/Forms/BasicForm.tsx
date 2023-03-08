@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, { forwardRef, ReactElement, Ref, useEffect, useImperativeHandle, useState } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -50,7 +50,6 @@ export interface ComponentProps<T extends Object> {
     onSubmit: (values: FormValues<T>) => void;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
-    submitTrigger?: boolean | undefined;
     fields: Fields<T>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -91,16 +90,15 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
     }
 }
 
-const BasicForm: Function = <T extends Object>(
-    props: ComponentProps<T>
+const BasicForm: Function = forwardRef(<T extends Object>(
+    props: ComponentProps<T>, ref: Ref<any>
 ): ReactElement => {
+
     const [currentValue, setCurrentValue] = useState<FormValues<T>>(
         props.initialValues
     );
     const [errors, setErrors] = useState<Dictionary<string>>({});
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
-    const [submitTriggerInitialized, setSubmitTriggerInitialized] =
-        useState<boolean>(false);
 
     useEffect(() => {
         validate(currentValue);
@@ -109,6 +107,15 @@ const BasicForm: Function = <T extends Object>(
     const setFieldTouched = (fieldName: string, value: boolean) => {
         setTouched({ ...touched, [fieldName]: value });
     };
+
+    useImperativeHandle(ref, () => {
+        return {
+            setFieldTouched,
+            setFieldValue,
+            submitForm
+        };
+    }, []);
+
 
     const getFieldName: Function = (field: Field<T>): string => {
         const fieldName: string = field.overideFieldKey
@@ -132,13 +139,6 @@ const BasicForm: Function = <T extends Object>(
         setCurrentValue({ ...currentValue, [fieldName]: value as any });
     };
 
-    useEffect(() => {
-        if (!submitTriggerInitialized) {
-            setSubmitTriggerInitialized(true);
-        } else {
-            submitForm();
-        }
-    }, [props.submitTrigger]);
 
     const submitForm: Function = (): void => {
         // check for any boolean values and if they dont exist in values - mark them as false.
@@ -199,7 +199,7 @@ const BasicForm: Function = <T extends Object>(
         if (props.showAsColumns && props.showAsColumns > 2) {
             throw new BadDataException(
                 'showAsCOlumns should be <= 2. It is currently ' +
-                    props.showAsColumns
+                props.showAsColumns
             );
         }
 
@@ -277,44 +277,44 @@ const BasicForm: Function = <T extends Object>(
 
                     {(field.fieldType === FormFieldSchemaType.Dropdown ||
                         field.fieldType ===
-                            FormFieldSchemaType.MultiSelectDropdown) && (
-                        <Dropdown
-                            error={
-                                touched[fieldName] && errors[fieldName]
-                                    ? errors[fieldName]
-                                    : undefined
-                            }
-                            tabIndex={index}
-                            onChange={async (
-                                value:
-                                    | DropdownValue
-                                    | Array<DropdownValue>
-                                    | null
-                            ) => {
-                                setCurrentValue({
-                                    ...currentValue,
-                                    [fieldName]: value,
-                                });
+                        FormFieldSchemaType.MultiSelectDropdown) && (
+                            <Dropdown
+                                error={
+                                    touched[fieldName] && errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
+                                }
+                                tabIndex={index}
+                                onChange={async (
+                                    value:
+                                        | DropdownValue
+                                        | Array<DropdownValue>
+                                        | null
+                                ) => {
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        [fieldName]: value,
+                                    });
 
-                                field.onChange && field.onChange(value);
-                                setFieldValue(fieldName, value);
-                            }}
-                            onBlur={async () => {
-                                setFieldTouched(fieldName, true);
-                            }}
-                            isMultiSelect={
-                                field.fieldType ===
-                                FormFieldSchemaType.MultiSelectDropdown
-                            }
-                            options={field.dropdownOptions || []}
-                            placeholder={field.placeholder || ''}
-                            initialValue={
-                                currentValue && (currentValue as any)[fieldName]
-                                    ? (currentValue as any)[fieldName]
-                                    : ''
-                            }
-                        />
-                    )}
+                                    field.onChange && field.onChange(value);
+                                    setFieldValue(fieldName, value);
+                                }}
+                                onBlur={async () => {
+                                    setFieldTouched(fieldName, true);
+                                }}
+                                isMultiSelect={
+                                    field.fieldType ===
+                                    FormFieldSchemaType.MultiSelectDropdown
+                                }
+                                options={field.dropdownOptions || []}
+                                placeholder={field.placeholder || ''}
+                                initialValue={
+                                    currentValue && (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[fieldName]
+                                        : ''
+                                }
+                            />
+                        )}
 
                     {field.fieldType === FormFieldSchemaType.RadioButton && (
                         <RadioButtons
@@ -429,95 +429,95 @@ const BasicForm: Function = <T extends Object>(
                     {(field.fieldType === FormFieldSchemaType.HTML ||
                         field.fieldType === FormFieldSchemaType.CSS ||
                         field.fieldType === FormFieldSchemaType.JavaScript) && (
-                        <CodeEditor
-                            error={
-                                touched[fieldName] && errors[fieldName]
-                                    ? errors[fieldName]
-                                    : undefined
-                            }
-                            tabIndex={index}
-                            onChange={async (value: string) => {
-                                setCurrentValue({
-                                    ...currentValue,
-                                    [fieldName]: value,
-                                });
-                                field.onChange && field.onChange(value);
-                                setFieldValue(fieldName, value);
-                            }}
-                            onBlur={async () => {
-                                setFieldTouched(fieldName, true);
-                            }}
-                            type={codeType}
-                            initialValue={
-                                currentValue && (currentValue as any)[fieldName]
-                                    ? (currentValue as any)[fieldName]
-                                    : ''
-                            }
-                            placeholder={field.placeholder || ''}
-                        />
-                    )}
+                            <CodeEditor
+                                error={
+                                    touched[fieldName] && errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
+                                }
+                                tabIndex={index}
+                                onChange={async (value: string) => {
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        [fieldName]: value,
+                                    });
+                                    field.onChange && field.onChange(value);
+                                    setFieldValue(fieldName, value);
+                                }}
+                                onBlur={async () => {
+                                    setFieldTouched(fieldName, true);
+                                }}
+                                type={codeType}
+                                initialValue={
+                                    currentValue && (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[fieldName]
+                                        : ''
+                                }
+                                placeholder={field.placeholder || ''}
+                            />
+                        )}
 
                     {(field.fieldType === FormFieldSchemaType.File ||
                         field.fieldType === FormFieldSchemaType.ImageFile) && (
-                        <FilePicker
-                            error={
-                                touched[fieldName] && errors[fieldName]
-                                    ? errors[fieldName]
-                                    : undefined
-                            }
-                            tabIndex={index}
-                            onChange={async (files: Array<FileModel>) => {
-                                let fileResult:
-                                    | FileModel
-                                    | Array<FileModel>
-                                    | null = files.map((i: FileModel) => {
-                                    const strippedModel: FileModel =
-                                        new FileModel();
-                                    strippedModel._id = i._id!;
-                                    return strippedModel;
-                                });
-
-                                if (
-                                    (field.fieldType ===
-                                        FormFieldSchemaType.File ||
-                                        field.fieldType ===
-                                            FormFieldSchemaType.ImageFile) &&
-                                    Array.isArray(fileResult)
-                                ) {
-                                    if (fileResult.length > 0) {
-                                        fileResult = fileResult[0] as FileModel;
-                                    } else {
-                                        fileResult = null;
-                                    }
+                            <FilePicker
+                                error={
+                                    touched[fieldName] && errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
                                 }
-                                setCurrentValue({
-                                    ...currentValue,
-                                    fieldName: fileResult,
-                                });
-                                field.onChange && field.onChange(fileResult);
-                                setFieldValue(fieldName, fileResult);
-                            }}
-                            onBlur={async () => {
-                                setFieldTouched(fieldName, true);
-                            }}
-                            mimeTypes={
-                                field.fieldType ===
-                                FormFieldSchemaType.ImageFile
-                                    ? [
-                                          MimeType.png,
-                                          MimeType.jpeg,
-                                          MimeType.jpg,
-                                      ]
-                                    : []
-                            }
-                            initialValue={
-                                currentValue && (currentValue as any)[fieldName]
-                                    ? (currentValue as any)[fieldName]
-                                    : []
-                            }
-                            placeholder={field.placeholder || ''}
-                        />
-                    )}
+                                tabIndex={index}
+                                onChange={async (files: Array<FileModel>) => {
+                                    let fileResult:
+                                        | FileModel
+                                        | Array<FileModel>
+                                        | null = files.map((i: FileModel) => {
+                                            const strippedModel: FileModel =
+                                                new FileModel();
+                                            strippedModel._id = i._id!;
+                                            return strippedModel;
+                                        });
+
+                                    if (
+                                        (field.fieldType ===
+                                            FormFieldSchemaType.File ||
+                                            field.fieldType ===
+                                            FormFieldSchemaType.ImageFile) &&
+                                        Array.isArray(fileResult)
+                                    ) {
+                                        if (fileResult.length > 0) {
+                                            fileResult = fileResult[0] as FileModel;
+                                        } else {
+                                            fileResult = null;
+                                        }
+                                    }
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        fieldName: fileResult,
+                                    });
+                                    field.onChange && field.onChange(fileResult);
+                                    setFieldValue(fieldName, fileResult);
+                                }}
+                                onBlur={async () => {
+                                    setFieldTouched(fieldName, true);
+                                }}
+                                mimeTypes={
+                                    field.fieldType ===
+                                        FormFieldSchemaType.ImageFile
+                                        ? [
+                                            MimeType.png,
+                                            MimeType.jpeg,
+                                            MimeType.jpg,
+                                        ]
+                                        : []
+                                }
+                                initialValue={
+                                    currentValue && (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[fieldName]
+                                        : []
+                                }
+                                placeholder={field.placeholder || ''}
+                            />
+                        )}
 
                     {field.fieldType === FormFieldSchemaType.Toggle && (
                         <Toggle
@@ -539,9 +539,9 @@ const BasicForm: Function = <T extends Object>(
                             }}
                             initialValue={
                                 currentValue &&
-                                (currentValue as any)[fieldName] &&
-                                ((currentValue as any)[fieldName] === true ||
-                                    (currentValue as any)[fieldName] === false)
+                                    (currentValue as any)[fieldName] &&
+                                    ((currentValue as any)[fieldName] === true ||
+                                        (currentValue as any)[fieldName] === false)
                                     ? (currentValue as any)[fieldName]
                                     : field.defaultValue || false
                             }
@@ -564,38 +564,38 @@ const BasicForm: Function = <T extends Object>(
                         field.fieldType === FormFieldSchemaType.Phone ||
                         field.fieldType === FormFieldSchemaType.Domain ||
                         field.fieldType ===
-                            FormFieldSchemaType.PositveNumber) && (
-                        <Input
-                            tabIndex={index}
-                            disabled={isDisabled || field.disabled}
-                            error={
-                                touched[fieldName] && errors[fieldName]
-                                    ? errors[fieldName]
-                                    : undefined
-                            }
-                            dataTestId={fieldType}
-                            type={fieldType as InputType}
-                            onChange={(value: string) => {
-                                setCurrentValue({
-                                    ...currentValue,
-                                    [fieldName]: value,
-                                });
-                                setFieldValue(fieldName, value);
-                            }}
-                            onEnterPress={() => {
-                                submitForm();
-                            }}
-                            onBlur={() => {
-                                setFieldTouched(fieldName, true);
-                            }}
-                            initialValue={
-                                currentValue && (currentValue as any)[fieldName]
-                                    ? (currentValue as any)[fieldName]
-                                    : field.defaultValue || ''
-                            }
-                            placeholder={field.placeholder || ''}
-                        />
-                    )}
+                        FormFieldSchemaType.PositveNumber) && (
+                            <Input
+                                tabIndex={index}
+                                disabled={isDisabled || field.disabled}
+                                error={
+                                    touched[fieldName] && errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined
+                                }
+                                dataTestId={fieldType}
+                                type={fieldType as InputType}
+                                onChange={(value: string) => {
+                                    setCurrentValue({
+                                        ...currentValue,
+                                        [fieldName]: value,
+                                    });
+                                    setFieldValue(fieldName, value);
+                                }}
+                                onEnterPress={() => {
+                                    submitForm();
+                                }}
+                                onBlur={() => {
+                                    setFieldTouched(fieldName, true);
+                                }}
+                                initialValue={
+                                    currentValue && (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[fieldName]
+                                        : field.defaultValue || ''
+                                }
+                                placeholder={field.placeholder || ''}
+                            />
+                        )}
                 </div>
             </div>
         );
@@ -608,17 +608,15 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${
-                        field.validation.minLength
-                    } characters.`;
+                    return `${field.title || name} cannot be less than ${field.validation.minLength
+                        } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${
-                        field.validation.maxLength
-                    } characters.`;
+                    return `${field.title || name} cannot be more than ${field.validation.maxLength
+                        } characters.`;
                 }
             }
 
@@ -630,9 +628,8 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.noSpecialCharacters) {
                 if (!content.match(/^[A-Za-z0-9]*$/)) {
-                    return `${
-                        field.title || name
-                    } should not have special characters.`;
+                    return `${field.title || name
+                        } should not have special characters.`;
                 }
             }
 
@@ -674,17 +671,15 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.maxValue) {
                 if (content > field.validation?.maxValue) {
-                    return `${field.title || name} should not be more than ${
-                        field.validation?.maxValue
-                    }.`;
+                    return `${field.title || name} should not be more than ${field.validation?.maxValue
+                        }.`;
                 }
             }
 
             if (field.validation.minValue) {
                 if (content < field.validation?.minValue) {
-                    return `${field.title || name} should not be less than ${
-                        field.validation?.minValue
-                    }.`;
+                    return `${field.title || name} should not be less than ${field.validation?.minValue
+                        }.`;
                 }
             }
         }
@@ -966,9 +961,8 @@ const BasicForm: Function = <T extends Object>(
 
                     <div>
                         <div
-                            className={`grid md:grid-cols-${
-                                props.showAsColumns || 1
-                            } grid-cols-1 gap-4`}
+                            className={`grid md:grid-cols-${props.showAsColumns || 1
+                                } grid-cols-1 gap-4`}
                         >
                             {props.fields &&
                                 props.fields.map(
@@ -1036,6 +1030,6 @@ const BasicForm: Function = <T extends Object>(
             </div>
         </div>
     );
-};
+});
 
 export default BasicForm;

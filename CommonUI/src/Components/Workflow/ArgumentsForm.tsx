@@ -68,7 +68,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     component.metadata.arguments.length > 0 && (
                         <BasicForm
                             hideSubmitButton={true}
-                            formRef={formRef}
+                            ref={formRef}
                             initialValues={{
                                 ...(component.arguments || {}),
                             }}

@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal, { ModalWidth } from '../Modal/Modal';
 import ModelForm, {
@@ -37,8 +37,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
 
     const [error, setError] = useState<string>('');
 
-    const [formSubmitTrigger, setFormSubmitTrigger] = useState<boolean>(false);
-
+    const formRef: any = useRef<any>(null);
     return (
         <Modal
             {...props}
@@ -48,7 +47,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
             description={props.description}
             disableSubmitButton={isFormLoading}
             onSubmit={() => {
-                setFormSubmitTrigger(!formSubmitTrigger);
+                formRef.current.submitForm();
             }}
             error={error}
         >
@@ -60,10 +59,10 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                         modelType={props.modelType}
                         modelIdToEdit={props.modelIdToEdit}
                         hideSubmitButton={true}
+                        formRef={formRef}
                         onLoadingChange={(isFormLoading: boolean) => {
                             setIsFormLoading(isFormLoading);
                         }}
-                        submitTrigger={formSubmitTrigger}
                         initialValues={props.initialValues}
                         onSuccess={(
                             data:
