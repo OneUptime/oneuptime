@@ -8,7 +8,6 @@ import {
 } from 'react-router-dom';
 import LoginPage from './Pages/Login';
 import NotFound from './Pages/NotFound';
-import SsoLoginPage from './Pages/SsoLogin';
 import ForgotPasswordPage from './Pages/ForgotPassword';
 import RegisterPage from './Pages/Register';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -34,7 +33,6 @@ function App(): ReactElement {
                     element={<ResetPasswordPage />}
                 />
                 <Route path="/accounts/register" element={<RegisterPage />} />
-                <Route path="/accounts/login/sso" element={<SsoLoginPage />} />
                 <Route
                     path="/accounts/verify-email/:token"
                     element={<VerifyEmail />}
