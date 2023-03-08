@@ -1,8 +1,6 @@
 import React, {
-    MutableRefObject,
     ReactElement,
     useEffect,
-    useRef,
     useState,
 } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
@@ -51,10 +49,11 @@ export interface ComponentProps<T extends Object> {
     id: string;
     name: string;
     submitButtonStyleType?: ButtonStyleType | undefined;
-    initialValues: FormValues<T>;
+    currentValue: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
+    submitTrigger?: boolean | undefined;
     fields: Fields<T>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -67,7 +66,6 @@ export interface ComponentProps<T extends Object> {
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
     hideSubmitButton?: undefined | boolean;
-    formRef?: undefined | MutableRefObject<any>;
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
@@ -100,13 +98,16 @@ const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
 
-    const [currentValue, setCurrentValue] = useState<FormValues<T>>(props.initialValues);
+    const [currentValue, setCurrentValue] = useState<FormValues<T>>(props.currentValue);
     const [errors, setErrors] = useState<Dictionary<string>>({});
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
+    const [submitTriggerInitialized, setSubmitTriggerInitialized] = useState<boolean>(false);
+
+
 
     useEffect(() => {
         validate(currentValue);
-    },[currentValue])
+    }, [currentValue])
 
     const setFieldTouched = (fieldName: string, value: boolean) => {
         setTouched({ ...touched, [fieldName]: value });
@@ -116,9 +117,60 @@ const BasicForm: Function = <T extends Object>(
         setCurrentValue({ ...currentValue, [fieldName]: value as any });
     }
 
+    useEffect(()=>{
+        if(!submitTriggerInitialized){
+            setSubmitTriggerInitialized(true)
+        }else{
+            submitForm()
+        }
+    }, [props.submitTrigger]);
 
-    const submitForm: Function = () :void=> {
-        formRef.current.handleSubmit();
+    const submitForm: Function = (): void => {
+        // check for any boolean values and if they dont exist in values - mark them as false.
+
+
+        if (Object.keys(errors).length > 0) {
+            // errors on form, do not submit.
+            return;
+        }
+
+        const values: FormValues<T> = currentValue;
+
+        for (const field of props.fields) {
+            if (
+                field.fieldType === FormFieldSchemaType.Toggle
+            ) {
+                const fieldName: string = field.overideFieldKey
+                    ? field.overideFieldKey
+                    : (Object.keys(field.field)[0] as string);
+                if (!(values as any)[fieldName]) {
+                    (values as any)[fieldName] = false;
+                }
+            }
+
+            if (
+                field.fieldType === FormFieldSchemaType.Password
+            ) {
+                const fieldName: string = field.overideFieldKey
+                    ? field.overideFieldKey
+                    : (Object.keys(field.field)[0] as string);
+                if (
+                    (values as any)[fieldName] &&
+                    typeof (values as any)[fieldName] ===
+                    Typeof.String
+                ) {
+                    (values as any)[fieldName] =
+                        new HashedString(
+                            (values as any)[fieldName],
+                            false
+                        );
+                }
+            }
+        }
+
+        UiAnalytics.capture('FORM SUBMIT: ' + props.name);
+
+        props.onSubmit(values);
     }
 
 
@@ -227,9 +279,9 @@ const BasicForm: Function = <T extends Object>(
                             }}
                             placeholder={field.placeholder || ''}
                             initialValue={
-                                initialValues &&
-                                    (initialValues as any)[fieldName]
-                                    ? (initialValues as any)[
+                                currentValue &&
+                                    (currentValue as any)[fieldName]
+                                    ? (currentValue as any)[
                                     fieldName
                                     ]
                                     : ''
@@ -281,9 +333,9 @@ const BasicForm: Function = <T extends Object>(
                                 options={field.dropdownOptions || []}
                                 placeholder={field.placeholder || ''}
                                 initialValue={
-                                    initialValues &&
-                                        (initialValues as any)[fieldName]
-                                        ? (initialValues as any)[
+                                    currentValue &&
+                                        (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[
                                         fieldName
                                         ]
                                         : ''
@@ -316,9 +368,9 @@ const BasicForm: Function = <T extends Object>(
                             }}
                             options={field.radioButtonOptions || []}
                             initialValue={
-                                initialValues &&
-                                    (initialValues as any)[fieldName]
-                                    ? (initialValues as any)[
+                                currentValue &&
+                                    (currentValue as any)[fieldName]
+                                    ? (currentValue as any)[
                                     fieldName
                                     ]
                                     : ''
@@ -356,11 +408,11 @@ const BasicForm: Function = <T extends Object>(
                                 );
                             }}
                             initialValue={
-                                initialValues &&
-                                    (initialValues as any)[
+                                currentValue &&
+                                    (currentValue as any)[
                                     fieldName
                                     ]
-                                    ? (initialValues as any)[
+                                    ? (currentValue as any)[
                                     fieldName
                                     ]
                                     : ''
@@ -402,11 +454,11 @@ const BasicForm: Function = <T extends Object>(
                                 );
                             }}
                             initialValue={
-                                initialValues &&
-                                    (initialValues as any)[
+                                currentValue &&
+                                    (currentValue as any)[
                                     fieldName
                                     ]
-                                    ? (initialValues as any)[
+                                    ? (currentValue as any)[
                                     fieldName
                                     ]
                                     : ''
@@ -448,11 +500,11 @@ const BasicForm: Function = <T extends Object>(
                                 );
                             }}
                             initialValue={
-                                initialValues &&
-                                    (initialValues as any)[
+                                currentValue &&
+                                    (currentValue as any)[
                                     fieldName
                                     ]
-                                    ? (initialValues as any)[
+                                    ? (currentValue as any)[
                                     fieldName
                                     ]
                                     : ''
@@ -496,11 +548,11 @@ const BasicForm: Function = <T extends Object>(
                                 }}
                                 type={codeType}
                                 initialValue={
-                                    initialValues &&
-                                        (initialValues as any)[
+                                    currentValue &&
+                                        (currentValue as any)[
                                         fieldName
                                         ]
-                                        ? (initialValues as any)[
+                                        ? (currentValue as any)[
                                         fieldName
                                         ]
                                         : ''
@@ -583,11 +635,11 @@ const BasicForm: Function = <T extends Object>(
                                         : []
                                 }
                                 initialValue={
-                                    initialValues &&
-                                        (initialValues as any)[
+                                    currentValue &&
+                                        (currentValue as any)[
                                         fieldName
                                         ]
-                                        ? (initialValues as any)[
+                                        ? (currentValue as any)[
                                         fieldName
                                         ]
                                         : []
@@ -629,17 +681,17 @@ const BasicForm: Function = <T extends Object>(
                                 );
                             }}
                             initialValue={
-                                initialValues &&
-                                    (initialValues as any)[
+                                currentValue &&
+                                    (currentValue as any)[
                                     fieldName
                                     ] &&
-                                    ((initialValues as any)[
+                                    ((currentValue as any)[
                                         fieldName
                                     ] === true ||
-                                        (initialValues as any)[
+                                        (currentValue as any)[
                                         fieldName
                                         ] === false)
-                                    ? (initialValues as any)[
+                                    ? (currentValue as any)[
                                     fieldName
                                     ]
                                     : field.defaultValue ||
@@ -699,9 +751,9 @@ const BasicForm: Function = <T extends Object>(
                                     );
                                 }}
                                 initialValue={
-                                    initialValues &&
-                                        (initialValues as any)[fieldName]
-                                        ? (initialValues as any)[
+                                    currentValue &&
+                                        (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[
                                         fieldName
                                         ]
                                         : field.defaultValue || ''
@@ -1001,12 +1053,8 @@ const BasicForm: Function = <T extends Object>(
         setErrors(totalValidationErrors);
     };
 
-    const formRef: any = useRef<any>(null);
-
-    const [initialValues, setInitalValues] = useState<FormValues<T>>({});
-
     useEffect(() => {
-        const values: FormValues<T> = { ...props.initialValues };
+        const values: FormValues<T> = { ...props.currentValue };
         for (const field of props.fields) {
             const fieldName: string = field.overideFieldKey
                 ? field.overideFieldKey
@@ -1046,8 +1094,8 @@ const BasicForm: Function = <T extends Object>(
                 );
             }
         }
-        setInitalValues(values);
-    }, [props.initialValues]);
+        setCurrentValue(values);
+    }, [props.currentValue]);
 
     const primaryButtonStyle: React.CSSProperties = {};
 
@@ -1060,51 +1108,7 @@ const BasicForm: Function = <T extends Object>(
         <div className="row">
             <div className="col-lg-1">
 
-                <form onSubmit={(
-                    e: React.FormEvent
-                ) => {
-                    // check for any boolean values and if they dont exist in values - mark them as false.
-
-                    e.preventDefault();
-
-                    const values: FormValues<T> = currentValue;
-
-                    for (const field of props.fields) {
-                        if (
-                            field.fieldType === FormFieldSchemaType.Toggle
-                        ) {
-                            const fieldName: string = field.overideFieldKey
-                                ? field.overideFieldKey
-                                : (Object.keys(field.field)[0] as string);
-                            if (!(values as any)[fieldName]) {
-                                (values as any)[fieldName] = false;
-                            }
-                        }
-
-                        if (
-                            field.fieldType === FormFieldSchemaType.Password
-                        ) {
-                            const fieldName: string = field.overideFieldKey
-                                ? field.overideFieldKey
-                                : (Object.keys(field.field)[0] as string);
-                            if (
-                                (values as any)[fieldName] &&
-                                typeof (values as any)[fieldName] ===
-                                Typeof.String
-                            ) {
-                                (values as any)[fieldName] =
-                                    new HashedString(
-                                        (values as any)[fieldName],
-                                        false
-                                    );
-                            }
-                        }
-                    }
-
-                    UiAnalytics.capture('FORM SUBMIT: ' + props.name);
-
-                    props.onSubmit(values);
-                }} ref={props.formRef ? props.formRef : formRef} autoComplete="off">
+                <div>
                     {props.title && (
                         <h1 className="text-lg text-gray-700 mt-5">
                             {props.title}
@@ -1174,7 +1178,9 @@ const BasicForm: Function = <T extends Object>(
                                     dataTestId={
                                         props.submitButtonText!
                                     }
-                                    type={ButtonTypes.Submit}
+                                    onClick={() => {
+                                        submitForm();
+                                    }}
                                     id={`${props.id}-submit-button`}
                                     isLoading={
                                         props.isLoading || false
@@ -1211,7 +1217,7 @@ const BasicForm: Function = <T extends Object>(
                         )}
                     </div>
                     {props.footer}
-                </form>
+                </div>
 
             </div>
         </div>

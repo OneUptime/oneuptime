@@ -28,6 +28,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     description?: undefined | string;
     showAsColumns?: undefined | number;
     footer: ReactElement;
+    submitTrigger?: boolean | undefined;
     isLoading?: undefined | boolean;
     onCancel?: undefined | (() => void);
     cancelButtonText?: undefined | string;
@@ -95,6 +96,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             name={props.name}
             submitButtonStyleType={props.submitButtonStyleType}
             onSubmit={props.onSubmit}
+            submitTrigger={props.submitTrigger}
             initialValues={initialValues}
             submitButtonText={props.submitButtonText || 'Save'}
             title={props.title || ''}

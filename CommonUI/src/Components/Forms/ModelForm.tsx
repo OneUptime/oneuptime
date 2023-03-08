@@ -55,6 +55,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
+    submitTrigger?: boolean | undefined;
     description?: undefined | string;
     showAsColumns?: undefined | number;
     footer: ReactElement;
@@ -485,6 +486,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 model={model}
                 id={props.id}
                 name={props.name}
+                submitTrigger={props.submitTrigger}
                 fields={fields}
                 showAsColumns={props.showAsColumns}
                 footer={props.footer}
@@ -498,7 +500,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
                 error={error}
                 hideSubmitButton={props.hideSubmitButton}
-                formRef={props.formRef}
+                ref={props.formRef}
                 initialValues={itemToEdit || props.initialValues}
             ></BasicModelForm>
         </div>
