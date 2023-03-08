@@ -5,6 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import ArrayUtil from "Common/Types/ArrayUtil";
 
 export type DropdownValue = string | number | boolean;
 
@@ -60,8 +61,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.value]);
 
     useEffect(() => {
-        
-        if (initialValueSet !== props.initialValue) {
+
+        if(Array.isArray(initialValueSet) || Array.isArray(props.initialValue)){
+            if(!ArrayUtil.isEqual(Array.isArray(initialValueSet) ? initialValueSet : [], Array.isArray(props.initialValue) ? props.initialValue : [])){
+                setValue(props.initialValue || null);
+            }
+        }else if (initialValueSet !== props.initialValue) {
             setValue(props.initialValue || null);
         }
 
@@ -69,16 +74,45 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.initialValue]);
 
     useEffect(() => {
+
+        // translate from string array or string value to value. 
+        let dropdownValue: DropdownOption | Array<DropdownOption> | null = value;
+
+        if (typeof value === "string") {
+            dropdownValue = props.options.find((i) => i.value === value) || null;
+        }
+
+        if (Array.isArray(value)) {
+
+            const items: Array<DropdownOption> = []
+
+            for (const item of value) {
+                if (typeof item === "string") {
+                    const tempItem: DropdownOption | Array<DropdownOption> | null = props.options.find((i) => i.value === item) || null;
+
+                    if (tempItem) {
+                        items.push(tempItem);
+                    }
+                } else {
+                    items.push(item)
+                }
+            }
+
+            dropdownValue = [...items];
+        }
+
+
+
         const selectedValues: Array<DropdownOption> = props.options.filter(
             (item: DropdownOption) => {
-                if (Array.isArray(value)) {
-                    return value
+                if (Array.isArray(dropdownValue)) {
+                    return dropdownValue
                         .map((v: DropdownOption) => {
                             return v.value;
                         })
                         .includes(item.value);
                 }
-                return item.value === value?.value;
+                return item.value === dropdownValue?.value;
             }
         );
 
@@ -89,11 +123,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }
 
         setSelectedValue(props.isMultiSelect ? selectedValues : selectedValue);
-        if (value) {
-            if (Array.isArray(value)) {
+        if (dropdownValue) {
+            if (Array.isArray(dropdownValue)) {
                 props.onChange &&
                     props.onChange(
-                        (value as Array<DropdownOption>).map(
+                        (dropdownValue as Array<DropdownOption>).map(
                             (i: DropdownOption) => {
                                 return i.value;
                             }
@@ -101,11 +135,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                     );
             } else {
                 props.onChange &&
-                    props.onChange((value as DropdownOption).value);
+                    props.onChange((dropdownValue as DropdownOption).value);
             }
         }
 
-        if (!value) {
+        if (!dropdownValue) {
             props.onChange && props.onChange(props.isMultiSelect ? [] : null);
         }
     }, [value]);
