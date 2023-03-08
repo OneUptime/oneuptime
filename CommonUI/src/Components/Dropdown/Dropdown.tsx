@@ -5,7 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import ArrayUtil from "Common/Types/ArrayUtil";
+import ArrayUtil from 'Common/Types/ArrayUtil';
 
 export type DropdownValue = string | number | boolean;
 
@@ -21,8 +21,8 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-    | undefined
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+        | undefined
+        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -41,8 +41,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | null
     >(null);
 
-
-    const [initialValueSet, setInitialValueSet] = useState<DropdownOption | Array<DropdownOption> | undefined>(undefined);
+    const [initialValueSet, setInitialValueSet] = useState<
+        DropdownOption | Array<DropdownOption> | undefined
+    >(undefined);
 
     useEffect(() => {
         if (props.initialValue) {
@@ -61,12 +62,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.value]);
 
     useEffect(() => {
-
-        if(Array.isArray(initialValueSet) || Array.isArray(props.initialValue)){
-            if(!ArrayUtil.isEqual(Array.isArray(initialValueSet) ? initialValueSet : [], Array.isArray(props.initialValue) ? props.initialValue : [])){
+        if (
+            Array.isArray(initialValueSet) ||
+            Array.isArray(props.initialValue)
+        ) {
+            if (
+                !ArrayUtil.isEqual(
+                    Array.isArray(initialValueSet) ? initialValueSet : [],
+                    Array.isArray(props.initialValue) ? props.initialValue : []
+                )
+            ) {
                 setValue(props.initialValue || null);
             }
-        }else if (initialValueSet !== props.initialValue) {
+        } else if (initialValueSet !== props.initialValue) {
             setValue(props.initialValue || null);
         }
 
@@ -74,34 +82,40 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.initialValue]);
 
     useEffect(() => {
+        // translate from string array or string value to value.
+        let dropdownValue: DropdownOption | Array<DropdownOption> | null =
+            value;
 
-        // translate from string array or string value to value. 
-        let dropdownValue: DropdownOption | Array<DropdownOption> | null = value;
-
-        if (typeof value === "string") {
-            dropdownValue = props.options.find((i) => i.value === value) || null;
+        if (typeof value === 'string') {
+            dropdownValue =
+                props.options.find(i => {
+                    return i.value === value;
+                }) || null;
         }
 
         if (Array.isArray(value)) {
-
-            const items: Array<DropdownOption> = []
+            const items: Array<DropdownOption> = [];
 
             for (const item of value) {
-                if (typeof item === "string") {
-                    const tempItem: DropdownOption | Array<DropdownOption> | null = props.options.find((i) => i.value === item) || null;
+                if (typeof item === 'string') {
+                    const tempItem:
+                        | DropdownOption
+                        | Array<DropdownOption>
+                        | null =
+                        props.options.find((i) => {
+                            return i.value === item;
+                        }) || null;
 
                     if (tempItem) {
                         items.push(tempItem);
                     }
                 } else {
-                    items.push(item)
+                    items.push(item);
                 }
             }
 
             dropdownValue = [...items];
         }
-
-
 
         const selectedValues: Array<DropdownOption> = props.options.filter(
             (item: DropdownOption) => {
@@ -146,9 +160,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`${props.className ||
-                'relative mt-2 mb-1 rounded-md w-full'
-                }`}
+            className={`${
+                props.className || 'relative mt-2 mb-1 rounded-md w-full'
+            }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();

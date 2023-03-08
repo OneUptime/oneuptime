@@ -110,18 +110,18 @@ const BasicForm: Function = <T extends Object>(
         setTouched({ ...touched, [fieldName]: value });
     };
 
-    const getFieldName: Function = (field:Field<T>): string => {
+    const getFieldName: Function = (field: Field<T>): string => {
         const fieldName: string = field.overideFieldKey
-        ? field.overideFieldKey
-        : (Object.keys(field.field)[0] as string);
+            ? field.overideFieldKey
+            : (Object.keys(field.field)[0] as string);
 
         return fieldName;
-    }
+    };
 
     const setAllTouched: Function = (): void => {
         const touchedObj: Dictionary<boolean> = {};
 
-        for(const field of props.fields){
+        for (const field of props.fields) {
             touchedObj[getFieldName(field)] = true;
         }
 
@@ -894,7 +894,6 @@ const BasicForm: Function = <T extends Object>(
         const values: FormValues<T> = { ...props.initialValues };
         for (const field of props.fields) {
             const fieldName: string = getFieldName(field);
-
 
             if (
                 field.fieldType === FormFieldSchemaType.Date &&

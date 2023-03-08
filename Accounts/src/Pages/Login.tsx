@@ -81,21 +81,26 @@ const LoginPage: FunctionComponent = () => {
                         footer={
                             <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
                                 <p>
-                                    {!showSsoTip && <div
-                                        onClick={()=>{
-                                            setShowSSOTip(true);
-                                        }}
-                                        className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                                    >
-                                        Use single sign-on (SSO) instead
-                                    </div>}
+                                    {!showSsoTip && (
+                                        <div
+                                            onClick={() => {
+                                                setShowSSOTip(true);
+                                            }}
+                                            className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
+                                        >
+                                            Use single sign-on (SSO) instead
+                                        </div>
+                                    )}
 
-                                    {showSsoTip && <div
-                                        className="text-gray-500 text-sm"
-                                    >
-                                        Please sign in with your username and password. Once you have signed in, you'll be able to sign in via SSO that's configured for your project.
-                                    </div>}
-
+                                    {showSsoTip && (
+                                        <div className="text-gray-500 text-sm">
+                                            Please sign in with your username
+                                            and password. Once you have signed
+                                            in, you'll be able to sign in via
+                                            SSO that's configured for your
+                                            project.
+                                        </div>
+                                    )}
                                 </p>
                             </div>
                         }

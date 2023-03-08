@@ -112,7 +112,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        description: 'Add a announcement note. This is in Markdown.',
+                        description:
+                            'Add a announcement note. This is in Markdown.',
                     },
                     {
                         field: {
