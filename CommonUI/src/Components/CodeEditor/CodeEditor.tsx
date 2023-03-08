@@ -34,26 +34,30 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [helpText, setHelpText] = useState<string>('');
 
     useEffect(() => {
-        if (props.type === CodeType.Markdown) {
-            setHelpText(`${props.placeholder}. This is in Markdown`);
-        }
 
-        if (props.type === CodeType.HTML) {
-            setHelpText(`${props.placeholder}. This is in HTML`);
-        }
+        if (props.placeholder) {
 
-        if (props.type === CodeType.JavaScript) {
-            setPlaceholder(`// ${props.placeholder}. This is in JavaScript.`);
-        }
+            if (props.type === CodeType.Markdown) {
+                setHelpText(`${props.placeholder}. This is in Markdown`);
+            }
 
-        if (props.type === CodeType.JSON) {
-            setHelpText(`${props.placeholder}`);
-        }
+            if (props.type === CodeType.HTML) {
+                setHelpText(`${props.placeholder}. This is in HTML`);
+            }
 
-        if (props.type === CodeType.CSS) {
-            setPlaceholder(
-                `/* ${props.placeholder}. This is in CSS. */`
-            );
+            if (props.type === CodeType.JavaScript) {
+                setPlaceholder(`// ${props.placeholder}. This is in JavaScript.`);
+            }
+
+            if (props.type === CodeType.JSON) {
+                setHelpText(`${props.placeholder}`);
+            }
+
+            if (props.type === CodeType.CSS) {
+                setPlaceholder(
+                    `/* ${props.placeholder}. This is in CSS. */`
+                );
+            }
         }
     }, [props.placeholder, props.type]);
 
