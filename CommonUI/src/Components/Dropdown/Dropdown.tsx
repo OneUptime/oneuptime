@@ -108,7 +108,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         <div
             className={`${
                 props.className ||
-                'relative mt-2 mb-1 rounded-md shadow-sm w-full'
+                'relative mt-2 mb-1 rounded-md w-full'
             }`}
             onClick={() => {
                 props.onClick && props.onClick();

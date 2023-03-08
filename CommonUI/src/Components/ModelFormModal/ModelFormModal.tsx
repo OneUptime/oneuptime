@@ -34,7 +34,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
-   
+
     const [error, setError] = useState<string>('');
 
     const [formSubmitTrigger, setFormSubmitTrigger] = useState<boolean>(false);
