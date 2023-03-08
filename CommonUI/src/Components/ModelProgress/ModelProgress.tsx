@@ -1,5 +1,4 @@
 import BaseModel from 'Common/Models/BaseModel';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import React, { ReactElement, useEffect, useState } from 'react';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import Query from '../../Utils/ModelAPI/Query';
@@ -7,7 +6,7 @@ import Card from '../Card/Card';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ProgressBar from '../ProgressBar/ProgressBar';
-
+import API from '../../Utils/API/API';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     description: string;
@@ -35,14 +34,7 @@ const ModelProgress: Function = <TBaseModel extends BaseModel>(
 
             setCount(count);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

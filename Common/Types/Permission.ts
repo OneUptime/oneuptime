@@ -12,6 +12,12 @@ export interface PermissionProps {
 }
 
 enum Permission {
+    // All users in the project will have this permission.
+    ProjectUser = 'ProjectUser',
+
+    // Users who are in the project but do not have SSO authorization.
+    UnAuthorizedSsoUser = 'UnAuthorizedSsoUser',
+
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 
@@ -134,6 +140,11 @@ enum Permission {
     CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
     CanEditStatusPageDomain = 'CanEditStatusPageDomain',
     CanReadStatusPageDomain = 'CanReadStatusPageDomain',
+
+    CanCreateProjectSSO = 'CanCreateProjectSSO',
+    CanDeleteProjectSSO = 'CanDeleteProjectSSO',
+    CanEditProjectSSO = 'CanEditProjectSSO',
+    CanReadProjectSSO = 'CanReadProjectSSO',
 
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
@@ -1007,6 +1018,39 @@ export class PermissionHelper {
                 title: 'Can Read Status Page Domain',
                 description:
                     'A user assigned this permission  can read Status Page Domain in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateProjectSSO,
+                title: 'Can Create Project SSO',
+                description:
+                    'A user assigned this permission can create Project SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteProjectSSO,
+                title: 'Can Delete Project SSO',
+                description:
+                    'A user assigned this permission  can delete Project SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditProjectSSO,
+                title: 'Can Edit Project SSO',
+                description:
+                    'A user assigned this permission can edit Project SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadProjectSSO,
+                title: 'Can Read Project SSO',
+                description:
+                    'A user assigned this permission  can read Project SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

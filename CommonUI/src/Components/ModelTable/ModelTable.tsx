@@ -13,7 +13,6 @@ import ModelAPI, {
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 
@@ -58,6 +57,8 @@ import { Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ModalWidth } from '../Modal/Modal';
 import ProjectUtil from '../../Utils/Project';
+import API from '../../Utils/API/API';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 export enum ShowTableAs {
     Table,
@@ -235,14 +236,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
             await fetchItems();
         } catch (err) {
-            try {
-                setErrorModalText(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setErrorModalText('Server Error. Please try again');
-            }
+            setErrorModalText(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
@@ -348,14 +342,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             setColumns(classicColumns);
         } catch (err) {
-            try {
-                setTableFilterError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setTableFilterError('Server Error. Please try again');
-            }
+            setTableFilterError(API.getFriendlyMessage(err));
         }
 
         setIsTableFilterFetchLoading(false);
@@ -397,14 +384,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             setTotalItemsCount(listResult.count);
             setData(listResult.data);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
@@ -649,7 +629,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return userPermissions;
     };
 
-    useEffect(() => {
+    const serializeToTableColumns: Function = (): void => {
         // Convert ModelColumns to TableColumns.
 
         const columns: Array<TableColumn> = [];
@@ -750,7 +730,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setActionSchema();
         setHeaderButtons();
         setColumns(columns);
+    };
+
+    useEffect(() => {
+        serializeToTableColumns();
     }, []);
+
+    useEffect(() => {
+        serializeToTableColumns();
+    }, [data]);
 
     const setActionSchema: Function = () => {
         const permissions: Array<Permission> =
@@ -1146,7 +1134,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         >
                             <div className="mt-6 border-t border-gray-200">
                                 <div className="ml-6 mr-6  pt-6">
-                                    {getList()}
+                                    {tableColumns.length === 0 &&
+                                        props.columns.length > 0 && (
+                                            <ErrorMessage
+                                                error={`You are not authorized to view this list. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                                    model.readRecordPermissions
+                                                        ? model.readRecordPermissions
+                                                        : []
+                                                ).join(', ')}`}
+                                            />
+                                        )}
+                                    {!(
+                                        tableColumns.length === 0 &&
+                                        props.columns.length > 0
+                                    ) && getList()}
                                 </div>
                             </div>
                         </Card>
@@ -1164,7 +1165,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
-                            {getTable()}
+                            {tableColumns.length === 0 &&
+                                props.columns.length > 0 && (
+                                    <ErrorMessage
+                                        error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                            model.readRecordPermissions
+                                                ? model.readRecordPermissions
+                                                : []
+                                        ).join(', ')}`}
+                                    />
+                                )}
+                            {!(
+                                tableColumns.length === 0 &&
+                                props.columns.length > 0
+                            ) && getTable()}
                         </Card>
                     )}
 

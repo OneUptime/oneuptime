@@ -55,7 +55,7 @@ export const componentInputTypeToFormFieldType: Function = (
 
     if (componentInputType === ComponentInputType.Boolean) {
         return {
-            fieldType: FormFieldSchemaType.Checkbox,
+            fieldType: FormFieldSchemaType.Toggle,
             dropdownOptions: [],
         };
     }

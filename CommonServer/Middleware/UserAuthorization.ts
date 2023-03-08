@@ -18,6 +18,16 @@ import AccessTokenService from '../Services/AccessTokenService';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HashedString from 'Common/Types/HashedString';
+import Dictionary from 'Common/Types/Dictionary';
+import Project from 'Model/Models/Project';
+import ProjectService from '../Services/ProjectService';
+import QueryHelper from '../Types/Database/QueryHelper';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import Response from '../Utils/Response';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import logger from '../Utils/Logger';
 
 export default class UserMiddleware {
     /*
@@ -45,6 +55,60 @@ export default class UserMiddleware {
         return accessToken;
     }
 
+    public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
+        const ssoTokens: Dictionary<string> = {};
+
+        for (const key of Object.keys(req.headers)) {
+            if (key.startsWith('sso-')) {
+                const value: string | undefined | Array<string> =
+                    req.headers[key];
+                let projectId: string | undefined = undefined;
+
+                try {
+                    projectId = JSONWebToken.decode(
+                        value as string
+                    ).projectId?.toString();
+                } catch (err) {
+                    logger.error(err);
+                    continue;
+                }
+
+                if (
+                    projectId &&
+                    value &&
+                    typeof value === 'string' &&
+                    typeof projectId === 'string'
+                ) {
+                    ssoTokens[projectId] = req.headers[key] as string;
+                }
+            }
+        }
+
+        return ssoTokens;
+    }
+
+    public static doesSsoTokenForProjectExist(
+        req: ExpressRequest,
+        projectId: ObjectID,
+        userId: ObjectID
+    ): boolean {
+        const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
+
+        if (ssoTokens && ssoTokens[projectId.toString()]) {
+            const decodedData: JSONWebTokenData = JSONWebToken.decode(
+                ssoTokens[projectId.toString()] as string
+            );
+            if (
+                decodedData.projectId?.toString() === projectId.toString() &&
+                decodedData.userId.toString() === userId.toString()
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static async getUserMiddleware(
         req: ExpressRequest,
         res: ExpressResponse,
@@ -55,6 +119,8 @@ export default class UserMiddleware {
 
         if (tenantId) {
             oneuptimeRequest.tenantId = tenantId;
+
+            // check if the force sso for login is present and if it is, check if the sso token is present and if it is then allow, otherwise decline.
 
             if (ProjectMiddleware.hasApiKey(req)) {
                 return await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
@@ -87,9 +153,12 @@ export default class UserMiddleware {
             oneuptimeRequest.userType = UserType.User;
         }
 
+        const userId: string =
+            oneuptimeRequest.userAuthorization.userId.toString();
+
         await UserService.updateOneBy({
             query: {
-                _id: oneuptimeRequest.userAuthorization.userId.toString(),
+                _id: userId,
             },
             props: { isRoot: true },
             data: { lastActive: OneUptimeDate.getCurrentDate() },
@@ -106,6 +175,39 @@ export default class UserMiddleware {
         }
 
         if (tenantId) {
+            const project: Project | null = await ProjectService.findOneById({
+                id: tenantId,
+                select: {
+                    requireSsoForLogin: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (!project) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('Invlaid tenantId')
+                );
+            }
+
+            if (
+                project.requireSsoForLogin &&
+                !UserMiddleware.doesSsoTokenForProjectExist(
+                    req,
+                    tenantId,
+                    new ObjectID(userId)
+                )
+            ) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new SsoAuthorizationException()
+                );
+            }
+
             // get project level permissions if projectid exists in request.
             const userTenantAccessPermission: UserTenantAccessPermission | null =
                 await AccessTokenService.getUserTenantAccessPermission(
@@ -123,19 +225,65 @@ export default class UserMiddleware {
 
         if (req.headers['is-multi-tenant-query']) {
             oneuptimeRequest.userTenantAccessPermission = {};
+
+            const projects: Array<Project> = await ProjectService.findBy({
+                query: {
+                    _id: QueryHelper.in(
+                        userGlobalAccessPermission?.projectIds.map(
+                            (i: ObjectID) => {
+                                return i.toString();
+                            }
+                        ) || []
+                    ),
+                },
+                select: {
+                    requireSsoForLogin: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
             for (const projectId of userGlobalAccessPermission?.projectIds ||
                 []) {
-                // get project level permissions if projectid exists in request.
-                const userTenantAccessPermission: UserTenantAccessPermission | null =
-                    await AccessTokenService.getUserTenantAccessPermission(
-                        oneuptimeRequest.userAuthorization.userId,
-                        projectId
-                    );
+                // check if the force sso login is required. and if it is, then check then token.
 
-                if (userTenantAccessPermission) {
+                if (
+                    projects.find((p: Project) => {
+                        return (
+                            p._id === projectId.toString() &&
+                            p.requireSsoForLogin
+                        );
+                    }) &&
+                    !UserMiddleware.doesSsoTokenForProjectExist(
+                        req,
+                        projectId,
+                        new ObjectID(userId)
+                    )
+                ) {
+                    // Add default permissions.
+                    const userTenantAccessPermission: UserTenantAccessPermission | null =
+                        AccessTokenService.getDefaultUserTenantAccessPermission(
+                            projectId
+                        );
                     oneuptimeRequest.userTenantAccessPermission[
                         projectId.toString()
                     ] = userTenantAccessPermission;
+                } else {
+                    // get project level permissions if projectid exists in request.
+                    const userTenantAccessPermission: UserTenantAccessPermission | null =
+                        await AccessTokenService.getUserTenantAccessPermission(
+                            oneuptimeRequest.userAuthorization.userId,
+                            projectId
+                        );
+
+                    if (userTenantAccessPermission) {
+                        oneuptimeRequest.userTenantAccessPermission[
+                            projectId.toString()
+                        ] = userTenantAccessPermission;
+                    }
                 }
             }
         }

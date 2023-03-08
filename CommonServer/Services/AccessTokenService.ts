@@ -12,6 +12,7 @@ import TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Label from 'Model/Models/Label';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',
@@ -57,6 +58,32 @@ export default class AccessTokenService {
         await GlobalCache.setJSON('user', userId.toString(), permissionToStore);
 
         return permissionToStore;
+    }
+
+    public static getDefaultUserTenantAccessPermission(
+        projectId: ObjectID
+    ): UserTenantAccessPermission {
+        const userPermissions: Array<UserPermission> = [];
+
+        userPermissions.push({
+            permission: Permission.CurrentUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        userPermissions.push({
+            permission: Permission.UnAuthorizedSsoUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        const permission: UserTenantAccessPermission = {
+            projectId,
+            permissions: userPermissions,
+            _type: 'UserTenantAccessPermission',
+        };
+
+        return permission;
     }
 
     public static async getUserGlobalAccessPermission(
@@ -116,7 +143,7 @@ export default class AccessTokenService {
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
                 query: {
-                    teamId: teamIds,
+                    teamId: QueryHelper.in(teamIds),
                 },
                 select: {
                     permission: true,
@@ -150,17 +177,10 @@ export default class AccessTokenService {
             });
         }
 
-        userPermissions.push({
-            permission: Permission.CurrentUser,
-            labelIds: [],
-            _type: 'UserPermission',
-        });
+        const permission: UserTenantAccessPermission =
+            AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
 
-        const permission: UserTenantAccessPermission = {
-            projectId,
-            permissions: userPermissions,
-            _type: 'UserTenantAccessPermission',
-        };
+        permission.permissions = permission.permissions.concat(userPermissions);
 
         await GlobalCache.setJSON(
             PermissionNamespace.ProjectPermission,

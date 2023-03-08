@@ -1,21 +1,36 @@
+import JobDictonary from './JobDictionary';
+import Queue, { QueueName } from 'CommonServer/Infrastructure/Queue';
 import logger from 'CommonServer/Utils/Logger';
-import cron from 'node-cron';
 
 const RunCron: Function = (
     jobName: string,
-    schedule: string,
+    options: {
+        schedule: string;
+        runOnStartup: boolean;
+    },
     runFunction: Function
 ): void => {
-    cron.schedule(schedule, async () => {
-        try {
-            logger.info(`Job ${jobName} Start`);
-            await runFunction();
-            logger.info(`Job ${jobName} End`);
-        } catch (e) {
-            logger.info(`Job ${jobName} Error`);
-            logger.error(e);
+    JobDictonary.setJobFunction(jobName, runFunction);
+
+    Queue.addJob(
+        QueueName.Worker,
+        jobName,
+        jobName,
+        {},
+        {
+            scheduleAt: options.schedule,
         }
+    ).catch((err: Error) => {
+        return logger.error(err);
     });
+
+    if (options.runOnStartup) {
+        Queue.addJob(QueueName.Worker, jobName, jobName, {}).catch(
+            (err: Error) => {
+                return logger.error(err);
+            }
+        );
+    }
 };
 
 export default RunCron;

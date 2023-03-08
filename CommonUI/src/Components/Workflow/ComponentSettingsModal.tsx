@@ -14,7 +14,7 @@ import ComponentReturnValueViewer from './ComponentReturnValueViewer';
 import ArgumentsForm from './ArgumentsForm';
 import ObjectID from 'Common/Types/ObjectID';
 import { NodeDataProp } from 'Common/Types/Workflow/Component';
-import DocumentationViewer from './DoucmentationViewer';
+import DocumentationViewer from './DocumentationViewer';
 
 export interface ComponentProps {
     title: string;

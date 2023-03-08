@@ -4,6 +4,7 @@ import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
 import ObjectID from 'Common/Types/ObjectID';
+import { Dictionary } from 'lodash';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
@@ -24,6 +25,20 @@ abstract class Navigation {
 
     public static getParams(): Params {
         return this.params;
+    }
+
+    public static getQueryStringByName(paramName: string): string | null {
+        const urlSearchParams: URLSearchParams = new URLSearchParams(
+            window.location.search
+        );
+        const params: Dictionary<string> = Object.fromEntries(
+            urlSearchParams.entries()
+        );
+        if (params && params[paramName]) {
+            return params[paramName] as string;
+        }
+
+        return null;
     }
 
     public static getParamByName(
@@ -96,11 +111,32 @@ abstract class Navigation {
         if (route instanceof Route) {
             const current: Route = this.getCurrentRoute();
 
-            if (current.toString() === route.toString()) {
-                return true;
+            let isOnThisPage: boolean = true;
+
+            const routeItems: Array<string> = route.toString().split('/');
+            const currentPathItems: Array<string> = current
+                .toString()
+                .split('/');
+            if (routeItems.length !== currentPathItems.length) {
+                return false;
             }
 
-            return false;
+            let start: number = 0;
+            for (const item of currentPathItems) {
+                if (routeItems[start]?.startsWith(':') && item) {
+                    start++;
+                    continue;
+                }
+
+                if (routeItems[start]?.toString() !== item.toString()) {
+                    isOnThisPage = false;
+                    break;
+                }
+
+                start++;
+            }
+
+            return isOnThisPage;
         }
 
         if (route instanceof URL) {

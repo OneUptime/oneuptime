@@ -21,7 +21,6 @@ import Color from 'Common/Types/Color';
 import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import OneUptimeDate from 'Common/Types/Date';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import useAsyncEffect from 'use-async-effect';
 import InBetween from 'Common/Types/Database/InBetween';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -29,6 +28,7 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import API from 'CommonUI/src/Utils/API/API';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -77,14 +77,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             setData(monitorStatus.data);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

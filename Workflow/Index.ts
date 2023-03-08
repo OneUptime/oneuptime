@@ -35,22 +35,6 @@ app.get(
     }
 );
 
-// Job process.
-QueueWorker.getWorker(
-    QueueName.Workflow,
-    async (job: QueueJob) => {
-        await new RunWorkflow().runWorkflow({
-            workflowId: new ObjectID(job.data['workflowId'] as string),
-            workflowLogId: job.data['workflowLogId']
-                ? new ObjectID(job.data['workflowLogId'] as string)
-                : null,
-            arguments: job.data.data as JSONObject,
-            timeout: 5000,
-        });
-    },
-    { concurrency: 10 }
-);
-
 const init: Function = async (): Promise<void> => {
     try {
         // connect to the database.
@@ -65,6 +49,22 @@ const init: Function = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        // Job process.
+        QueueWorker.getWorker(
+            QueueName.Workflow,
+            async (job: QueueJob) => {
+                await new RunWorkflow().runWorkflow({
+                    workflowId: new ObjectID(job.data['workflowId'] as string),
+                    workflowLogId: job.data['workflowLogId']
+                        ? new ObjectID(job.data['workflowLogId'] as string)
+                        : null,
+                    arguments: job.data.data as JSONObject,
+                    timeout: 5000,
+                });
+            },
+            { concurrency: 10 }
+        );
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

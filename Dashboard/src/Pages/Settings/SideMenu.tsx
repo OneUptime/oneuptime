@@ -234,6 +234,17 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             ) : (
                 <></>
             )}
+            <SideMenuSection title="Authentication Security">
+                <SideMenuItem
+                    link={{
+                        title: 'SSO',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_SSO] as Route
+                        ),
+                    }}
+                    icon={IconProp.Lock}
+                />
+            </SideMenuSection>
             <SideMenuSection title="Danger Zone">
                 <SideMenuItem
                     link={{

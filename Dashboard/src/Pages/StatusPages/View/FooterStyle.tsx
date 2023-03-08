@@ -243,7 +243,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showFooter: true,
                         },
                         title: 'Show Footer on Status Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
                 ]}

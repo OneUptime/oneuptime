@@ -109,7 +109,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         title: 'Secret',
                         description:
                             'Is this variable secret or secure? Should this be encrypted in the Database?',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: true,
                     },
                     {

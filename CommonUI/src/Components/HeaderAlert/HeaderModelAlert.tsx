@@ -2,8 +2,7 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-
+import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderAlert from './HeaderAlert';
 
@@ -48,14 +47,7 @@ const HeaderModelAlert: Function = <TBaseModel extends BaseModel>(
 
             setCount(count);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);

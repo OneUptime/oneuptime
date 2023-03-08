@@ -158,7 +158,7 @@ router.get(
 
 RunCron(
     'StatusPageCerts:OrderCerts',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -192,7 +192,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:AddCerts',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         const domains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
@@ -266,7 +266,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:RemoveCerts',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -403,7 +403,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:WriteGreelockCertsToDisk',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
@@ -459,7 +459,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 

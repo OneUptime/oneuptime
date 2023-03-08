@@ -86,6 +86,7 @@ import SettingsScheduledMaintenanceState from './Pages/Settings/ScheduledMainten
 import SettingsDomains from './Pages/Settings/Domains';
 import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 import SettingsBilling from './Pages/Settings/Billing';
+import SettingsSSO from './Pages/Settings/SSO';
 import SettingsInvoices from './Pages/Settings/Invoices';
 import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
 import StatusPageCustomFields from './Pages/Settings/StatusPageCustomFields';
@@ -108,17 +109,17 @@ import MonitorIncidents from './Pages/Monitor/View/Incidents';
 import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
 import MonitorViewCustomFields from './Pages/Monitor/View/CustomFields';
 
-// Import CSS
-// import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import Welcome from './Pages/Onboarding/Welcome';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from './Utils/EventName';
+
+import Sso from './Pages/Onboarding/SSO';
+import API from 'CommonUI/src/Utils/API/API';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -197,10 +198,7 @@ const App: FunctionComponent = () => {
             );
             setProjects(result.data);
         } catch (err) {
-            setError(
-                (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
-            );
+            setError(API.getFriendlyMessage(err));
         }
 
         setLoading(false);
@@ -221,6 +219,7 @@ const App: FunctionComponent = () => {
                 setShowProjectModal(false);
             }}
             selectedProject={selectedProject}
+            hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
         >
             <Routes>
                 <PageRoute
@@ -270,6 +269,15 @@ const App: FunctionComponent = () => {
                             currentProject={selectedProject}
                             projects={projects}
                             isLoadingProjects={isLoading}
+                        />
+                    }
+                />
+                <PageRoute
+                    path={RouteMap[PageMap.PROJECT_SSO]?.toString() || ''}
+                    element={
+                        <Sso
+                            pageRoute={RouteMap[PageMap.PROJECT_SSO] as Route}
+                            currentProject={selectedProject}
                         />
                     }
                 />
@@ -1214,6 +1222,16 @@ const App: FunctionComponent = () => {
                                     PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_SSO]?.toString() || ''}
+                    element={
+                        <SettingsSSO
+                            pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
                             currentProject={selectedProject}
                         />
                     }

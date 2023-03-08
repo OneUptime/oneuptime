@@ -16,7 +16,6 @@ import ModelAPI, {
     ListResult,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Select from '../../Utils/ModelAPI/Select';
 import Dictionary from 'Common/Types/Dictionary';
 import useAsyncEffect from 'use-async-effect';
@@ -38,6 +37,7 @@ import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { ButtonStyleType } from '../Button/Button';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import API from '../../Utils/API/API';
 
 export enum FormType {
     Create,
@@ -324,14 +324,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
             setIsFetchingDropdownOptions(false);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         return fields;
@@ -350,16 +343,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             try {
                 await fetchItem();
             } catch (err) {
-                let error: string = '';
-                try {
-                    error =
-                        (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again';
-                } catch (e) {
-                    error = 'Server Error. Please try again';
-                }
-                setError(error);
-                props.onError && props.onError(error);
+                setError(API.getFriendlyMessage(err));
+                props.onError && props.onError(API.getFriendlyMessage(err));
             }
 
             setLoading(false);
@@ -470,10 +455,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 props.onSuccess(result.data);
             }
         } catch (err) {
-            setError(
-                (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
-            );
+            setError(API.getFriendlyMessage(err));
         }
 
         setLoading(false);

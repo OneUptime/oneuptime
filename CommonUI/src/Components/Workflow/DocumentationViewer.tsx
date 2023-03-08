@@ -5,8 +5,7 @@ import React, {
     useState,
 } from 'react';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import API from 'Common/Utils/API';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import API from '../../Utils/API/API';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import Route from 'Common/Types/API/Route';
@@ -52,14 +51,7 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
                 setIsLoading(false);
             } catch (err) {
                 setIsLoading(false);
-                try {
-                    setError(
-                        (err as HTTPErrorResponse).message ||
-                            'Server Error. Please try again'
-                    );
-                } catch (e) {
-                    setError('Server Error. Please try again');
-                }
+                setError(API.getFriendlyMessage(err));
             }
         }
     };

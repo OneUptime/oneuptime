@@ -2,7 +2,8 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
-
+import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
+import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 // Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
@@ -21,6 +22,7 @@ import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
 
 // Express
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import JobDictonary from './Utils/JobDictionary';
 
 const APP_NAME: string = 'workers';
 
@@ -40,6 +42,17 @@ const init: Function = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        // Job process.
+        QueueWorker.getWorker(
+            QueueName.Worker,
+            async (job: QueueJob) => {
+                const name: string = job.name;
+                const funcToRun: Function = JobDictonary.getJobFunction(name);
+                await funcToRun();
+            },
+            { concurrency: 10 }
+        );
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

@@ -14,7 +14,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import RouteParams from '../../Utils/RouteParams';
 import RouteMap from '../../Utils/RouteMap';
@@ -137,14 +136,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             props.onLoadComplete(response.data);
             setIsLoading(false);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(BaseAPI.getFriendlyMessage(err));
             setIsLoading(false);
         }
     }, []);

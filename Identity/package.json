@@ -14,11 +14,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/jsrsasign": "^10.5.5",
+    "@types/saml2-js": "^3.0.1",
+    "@types/xml-crypto": "^1.4.2",
+    "@types/xml2js": "^0.4.11",
+    "@types/xmldom": "^0.1.31",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.8",
+    "jsrsasign": "^10.6.1",
     "Model": "file:../Model",
-    "ts-node": "^10.9.1"
+    "saml2-js": "^4.0.1",
+    "ts-node": "^10.9.1",
+    "xml-crypto": "^3.0.1",
+    "xml2js": "^0.4.23",
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {
     "@types/jest": "^27.5.0",

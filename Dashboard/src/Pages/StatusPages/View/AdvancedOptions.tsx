@@ -69,7 +69,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             isPublicStatusPage: true,
                         },
                         title: 'Is Visible to Public',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         placeholder: 'Is this status page visible to public',
                     },

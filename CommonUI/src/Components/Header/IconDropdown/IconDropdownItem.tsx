@@ -9,6 +9,7 @@ export interface ComponentProps {
     url?: URL | Route;
     icon?: IconProp;
     title: string;
+    openInNewTab?: boolean;
     onClick?: (() => void) | undefined;
 }
 
@@ -19,6 +20,7 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
         <Link
             className="block py-2 px-4 text-sm text-gray-700 flex hover:bg-gray-100"
             to={props.url}
+            openInNewTab={props.openInNewTab}
             onClick={props.onClick}
         >
             <div className="mr-1 h-5 w-5">

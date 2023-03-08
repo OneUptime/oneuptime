@@ -635,7 +635,7 @@ const BasicForm: Function = <T extends Object>(
                         </Field>
                     )}
 
-                    {field.fieldType === FormFieldSchemaType.Checkbox && (
+                    {field.fieldType === FormFieldSchemaType.Toggle && (
                         <Field name={fieldName}>
                             {({ form }: any) => {
                                 return (
@@ -1130,7 +1130,7 @@ const BasicForm: Function = <T extends Object>(
 
                         for (const field of props.fields) {
                             if (
-                                field.fieldType === FormFieldSchemaType.Checkbox
+                                field.fieldType === FormFieldSchemaType.Toggle
                             ) {
                                 const fieldName: string = field.overideFieldKey
                                     ? field.overideFieldKey

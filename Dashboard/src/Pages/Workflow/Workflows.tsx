@@ -113,7 +113,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                 isEnabled: true,
                             },
                             title: 'Enabled',
-                            fieldType: FormFieldSchemaType.Checkbox,
+                            fieldType: FormFieldSchemaType.Toggle,
                         },
                     ]}
                     showRefreshButton={true}

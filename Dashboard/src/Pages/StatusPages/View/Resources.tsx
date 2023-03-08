@@ -27,9 +27,10 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import API from 'CommonUI/src/Utils/API/API';
+
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -65,14 +66,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             setGroups(listResult.data);
         } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
@@ -187,7 +181,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showCurrentStatus: true,
                         },
                         title: 'Show Current Resource Status',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         defaultValue: true,
                         description:
@@ -198,7 +192,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showStatusHistoryChart: true,
                         },
                         title: 'Show Status History Chart',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                        fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         description:
                             'Show resource status history for the past 90 days. ',

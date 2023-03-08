@@ -11,12 +11,12 @@ import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Detail from '../Detail/Detail';
 import BasicFormModal from '../FormModal/BasicFormModal';
 import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
+import API from '../../Utils/API/API';
 
 export interface ComponentProps {
     title: string;
@@ -73,14 +73,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             setIsLoading(false);
         } catch (err) {
             setIsLoading(false);
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
     };
 
@@ -97,14 +90,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             await onLoad();
         } catch (err) {
             setIsLoading(false);
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+            setError(API.getFriendlyMessage(err));
         }
     };
 

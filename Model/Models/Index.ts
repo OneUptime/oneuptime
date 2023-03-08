@@ -72,6 +72,9 @@ import Workflow from './Workflow';
 import WorkflowVariables from './WorkflowVariable';
 import WorkflowLog from './WorkflowLog';
 
+//SSO
+import ProjectSSO from './ProjectSso';
+
 export default [
     User,
     Probe,
@@ -126,4 +129,6 @@ export default [
     Workflow,
     WorkflowVariables,
     WorkflowLog,
+
+    ProjectSSO,
 ];

@@ -33,6 +33,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
+import AuthenticationEmail from '../Utils/AuthenticationEmail';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -485,41 +486,9 @@ router.post(
                 }
 
                 if (!alreadySavedUser.isEmailVerified) {
-                    const generatedToken: ObjectID = ObjectID.generate();
-
-                    const emailVerificationToken: EmailVerificationToken =
-                        new EmailVerificationToken();
-                    emailVerificationToken.userId = alreadySavedUser?.id!;
-                    emailVerificationToken.email = alreadySavedUser?.email!;
-                    emailVerificationToken.token = generatedToken;
-                    emailVerificationToken.expires =
-                        OneUptimeDate.getOneDayAfter();
-
-                    await EmailVerificationTokenService.create({
-                        data: emailVerificationToken,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                    MailService.sendMail({
-                        toEmail: alreadySavedUser.email!,
-                        subject: 'Please verify email.',
-                        templateType: EmailTemplateType.SignupWelcomeEmail,
-                        vars: {
-                            name: alreadySavedUser.name!.toString(),
-                            tokenVerifyUrl: new URL(
-                                HttpProtocol,
-                                Domain,
-                                new Route(AccountsRoute.toString()).addRoute(
-                                    '/verify-email/' + generatedToken.toString()
-                                )
-                            ).toString(),
-                            homeUrl: new URL(HttpProtocol, Domain).toString(),
-                        },
-                    }).catch((err: Error) => {
-                        logger.error(err);
-                    });
+                    await AuthenticationEmail.sendVerificationEmail(
+                        alreadySavedUser
+                    );
 
                     return Response.sendErrorResponse(
                         req,
