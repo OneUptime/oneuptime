@@ -35,15 +35,11 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         if (props.type === CodeType.Markdown) {
-            setPlaceholder(`<!---
-            ${props.placeholder}. This is in markdown.
-            -->`);
+            setHelpText(`${props.placeholder}. This is in Markdown`);
         }
 
         if (props.type === CodeType.HTML) {
-            setPlaceholder(`<!---
-            ${props.placeholder}. This is in HTML.
-            -->`);
+            setHelpText(`${props.placeholder}. This is in HTML`);
         }
 
         if (props.type === CodeType.JavaScript) {
@@ -56,7 +52,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
         if (props.type === CodeType.CSS) {
             setPlaceholder(
-                `/* ${props.placeholder}. This is in JavaScript. */`
+                `/* ${props.placeholder}. This is in CSS. */`
             );
         }
     }, [props.placeholder, props.type]);

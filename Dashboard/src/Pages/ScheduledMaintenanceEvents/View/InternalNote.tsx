@@ -102,12 +102,10 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                             note: true,
                         },
                         title: 'Private Scheduled Maintenance Note',
-                        description:
-                            'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder:
-                            'Add a private note to this scheduled maintenance here.',
+                        description:
+                            'Add a private note to this scheduled maintenance here. This is in Markdown.',
                     },
                 ]}
                 showRefreshButton={true}

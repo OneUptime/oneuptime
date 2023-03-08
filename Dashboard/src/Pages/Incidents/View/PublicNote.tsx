@@ -100,11 +100,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             note: true,
                         },
                         title: 'Public Incident Note',
-                        description:
-                            'This is in markdown. This note is visible on your Status Page.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder: 'Add a public note to this incident here.',
+                        description: 'This note is visible on your Status Page. This is in Markdown.',
                     },
                 ]}
                 showTableAs={ShowTableAs.List}
