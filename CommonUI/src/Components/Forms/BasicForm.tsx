@@ -110,13 +110,11 @@ const BasicForm: Function = forwardRef(
 
         const [formFields, setFormFields] = useState<Fields<T>>([]);
 
-        useEffect(() => {
-            validate(currentValue);
-        }, [currentValue]);
-
         const setFieldTouched = (fieldName: string, value: boolean) => {
             setTouched({ ...touched, [fieldName]: value });
         };
+
+        const [isInitialValuesInitialized, setIsInitialValuesInitialized] = useState<boolean>(false);
 
         useImperativeHandle(
             ref,
@@ -132,7 +130,7 @@ const BasicForm: Function = forwardRef(
 
         useEffect(() => {
 
-
+            console.log(props.fields);
             setFormFields([...props.fields]);
 
         }, [props.fields]);
@@ -157,6 +155,10 @@ const BasicForm: Function = forwardRef(
 
         const setFieldValue = (fieldName: string, value: JSONValue) => {
             setCurrentValue({ ...currentValue, [fieldName]: value as any });
+            if (props.onChange) {
+                props.onChange(currentValue);
+            }
+            validate(currentValue);
         };
 
         const submitForm: Function = (): void => {
@@ -921,9 +923,7 @@ const BasicForm: Function = forwardRef(
                 ...customValidateResult,
             } as Dictionary<string>;
 
-            if (props.onChange) {
-                props.onChange(values);
-            }
+            
 
             if (props.onFormValidationErrorChanged) {
                 props.onFormValidationErrorChanged(
@@ -937,6 +937,11 @@ const BasicForm: Function = forwardRef(
         };
 
         useEffect(() => {
+
+            if(!props.initialValues || isInitialValuesInitialized){
+                return;
+            }
+
             const values: FormValues<T> = { ...props.initialValues };
             for (const field of formFields) {
                 const fieldName: string = getFieldName(field);
@@ -977,6 +982,7 @@ const BasicForm: Function = forwardRef(
                 }
             }
             setCurrentValue(values);
+            setIsInitialValuesInitialized(true);
         }, [props.initialValues]);
 
         const primaryButtonStyle: React.CSSProperties = {};
