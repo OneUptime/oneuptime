@@ -395,6 +395,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
+                fitView={true}
                 onEdgeClick={() => {
                     refreshEdges();
                 }}
