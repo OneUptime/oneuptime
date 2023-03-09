@@ -5,7 +5,7 @@ This trigger lets you start the workflow with the incoming HTTP request.
 
 
 ```
-{{serverUrl}}/workflow/trigger/{{workflowId}}
+{{serverUrl}}workflow/trigger/{{workflowId}}
 ```
 
 

@@ -42,6 +42,54 @@ export const componentInputTypeToFormFieldType: Function = (
     fieldType: FormFieldSchemaType;
     dropdownOptions?: Array<DropdownOption> | undefined;
 } => {
+
+    // first priority. 
+    
+    if (componentInputType === ComponentInputType.BaseModel) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
+    if (componentInputType === ComponentInputType.BaseModelArray) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
+    if (componentInputType === ComponentInputType.JSON) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
+    if (componentInputType === ComponentInputType.JSONArray) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
+    if (componentInputType === ComponentInputType.JavaScript) {
+        return {
+            fieldType: FormFieldSchemaType.JavaScript,
+        };
+    }
+
+    if (componentInputType === ComponentInputType.Query) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
+    if (componentInputType === ComponentInputType.StringDictionary) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
+
+    // Second priorioty.
+
     if (
         argValue &&
         typeof argValue === Typeof.String &&
@@ -125,17 +173,6 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-    if (componentInputType === ComponentInputType.BaseModel) {
-        return {
-            fieldType: FormFieldSchemaType.JSON,
-        };
-    }
-
-    if (componentInputType === ComponentInputType.BaseModelArray) {
-        return {
-            fieldType: FormFieldSchemaType.JSON,
-        };
-    }
 
     if (componentInputType === ComponentInputType.Decimal) {
         return {
@@ -149,23 +186,7 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-    if (componentInputType === ComponentInputType.JSON) {
-        return {
-            fieldType: FormFieldSchemaType.JSON,
-        };
-    }
-
-    if (componentInputType === ComponentInputType.JSONArray) {
-        return {
-            fieldType: FormFieldSchemaType.JSON,
-        };
-    }
-
-    if (componentInputType === ComponentInputType.JavaScript) {
-        return {
-            fieldType: FormFieldSchemaType.JavaScript,
-        };
-    }
+   
 
     if (componentInputType === ComponentInputType.Number) {
         return {
@@ -173,17 +194,7 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-    if (componentInputType === ComponentInputType.Query) {
-        return {
-            fieldType: FormFieldSchemaType.JSON,
-        };
-    }
-
-    if (componentInputType === ComponentInputType.StringDictionary) {
-        return {
-            fieldType: FormFieldSchemaType.JSON,
-        };
-    }
+   
 
     if (componentInputType === ComponentInputType.Password) {
         return {
