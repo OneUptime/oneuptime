@@ -30,6 +30,7 @@ export interface ComponentProps {
     onEnterPress?: (() => void) | undefined;
     error?: string | undefined;
     outerDivClassName?: string | undefined;
+    autoFocus?: boolean | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -119,6 +120,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 }
             >
                 <input
+                    autoFocus={props.autoFocus}
                     ref={ref}
                     onFocus={props.onFocus}
                     onClick={props.onClick}

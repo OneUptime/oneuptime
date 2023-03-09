@@ -365,6 +365,7 @@ const BasicForm: Function = forwardRef(
 
                         {field.fieldType === FormFieldSchemaType.LongText && (
                             <TextArea
+                                autoFocus={index === 1}
                                 error={
                                     touched[fieldName] && errors[fieldName]
                                         ? errors[fieldName]
@@ -601,6 +602,7 @@ const BasicForm: Function = forwardRef(
                             field.fieldType ===
                             FormFieldSchemaType.PositveNumber) && (
                                 <Input
+                                    autoFocus={index === 1}
                                     tabIndex={index}
                                     disabled={isDisabled || field.disabled}
                                     error={

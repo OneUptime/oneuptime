@@ -16,6 +16,7 @@ export interface ComponentProps {
     className?: undefined | string;
     tabIndex?: number | undefined;
     error?: string | undefined;
+    autoFocus?: boolean | undefined;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -52,6 +53,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
         <>
             <div className="relative mt-2 mb-1 rounded-md shadow-sm">
                 <textarea
+                    autoFocus={props.autoFocus}
                     placeholder={props.placeholder}
                     className={`${className || ''}`}
                     value={text}
