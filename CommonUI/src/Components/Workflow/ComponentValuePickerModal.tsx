@@ -148,7 +148,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
                                             )}
                                         {component.metadata.returnValues &&
                                             component.metadata.returnValues.map(
-                                                (returnValue: ReturnValue) => {
+                                                (returnValue: ReturnValue, i: number) => {
                                                     const isSelected: boolean =
                                                         Boolean(
                                                             selectedComponent &&

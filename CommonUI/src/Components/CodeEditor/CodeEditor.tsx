@@ -108,7 +108,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
                     setValue(code);
                     props.onBlur && props.onBlur();
-                    props.onChange && props.onChange(value);
+                    props.onChange && props.onChange(code);
                 }}
                 defaultValue={props.initialValue || placeholder || ''}
                 className={className}
