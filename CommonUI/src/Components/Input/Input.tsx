@@ -119,7 +119,6 @@ const Input: FunctionComponent<ComponentProps> = (
                 }
             >
                 <input
-                    autoFocus={true}
                     ref={ref}
                     onFocus={props.onFocus}
                     onClick={props.onClick}
