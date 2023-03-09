@@ -100,6 +100,8 @@ const BasicForm: Function = forwardRef(<T extends Object>(
     const [errors, setErrors] = useState<Dictionary<string>>({});
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
+    const [formFields, setFormFields] = useState<Fields<T>>([]);
+
     useEffect(() => {
         validate(currentValue);
     }, [currentValue]);
@@ -114,7 +116,14 @@ const BasicForm: Function = forwardRef(<T extends Object>(
             setFieldValue,
             submitForm
         };
-    }, []);
+    }, [props, currentValue, errors, touched, formFields]);
+
+    useEffect(() => {
+
+        console.log(props.fields);
+
+        setFormFields([...props.fields]);
+    }, [props.fields])
 
 
     const getFieldName: Function = (field: Field<T>): string => {
@@ -128,7 +137,7 @@ const BasicForm: Function = forwardRef(<T extends Object>(
     const setAllTouched: Function = (): void => {
         const touchedObj: Dictionary<boolean> = {};
 
-        for (const field of props.fields) {
+        for (const field of formFields) {
             touchedObj[getFieldName(field)] = true;
         }
 
@@ -152,7 +161,7 @@ const BasicForm: Function = forwardRef(<T extends Object>(
 
         const values: FormValues<T> = currentValue;
 
-        for (const field of props.fields) {
+        for (const field of formFields) {
             if (field.fieldType === FormFieldSchemaType.Toggle) {
                 const fieldName: string = getFieldName(field);
                 if (!(values as any)[fieldName]) {
@@ -801,7 +810,7 @@ const BasicForm: Function = forwardRef(<T extends Object>(
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
-        for (const field of props.fields) {
+        for (const field of formFields) {
             const name: string = getFieldName(field);
 
             if (name in entries) {
@@ -887,7 +896,7 @@ const BasicForm: Function = forwardRef(<T extends Object>(
 
     useEffect(() => {
         const values: FormValues<T> = { ...props.initialValues };
-        for (const field of props.fields) {
+        for (const field of formFields) {
             const fieldName: string = getFieldName(field);
 
             if (
@@ -964,8 +973,8 @@ const BasicForm: Function = forwardRef(<T extends Object>(
                             className={`grid md:grid-cols-${props.showAsColumns || 1
                                 } grid-cols-1 gap-4`}
                         >
-                            {props.fields &&
-                                props.fields.map(
+                            {formFields &&
+                                formFields.map(
                                     (field: DataField<T>, i: number) => {
                                         return (
                                             <div key={i}>
