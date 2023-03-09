@@ -33,9 +33,13 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
 
+    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
+        useState<boolean>(false);
+
     useEffect(() => {
-        if (props.initialValue) {
+        if (props.initialValue && !isInitialValuesInitialized) {
             setColor(props.initialValue.toString());
+            setIsInitialValuesInitialized(true);
         }
     }, [props.initialValue]);
 

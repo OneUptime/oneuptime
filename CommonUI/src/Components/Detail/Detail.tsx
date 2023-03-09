@@ -137,7 +137,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 <CodeEditor
                     type={codeType}
                     readOnly={true}
-                    value={data as string}
+                    initialValue={data as string}
                 />
             );
         }

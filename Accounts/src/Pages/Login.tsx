@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -19,6 +19,8 @@ const LoginPage: FunctionComponent = () => {
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }
+
+    const [showSsoTip, setShowSSOTip] = useState<boolean>(false);
 
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -79,12 +81,26 @@ const LoginPage: FunctionComponent = () => {
                         footer={
                             <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
                                 <p>
-                                    <Link
-                                        to={new Route('/accounts/login/sso')}
-                                        className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                                    >
-                                        Use single sign-on (SSO) instead
-                                    </Link>
+                                    {!showSsoTip && (
+                                        <div
+                                            onClick={() => {
+                                                setShowSSOTip(true);
+                                            }}
+                                            className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
+                                        >
+                                            Use single sign-on (SSO) instead
+                                        </div>
+                                    )}
+
+                                    {showSsoTip && (
+                                        <div className="text-gray-500 text-sm">
+                                            Please sign in with your username
+                                            and password. Once you have signed
+                                            in, you&apos;ll be able to sign in
+                                            via SSO that&apos;s configured for
+                                            your project.
+                                        </div>
+                                    )}
                                 </p>
                             </div>
                         }

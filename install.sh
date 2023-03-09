@@ -19,24 +19,52 @@ npm run start
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""
 echo "⏳ Waiting for OneUptime to boot (this will take a few minutes)"
+
+echo "Checking API Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/api/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 1/10"
+echo "API is up ✔️"
+
+echo "Checking Dashboard Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/dashboard/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 2/10"
+echo "Dashboard is up ✔️"
+
+echo "Checking File Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/file/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 3/10"
+echo "File server is up ✔️"
+
+echo "Checking Status Page Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/status-page/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 4/10"
+echo "Status Page Server is up ✔️"
+
+echo "Checking Home Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 5/10"
+echo "Home Server is up ✔️"
+
+echo "Checking Accounts Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/accounts/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 6/10"
+echo "Accounts Server is up ✔️"
+
+echo "Checking Mail Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/mail/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 7/10"
+echo "Mail Server is up ✔️"
+
+echo "Checking Worker Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/workers/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 8/10"
+echo "Worker Server is up ✔️"
+
+echo "Checking Identity Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/identity/status)" != "200" ]]; do sleep 5; done'
-echo "Progress 9/10"
+echo "Identity Server is up ✔️"
+
+echo "Checking Workflow Server Status..."
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/workflow/status)" != "200" ]]; do sleep 5; done'
+echo "Workflow Server is up ✔️"
+
+echo "Checking API Docs Server Status..."
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/docs/status)" != "200" ]]; do sleep 5; done'
+echo "API Docs Server is up ✔️"
+
+
 echo "⌛️ OneUptime is up!"
 echo ""
 echo "🎉🎉🎉  Done! 🎉🎉🎉"

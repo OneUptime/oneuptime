@@ -85,7 +85,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     }, [props.fields]);
 
     return (
-        <BasicForm<TBaseModel>
+        <BasicForm
             isLoading={props.isLoading || false}
             fields={formFields}
             id={props.id}
@@ -106,7 +106,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
             error={props.error}
             hideSubmitButton={props.hideSubmitButton}
-            formRef={props.formRef}
+            ref={props.formRef}
         ></BasicForm>
     );
 };

@@ -111,7 +111,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         changeMonitorStatusTo: true,
                     },
-                    title: 'Change Monitor Status to (Optional)',
+                    title: 'Change Monitor Status to ',
                     description:
                         'This will change the status of all the monitors attached to this incident.',
                     fieldType: FormFieldSchemaType.Dropdown,
@@ -127,7 +127,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         labels: true,
                     },
-                    title: 'Labels (Optional)',
+                    title: 'Labels ',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,

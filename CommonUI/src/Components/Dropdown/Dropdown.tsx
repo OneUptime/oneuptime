@@ -15,7 +15,7 @@ export interface DropdownOption {
 
 export interface ComponentProps {
     options: Array<DropdownOption>;
-    initialValue?: undefined | DropdownOption;
+    initialValue?: undefined | DropdownOption | Array<DropdownOption>;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
@@ -40,6 +40,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | null
     >(null);
 
+    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
+        useState<boolean>(false);
+
     useEffect(() => {
         if (props.initialValue) {
             setValue(props.initialValue);
@@ -57,22 +60,58 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.value]);
 
     useEffect(() => {
-        if (props.initialValue) {
-            setValue(props.initialValue ? props.initialValue : null);
+        if (props.initialValue && !isInitialValuesInitialized) {
+            setValue(props.initialValue);
+            setIsInitialValuesInitialized(true);
         }
     }, [props.initialValue]);
 
     useEffect(() => {
+        // translate from string array or string value to value.
+        let dropdownValue: DropdownOption | Array<DropdownOption> | null =
+            value;
+
+        if (typeof value === 'string') {
+            dropdownValue =
+                props.options.find((i: DropdownOption) => {
+                    return i.value === value;
+                }) || null;
+        }
+
+        if (Array.isArray(value)) {
+            const items: Array<DropdownOption> = [];
+
+            for (const item of value) {
+                if (typeof item === 'string') {
+                    const tempItem:
+                        | DropdownOption
+                        | Array<DropdownOption>
+                        | null =
+                        props.options.find((i: DropdownOption) => {
+                            return i.value === item;
+                        }) || null;
+
+                    if (tempItem) {
+                        items.push(tempItem);
+                    }
+                } else {
+                    items.push(item);
+                }
+            }
+
+            dropdownValue = [...items];
+        }
+
         const selectedValues: Array<DropdownOption> = props.options.filter(
             (item: DropdownOption) => {
-                if (Array.isArray(value)) {
-                    return value
+                if (Array.isArray(dropdownValue)) {
+                    return dropdownValue
                         .map((v: DropdownOption) => {
                             return v.value;
                         })
                         .includes(item.value);
                 }
-                return item.value === value?.value;
+                return item.value === dropdownValue?.value;
             }
         );
 
@@ -83,11 +122,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }
 
         setSelectedValue(props.isMultiSelect ? selectedValues : selectedValue);
-        if (value) {
-            if (Array.isArray(value)) {
+        if (dropdownValue) {
+            if (Array.isArray(dropdownValue)) {
                 props.onChange &&
                     props.onChange(
-                        (value as Array<DropdownOption>).map(
+                        (dropdownValue as Array<DropdownOption>).map(
                             (i: DropdownOption) => {
                                 return i.value;
                             }
@@ -95,11 +134,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                     );
             } else {
                 props.onChange &&
-                    props.onChange((value as DropdownOption).value);
+                    props.onChange((dropdownValue as DropdownOption).value);
             }
         }
 
-        if (!value) {
+        if (!dropdownValue) {
             props.onChange && props.onChange(props.isMultiSelect ? [] : null);
         }
     }, [value]);
@@ -107,8 +146,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     return (
         <div
             className={`${
-                props.className ||
-                'relative mt-2 mb-1 rounded-md shadow-sm w-full'
+                props.className || 'relative mt-2 mb-1 rounded-md w-full'
             }`}
             onClick={() => {
                 props.onClick && props.onClick();

@@ -58,7 +58,7 @@ const RunForm: FunctionComponent<ComponentProps> = (
                     component.metadata.returnValues.length > 0 && (
                         <BasicForm
                             hideSubmitButton={true}
-                            formRef={formRef}
+                            ref={formRef}
                             initialValues={{
                                 ...(component.returnValues || {}),
                             }}

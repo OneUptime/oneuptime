@@ -68,7 +68,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     component.metadata.arguments.length > 0 && (
                         <BasicForm
                             hideSubmitButton={true}
-                            formRef={formRef}
+                            ref={formRef}
                             initialValues={{
                                 ...(component.arguments || {}),
                             }}
@@ -85,10 +85,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                             onFormValidationErrorChanged={(
                                 hasError: boolean
                             ) => {
-                                setHasFormValidatonErrors({
-                                    ...hasFormValidationErrors,
-                                    id: hasError,
-                                });
+                                if (
+                                    hasFormValidationErrors['id'] !== hasError
+                                ) {
+                                    setHasFormValidatonErrors({
+                                        ...hasFormValidationErrors,
+                                        id: hasError,
+                                    });
+                                }
                             }}
                             fields={
                                 component.metadata.arguments &&

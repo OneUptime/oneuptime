@@ -102,12 +102,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             note: true,
                         },
                         title: 'Public Scheduled Maintenance Note',
-                        description:
-                            'This is in markdown. This note is visible on your Status Page.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder:
-                            'Add a public note to this scheduled maintenance here.',
+                        description:
+                            'This note is visible on your Status Page. This is in Markdown.',
                     },
                 ]}
                 showRefreshButton={true}

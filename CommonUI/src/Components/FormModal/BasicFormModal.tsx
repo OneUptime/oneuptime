@@ -5,7 +5,6 @@ import BasicForm, {
     ComponentProps as BasicFormComponentProps,
 } from '../Forms/BasicForm';
 import ButtonType from '../Button/ButtonTypes';
-import { FormikProps, FormikValues } from 'formik';
 
 export interface ComponentProps<T extends Object> {
     title: string;
@@ -20,7 +19,7 @@ const BasicFormModal: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const formRef: any = useRef<FormikProps<FormikValues>>(null);
+    const formRef: any = useRef<any>(null);
 
     return (
         <Modal
@@ -28,16 +27,16 @@ const BasicFormModal: Function = <T extends Object>(
             submitButtonType={ButtonType.Submit}
             isLoading={isLoading}
             onSubmit={() => {
-                formRef.current && formRef.current.handleSubmit();
+                formRef.current.submitForm();
             }}
         >
-            <BasicForm<T>
+            <BasicForm
                 {...props.formProps}
                 hideSubmitButton={true}
+                ref={formRef}
                 onLoadingChange={(isFormLoading: boolean) => {
                     setIsLoading(isFormLoading);
                 }}
-                formRef={formRef}
                 onSubmit={(data: T) => {
                     props.onSubmit && props.onSubmit(data);
                 }}

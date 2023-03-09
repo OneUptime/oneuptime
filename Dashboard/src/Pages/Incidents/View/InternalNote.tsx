@@ -100,12 +100,10 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             note: true,
                         },
                         title: 'Private Incident Note',
-                        description:
-                            'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder:
-                            'Add a private note to this incident here.',
+                        description:
+                            'Add a private note to this incident here. This is private to your team and is not visible on Status Page. This is in Markdown.',
                     },
                 ]}
                 showTableAs={ShowTableAs.List}

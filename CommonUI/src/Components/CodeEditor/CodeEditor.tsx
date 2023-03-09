@@ -15,7 +15,6 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?: undefined | ((value: string) => void);
-    value?: string | undefined;
     readOnly?: boolean | undefined;
     type: CodeType;
     onFocus?: (() => void) | undefined;
@@ -33,31 +32,32 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [placeholder, setPlaceholder] = useState<string>('');
     const [helpText, setHelpText] = useState<string>('');
 
+    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
+        useState<boolean>(false);
+
     useEffect(() => {
-        if (props.type === CodeType.Markdown) {
-            setPlaceholder(`<!---
-            ${props.placeholder}. This is in markdown.
-            -->`);
-        }
+        if (props.placeholder) {
+            if (props.type === CodeType.Markdown) {
+                setHelpText(`${props.placeholder}. This is in Markdown`);
+            }
 
-        if (props.type === CodeType.HTML) {
-            setPlaceholder(`<!---
-            ${props.placeholder}. This is in HTML.
-            -->`);
-        }
+            if (props.type === CodeType.HTML) {
+                setHelpText(`${props.placeholder}. This is in HTML`);
+            }
 
-        if (props.type === CodeType.JavaScript) {
-            setPlaceholder(`// ${props.placeholder}. This is in JavaScript.`);
-        }
+            if (props.type === CodeType.JavaScript) {
+                setPlaceholder(
+                    `// ${props.placeholder}. This is in JavaScript.`
+                );
+            }
 
-        if (props.type === CodeType.JSON) {
-            setHelpText(`${props.placeholder}`);
-        }
+            if (props.type === CodeType.JSON) {
+                setHelpText(`${props.placeholder}`);
+            }
 
-        if (props.type === CodeType.CSS) {
-            setPlaceholder(
-                `/* ${props.placeholder}. This is in JavaScript. */`
-            );
+            if (props.type === CodeType.CSS) {
+                setPlaceholder(`/* ${props.placeholder}. This is in CSS. */`);
+            }
         }
     }, [props.placeholder, props.type]);
 
@@ -76,26 +76,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [value, setValue] = useState<string>('');
 
     useEffect(() => {
-        props.onChange && props.onChange(value);
-    }, [value]);
-
-    useEffect(() => {
-        if (props.initialValue) {
+        if (props.initialValue && !isInitialValuesInitialized) {
             setValue(props.initialValue);
-        }
-
-        if (props.value) {
-            setValue(props.value);
-        }
-    }, []);
-
-    useEffect(() => {
-        setValue(props.value ? props.value : '');
-    }, [props.value]);
-
-    useEffect(() => {
-        if (props.initialValue) {
-            setValue(props.initialValue);
+            setIsInitialValuesInitialized(true);
         }
     }, [props.initialValue]);
 
@@ -125,6 +108,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
                     setValue(code);
                     props.onBlur && props.onBlur();
+                    props.onChange && props.onChange(value);
                 }}
                 defaultValue={props.initialValue || placeholder || ''}
                 className={className}
