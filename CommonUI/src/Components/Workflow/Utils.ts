@@ -101,7 +101,7 @@ export const componentInputTypeToFormFieldType: Function = (
                 },
                 {
                     label: 'Every Six Months',
-                    value: '0 0 1 */3 *',
+                    value: '0 0 1 */6 *',
                 },
             ],
         };

@@ -115,6 +115,22 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             title: 'Enabled',
                             fieldType: FormFieldSchemaType.Toggle,
                         },
+                        {
+                            field: {
+                                labels: true,
+                            },
+                            title: 'Labels ',
+                            description:
+                                'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
+                            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                            dropdownModal: {
+                                type: Label,
+                                labelField: 'name',
+                                valueField: '_id',
+                            },
+                            required: false,
+                            placeholder: 'Labels',
+                        },
                     ]}
                     showRefreshButton={true}
                     showFilterButton={true}

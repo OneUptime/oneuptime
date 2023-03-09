@@ -85,9 +85,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                             onFormValidationErrorChanged={(
                                 hasError: boolean
                             ) => {
-
-                                if (hasFormValidationErrors['id'] !== hasError) {
-
+                                if (
+                                    hasFormValidationErrors['id'] !== hasError
+                                ) {
                                     setHasFormValidatonErrors({
                                         ...hasFormValidationErrors,
                                         id: hasError,
@@ -135,10 +135,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                                     </p>
                                                 </div>
                                             ),
-                                            description: `${arg.required
+                                            description: `${
+                                                arg.required
                                                     ? 'Required'
                                                     : 'Optional'
-                                                }. ${arg.description}`,
+                                            }. ${arg.description}`,
                                             field: {
                                                 [arg.id]: true,
                                             },
@@ -149,8 +150,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                                 component.arguments &&
                                                     component.arguments[arg.id]
                                                     ? component.arguments[
-                                                    arg.id
-                                                    ]
+                                                          arg.id
+                                                      ]
                                                     : null
                                             ),
                                         };

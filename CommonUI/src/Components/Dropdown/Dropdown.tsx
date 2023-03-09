@@ -5,7 +5,6 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import ArrayUtil from 'Common/Types/ArrayUtil';
 
 export type DropdownValue = string | number | boolean;
 
@@ -41,9 +40,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | null
     >(null);
 
-    const [initialValueSet, setInitialValueSet] = useState<
-        DropdownOption | Array<DropdownOption> | undefined
-    >(undefined);
+    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
+        useState<boolean>(false);
 
     useEffect(() => {
         if (props.initialValue) {
@@ -62,23 +60,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, [props.value]);
 
     useEffect(() => {
-        if (
-            Array.isArray(initialValueSet) ||
-            Array.isArray(props.initialValue)
-        ) {
-            if (
-                !ArrayUtil.isEqual(
-                    Array.isArray(initialValueSet) ? initialValueSet : [],
-                    Array.isArray(props.initialValue) ? props.initialValue : []
-                )
-            ) {
-                setValue(props.initialValue || null);
-            }
-        } else if (initialValueSet !== props.initialValue) {
-            setValue(props.initialValue || null);
+        if (props.initialValue && !isInitialValuesInitialized) {
+            setValue(props.initialValue);
+            setIsInitialValuesInitialized(true);
         }
-
-        setInitialValueSet(props.initialValue);
     }, [props.initialValue]);
 
     useEffect(() => {
@@ -88,7 +73,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
         if (typeof value === 'string') {
             dropdownValue =
-                props.options.find(i => {
+                props.options.find((i: DropdownOption) => {
                     return i.value === value;
                 }) || null;
         }
@@ -102,7 +87,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                         | DropdownOption
                         | Array<DropdownOption>
                         | null =
-                        props.options.find((i) => {
+                        props.options.find((i: DropdownOption) => {
                             return i.value === item;
                         }) || null;
 

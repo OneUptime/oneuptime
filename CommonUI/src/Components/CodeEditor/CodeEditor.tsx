@@ -15,7 +15,6 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?: undefined | ((value: string) => void);
-    value?: string | undefined;
     readOnly?: boolean | undefined;
     type: CodeType;
     onFocus?: (() => void) | undefined;
@@ -32,6 +31,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
     const [placeholder, setPlaceholder] = useState<string>('');
     const [helpText, setHelpText] = useState<string>('');
+
+    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
+        useState<boolean>(false);
 
     useEffect(() => {
         if (props.placeholder) {
@@ -74,26 +76,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [value, setValue] = useState<string>('');
 
     useEffect(() => {
-        props.onChange && props.onChange(value);
-    }, [value]);
-
-    useEffect(() => {
-        if (props.initialValue) {
+        if (props.initialValue && !isInitialValuesInitialized) {
             setValue(props.initialValue);
-        }
-
-        if (props.value) {
-            setValue(props.value);
-        }
-    }, []);
-
-    useEffect(() => {
-        setValue(props.value ? props.value : '');
-    }, [props.value]);
-
-    useEffect(() => {
-        if (props.initialValue) {
-            setValue(props.initialValue);
+            setIsInitialValuesInitialized(true);
         }
     }, [props.initialValue]);
 
@@ -123,6 +108,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
                     setValue(code);
                     props.onBlur && props.onBlur();
+                    props.onChange && props.onChange(value);
                 }}
                 defaultValue={props.initialValue || placeholder || ''}
                 className={className}

@@ -6,8 +6,8 @@ export default class ArrayUtil {
         }
 
         // Sort both arrays by their JSON representation
-        const sortedArr1 = JSON.stringify([...a].sort());
-        const sortedArr2 = JSON.stringify([...b].sort());
+        const sortedArr1: string = JSON.stringify([...a].sort());
+        const sortedArr2: string = JSON.stringify([...b].sort());
 
         // Compare the sorted arrays
         return sortedArr1 === sortedArr2;
