@@ -226,63 +226,69 @@ export default class UserMiddleware {
         if (req.headers['is-multi-tenant-query']) {
             oneuptimeRequest.userTenantAccessPermission = {};
 
-            const projects: Array<Project> = await ProjectService.findBy({
-                query: {
-                    _id: QueryHelper.in(
-                        userGlobalAccessPermission?.projectIds.map(
-                            (i: ObjectID) => {
-                                return i.toString();
-                            }
-                        ) || []
-                    ),
-                },
-                select: {
-                    requireSsoForLogin: true,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                props: {
-                    isRoot: true,
-                },
-            });
+            if (
+                userGlobalAccessPermission &&
+                userGlobalAccessPermission.projectIds &&
+                userGlobalAccessPermission.projectIds.length > 0
+            ) {
+                const projects: Array<Project> = await ProjectService.findBy({
+                    query: {
+                        _id: QueryHelper.in(
+                            userGlobalAccessPermission?.projectIds.map(
+                                (i: ObjectID) => {
+                                    return i.toString();
+                                }
+                            ) || []
+                        ),
+                    },
+                    select: {
+                        requireSsoForLogin: true,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
-            for (const projectId of userGlobalAccessPermission?.projectIds ||
-                []) {
-                // check if the force sso login is required. and if it is, then check then token.
+                for (const projectId of userGlobalAccessPermission?.projectIds ||
+                    []) {
+                    // check if the force sso login is required. and if it is, then check then token.
 
-                if (
-                    projects.find((p: Project) => {
-                        return (
-                            p._id === projectId.toString() &&
-                            p.requireSsoForLogin
-                        );
-                    }) &&
-                    !UserMiddleware.doesSsoTokenForProjectExist(
-                        req,
-                        projectId,
-                        new ObjectID(userId)
-                    )
-                ) {
-                    // Add default permissions.
-                    const userTenantAccessPermission: UserTenantAccessPermission | null =
-                        AccessTokenService.getDefaultUserTenantAccessPermission(
-                            projectId
-                        );
-                    oneuptimeRequest.userTenantAccessPermission[
-                        projectId.toString()
-                    ] = userTenantAccessPermission;
-                } else {
-                    // get project level permissions if projectid exists in request.
-                    const userTenantAccessPermission: UserTenantAccessPermission | null =
-                        await AccessTokenService.getUserTenantAccessPermission(
-                            oneuptimeRequest.userAuthorization.userId,
-                            projectId
-                        );
-
-                    if (userTenantAccessPermission) {
+                    if (
+                        projects.find((p: Project) => {
+                            return (
+                                p._id === projectId.toString() &&
+                                p.requireSsoForLogin
+                            );
+                        }) &&
+                        !UserMiddleware.doesSsoTokenForProjectExist(
+                            req,
+                            projectId,
+                            new ObjectID(userId)
+                        )
+                    ) {
+                        // Add default permissions.
+                        const userTenantAccessPermission: UserTenantAccessPermission | null =
+                            AccessTokenService.getDefaultUserTenantAccessPermission(
+                                projectId
+                            );
                         oneuptimeRequest.userTenantAccessPermission[
                             projectId.toString()
                         ] = userTenantAccessPermission;
+                    } else {
+                        // get project level permissions if projectid exists in request.
+                        const userTenantAccessPermission: UserTenantAccessPermission | null =
+                            await AccessTokenService.getUserTenantAccessPermission(
+                                oneuptimeRequest.userAuthorization.userId,
+                                projectId
+                            );
+
+                        if (userTenantAccessPermission) {
+                            oneuptimeRequest.userTenantAccessPermission[
+                                projectId.toString()
+                            ] = userTenantAccessPermission;
+                        }
                     }
                 }
             }
