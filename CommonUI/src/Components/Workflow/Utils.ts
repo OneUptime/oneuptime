@@ -42,9 +42,8 @@ export const componentInputTypeToFormFieldType: Function = (
     fieldType: FormFieldSchemaType;
     dropdownOptions?: Array<DropdownOption> | undefined;
 } => {
+    // first priority.
 
-    // first priority. 
-    
     if (componentInputType === ComponentInputType.BaseModel) {
         return {
             fieldType: FormFieldSchemaType.JSON,
@@ -86,7 +85,6 @@ export const componentInputTypeToFormFieldType: Function = (
             fieldType: FormFieldSchemaType.JSON,
         };
     }
-
 
     // Second priorioty.
 
@@ -173,7 +171,6 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-
     if (componentInputType === ComponentInputType.Decimal) {
         return {
             fieldType: FormFieldSchemaType.Number,
@@ -186,15 +183,11 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-   
-
     if (componentInputType === ComponentInputType.Number) {
         return {
             fieldType: FormFieldSchemaType.Number,
         };
     }
-
-   
 
     if (componentInputType === ComponentInputType.Password) {
         return {

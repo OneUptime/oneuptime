@@ -162,7 +162,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             fieldName: string,
             value: JSONValue
         ): void => {
-            const updatedValue: FormValues<T> = { ...currentValue, [fieldName]: value as any };
+            const updatedValue: FormValues<T> = {
+                ...currentValue,
+                [fieldName]: value as any,
+            };
             setCurrentValue(updatedValue);
             if (props.onChange) {
                 props.onChange(updatedValue);

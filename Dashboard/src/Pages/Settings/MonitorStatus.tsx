@@ -164,10 +164,14 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
-                            return <div>
-                                <p>{`${item['description']}`}</p>
-                                <p className='text-xs text-gray-400'>ID: {`${item['_id']}`}</p>
-                            </div>
+                            return (
+                                <div>
+                                    <p>{`${item['description']}`}</p>
+                                    <p className="text-xs text-gray-400">
+                                        ID: {`${item['_id']}`}
+                                    </p>
+                                </div>
+                            );
                         },
                     },
                 ]}
