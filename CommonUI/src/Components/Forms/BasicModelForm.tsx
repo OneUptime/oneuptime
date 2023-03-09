@@ -85,7 +85,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     }, [props.fields]);
 
     return (
-        <BasicForm<TBaseModel>
+        <BasicForm
             isLoading={props.isLoading || false}
             fields={formFields}
             id={props.id}

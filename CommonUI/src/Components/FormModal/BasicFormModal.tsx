@@ -30,7 +30,7 @@ const BasicFormModal: Function = <T extends Object>(
                 formRef.current.submitForm();
             }}
         >
-            <BasicForm<T>
+            <BasicForm
                 {...props.formProps}
                 hideSubmitButton={true}
                 ref={formRef}
