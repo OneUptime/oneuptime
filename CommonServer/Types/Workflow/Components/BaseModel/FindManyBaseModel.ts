@@ -160,6 +160,7 @@ export default class FindManyBaseModel<
                 skip: new PositiveNumber(args['skip'] as number),
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             });
 

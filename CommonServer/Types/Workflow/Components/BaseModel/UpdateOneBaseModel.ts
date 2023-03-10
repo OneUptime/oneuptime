@@ -129,6 +129,7 @@ export default class UpdateOneBaseModel<
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             });
 

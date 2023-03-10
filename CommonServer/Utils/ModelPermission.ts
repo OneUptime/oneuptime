@@ -305,7 +305,6 @@ export default class ModelPermission {
 
         query = query as Query<TBaseModel>;
 
-
         for (const key in query) {
             const tableColumnMetadata: TableColumnMetadata =
                 model.getTableColumnMetadata(key);

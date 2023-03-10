@@ -158,6 +158,7 @@ export default class UpdateManyBaseModel<
                 skip: new PositiveNumber(args['skip'] as number),
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             });
 

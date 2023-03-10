@@ -105,6 +105,7 @@ export default class DeleteOneBaseModel<
                 query: (args['query'] as Query<TBaseModel>) || {},
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             });
 

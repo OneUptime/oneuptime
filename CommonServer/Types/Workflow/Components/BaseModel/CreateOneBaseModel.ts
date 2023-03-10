@@ -8,6 +8,7 @@ import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Exception from 'Common/Types/Exception/Exception';
+import logger from '../../../../Utils/Logger';
 
 export default class CreateOneBaseModel<
     TBaseModel extends BaseModel
@@ -102,6 +103,7 @@ export default class CreateOneBaseModel<
                 ) as TBaseModel,
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             })) as TBaseModel;
 
@@ -115,6 +117,8 @@ export default class CreateOneBaseModel<
                 executePort: successPort,
             };
         } catch (err: any) {
+            logger.error(err);
+
             if (err instanceof Exception) {
                 options.log(err.getMessage());
             } else {

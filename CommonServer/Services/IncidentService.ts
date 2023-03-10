@@ -21,7 +21,9 @@ export class Service extends DatabaseService<Model> {
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         if (!createBy.props.tenantId) {
-            throw new BadDataException('ProjectId required to create monitor.');
+            throw new BadDataException(
+                'ProjectId required to create incident.'
+            );
         }
 
         const incidentState: IncidentState | null =

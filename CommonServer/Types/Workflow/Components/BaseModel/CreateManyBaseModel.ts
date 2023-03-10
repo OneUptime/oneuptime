@@ -107,6 +107,7 @@ export default class CreateManyBaseModel<
                             ) as TBaseModel,
                             props: {
                                 isRoot: true,
+                                tenantId: options.projectId,
                             },
                         })) as TBaseModel
                     );

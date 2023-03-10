@@ -131,6 +131,7 @@ export default class FindOneBaseModel<
                 select: args['select'] as Select<TBaseModel>,
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             });
 

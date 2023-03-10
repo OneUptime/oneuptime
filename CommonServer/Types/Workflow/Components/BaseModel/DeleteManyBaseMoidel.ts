@@ -134,6 +134,7 @@ export default class DeleteManyBaseModel<
                 skip: new PositiveNumber(args['skip'] as number),
                 props: {
                     isRoot: true,
+                    tenantId: options.projectId,
                 },
             });
 
