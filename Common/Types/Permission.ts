@@ -146,6 +146,11 @@ enum Permission {
     CanEditProjectSSO = 'CanEditProjectSSO',
     CanReadProjectSSO = 'CanReadProjectSSO',
 
+    CanCreateStatusPageSSO = 'CanCreateStatusPageSSO',
+    CanDeleteStatusPageSSO = 'CanDeleteStatusPageSSO',
+    CanEditStatusPageSSO = 'CanEditStatusPageSSO',
+    CanReadStatusPageSSO = 'CanReadStatusPageSSO',
+
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
     CanEditProjectLabel = 'CanEditProjectLabel',
@@ -1054,6 +1059,42 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageSSO,
+                title: 'Can Create Status Page SSO',
+                description:
+                    'A user assigned this permission can create Status Page SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageSSO,
+                title: 'Can Delete Status Page SSO',
+                description:
+                    'A user assigned this permission  can delete Status Page SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageSSO,
+                title: 'Can Edit Status Page SSO',
+                description:
+                    'A user assigned this permission can edit Status Page SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageSSO,
+                title: 'Can Read Status Page SSO',
+                description:
+                    'A user assigned this permission  can read Status Page SSO in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,
