@@ -25,6 +25,7 @@ import { DashboardRoute, Domain, HttpProtocol } from 'CommonServer/Config';
 import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
+import AccessTokenService from 'CommonServer/Services/AccessTokenService';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -397,6 +398,9 @@ router.post(
                 },
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
+
+            // Refresh Permissions for this user here. 
+            await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
             return Response.redirect(
                 req,
