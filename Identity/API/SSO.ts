@@ -399,8 +399,10 @@ router.post(
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
 
-            // Refresh Permissions for this user here. 
-            await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
+            // Refresh Permissions for this user here.
+            await AccessTokenService.refreshUserAllPermissions(
+                alreadySavedUser.id!
+            );
 
             return Response.redirect(
                 req,

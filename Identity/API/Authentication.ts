@@ -152,9 +152,10 @@ router.post(
             });
 
             if (savedUser) {
-
-                // Refresh Permissions for this user here. 
-                await AccessTokenService.refreshUserAllPermissions(savedUser.id!)
+                // Refresh Permissions for this user here.
+                await AccessTokenService.refreshUserAllPermissions(
+                    savedUser.id!
+                );
 
                 const token: string = JSONWebToken.sign(
                     savedUser,
@@ -504,8 +505,10 @@ router.post(
                     );
                 }
 
-                // Refresh Permissions for this user here. 
-                await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!)
+                // Refresh Permissions for this user here.
+                await AccessTokenService.refreshUserAllPermissions(
+                    alreadySavedUser.id!
+                );
 
                 if (
                     alreadySavedUser.password.toString() ===
