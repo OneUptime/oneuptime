@@ -10,6 +10,7 @@ import Query from '../../../Database/Query';
 import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class UpdateManyBaseModel<
     TBaseModel extends BaseModel
@@ -136,6 +137,12 @@ export default class UpdateManyBaseModel<
                 options.log('Limit cannot be ' + args['limit']);
                 options.log('Setting the limit to ' + LIMIT_PER_PROJECT);
                 args['limit'] = LIMIT_PER_PROJECT;
+            }
+
+            if(args['query']){
+                args['query'] = JSONFunctions.deserialize(
+                    args['query'] as JSONObject
+                ) as Query<TBaseModel>;
             }
 
             if (this.modelService.getModel().getTenantColumn()) {

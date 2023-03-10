@@ -9,6 +9,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Query from '../../../Database/Query';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class DeleteManyBaseModel<
     TBaseModel extends BaseModel
@@ -119,6 +120,12 @@ export default class DeleteManyBaseModel<
                 (args['query'] as JSONObject)[
                     this.modelService.getModel().getTenantColumn() as string
                 ] = options.projectId;
+            }
+
+            if(args['query']){
+                args['query'] = JSONFunctions.deserialize(
+                    args['query'] as JSONObject
+                ) as Query<TBaseModel>;
             }
 
             await this.modelService.deleteBy({

@@ -141,6 +141,18 @@ export default class FindManyBaseModel<
                 args['limit'] = LIMIT_PER_PROJECT;
             }
 
+            if(args['query']){
+                args['query'] = JSONFunctions.deserialize(
+                    args['query'] as JSONObject
+                ) as Query<TBaseModel>;
+            }
+
+            if(args['select']){
+                args['select'] = JSONFunctions.deserialize(
+                    args['select'] as JSONObject
+                ) as Select<TBaseModel>;
+            }
+
             const models: Array<TBaseModel> = await this.modelService.findBy({
                 query: (args['query'] as Query<TBaseModel>) || {},
                 select: args['select'] as Select<TBaseModel>,

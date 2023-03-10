@@ -7,6 +7,7 @@ import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
 import Query from '../../../Database/Query';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class DeleteOneBaseModel<
     TBaseModel extends BaseModel
@@ -88,11 +89,19 @@ export default class DeleteOneBaseModel<
                 );
             }
 
+            if(args['query']){
+                args['query'] = JSONFunctions.deserialize(
+                    args['query'] as JSONObject
+                ) as Query<TBaseModel>;
+            }
+
             if (this.modelService.getModel().getTenantColumn()) {
                 (args['query'] as JSONObject)[
                     this.modelService.getModel().getTenantColumn() as string
                 ] = options.projectId;
             }
+
+            
 
             await this.modelService.deleteOneBy({
                 query: (args['query'] as Query<TBaseModel>) || {},

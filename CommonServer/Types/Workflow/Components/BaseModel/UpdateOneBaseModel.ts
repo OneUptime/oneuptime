@@ -8,6 +8,7 @@ import Text from 'Common/Types/Text';
 import { JSONObject } from 'Common/Types/JSON';
 import Query from '../../../Database/Query';
 import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class UpdateOneBaseModel<
     TBaseModel extends BaseModel
@@ -115,6 +116,12 @@ export default class UpdateOneBaseModel<
                 (args['query'] as JSONObject)[
                     this.modelService.getModel().getTenantColumn() as string
                 ] = options.projectId;
+            }
+
+            if(args['query']){
+                args['query'] = JSONFunctions.deserialize(
+                    args['query'] as JSONObject
+                ) as Query<TBaseModel>;
             }
 
             await this.modelService.updateOneBy({
