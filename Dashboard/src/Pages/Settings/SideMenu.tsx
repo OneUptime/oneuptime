@@ -66,7 +66,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Monitor Custom Fields',
+                        title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
@@ -79,7 +79,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Status Pages">
                 <SideMenuItem
                     link={{
-                        title: 'Staus Page Custom Fields',
+                        title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
@@ -112,7 +112,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Incident Custom Fields',
+                        title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
@@ -143,7 +143,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Scheduled Maintenance Custom Fields',
+                        title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap
