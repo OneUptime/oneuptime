@@ -426,26 +426,25 @@ export default class RunWorkflow {
                     }
                 }
 
-                console.log(variablesInArgument);
-
                 for (const variable of variablesInArgument) {
                     const value: string = deepFind(
                         storageMap as any,
                         variable as any
                     );
 
-                    console.log(variable);
-                    console.log(value)
+                    let shouldHaveQuotes: boolean = false;
 
-                    let shouldHaveQuotes: boolean = false; 
-
-                    if(typeof value === "string" && value !== 'null' && value !== 'undefined'){
-                        shouldHaveQuotes = true; 
+                    if (
+                        typeof value === 'string' &&
+                        value !== 'null' &&
+                        value !== 'undefined'
+                    ) {
+                        shouldHaveQuotes = true;
                     }
 
-                    if(argumentContentCopy.trim() === '{{' + variable + '}}'){
-                        argumentContentCopy = value; 
-                    }else{
+                    if (argumentContentCopy.trim() === '{{' + variable + '}}') {
+                        argumentContentCopy = value;
+                    } else {
                         argumentContentCopy = argumentContentCopy.replace(
                             '{{' + variable + '}}',
                             shouldHaveQuotes ? `"${value}"` : value

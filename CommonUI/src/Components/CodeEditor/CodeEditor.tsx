@@ -37,8 +37,8 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
 
     useEffect(() => {
-        setValue(props.value || '')
-    }, [props.value])
+        setValue(props.value || '');
+    }, [props.value]);
 
     useEffect(() => {
         if (props.placeholder) {

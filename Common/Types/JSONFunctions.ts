@@ -366,7 +366,7 @@ export default class JSONFunctions {
                 _type: ObjectType.NotEqual,
                 value: (val as NotEqual).value.toString(),
             };
-        }else if (val && val instanceof LessThanOrEqual) {
+        } else if (val && val instanceof LessThanOrEqual) {
             return {
                 _type: ObjectType.LessThanOrEqual,
                 value: (val as LessThanOrEqual).value,
@@ -460,11 +460,10 @@ export default class JSONFunctions {
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
             typeof (val as JSONObject)['value'] === Typeof.String &&
-            ((val as JSONObject)['_type'] as string) ===
-                ObjectType.NotEqual
+            ((val as JSONObject)['_type'] as string) === ObjectType.NotEqual
         ) {
             return new NotEqual((val as JSONObject)['value'] as string);
-        }  else if (
+        } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&

@@ -89,7 +89,7 @@ export default class DeleteOneBaseModel<
                 );
             }
 
-            if(args['query']){
+            if (args['query']) {
                 args['query'] = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
@@ -100,8 +100,6 @@ export default class DeleteOneBaseModel<
                     this.modelService.getModel().getTenantColumn() as string
                 ] = options.projectId;
             }
-
-            
 
             await this.modelService.deleteOneBy({
                 query: (args['query'] as Query<TBaseModel>) || {},

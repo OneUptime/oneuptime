@@ -172,11 +172,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         formRef.current.setFieldValue(
                             selectedArgId,
                             (component.arguments &&
-                                component.arguments[selectedArgId]
-                                ? component.arguments[
-                                    selectedArgId
-                                  ]
-                                : '')+variableId
+                            component.arguments[selectedArgId]
+                                ? component.arguments[selectedArgId]
+                                : '') + variableId
                         );
                     }}
                 />
@@ -193,11 +191,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         formRef.current.setFieldValue(
                             selectedArgId,
                             (component.arguments &&
-                                component.arguments[selectedArgId]
-                                ? component.arguments[
-                                    selectedArgId
-                                  ]
-                                : '')+returnValuePath
+                            component.arguments[selectedArgId]
+                                ? component.arguments[selectedArgId]
+                                : '') + returnValuePath
                         );
                     }}
                 />

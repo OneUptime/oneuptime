@@ -33,8 +33,8 @@ export default class FindOneBaseModel<
         if (!BaseModelComponent) {
             throw new BadDataException(
                 'Find one component for ' +
-                modelService.getModel().tableName +
-                ' not found.'
+                    modelService.getModel().tableName +
+                    ' not found.'
             );
         }
         this.setMetadata(BaseModelComponent);
@@ -114,13 +114,13 @@ export default class FindOneBaseModel<
                 );
             }
 
-            if(args['query']){
+            if (args['query']) {
                 args['query'] = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
 
-            if(args['select']){
+            if (args['select']) {
                 args['select'] = JSONFunctions.deserialize(
                     args['select'] as JSONObject
                 ) as Select<TBaseModel>;
@@ -138,9 +138,9 @@ export default class FindOneBaseModel<
                 returnValues: {
                     model: model
                         ? JSONFunctions.toJSON(
-                            model,
-                            this.modelService.entityType
-                        )
+                              model,
+                              this.modelService.entityType
+                          )
                         : null,
                 },
                 executePort: successPort,

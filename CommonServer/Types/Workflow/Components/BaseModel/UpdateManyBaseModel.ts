@@ -139,7 +139,7 @@ export default class UpdateManyBaseModel<
                 args['limit'] = LIMIT_PER_PROJECT;
             }
 
-            if(args['query']){
+            if (args['query']) {
                 args['query'] = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;

@@ -122,7 +122,7 @@ export default class DeleteManyBaseModel<
                 ] = options.projectId;
             }
 
-            if(args['query']){
+            if (args['query']) {
                 args['query'] = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;

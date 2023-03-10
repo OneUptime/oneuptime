@@ -141,13 +141,13 @@ export default class FindManyBaseModel<
                 args['limit'] = LIMIT_PER_PROJECT;
             }
 
-            if(args['query']){
+            if (args['query']) {
                 args['query'] = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
 
-            if(args['select']){
+            if (args['select']) {
                 args['select'] = JSONFunctions.deserialize(
                     args['select'] as JSONObject
                 ) as Select<TBaseModel>;

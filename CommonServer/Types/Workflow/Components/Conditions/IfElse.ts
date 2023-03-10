@@ -53,30 +53,30 @@ export default class IfElse extends ComponentCode {
             // Set timeout
             // Inject args
             // Inject dependencies
-            console.log("Args");
-            console.log(args)
 
             for (const key in args) {
-
-                if (key === "operator") {
+                if (key === 'operator') {
                     continue;
                 }
 
-                const value = args[key]
+                const value: JSONValue = args[key];
 
                 let shouldHaveQuotes: boolean = false;
 
-                if (typeof value === "string" && value !== 'null' && value !== 'undefined') {
+                if (
+                    typeof value === 'string' &&
+                    value !== 'null' &&
+                    value !== 'undefined'
+                ) {
                     shouldHaveQuotes = true;
                 }
 
-                if (typeof value === "object") {
+                if (typeof value === 'object') {
                     args[key] = JSON.stringify(args[key]);
                 }
 
                 args[key] = shouldHaveQuotes ? `"${args[key]}"` : args[key];
             }
-
 
             const vm: VM.NodeVM = new VM.NodeVM({
                 timeout: 5000,
@@ -94,14 +94,13 @@ export default class IfElse extends ComponentCode {
             const script: VMScript = new VMScript(
                 `module.exports = function() {  
                     
-                    const input1 = ${args['input-1'] as string || ''
-                };
+                    const input1 = ${(args['input-1'] as string) || ''};
 
-                    const input2 = ${args['input-2'] as string || ''
-                };
+                    const input2 = ${(args['input-2'] as string) || ''};
                     
-                    return input1 ${(args['operator'] as string) || '=='
-                } input2 }`
+                    return input1 ${
+                        (args['operator'] as string) || '=='
+                    } input2 }`
             ).compile();
 
             const functionToRun: any = vm.run(script);

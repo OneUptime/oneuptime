@@ -23,7 +23,7 @@ export enum ComponentInputType {
     JSONArray = 'List of JSON',
     LongText = 'Long Text',
     HTML = 'HTML',
-    Operator = 'Operator'
+    Operator = 'Operator',
 }
 
 export enum ComponentType {
