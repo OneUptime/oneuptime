@@ -153,6 +153,38 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
+    if (componentInputType === ComponentInputType.Operator) {
+        return {
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: [
+                {
+                    label: 'Equal To',
+                    value: '==',
+                },
+                {
+                    label: 'Not Equal To',
+                    value: '!=',
+                },
+                {
+                    label: 'Greater Than',
+                    value: '>',
+                },
+                {
+                    label: 'Less Than',
+                    value: '<',
+                },
+                {
+                    label: 'Greater Than or Equal',
+                    value: '>=',
+                },
+                {
+                    label: 'Less Than or Equal',
+                    value: '<=',
+                },
+            ],
+        };
+    }
+
     if (componentInputType === ComponentInputType.Date) {
         return {
             fieldType: FormFieldSchemaType.Date,

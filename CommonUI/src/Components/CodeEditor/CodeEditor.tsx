@@ -22,6 +22,7 @@ export interface ComponentProps {
     dataTestId?: string;
     tabIndex?: number | undefined;
     error?: string | undefined;
+    value?: string | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
@@ -34,6 +35,10 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
     const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
         useState<boolean>(false);
+
+    useEffect(() => {
+        setValue(props.value || '')
+    }, [props.value])
 
     useEffect(() => {
         if (props.placeholder) {

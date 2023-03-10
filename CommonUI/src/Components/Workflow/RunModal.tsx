@@ -1,4 +1,4 @@
-import { NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
+import { ComponentInputType, NodeDataProp, NodeType } from 'Common/Types/Workflow/Component';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -54,6 +54,15 @@ const RunModal: FunctionComponent<ComponentProps> = (
                         submitButtonText={'Run'}
                         onSubmit={() => {
                             setShowRunConfirmation(false);
+
+                            // parse things as JSON if args in JSON
+
+                            for (const args of component.metadata.returnValues) {
+                                if ((args.type === ComponentInputType.JSON || args.type === ComponentInputType.JSONArray || args.type === ComponentInputType.BaseModel || args.type === ComponentInputType.BaseModelArray || args.type === ComponentInputType.Query || args.type === ComponentInputType.StringDictionary) && (component.returnValues[args.id] && typeof component.returnValues[args.id] === "string")) {
+                                    component.returnValues[args.id] = JSON.parse(component.returnValues[args.id] as string);
+                                }
+                            }
+
                             props.onRun(component);
                             props.onClose();
                         }}

@@ -53,12 +53,32 @@ export default class IfElse extends ComponentCode {
             // Set timeout
             // Inject args
             // Inject dependencies
+            console.log("Args");
+            console.log(args)
+
+            for (const key in args) {
+
+                if (key === "operator") {
+                    continue;
+                }
+
+                const value = args[key]
+
+                let shouldHaveQuotes: boolean = false;
+
+                if (typeof value === "string" && value !== 'null' && value !== 'undefined') {
+                    shouldHaveQuotes = true;
+                }
+
+                args[key] = shouldHaveQuotes ? `"${args[key]}"` : args[key];
+            }
+
 
             const vm: VM.NodeVM = new VM.NodeVM({
                 timeout: 5000,
                 allowAsync: true,
                 sandbox: {
-                    args: args['arguments'],
+                    args: args,
                     console: {
                         log: (logValue: JSONValue) => {
                             options.log(logValue);
@@ -68,9 +88,16 @@ export default class IfElse extends ComponentCode {
             });
 
             const script: VMScript = new VMScript(
-                `module.exports = async function() { return ${
-                    (args['expression'] as string) || ''
-                } }`
+                `module.exports = function() {  
+                    
+                    const input1 = ${(typeof args['input-1'] === "object" ? JSON.stringify(args['input-1']) : args['input-1'] as string) || ''
+                };
+
+                    const input2 = ${(typeof args['input-2'] === "object" ? JSON.stringify(args['input-2']) : args['input-2'] as string) || ''
+                };
+                    
+                    return input1 ${(args['operator'] as string) || '=='
+                } input2 }`
             ).compile();
 
             const functionToRun: any = vm.run(script);

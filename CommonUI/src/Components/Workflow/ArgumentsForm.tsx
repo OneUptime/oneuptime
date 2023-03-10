@@ -171,7 +171,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         setShowVariableModal(false);
                         formRef.current.setFieldValue(
                             selectedArgId,
-                            variableId
+                            (component.arguments &&
+                                component.arguments[selectedArgId]
+                                ? component.arguments[
+                                    selectedArgId
+                                  ]
+                                : '')+variableId
                         );
                     }}
                 />
@@ -187,7 +192,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         setShowComponentPickerModal(false);
                         formRef.current.setFieldValue(
                             selectedArgId,
-                            returnValuePath
+                            (component.arguments &&
+                                component.arguments[selectedArgId]
+                                ? component.arguments[
+                                    selectedArgId
+                                  ]
+                                : '')+returnValuePath
                         );
                     }}
                 />
