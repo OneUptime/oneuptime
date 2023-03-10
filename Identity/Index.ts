@@ -6,6 +6,7 @@ import App from 'CommonServer/Utils/StartServer';
 import AuthenticationAPI from './API/Authentication';
 import SsoAPI from './API/SSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
+import Redis from 'CommonServer/Infrastructure/Redis';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -28,6 +29,9 @@ const init: Function = async (): Promise<void> => {
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
+
+         // connect redis
+         await Redis.connect();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

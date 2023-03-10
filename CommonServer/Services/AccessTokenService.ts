@@ -20,6 +20,42 @@ enum PermissionNamespace {
 }
 
 export default class AccessTokenService {
+
+    public static async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
+        await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+
+         // query for all projects user belongs to.
+         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
+            query: {
+                userId: userId,
+                hasAcceptedInvitation: true,
+            },
+            select: {
+                projectId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if(teamMembers.length === 0){
+            return;
+        }
+
+        const projectIds: Array<ObjectID> = teamMembers.map(
+            (teamMember: TeamMember) => {
+                return teamMember.projectId!;
+            }
+        );
+
+
+        for(const projectId of projectIds){
+            await AccessTokenService.refreshUserTenantAccessPermission(userId, projectId);
+        }
+    }
+
     public static async refreshUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission> {

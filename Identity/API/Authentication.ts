@@ -34,6 +34,7 @@ import PartialEntity from 'Common/Types/Database/PartialEntity';
 import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
 import AuthenticationEmail from '../Utils/AuthenticationEmail';
+import AccessTokenService from 'CommonServer/Services/AccessTokenService';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -151,6 +152,10 @@ router.post(
             });
 
             if (savedUser) {
+
+                // Refresh Permissions for this user here. 
+                await AccessTokenService.refreshUserAllPermissions(savedUser.id!)
+
                 const token: string = JSONWebToken.sign(
                     savedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
@@ -498,6 +503,9 @@ router.post(
                         )
                     );
                 }
+
+                // Refresh Permissions for this user here. 
+                await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!)
 
                 if (
                     alreadySavedUser.password.toString() ===

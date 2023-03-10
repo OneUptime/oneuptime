@@ -189,7 +189,7 @@ export default class UserMiddleware {
                 return Response.sendErrorResponse(
                     req,
                     res,
-                    new BadDataException('Invlaid tenantId')
+                    new BadDataException('Invalid tenantId')
                 );
             }
 
