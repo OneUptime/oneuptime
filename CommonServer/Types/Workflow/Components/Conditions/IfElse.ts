@@ -70,6 +70,10 @@ export default class IfElse extends ComponentCode {
                     shouldHaveQuotes = true;
                 }
 
+                if (typeof value === "object") {
+                    args[key] = JSON.stringify(args[key]);
+                }
+
                 args[key] = shouldHaveQuotes ? `"${args[key]}"` : args[key];
             }
 
@@ -90,10 +94,10 @@ export default class IfElse extends ComponentCode {
             const script: VMScript = new VMScript(
                 `module.exports = function() {  
                     
-                    const input1 = ${(typeof args['input-1'] === "object" ? JSON.stringify(args['input-1']) : args['input-1'] as string) || ''
+                    const input1 = ${args['input-1'] as string || ''
                 };
 
-                    const input2 = ${(typeof args['input-2'] === "object" ? JSON.stringify(args['input-2']) : args['input-2'] as string) || ''
+                    const input2 = ${args['input-2'] as string || ''
                 };
                     
                     return input1 ${(args['operator'] as string) || '=='

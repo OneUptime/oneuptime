@@ -48,6 +48,18 @@ export default class QueryHelper {
         );
     }
 
+    public static notEquals(value: string | ObjectID): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} != :${rid}`;
+            },
+            {
+                [rid]: value.toString(),
+            }
+        );
+    }
+
     public static search(name: string): FindOperator<any> {
         name = name.toLowerCase().trim();
         const rid: string = Text.generateRandomText(10);
