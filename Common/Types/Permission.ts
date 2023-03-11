@@ -1060,8 +1060,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateStatusPageSSO,
                 title: 'Can Create Status Page SSO',
@@ -1094,7 +1092,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,

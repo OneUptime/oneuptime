@@ -1,10 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -141,7 +135,6 @@ export default class StatusPageSSO extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -199,7 +192,6 @@ export default class StatusPageSSO extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public statusPageId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [
