@@ -188,6 +188,8 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         if (!props.isRoot) {
+           
+
             //check if the user is logged in.
             this.checkIfUserIsLoggedIn(
                 modelType,
@@ -352,7 +354,7 @@ export default class ModelPermission {
             } else if (
                 query[key] &&
                 query[key] instanceof ObjectID &&
-                tableColumnMetadata
+                tableColumnMetadata && tableColumnMetadata.type !== TableColumnType.EntityArray
             ) {
                 query[key] = QueryHelper.equalTo(
                     (query[key] as ObjectID).toString() as any
@@ -452,6 +454,7 @@ export default class ModelPermission {
                 };
             }
         }
+        
 
         return query;
     }
