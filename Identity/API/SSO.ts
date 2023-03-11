@@ -11,7 +11,7 @@ import ProjectSSO from 'Model/Models/ProjectSso';
 import ProjectSSOService from 'CommonServer/Services/ProjectSsoService';
 import ObjectID from 'Common/Types/ObjectID';
 import xml2js from 'xml2js';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
 import Email from 'Common/Types/Email';
 import User from 'Model/Models/User';
@@ -26,6 +26,8 @@ import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import AccessTokenService from 'CommonServer/Services/AccessTokenService';
+import SSOUtil from "../Utils/SSO";
+import Exception from 'Common/Types/Exception/Exception';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -108,47 +110,9 @@ router.post(
                 samlResponse
             );
 
-            if (!response['saml2p:Response']) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('SAML Response not found.')
-                );
-            }
+            let issuerUrl: string = '';
+            let email: Email | null = null;
 
-            response = response['saml2p:Response'] as JSONObject;
-
-            const issuers: JSONArray = response['saml2:Issuer'] as JSONArray;
-
-            if (issuers.length === 0) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Issuers not found')
-                );
-            }
-
-            const issuer: JSONObject | undefined = issuers[0];
-
-            if (!issuer) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Issuer not found')
-                );
-            }
-
-            const issuerUrl: string = issuer['_'] as string;
-
-            if (!issuerUrl) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException(
-                        'Issuer URL not found in SAML response'
-                    )
-                );
-            }
 
             if (!req.params['projectId']) {
                 return Response.sendErrorResponse(
@@ -217,13 +181,7 @@ router.post(
                 );
             }
 
-            if (projectSSO.issuerURL.toString() !== issuerUrl) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Issuer URL does not match')
-                );
-            }
+            
 
             if (!projectSSO.publicCertificate) {
                 return Response.sendErrorResponse(
@@ -233,60 +191,34 @@ router.post(
                 );
             }
 
-            // TODO: Verify signed message with certificate.
+            try {
 
-            const samlAssertion: JSONArray = response[
-                'saml2:Assertion'
-            ] as JSONArray;
+                SSOUtil.isPayloadValid(response);
+                SSOUtil.isSignatureValid(response, projectSSO.publicCertificate);
+                issuerUrl = SSOUtil.getIssuer(response);
 
-            if (!samlAssertion || samlAssertion.length === 0) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('SAML Assertion not found')
-                );
-            }
+                console.log(issuerUrl);
 
-            const samlSubject: JSONArray = (samlAssertion[0] as JSONObject)[
-                'saml2:Subject'
-            ] as JSONArray;
+                email = SSOUtil.getEmail(response);
 
-            if (!samlSubject || samlSubject.length === 0) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('SAML Subject not found')
-                );
-            }
-
-            const samlNameId: JSONArray = (samlSubject[0] as JSONObject)[
-                'saml2:NameID'
-            ] as JSONArray;
-
-            if (!samlNameId || samlNameId.length === 0) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('SAML NAME ID not found')
-                );
-            }
-
-            const emailString: string = (samlNameId[0] as JSONObject)[
-                '_'
-            ] as string;
-
-            if (!emailString) {
-                if (!samlNameId || samlNameId.length === 0) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadRequestException('SAML Email not found')
-                    );
+                console.log(email);
+            } catch (err: unknown) {
+                if (err instanceof Exception) {
+                    return Response.sendErrorResponse(req, res, err);
+                }else{
+                    return Response.sendErrorResponse(req, res, new ServerException());
                 }
             }
 
-            // Now we have the user email.
-            const email: Email = new Email(emailString);
+
+            if (projectSSO.issuerURL.toString() !== issuerUrl) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadRequestException('Issuer URL does not match')
+                );
+            }
+
 
             // Check if he already belongs to the project, If he does - then log in.
 

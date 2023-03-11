@@ -236,7 +236,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.User}
+                    icon={IconProp.Lock}
                 />
             </SideMenuSection>
 

@@ -35,7 +35,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         useState<string>('');
     return (
         <Page
-            title={'Project Settings'}
+            title={'Status Page'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
