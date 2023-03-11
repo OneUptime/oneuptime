@@ -26,6 +26,7 @@ import StatusPageFooterLink from './StatusPageFooterLink';
 import StatusPageHeaderLink from './StatusPageHeaderLink';
 import StatusPagePrivateUser from './StatusPagePrivateUser';
 import StatusPageCustomField from './StatusPageCustomField';
+import StatusPageSSO from './StatusPageSso';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -131,4 +132,5 @@ export default [
     WorkflowLog,
 
     ProjectSSO,
+    StatusPageSSO
 ];

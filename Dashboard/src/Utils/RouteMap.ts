@@ -165,6 +165,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscriber-settings`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_SSO]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/sso`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-code`
     ),

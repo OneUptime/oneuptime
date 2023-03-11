@@ -35,6 +35,11 @@ import ProjectSSOService, {
     Service as ProjectSSOServiceType,
 } from 'CommonServer/Services/ProjectSsoService';
 
+import StatusPageSSO from 'Model/Models/StatusPageSso';
+import StatusPageSSOService, {
+    Service as StatusPageSSOServiceType,
+} from 'CommonServer/Services/StatusPageSsoService';
+
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
@@ -479,6 +484,14 @@ app.use(
     new BaseAPI<ProjectSSO, ProjectSSOServiceType>(
         ProjectSSO,
         ProjectSSOService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<StatusPageSSO, StatusPageSSOServiceType>(
+        StatusPageSSO,
+        StatusPageSSOService
     ).getRouter()
 );
 
