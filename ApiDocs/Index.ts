@@ -8,7 +8,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import path from 'path';
 
-const APP_NAME: string = 'api-docs';
+const APP_NAME: string = 'docs';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -30,9 +30,16 @@ app.get(['/docs'], (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 // Index page
-app.get(['/docs/:page'], (req: ExpressRequest, res: ExpressResponse) => {
+app.get(['/docs/index'], (_req: ExpressRequest, res: ExpressResponse) => {
     return res.render('pages/index', {
-        page: req.params['page'] || 'index',
+        page: 'index',
+    });
+});
+
+// Other pages
+app.get(['/docs/page/:page'], (req: ExpressRequest, res: ExpressResponse) => {
+    return res.render('pages/index', {
+        page: req.params['page']
     });
 });
 
