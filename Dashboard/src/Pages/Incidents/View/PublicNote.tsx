@@ -78,11 +78,11 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: IncidentPublicNote
                 ): Promise<IncidentPublicNote> => {
-                    if (!props.currentProject || !props.currentProject.id) {
+                    if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
                     item.incidentId = modelId;
-                    item.projectId = props.currentProject.id;
+                    item.projectId = new ObjectID(props.currentProject._id);
                     return Promise.resolve(item);
                 }}
                 cardProps={{

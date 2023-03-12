@@ -76,7 +76,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: StatusPageAnnouncement
                 ): Promise<StatusPageAnnouncement> => {
-                    if (!props.currentProject || !props.currentProject.id) {
+                    if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
 
@@ -84,7 +84,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     statusPage.id = modelId;
 
                     item.statusPages = [statusPage];
-                    item.projectId = props.currentProject.id;
+                    item.projectId = new ObjectID(props.currentProject._id);
                     return Promise.resolve(item);
                 }}
                 cardProps={{

@@ -139,11 +139,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
-                    if (!props.currentProject || !props.currentProject.id) {
+                    if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
                     item.teamId = modelId;
-                    item.projectId = props.currentProject.id;
+                    item.projectId = new ObjectID(props.currentProject._id);
                     return Promise.resolve(item);
                 }}
                 cardProps={{
@@ -234,11 +234,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: TeamPermission
                 ): Promise<TeamPermission> => {
-                    if (!props.currentProject || !props.currentProject.id) {
+                    if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
                     item.teamId = modelId;
-                    item.projectId = props.currentProject.id;
+                    item.projectId = new ObjectID(props.currentProject._id);
                     return Promise.resolve(item);
                 }}
                 cardProps={{
