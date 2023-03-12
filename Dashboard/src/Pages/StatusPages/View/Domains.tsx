@@ -83,7 +83,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     onBeforeCreate={(
                         item: StatusPageDomain
                     ): Promise<StatusPageDomain> => {
-                        if (!props.currentProject || !props.currentProject._id) {
+                        if (
+                            !props.currentProject ||
+                            !props.currentProject._id
+                        ) {
                             throw new BadDataException(
                                 'Project ID cannot be null'
                             );
