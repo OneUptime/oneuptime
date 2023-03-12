@@ -1,18 +1,13 @@
 import React, { FunctionComponent, useState } from 'react';
 import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import { LOGIN_API_URL } from '../../Utils/ApiPaths';
 import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
 import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
-import LoginUtil from '../../Utils/Login';
 import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { FILE_URL, IDENTITY_URL } from 'CommonUI/src/Config';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
 export interface ComponentProps {
     statusPageId: ObjectID | null;
@@ -25,7 +20,6 @@ export interface ComponentProps {
 const LoginPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
-    const apiUrl: URL = LOGIN_API_URL;
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -47,6 +41,10 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
             )
         );
+    }
+
+    if(isLoading){
+        return (<PageLoader isVisible={true} />)
     }
 
     return (
@@ -100,7 +98,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                         IDENTITY_URL
                                     ).addRoute(
                                         new Route(
-                                            `/status-page/sso/${DashboardNavigation.getProjectId()}/${list[0]?._id
+                                            `/status-page/sso/${props.statusPageId}/${list[0]?._id
                                             }`
                                         )
                                     )
