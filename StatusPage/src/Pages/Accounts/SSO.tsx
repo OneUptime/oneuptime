@@ -71,7 +71,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <ModelList<StatusPageSSO>
                         query={{
-                            stausPageId: props.statusPageId,
+                            statusPageId: props.statusPageId,
                             isEnabled: true,
                         }}
                         fetchRequestOptions={{
