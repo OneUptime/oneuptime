@@ -21,16 +21,6 @@ export default class User {
         );
     }
 
-    public static setSsoToken(statusPageId: ObjectID, token: string): void {
-        LocalStorage.setItem('sso_' + statusPageId.toString(), token);
-    }
-
-    public static getSsoToken(statusPageId: ObjectID): string | null {
-        return LocalStorage.getItem('sso_' + statusPageId.toString()) as
-            | string
-            | null;
-    }
-
     public static getUserId(statusPageId: ObjectID): ObjectID {
         return new ObjectID(
             (LocalStorage.getItem(

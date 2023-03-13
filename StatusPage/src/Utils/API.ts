@@ -8,7 +8,6 @@ export default class API {
             'status-page-token': UserUtil.getAccessToken(
                 statusPageId
             ),
-            'sso': UserUtil.getSsoToken(statusPageId) || ''
         }
     }
 }

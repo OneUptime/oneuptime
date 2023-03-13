@@ -84,7 +84,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 return Navigation.navigate(logoutRoute);
             }
 
-            User.setSsoToken(decodedtoken.statusPageId!, sso_token);
+            User.setAccessToken(decodedtoken.statusPageId!, sso_token);
 
             Navigation.navigate(!props.isPreview ? RouteMap[PageMap.OVERVIEW]! : RouteMap[PageMap.PREVIEW_OVERVIEW]!);
         }
