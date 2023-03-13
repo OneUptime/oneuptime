@@ -35,6 +35,10 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
+        if(createdItem.isSsoUser){
+            return createdItem;
+        }
+
         const statusPage: StatusPage | null =
             await StatusPageService.findOneById({
                 id: createdItem.statusPageId!,
