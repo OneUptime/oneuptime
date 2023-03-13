@@ -126,11 +126,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/overview/${id.toString()}`
                     ),
                     {},
-                    {
-                        'status-page-token': User.getAccessToken(
-                            props.statusPageId
-                        ),
-                    }
+                    API.getDefaultHeaders(props.statusPageId)
                 );
             const data: JSONObject = response.data;
 

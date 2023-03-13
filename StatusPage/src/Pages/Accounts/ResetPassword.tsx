@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
@@ -10,6 +10,8 @@ import { FILE_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import { RESET_PASSWORD_API_URL } from '../../Utils/ApiPaths';
 import ObjectID from 'Common/Types/ObjectID';
+import RouteMap from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 export interface ComponentProps {
     statusPageId: ObjectID | null;
@@ -17,6 +19,7 @@ export interface ComponentProps {
     statusPageName: string;
     logoFileId: ObjectID;
     isPrivatePage: boolean;
+    forceSSO: boolean;
 }
 
 const ResetPassword: FunctionComponent<ComponentProps> = (
@@ -24,6 +27,13 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
 ) => {
     const apiUrl: URL = RESET_PASSWORD_API_URL;
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+
+    useEffect(()=> {
+        if(props.forceSSO){
+            Navigation.navigate(!props.isPreviewPage ? RouteMap[PageMap.SSO]! : RouteMap[PageMap.PREVIEW_SSO]!);
+        }
+    }, [props.forceSSO]);
 
     if (!props.statusPageId) {
         return <></>;

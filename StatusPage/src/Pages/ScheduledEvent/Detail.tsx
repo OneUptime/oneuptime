@@ -37,6 +37,7 @@ import { Green, Grey, Yellow } from 'Common/Types/BrandColors';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
+import API from '../../Utils/API';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -203,11 +204,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/scheduled-maintenance-events/${id.toString()}/${eventId}`
                     ),
                     {},
-                    {
-                        'status-page-token': UserUtil.getAccessToken(
-                            props.statusPageId
-                        ),
-                    }
+                    API.getDefaultHeaders(props.statusPageId)
                 );
             const data: JSONObject = response.data;
 

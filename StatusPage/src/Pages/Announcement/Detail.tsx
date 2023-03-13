@@ -32,6 +32,7 @@ import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { Blue } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
+import API from '../../Utils/API';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -112,11 +113,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/announcements/${id.toString()}/${announcementId}`
                     ),
                     {},
-                    {
-                        'status-page-token': UserUtil.getAccessToken(
-                            props.statusPageId
-                        ),
-                    }
+                    API.getDefaultHeaders(props.statusPageId)
                 );
             const data: JSONObject = response.data;
 

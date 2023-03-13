@@ -38,6 +38,7 @@ import Color from 'Common/Types/Color';
 import { Green, Grey, Red } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import API from '../../Utils/API';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -208,11 +209,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}/${incidentId?.toString()}`
                     ),
                     {},
-                    {
-                        'status-page-token': UserUtil.getAccessToken(
-                            props.statusPageId
-                        ),
-                    }
+                    API.getDefaultHeaders(props.statusPageId)
                 );
             const data: JSONObject = response.data;
 

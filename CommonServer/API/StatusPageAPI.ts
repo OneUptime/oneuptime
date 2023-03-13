@@ -58,6 +58,8 @@ import logger from '../Utils/Logger';
 import Email from 'Common/Types/Email';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService from '../Services/StatusPageSubscriberService';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import StatusPageSsoService from '../Services/StatusPageSsoService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -241,7 +243,19 @@ export default class StatusPageAPI extends BaseAPI<
                         footerHTML: true,
                         enableSubscribers: true,
                         isPublicStatusPage: true,
+                        requireSsoForLogin: true,
                     };
+
+
+                    const hasEnabledSSO: PositiveNumber = await StatusPageSsoService.countBy({
+                        query: {
+                            isEnabled: true, 
+                            statusPageId: objectId
+                        },
+                        props: {
+                            isRoot: true
+                        }
+                    })
 
                     const populate: Populate<StatusPage> = {
                         coverImageFile: {
@@ -323,6 +337,7 @@ export default class StatusPageAPI extends BaseAPI<
                             headerLinks,
                             StatusPageHeaderLink
                         ),
+                        hasEnabledSSO: hasEnabledSSO.toNumber()
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);

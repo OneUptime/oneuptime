@@ -21,6 +21,7 @@ import Subscribe from './Pages/Subscribe/EmailSubscribe';
 
 // Accounts.
 import Login from './Pages/Accounts/Login';
+import SSO from './Pages/Accounts/SSO';
 import ForgotPassword from './Pages/Accounts/ForgotPassword';
 import ResetPassword from './Pages/Accounts/ResetPassword';
 
@@ -45,6 +46,9 @@ const App: FunctionComponent = () => {
     const [statusPageId, setStatusPageId] = useState<string>('');
     const [isPrivateStatusPage, setIsPrivateStatusPage] =
         useState<boolean>(false);
+
+    const [hasEnabledSSO, setHasEnabledSSO] = useState<boolean>(false);
+    const [forceSSO, setForceSSO] = useState<boolean>(false);
 
     useEffect(() => {
         setIsPreview(isPreviewPage());
@@ -131,7 +135,19 @@ const App: FunctionComponent = () => {
                     'statusPage.logoFileId'
                 ) as string | null;
 
+
+
                 setStatusPageLogoFileId(fileId || '');
+
+                setHasEnabledSSO(JSONFunctions.getJSONValueInPath(
+                    masterpage || {},
+                    'hasEnabledSSO'
+                ) as boolean);
+
+                setForceSSO(JSONFunctions.getJSONValueInPath(
+                    masterpage || {},
+                    'statusPage.requireSsoForLogin'
+                ) as boolean);
             }}
         >
             <Routes>
@@ -161,6 +177,22 @@ const App: FunctionComponent = () => {
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
                             statusPageId={new ObjectID(statusPageId)}
+                            forceSSO={forceSSO}
+                            hasEnabledSSOConfig={hasEnabledSSO}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.SSO]?.toString() || ''}
+                    element={
+                        <SSO
+                            isPreviewPage={isPreview}
+                            isPrivatePage={isPrivateStatusPage}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -174,6 +206,8 @@ const App: FunctionComponent = () => {
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
                             statusPageId={new ObjectID(statusPageId)}
+                            forceSSO={forceSSO}
+
                         />
                     }
                 />
@@ -187,6 +221,8 @@ const App: FunctionComponent = () => {
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
                             statusPageId={new ObjectID(statusPageId)}
+                            forceSSO={forceSSO}
+
                         />
                     }
                 />
@@ -200,7 +236,7 @@ const App: FunctionComponent = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_EVENT_DETAIL
+                                PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -350,7 +386,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -373,7 +409,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -396,7 +432,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -418,7 +454,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_INCIDENT_DETAIL
+                                PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -461,7 +497,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -484,7 +520,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -501,6 +537,8 @@ const App: FunctionComponent = () => {
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
                             statusPageId={new ObjectID(statusPageId)}
+                            forceSSO={forceSSO}
+                            hasEnabledSSOConfig={hasEnabledSSO}
                         />
                     }
                 />
@@ -517,6 +555,8 @@ const App: FunctionComponent = () => {
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
                             statusPageId={new ObjectID(statusPageId)}
+                            forceSSO={forceSSO}
+
                         />
                     }
                 />
@@ -528,6 +568,24 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ForgotPassword
+                            isPreviewPage={isPreview}
+                            isPrivatePage={isPrivateStatusPage}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
+                            forceSSO={forceSSO}
+
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.PREVIEW_SSO]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <SSO
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}

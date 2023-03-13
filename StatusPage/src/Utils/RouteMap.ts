@@ -19,6 +19,8 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
 
     [PageMap.LOGIN]: new Route(`/login`),
+    [PageMap.SSO]: new Route(`/sso`),
+    [PageMap.LOGOUT]: new Route(`/logout`),
     [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
     [PageMap.RESET_PASSWORD]: new Route(`/reset-password/:token`),
 
@@ -69,6 +71,14 @@ const RouteMap: Dictionary<Route> = {
     ),
     [PageMap.PREVIEW_RESET_PASSWORD]: new Route(
         `/status-page/${RouteParams.StatusPageId}/reset-password/:token`
+    ),
+
+    [PageMap.PREVIEW_SSO]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/sso`
+    ),
+
+    [PageMap.PREVIEW_LOGOUT]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/logout`
     ),
 };
 

@@ -36,6 +36,7 @@ import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import API from '../../Utils/API';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -91,11 +92,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/scheduled-maintenance-events/${id.toString()}`
                     ),
                     {},
-                    {
-                        'status-page-token': User.getAccessToken(
-                            props.statusPageId
-                        ),
-                    }
+                    API.getDefaultHeaders(props.statusPageId)
                 );
             const data: JSONObject = response.data;
 

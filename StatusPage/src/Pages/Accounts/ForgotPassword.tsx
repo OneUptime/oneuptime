@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -10,6 +10,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import UserUtil from '../../Utils/User';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { FILE_URL } from 'CommonUI/src/Config';
+import RouteMap from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 export interface ComponentProps {
     statusPageId: ObjectID | null;
@@ -17,11 +19,19 @@ export interface ComponentProps {
     statusPageName: string;
     logoFileId: ObjectID;
     isPrivatePage: boolean;
+    forceSSO: boolean;
 }
 
 const ForgotPassword: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
+
+    useEffect(()=> {
+        if(props.forceSSO){
+            Navigation.navigate(!props.isPreviewPage ? RouteMap[PageMap.SSO]! : RouteMap[PageMap.PREVIEW_SSO]!);
+        }
+    }, [props.forceSSO]);
+    
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
