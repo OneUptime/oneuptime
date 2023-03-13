@@ -35,7 +35,7 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        if(createdItem.isSsoUser){
+        if (createdItem.isSsoUser) {
             return createdItem;
         }
 

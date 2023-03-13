@@ -26,7 +26,7 @@ import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import AccessTokenService from 'CommonServer/Services/AccessTokenService';
-import SSOUtil from "../Utils/SSO";
+import SSOUtil from '../Utils/SSO';
 import Exception from 'Common/Types/Exception/Exception';
 
 const router: ExpressRouter = Express.getRouter();
@@ -106,13 +106,12 @@ router.post(
                 'base64'
             ).toString();
 
-            let response: JSONObject = await xml2js.parseStringPromise(
+            const response: JSONObject = await xml2js.parseStringPromise(
                 samlResponse
             );
 
             let issuerUrl: string = '';
             let email: Email | null = null;
-
 
             if (!req.params['projectId']) {
                 return Response.sendErrorResponse(
@@ -181,8 +180,6 @@ router.post(
                 );
             }
 
-            
-
             if (!projectSSO.publicCertificate) {
                 return Response.sendErrorResponse(
                     req,
@@ -192,24 +189,24 @@ router.post(
             }
 
             try {
-
                 SSOUtil.isPayloadValid(response);
-                SSOUtil.isSignatureValid(response, projectSSO.publicCertificate);
+                SSOUtil.isSignatureValid(
+                    response,
+                    projectSSO.publicCertificate
+                );
+
                 issuerUrl = SSOUtil.getIssuer(response);
-
-                console.log(issuerUrl);
-
                 email = SSOUtil.getEmail(response);
-
-                console.log(email);
             } catch (err: unknown) {
                 if (err instanceof Exception) {
                     return Response.sendErrorResponse(req, res, err);
-                }else{
-                    return Response.sendErrorResponse(req, res, new ServerException());
                 }
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new ServerException()
+                );
             }
-
 
             if (projectSSO.issuerURL.toString() !== issuerUrl) {
                 return Response.sendErrorResponse(
@@ -218,7 +215,6 @@ router.post(
                     new BadRequestException('Issuer URL does not match')
                 );
             }
-
 
             // Check if he already belongs to the project, If he does - then log in.
 

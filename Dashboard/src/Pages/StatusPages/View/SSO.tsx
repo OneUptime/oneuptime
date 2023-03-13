@@ -30,7 +30,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-    
+
     const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
         useState<string>('');
     return (
@@ -223,7 +223,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Text,
                             isFilterable: true,
                         },
-                        
+
                         {
                             field: {
                                 isEnabled: true,

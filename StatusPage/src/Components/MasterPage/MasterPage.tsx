@@ -3,7 +3,12 @@ import Footer from '../Footer/Footer';
 import Header from '../Header/Header';
 import Banner from '../Banner/Banner';
 import NavBar from '../NavBar/NavBar';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
@@ -51,7 +56,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [headerHtml, setHeaderHtml] = useState<null | string>(null);
     const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
-
     useEffect(() => {
         // if there is an SSO token. We need to save that to localstorage.
 
@@ -61,7 +65,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         if (sso_token && statusPageId) {
             // set token.
 
-            const logoutRoute: Route = props.isPreview ? RouteMap[PageMap.LOGOUT]! : RouteMap[PageMap.PREVIEW_LOGOUT]!;
+            const logoutRoute: Route = props.isPreview
+                ? RouteMap[PageMap.LOGOUT]!
+                : RouteMap[PageMap.PREVIEW_LOGOUT]!;
 
             const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
                 sso_token
@@ -73,23 +79,29 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
 
             if (
-                decodedtoken.userId.toString() !== User.getUserId(statusPageId).toString()
+                decodedtoken.userId.toString() !==
+                User.getUserId(statusPageId).toString()
             ) {
                 alert('SSO Token does not belong to this user. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
 
             if (!decodedtoken.statusPageId) {
-                alert('Status Page ID not found in the SSO token. Logging out.');
+                alert(
+                    'Status Page ID not found in the SSO token. Logging out.'
+                );
                 return Navigation.navigate(logoutRoute);
             }
 
             User.setAccessToken(decodedtoken.statusPageId!, sso_token);
 
-            Navigation.navigate(!props.isPreview ? RouteMap[PageMap.OVERVIEW]! : RouteMap[PageMap.PREVIEW_OVERVIEW]!);
+            Navigation.navigate(
+                !props.isPreview
+                    ? RouteMap[PageMap.OVERVIEW]!
+                    : RouteMap[PageMap.PREVIEW_OVERVIEW]!
+            );
         }
     }, [statusPageId]);
-
 
     const getId: Function = async (): Promise<ObjectID> => {
         const id: string | null = Navigation.getParamByName(
@@ -183,7 +195,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             props.onLoadComplete(response.data);
 
-            // check SSO token. 
+            // check SSO token.
 
             setIsLoading(false);
         } catch (err) {
@@ -203,7 +215,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     if (
         Navigation.getCurrentRoute().toString().includes('login') ||
         Navigation.getCurrentRoute().toString().includes('forgot-password') ||
-        Navigation.getCurrentRoute().toString().includes('reset-password') || 
+        Navigation.getCurrentRoute().toString().includes('reset-password') ||
         Navigation.getCurrentRoute().toString().includes('sso')
     ) {
         return <>{props.children}</>;

@@ -60,11 +60,18 @@ router.post(
                         name: true,
                         pageTitle: true,
                         logoFileId: true,
+                        requireSsoForLogin: true,
                     },
                 });
 
             if (!statusPage) {
                 throw new BadDataException('Status Page not found');
+            }
+
+            if (statusPage.requireSsoForLogin) {
+                throw new BadDataException(
+                    'Status Page supports authentication by SSO. You cannot use email and password for authentication.'
+                );
             }
 
             const statusPageName: string | undefined =
@@ -198,11 +205,18 @@ router.post(
                         name: true,
                         pageTitle: true,
                         logoFileId: true,
+                        requireSsoForLogin: true,
                     },
                 });
 
             if (!statusPage) {
                 throw new BadDataException('Status Page not found');
+            }
+
+            if (statusPage.requireSsoForLogin) {
+                throw new BadDataException(
+                    'Status Page supports authentication by SSO. You cannot use email and password for authentication.'
+                );
             }
 
             const statusPageName: string | undefined =
@@ -262,6 +276,32 @@ router.post(
                 data as JSONObject,
                 StatusPagePrivateUser
             ) as StatusPagePrivateUser;
+
+            if (!user.statusPageId) {
+                throw new BadDataException('Status Page ID not found');
+            }
+
+            const statusPage: StatusPage | null =
+                await StatusPageService.findOneById({
+                    id: user.statusPageId,
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    select: {
+                        requireSsoForLogin: true,
+                    },
+                });
+
+            if (!statusPage) {
+                throw new BadDataException('Status Page not found');
+            }
+
+            if (statusPage.requireSsoForLogin) {
+                throw new BadDataException(
+                    'Status Page supports authentication by SSO. You cannot use email and password for authentication.'
+                );
+            }
 
             await user.password?.hashValue(EncryptionSecret);
 

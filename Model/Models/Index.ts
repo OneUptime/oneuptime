@@ -132,5 +132,5 @@ export default [
     WorkflowLog,
 
     ProjectSSO,
-    StatusPageSSO
+    StatusPageSSO,
 ];

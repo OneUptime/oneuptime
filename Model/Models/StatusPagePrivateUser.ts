@@ -408,5 +408,4 @@ export default class StatusPagePrivateUser extends BaseModel {
         default: false,
     })
     public isSsoUser?: boolean = undefined;
-
 }

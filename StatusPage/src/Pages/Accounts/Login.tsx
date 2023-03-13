@@ -28,10 +28,13 @@ export interface ComponentProps {
 const LoginPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
-
-    useEffect(()=> {
-        if(props.forceSSO){
-            Navigation.navigate(!props.isPreviewPage ? RouteMap[PageMap.SSO]! : RouteMap[PageMap.PREVIEW_SSO]!);
+    useEffect(() => {
+        if (props.forceSSO) {
+            Navigation.navigate(
+                !props.isPreviewPage
+                    ? RouteMap[PageMap.SSO]!
+                    : RouteMap[PageMap.PREVIEW_SSO]!
+            );
         }
     }, [props.forceSSO]);
 
@@ -132,20 +135,24 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                         maxPrimaryButtonWidth={true}
                         footer={
                             <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
-                               
-                                {props.hasEnabledSSOConfig ? <p>
-                                    <Link
-                                        to={ new Route(
-                                            props.isPreviewPage
-                                                ? `/status-page/${props.statusPageId}/sso`
-                                                : '/sso'
-                                        )}
-                                        className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                                    >
-                                        Use single sign-on (SSO) instead
-                                    </Link>
-                                </p> :<></>}
-                               
+                                {props.hasEnabledSSOConfig ? (
+                                    <p>
+                                        <Link
+                                            to={
+                                                new Route(
+                                                    props.isPreviewPage
+                                                        ? `/status-page/${props.statusPageId}/sso`
+                                                        : '/sso'
+                                                )
+                                            }
+                                            className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
+                                        >
+                                            Use single sign-on (SSO) instead
+                                        </Link>
+                                    </p>
+                                ) : (
+                                    <></>
+                                )}
                             </div>
                         }
                     />

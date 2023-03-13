@@ -20,7 +20,6 @@ export interface ComponentProps {
 const LoginPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
-
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     if (!props.statusPageId) {
@@ -43,8 +42,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         );
     }
 
-    if(isLoading){
-        return (<PageLoader isVisible={true} />)
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -70,7 +69,6 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-
                     <ModelList<StatusPageSSO>
                         query={{
                             stausPageId: props.statusPageId,
@@ -88,25 +86,19 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                             _id: true,
                         }}
                         noItemsMessage="No SSO Providers Configured or Enabled"
-                        onSelectChange={(
-                            list: Array<StatusPageSSO>
-                        ) => {
+                        onSelectChange={(list: Array<StatusPageSSO>) => {
                             if (list && list.length > 0) {
                                 setIsLoading(true);
                                 Navigation.navigate(
-                                    URL.fromURL(
-                                        IDENTITY_URL
-                                    ).addRoute(
+                                    URL.fromURL(IDENTITY_URL).addRoute(
                                         new Route(
-                                            `/status-page/sso/${props.statusPageId}/${list[0]?._id
-                                            }`
+                                            `/status-page/sso/${props.statusPageId}/${list[0]?._id}`
                                         )
                                     )
                                 );
                             }
                         }}
                     />
-
                 </div>
             </div>
         </div>

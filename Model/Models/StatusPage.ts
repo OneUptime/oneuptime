@@ -1343,7 +1343,6 @@ export default class StatusPage extends BaseModel {
     })
     public customFields?: JSONObject = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -1356,7 +1355,7 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadProjectStatusPage,
-            Permission.Public
+            Permission.Public,
         ],
         update: [
             Permission.ProjectOwner,

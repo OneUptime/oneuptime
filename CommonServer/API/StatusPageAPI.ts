@@ -246,16 +246,16 @@ export default class StatusPageAPI extends BaseAPI<
                         requireSsoForLogin: true,
                     };
 
-
-                    const hasEnabledSSO: PositiveNumber = await StatusPageSsoService.countBy({
-                        query: {
-                            isEnabled: true, 
-                            statusPageId: objectId
-                        },
-                        props: {
-                            isRoot: true
-                        }
-                    })
+                    const hasEnabledSSO: PositiveNumber =
+                        await StatusPageSsoService.countBy({
+                            query: {
+                                isEnabled: true,
+                                statusPageId: objectId,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     const populate: Populate<StatusPage> = {
                         coverImageFile: {
@@ -337,7 +337,7 @@ export default class StatusPageAPI extends BaseAPI<
                             headerLinks,
                             StatusPageHeaderLink
                         ),
-                        hasEnabledSSO: hasEnabledSSO.toNumber()
+                        hasEnabledSSO: hasEnabledSSO.toNumber(),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);

@@ -28,10 +28,13 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
     const apiUrl: URL = RESET_PASSWORD_API_URL;
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-
-    useEffect(()=> {
-        if(props.forceSSO){
-            Navigation.navigate(!props.isPreviewPage ? RouteMap[PageMap.SSO]! : RouteMap[PageMap.PREVIEW_SSO]!);
+    useEffect(() => {
+        if (props.forceSSO) {
+            Navigation.navigate(
+                !props.isPreviewPage
+                    ? RouteMap[PageMap.SSO]!
+                    : RouteMap[PageMap.PREVIEW_SSO]!
+            );
         }
     }, [props.forceSSO]);
 

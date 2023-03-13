@@ -17,11 +17,11 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import URL from 'Common/Types/API/URL';
-import SSOUtil from "../Utils/SSO";
+import SSOUtil from '../Utils/SSO';
 import Exception from 'Common/Types/Exception/Exception';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import StatusPagePrivateUserService from "CommonServer/Services/StatusPagePrivateUserService";
+import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
 import HashedString from 'Common/Types/HashedString';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 
@@ -51,8 +51,9 @@ router.get(
                 );
             }
 
-            const statusPageId = new ObjectID(req.params['statusPageId']);
-
+            const statusPageId: ObjectID = new ObjectID(
+                req.params['statusPageId']
+            );
 
             const statusPageSSO: StatusPageSSO | null =
                 await StatusPageSsoService.findOneBy({
@@ -105,13 +106,12 @@ router.post(
                 'base64'
             ).toString();
 
-            let response: JSONObject = await xml2js.parseStringPromise(
+            const response: JSONObject = await xml2js.parseStringPromise(
                 samlResponse
             );
 
             let issuerUrl: string = '';
             let email: Email | null = null;
-
 
             if (!req.params['statusPageId']) {
                 return Response.sendErrorResponse(
@@ -129,8 +129,9 @@ router.post(
                 );
             }
 
-            const statusPageId = new ObjectID(req.params['statusPageId']);
-
+            const statusPageId: ObjectID = new ObjectID(
+                req.params['statusPageId']
+            );
 
             const statusPageSSO: StatusPageSSO | null =
                 await StatusPageSsoService.findOneBy({
@@ -149,8 +150,6 @@ router.post(
                         isRoot: true,
                     },
                 });
-
-
 
             if (!statusPageSSO) {
                 return Response.sendErrorResponse(
@@ -190,8 +189,6 @@ router.post(
                 );
             }
 
-
-
             if (!statusPageSSO.publicCertificate) {
                 return Response.sendErrorResponse(
                     req,
@@ -201,23 +198,24 @@ router.post(
             }
 
             try {
-
                 SSOUtil.isPayloadValid(response);
-                SSOUtil.isSignatureValid(response, statusPageSSO.publicCertificate);
+                SSOUtil.isSignatureValid(
+                    response,
+                    statusPageSSO.publicCertificate
+                );
                 issuerUrl = SSOUtil.getIssuer(response);
 
-                console.log(issuerUrl);
-
                 email = SSOUtil.getEmail(response);
-
             } catch (err: unknown) {
                 if (err instanceof Exception) {
                     return Response.sendErrorResponse(req, res, err);
-                } else {
-                    return Response.sendErrorResponse(req, res, new ServerException());
                 }
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new ServerException()
+                );
             }
-
 
             if (statusPageSSO.issuerURL.toString() !== issuerUrl) {
                 return Response.sendErrorResponse(
@@ -227,55 +225,52 @@ router.post(
                 );
             }
 
-
             // Check if he already belongs to the project, If he does - then log in.
 
-            let alreadySavedUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-                query: { email: email, statusPageId: statusPageId },
-                select: {
-                    _id: true,
-                    email: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            let isNewUser: boolean = false;
+            let alreadySavedUser: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                    query: { email: email, statusPageId: statusPageId },
+                    select: {
+                        _id: true,
+                        email: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (!alreadySavedUser) {
-
-
                 /// Create a user.
 
                 alreadySavedUser = new StatusPagePrivateUser();
                 alreadySavedUser.projectId = projectId;
                 alreadySavedUser.statusPageId = statusPageId;
                 alreadySavedUser.email = email;
-                alreadySavedUser.password = new HashedString(ObjectID.generate().toString());
+                alreadySavedUser.password = new HashedString(
+                    ObjectID.generate().toString()
+                );
                 alreadySavedUser.isSsoUser = true;
 
-                alreadySavedUser = await StatusPagePrivateUserService.create({ data: alreadySavedUser, props: { isRoot: true } });
-
-                isNewUser = true;
+                alreadySavedUser = await StatusPagePrivateUserService.create({
+                    data: alreadySavedUser,
+                    props: { isRoot: true },
+                });
             }
 
             const token: string = JSONWebToken.sign(
                 alreadySavedUser,
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
-           
 
             // get status page URL.
             const statusPageURL: string =
-            await StatusPageService.getStatusPageURL(statusPageId);
-
+                await StatusPageService.getStatusPageURL(statusPageId);
 
             return Response.redirect(
                 req,
                 res,
                 URL.fromString(statusPageURL).addQueryParams({
-                    sso_token: token
+                    sso_token: token,
                 })
             );
         } catch (err) {

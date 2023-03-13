@@ -25,13 +25,16 @@ export interface ComponentProps {
 const ForgotPassword: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
-
-    useEffect(()=> {
-        if(props.forceSSO){
-            Navigation.navigate(!props.isPreviewPage ? RouteMap[PageMap.SSO]! : RouteMap[PageMap.PREVIEW_SSO]!);
+    useEffect(() => {
+        if (props.forceSSO) {
+            Navigation.navigate(
+                !props.isPreviewPage
+                    ? RouteMap[PageMap.SSO]!
+                    : RouteMap[PageMap.PREVIEW_SSO]!
+            );
         }
     }, [props.forceSSO]);
-    
+
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);

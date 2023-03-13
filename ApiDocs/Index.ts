@@ -39,7 +39,7 @@ app.get(['/docs/index'], (_req: ExpressRequest, res: ExpressResponse) => {
 // Other pages
 app.get(['/docs/page/:page'], (req: ExpressRequest, res: ExpressResponse) => {
     return res.render('pages/index', {
-        page: req.params['page']
+        page: req.params['page'],
     });
 });
 
