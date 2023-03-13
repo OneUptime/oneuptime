@@ -25,6 +25,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -74,6 +75,19 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     query={{
                         projectId:
                             DashboardNavigation.getProjectId()?.toString(),
+                    }}
+                    onBeforeCreate={(
+                        item: StatusPageSSO
+                    ): Promise<StatusPageSSO> => {
+                        if (!props.currentProject || !props.currentProject._id) {
+                            throw new BadDataException('Project ID cannot be null');
+                        }
+
+                        item.statusPageId = modelId;
+                        item.projectId = new ObjectID(props.currentProject._id);
+
+    
+                        return Promise.resolve(item);
                     }}
                     id="sso-table"
                     name="Status Pages > Staus Page View > Project SSO"
@@ -308,7 +322,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                     {`${URL.fromString(
                                         IDENTITY_URL.toString()
                                     ).addRoute(
-                                        `/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`
+                                        `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`
                                     )}`}
                                 </span>
                                 <br />
