@@ -79,14 +79,18 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     onBeforeCreate={(
                         item: StatusPageSSO
                     ): Promise<StatusPageSSO> => {
-                        if (!props.currentProject || !props.currentProject._id) {
-                            throw new BadDataException('Project ID cannot be null');
+                        if (
+                            !props.currentProject ||
+                            !props.currentProject._id
+                        ) {
+                            throw new BadDataException(
+                                'Project ID cannot be null'
+                            );
                         }
 
                         item.statusPageId = modelId;
                         item.projectId = new ObjectID(props.currentProject._id);
 
-    
                         return Promise.resolve(item);
                     }}
                     id="sso-table"
