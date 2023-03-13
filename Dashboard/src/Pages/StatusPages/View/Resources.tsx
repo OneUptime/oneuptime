@@ -101,11 +101,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: StatusPageResource
                 ): Promise<StatusPageResource> => {
-                    if (!props.currentProject || !props.currentProject.id) {
+                    if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
                     item.statusPageId = modelId;
-                    item.projectId = props.currentProject.id;
+                    item.projectId = new ObjectID(props.currentProject._id);
 
                     if (statusPageGroupId) {
                         item.statusPageGroupId = statusPageGroupId;

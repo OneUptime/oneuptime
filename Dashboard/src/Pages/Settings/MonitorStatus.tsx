@@ -19,6 +19,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ObjectID from 'Common/Types/ObjectID';
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -89,11 +90,11 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: MonitorStatus
                 ): Promise<MonitorStatus> => {
-                    if (!props.currentProject || !props.currentProject.id) {
+                    if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
 
-                    item.projectId = props.currentProject.id;
+                    item.projectId = new ObjectID(props.currentProject._id);
                     return Promise.resolve(item);
                 }}
                 formFields={[
