@@ -47,6 +47,7 @@ import StatusPageViewSubscriberSettings from './Pages/StatusPages/View/Subscribe
 import StatusPageViewCustomFields from './Pages/StatusPages/View/CustomFields';
 import StatusPageViewSSO from './Pages/StatusPages/View/SSO';
 import StatusPageViewPrivateUser from './Pages/StatusPages/View/PrivateUser';
+import StatusPageViewAuthenticationSettings from './Pages/StatusPages/View/AuthenticationSettings';
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -674,6 +675,24 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+<PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <StatusPageViewAuthenticationSettings
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                                 ] as Route
                             }
                             currentProject={selectedProject}

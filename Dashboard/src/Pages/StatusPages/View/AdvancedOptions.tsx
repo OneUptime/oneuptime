@@ -6,11 +6,6 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -55,41 +50,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Advanced Settings"
-                cardProps={{
-                    title: 'Advanced Settings',
-                    description: 'Advanced settings for this status page.',
-                    icon: IconProp.Settings,
-                }}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            isPublicStatusPage: true,
-                        },
-                        title: 'Is Visible to Public',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                        placeholder: 'Is this status page visible to public',
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                isPublicStatusPage: true,
-                            },
-                            fieldType: FieldType.Boolean,
-                            title: 'Is Visible to Public',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
+         
         </Page>
     );
 };

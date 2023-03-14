@@ -181,6 +181,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/advanced-options`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/authentication-settings`
+    ),
+
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
     [PageMap.MONITORS]: new Route(
