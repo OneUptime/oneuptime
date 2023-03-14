@@ -2,6 +2,7 @@
 
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
+import logger from 'CommonServer/Utils/Logger';
 
 module.exports = {
     create: (_opts: any) => {
@@ -10,6 +11,8 @@ module.exports = {
             blob: string,
             isKeyPair: boolean
         ): Promise<null> => {
+            logger.info('Save Certificates: ' + id);
+
             let cert: GreenlockCertificate | null =
                 await GreenlockCertificateService.findOneBy({
                     query: {
@@ -58,6 +61,8 @@ module.exports = {
             id: string,
             isKeyPair: boolean
         ): Promise<null | string> => {
+            logger.info('Get Certificate - ' + id);
+
             const cert: GreenlockCertificate | null =
                 await GreenlockCertificateService.findOneBy({
                     query: {
@@ -75,9 +80,11 @@ module.exports = {
                 });
 
             if (!cert || !cert.blob) {
+                logger.info('Certificate not found');
                 return null;
             }
 
+            logger.info('Certificate found');
             return cert.blob;
         };
 
@@ -85,12 +92,14 @@ module.exports = {
             id: string,
             blob: string
         ): Promise<null> => {
+            logger.info('Save Keypair: ' + id);
             return await saveCertificate(id, blob, true);
         };
 
         const getKeypair: Function = async (
             id: string
         ): Promise<null | string> => {
+            logger.info('Get Keypair: ' + id);
             return await getCertificate(id, true);
         };
 
@@ -98,6 +107,8 @@ module.exports = {
             accounts: {
                 // Whenever a new keypair is used to successfully create an account, we need to save its keypair
                 setKeypair: async (opts: any): Promise<null> => {
+                    logger.info('Accounts Set Keypair: ');
+                    logger.info(JSON.stringify(opts, null, 2));
                     const id: string =
                         opts.account.id || opts.email || 'default';
                     const keypair: any = opts.keypair;
@@ -106,6 +117,8 @@ module.exports = {
                 },
                 // We need a way to retrieve a prior account's keypair for renewals and additional ACME certificate "orders"
                 checkKeypair: async (opts: any): Promise<any | null> => {
+                    logger.info('Accounts Check Keypair: ');
+                    logger.info(JSON.stringify(opts, null, 2));
                     const id: string =
                         opts.account.id || opts.email || 'default';
                     const keyblob: any = await getKeypair(id);
@@ -120,6 +133,8 @@ module.exports = {
 
             certificates: {
                 setKeypair: async (opts: any): Promise<null> => {
+                    logger.info('Certificates Set Keypair: ');
+                    logger.info(JSON.stringify(opts, null, 2));
                     // The ID is a string that doesn't clash between accounts and certificates.
                     // That's all you need to know... unless you're doing something special (in which case you're on your own).
                     const id: string =
@@ -135,6 +150,8 @@ module.exports = {
 
                 // You won't be able to use a certificate without it's private key, gotta save it
                 checkKeypair: async (opts: any): Promise<any | null> => {
+                    logger.info('Certificates Check Keypair: ');
+                    logger.info(JSON.stringify(opts, null, 2));
                     const id: string =
                         opts.certificate.kid ||
                         opts.certificate.id ||
@@ -152,6 +169,8 @@ module.exports = {
                 // (perhaps to delete expired keys), but the same information can also be redireved from
                 // the key using the "cert-info" package.
                 set: async (opts: any): Promise<null> => {
+                    logger.info('Certificates Set: ');
+                    logger.info(JSON.stringify(opts, null, 2));
                     const id: string = opts.certificate.id || opts.subject;
                     const pems: any = opts.pems;
 
@@ -166,6 +185,8 @@ module.exports = {
                 // but it's easiest to implement last since it's not useful until there
                 // are certs that can actually be loaded from storage.
                 check: async (opts: any): Promise<null | any> => {
+                    logger.info('Certificates Check: ');
+                    logger.info(JSON.stringify(opts, null, 2));
                     const id: string = opts.certificate?.id || opts.subject;
                     const certblob: any = await getCertificate(id, false);
 
