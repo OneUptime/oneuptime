@@ -56,6 +56,9 @@ module.exports = {
             },
 
             find: async function (args: any) {
+                logger.info('Manager Find: ');
+                logger.info(JSON.stringify(args, null, 2));
+
                 // { subject, servernames, altnames, renewBefore }
 
                 // i.e. find certs more than 30 days old
