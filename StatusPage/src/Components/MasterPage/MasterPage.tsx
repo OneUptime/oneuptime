@@ -327,7 +327,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         />
                     )
                 }
-                navBar={<NavBar isPrivateStatusPage={props.isPrivateStatusPage} show={true} isPreview={true} />}
+                navBar={
+                    <NavBar
+                        isPrivateStatusPage={props.isPrivateStatusPage}
+                        show={true}
+                        isPreview={true}
+                    />
+                }
                 isLoading={props.isLoading || false}
                 error={props.error || ''}
             >

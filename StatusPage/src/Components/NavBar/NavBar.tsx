@@ -57,8 +57,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                        ] as Route)
+                              PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                          ] as Route)
                         : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                 )}
             ></NavBarItem>
@@ -73,15 +73,19 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 )}
             ></NavBarItem>
 
-            {props.isPrivateStatusPage ? <NavBarItem
-                title="Logout"
-                icon={IconProp.Logout}
-                route={RouteUtil.populateRouteParams(
-                    props.isPreview
-                        ? (RouteMap[PageMap.PREVIEW_LOGOUT] as Route)
-                        : (RouteMap[PageMap.LOGOUT] as Route)
-                )}
-            ></NavBarItem> : <></>}
+            {props.isPrivateStatusPage ? (
+                <NavBarItem
+                    title="Logout"
+                    icon={IconProp.Logout}
+                    route={RouteUtil.populateRouteParams(
+                        props.isPreview
+                            ? (RouteMap[PageMap.PREVIEW_LOGOUT] as Route)
+                            : (RouteMap[PageMap.LOGOUT] as Route)
+                    )}
+                ></NavBarItem>
+            ) : (
+                <></>
+            )}
         </NavBar>
     );
 };
