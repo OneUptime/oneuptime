@@ -83,6 +83,7 @@ const App: FunctionComponent = () => {
     return (
         <MasterPage
             isPreview={isPreview}
+            isPrivateStatusPage={isPrivateStatusPage}
             onLoadComplete={(masterpage: JSONObject) => {
                 document.title =
                     (JSONFunctions.getJSONValueInPath(

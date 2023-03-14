@@ -41,6 +41,7 @@ export interface ComponentProps {
     error?: string | undefined;
     onLoadComplete: (masterPage: JSONObject) => void;
     isPreview: boolean;
+    isPrivateStatusPage: boolean;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -256,7 +257,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     });
 
     return (
-        <div className="max-w-4xl m-auto">
+        <div className="max-w-5xl m-auto">
             {
                 <div>
                     <Banner
@@ -326,7 +327,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         />
                     )
                 }
-                navBar={<NavBar show={true} isPreview={true} />}
+                navBar={<NavBar isPrivateStatusPage={props.isPrivateStatusPage} show={true} isPreview={true} />}
                 isLoading={props.isLoading || false}
                 error={props.error || ''}
             >
