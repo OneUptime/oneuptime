@@ -157,6 +157,16 @@ router.get(
 );
 
 RunCron(
+    'StatusPageCerts:RenewCerts',
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
+    async () => {
+        logger.info('Renewing Certs...');
+        await greenlock.renew();
+        logger.info('Renew Completed...');
+    }
+);
+
+RunCron(
     'StatusPageCerts:OrderCerts',
     { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
     async () => {
