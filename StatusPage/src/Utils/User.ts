@@ -56,7 +56,6 @@ export default class User {
         LocalStorage.setItem(statusPageId.toString() + 'user_email', email);
     }
 
-
     public static removeUserId(statusPageId: ObjectID): void {
         LocalStorage.removeItem(statusPageId.toString() + 'user_id');
     }

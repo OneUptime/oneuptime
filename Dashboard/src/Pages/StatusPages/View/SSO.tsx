@@ -261,15 +261,13 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             integration before you force it on your
                             organization:{' '}
                             <Link
-                            openInNewTab={true}
-                            to={URL.fromString(
-                                `${STATUS_PAGE_URL.toString()}/${modelId}/sso`
-                            )}
-                        >
-                            <span>{`${STATUS_PAGE_URL.toString()}/${
-                                modelId
-                            }/sso`}</span>
-                        </Link>
+                                openInNewTab={true}
+                                to={URL.fromString(
+                                    `${STATUS_PAGE_URL.toString()}/${modelId}/sso`
+                                )}
+                            >
+                                <span>{`${STATUS_PAGE_URL.toString()}/${modelId}/sso`}</span>
+                            </Link>
                         </span>
                     }
                 />
@@ -306,7 +304,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 fieldType: FieldType.Boolean,
                                 title: 'Force SSO for Login',
                                 description:
-                                    'Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.',
+                                    'Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.',
                             },
                         ],
                         modelId: modelId,

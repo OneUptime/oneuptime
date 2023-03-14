@@ -14,6 +14,7 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import Link from 'CommonUI/src/Components/Link/Link';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export interface ComponentProps {
     statusPageId: ObjectID | null;
@@ -32,8 +33,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         if (props.forceSSO && props.statusPageId) {
             Navigation.navigate(
                 !props.isPreviewPage
-                    ? RouteUtil.populateRouteParams(RouteMap[PageMap.SSO]!, props.statusPageId)
-                    : RouteUtil.populateRouteParams(RouteMap[PageMap.PREVIEW_SSO]!, props.statusPageId)
+                    ? RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.SSO]!,
+                          props.statusPageId
+                      )
+                    : RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.PREVIEW_SSO]!,
+                          props.statusPageId
+                      )
             );
         }
     }, [props.forceSSO, props.statusPageId]);
@@ -131,6 +138,16 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                         : '/'
                                 )
                             );
+                        }}
+                        onBeforeCreate={(item: StatusPagePrivateUser) => {
+                            if (!props.statusPageId) {
+                                throw new BadDataException(
+                                    'Status Page ID not found'
+                                );
+                            }
+
+                            item.statusPageId = props.statusPageId;
+                            return item;
                         }}
                         maxPrimaryButtonWidth={true}
                         footer={

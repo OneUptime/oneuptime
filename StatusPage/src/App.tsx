@@ -34,7 +34,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import RouteParams from './Utils/RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
 
-// Logout. 
+// Logout.
 import Logout from './Pages/Accounts/Logout';
 
 const App: FunctionComponent = () => {
@@ -238,7 +238,7 @@ const App: FunctionComponent = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_EVENT_DETAIL
+                                    PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -388,7 +388,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -397,32 +397,20 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={
-                        RouteMap[PageMap.PREVIEW_LOGOUT]?.toString() ||
-                        ''
-                    }
+                    path={RouteMap[PageMap.PREVIEW_LOGOUT]?.toString() || ''}
                     element={
                         <Logout
-
                             isPreviewPage={isPreview}
-
-
                             statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
 
                 <PageRoute
-                    path={
-                        RouteMap[PageMap.LOGOUT]?.toString() ||
-                        ''
-                    }
+                    path={RouteMap[PageMap.LOGOUT]?.toString() || ''}
                     element={
                         <Logout
-
                             isPreviewPage={isPreview}
-
-
                             statusPageId={new ObjectID(statusPageId)}
                         />
                     }
@@ -443,7 +431,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -466,7 +454,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -488,7 +476,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_INCIDENT_DETAIL
+                                    PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -531,7 +519,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -554,7 +542,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}

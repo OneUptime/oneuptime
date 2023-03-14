@@ -67,8 +67,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             // set token.
 
             const logoutRoute: Route = props.isPreview
-                ? RouteUtil.populateRouteParams(RouteMap[PageMap.PREVIEW_LOGOUT]!, statusPageId)
-                : RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT]!, statusPageId)
+                ? RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.PREVIEW_LOGOUT]!,
+                      statusPageId
+                  )
+                : RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.LOGOUT]!,
+                      statusPageId
+                  );
 
             const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
                 sso_token
@@ -79,17 +85,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 return Navigation.navigate(logoutRoute);
             }
 
-            if (
-                !decodedtoken.userId.toString()
-            ) {
+            if (!decodedtoken.userId.toString()) {
                 alert('USer ID not found in SSO Token. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
 
-
             LoginUtil.login({
                 token: sso_token,
-                user: {...decodedtoken, _id: decodedtoken.userId}
+                user: { ...decodedtoken, _id: decodedtoken.userId },
             });
 
             if (!decodedtoken.statusPageId) {
@@ -103,8 +106,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             Navigation.navigate(
                 !props.isPreview
-                    ? RouteUtil.populateRouteParams(RouteMap[PageMap.OVERVIEW]!, statusPageId)
-                    : RouteUtil.populateRouteParams(RouteMap[PageMap.PREVIEW_OVERVIEW]!, statusPageId)
+                    ? RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.OVERVIEW]!,
+                          statusPageId
+                      )
+                    : RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.PREVIEW_OVERVIEW]!,
+                          statusPageId
+                      )
             );
         }
     }, [statusPageId]);
