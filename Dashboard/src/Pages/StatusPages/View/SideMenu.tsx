@@ -34,7 +34,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Annoucements',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                             ] as Route,
                             props.modelId
                         ),
@@ -49,7 +49,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Monitors',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
                             ] as Route,
                             props.modelId
                         ),
@@ -74,7 +74,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Email Subscribers',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                             ] as Route,
                             props.modelId
                         ),
@@ -112,7 +112,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Subscriber Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                                PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                             ] as Route,
                             props.modelId
                         ),
@@ -127,7 +127,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Essential Branding',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
                             ] as Route,
                             props.modelId
                         ),
@@ -153,7 +153,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'HTML, CSS & JavaScript',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                             ] as Route,
                             props.modelId
                         ),
@@ -177,7 +177,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Header',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                             ] as Route,
                             props.modelId
                         ),
@@ -190,7 +190,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Footer',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
                             ] as Route,
                             props.modelId
                         ),
@@ -203,7 +203,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Navigation',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
                             ] as Route,
                             props.modelId
                         ),
@@ -218,7 +218,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Private Users',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                                PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                             ] as Route,
                             props.modelId
                         ),
@@ -242,7 +242,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Authentication Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                                PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                             ] as Route,
                             props.modelId
                         ),
@@ -257,7 +257,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                             ] as Route,
                             props.modelId
                         ),

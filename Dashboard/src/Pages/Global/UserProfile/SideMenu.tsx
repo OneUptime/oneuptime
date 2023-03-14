@@ -6,17 +6,14 @@ import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 
-const DashboardSideMenu: FunctionComponent = (
-
-): ReactElement => {
+const DashboardSideMenu: FunctionComponent = (): ReactElement => {
     return (
         <SideMenu>
-
             <SideMenuItem
                 link={{
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_PROFILE_OVERVIEW] as Route,
+                        RouteMap[PageMap.USER_PROFILE_OVERVIEW] as Route
                     ),
                 }}
                 icon={IconProp.Info}
@@ -26,7 +23,7 @@ const DashboardSideMenu: FunctionComponent = (
                 link={{
                     title: 'Password Management',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route,
+                        RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route
                     ),
                 }}
                 icon={IconProp.Lock}
@@ -36,12 +33,11 @@ const DashboardSideMenu: FunctionComponent = (
                 link={{
                     title: 'Profile Picture',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_PROFILE_PICTURE] as Route,
+                        RouteMap[PageMap.USER_PROFILE_PICTURE] as Route
                     ),
                 }}
                 icon={IconProp.Image}
             />
-
         </SideMenu>
     );
 };

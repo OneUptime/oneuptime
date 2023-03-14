@@ -15,8 +15,6 @@ import SideMenu from './SideMenu';
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
     return (
         <Page
             title={'User Profile'}
@@ -43,9 +41,6 @@ const Home: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu />}
         >
-
-
-
             <CardModelDetail<User>
                 name="User Profile > Profile Picture"
                 cardProps={{
@@ -86,8 +81,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                     modelId: UserUtil.getUserId(),
                 }}
             />
-
-
         </Page>
     );
 };
