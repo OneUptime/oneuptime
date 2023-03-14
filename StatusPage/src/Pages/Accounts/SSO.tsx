@@ -92,7 +92,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 Navigation.navigate(
                                     URL.fromURL(IDENTITY_URL).addRoute(
                                         new Route(
-                                            `/status-page/sso/${props.statusPageId}/${list[0]?._id}`
+                                            `/status-page-sso/${props.statusPageId}/${list[0]?._id}`
                                         )
                                     )
                                 );

@@ -20,7 +20,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
 import URL from 'Common/Types/API/URL';
-import { DASHBOARD_URL, IDENTITY_URL } from 'CommonUI/src/Config';
+import { IDENTITY_URL, STATUS_PAGE_URL } from 'CommonUI/src/Config';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
@@ -261,13 +261,15 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             integration before you force it on your
                             organization:{' '}
                             <Link
-                                openInNewTab={true}
-                                to={URL.fromString(
-                                    `${DASHBOARD_URL.toString()}/${DashboardNavigation.getProjectId()?.toString()}/sso`
-                                )}
-                            >
-                                <span>{`${DASHBOARD_URL.toString()}/${DashboardNavigation.getProjectId()?.toString()}/sso`}</span>
-                            </Link>
+                            openInNewTab={true}
+                            to={URL.fromString(
+                                `${STATUS_PAGE_URL.toString()}/${modelId}/sso`
+                            )}
+                        >
+                            <span>{`${STATUS_PAGE_URL.toString()}/${
+                                modelId
+                            }/sso`}</span>
+                        </Link>
                         </span>
                     }
                 />

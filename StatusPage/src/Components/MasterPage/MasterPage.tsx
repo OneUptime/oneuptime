@@ -21,7 +21,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import RouteParams from '../../Utils/RouteParams';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import BaseModel from 'Common/Models/BaseModel';
@@ -33,6 +33,7 @@ import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
 import Route from 'Common/Types/API/Route';
 import User from '../../Utils/User';
+import LoginUtil from '../../Utils/Login';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -66,8 +67,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             // set token.
 
             const logoutRoute: Route = props.isPreview
-                ? RouteMap[PageMap.LOGOUT]!
-                : RouteMap[PageMap.PREVIEW_LOGOUT]!;
+                ? RouteUtil.populateRouteParams(RouteMap[PageMap.PREVIEW_LOGOUT]!, statusPageId)
+                : RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT]!, statusPageId)
 
             const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
                 sso_token
@@ -79,12 +80,17 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
 
             if (
-                decodedtoken.userId.toString() !==
-                User.getUserId(statusPageId).toString()
+                !decodedtoken.userId.toString()
             ) {
-                alert('SSO Token does not belong to this user. Logging out.');
+                alert('USer ID not found in SSO Token. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
+
+
+            LoginUtil.login({
+                token: sso_token,
+                user: {...decodedtoken, _id: decodedtoken.userId}
+            });
 
             if (!decodedtoken.statusPageId) {
                 alert(
@@ -97,8 +103,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             Navigation.navigate(
                 !props.isPreview
-                    ? RouteMap[PageMap.OVERVIEW]!
-                    : RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                    ? RouteUtil.populateRouteParams(RouteMap[PageMap.OVERVIEW]!, statusPageId)
+                    : RouteUtil.populateRouteParams(RouteMap[PageMap.PREVIEW_OVERVIEW]!, statusPageId)
             );
         }
     }, [statusPageId]);

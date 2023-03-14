@@ -233,6 +233,8 @@ router.post(
                     select: {
                         _id: true,
                         email: true,
+                        statusPageId: true,
+                        projectId: true
                     },
                     props: {
                         isRoot: true,

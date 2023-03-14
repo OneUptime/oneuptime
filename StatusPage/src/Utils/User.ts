@@ -56,16 +56,13 @@ export default class User {
         LocalStorage.setItem(statusPageId.toString() + 'user_email', email);
     }
 
-    public static clear(): void {
-        LocalStorage.clear();
-    }
 
     public static removeUserId(statusPageId: ObjectID): void {
         LocalStorage.removeItem(statusPageId.toString() + 'user_id');
     }
 
     public static removeAccessToken(statusPageId: ObjectID): void {
-        LocalStorage.removeItem(statusPageId.toString() + 'token');
+        LocalStorage.removeItem(statusPageId.toString() + 'access_token');
     }
 
     public static removeInitialUrl(statusPageId: ObjectID): void {
@@ -80,7 +77,8 @@ export default class User {
             : false;
     }
 
-    public static logout(): void {
-        LocalStorage.clear();
+    public static logout(statusPageId: ObjectID): void {
+        User.removeAccessToken(statusPageId);
+        User.removeUserId(statusPageId);
     }
 }

@@ -12,7 +12,7 @@ import { FILE_URL } from 'CommonUI/src/Config';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import Link from 'CommonUI/src/Components/Link/Link';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 
 export interface ComponentProps {
@@ -29,14 +29,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
     useEffect(() => {
-        if (props.forceSSO) {
+        if (props.forceSSO && props.statusPageId) {
             Navigation.navigate(
                 !props.isPreviewPage
-                    ? RouteMap[PageMap.SSO]!
-                    : RouteMap[PageMap.PREVIEW_SSO]!
+                    ? RouteUtil.populateRouteParams(RouteMap[PageMap.SSO]!, props.statusPageId)
+                    : RouteUtil.populateRouteParams(RouteMap[PageMap.PREVIEW_SSO]!, props.statusPageId)
             );
         }
-    }, [props.forceSSO]);
+    }, [props.forceSSO, props.statusPageId]);
 
     const apiUrl: URL = LOGIN_API_URL;
 
