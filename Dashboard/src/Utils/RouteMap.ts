@@ -35,7 +35,9 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/unresolved`
     ),
 
-    [PageMap.USER_PROFILE]: new Route(`/dashboard/user-profile`),
+    [PageMap.USER_PROFILE_OVERVIEW]: new Route(`/dashboard/user-profile/overview`),
+    [PageMap.USER_PROFILE_PASSWORD]: new Route(`/dashboard/user-profile/password-mangement`),
+    [PageMap.USER_PROFILE_PICTURE]: new Route(`/dashboard/user-profile/profile-picture`),
 
     [PageMap.ACTIVE_INCIDENTS]: new Route(`/dashboard/active-incidents`),
 
@@ -347,7 +349,9 @@ const RouteMap: Dictionary<Route> = {
 export class RouteUtil {
     public static isGlobalRoute(route: Route): boolean {
         if (
-            route.toString() === RouteMap[PageMap.USER_PROFILE]?.toString() ||
+            route.toString() === RouteMap[PageMap.USER_PROFILE_OVERVIEW]?.toString() ||
+            route.toString() === RouteMap[PageMap.USER_PROFILE_PASSWORD]?.toString() ||
+            route.toString() === RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() ||
             route.toString() ===
                 RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
             route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()

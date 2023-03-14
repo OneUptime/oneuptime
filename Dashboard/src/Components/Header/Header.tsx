@@ -238,7 +238,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         <UserProfile
                             onClickUserProfle={() => {
                                 Navigation.navigate(
-                                    RouteMap[PageMap.USER_PROFILE]!
+                                    RouteMap[PageMap.USER_PROFILE_OVERVIEW]!
                                 );
                             }}
                         />
