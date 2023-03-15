@@ -84,6 +84,12 @@ const Filter: FunctionComponent<ComponentProps> = (
                                 return column.isFilterable && column.key;
                             })
                             .map((column: Column, i: number) => {
+
+
+                                if(column.title === "Labels"){
+                                    console.log(column)
+                                }
+
                                 return (
                                     <div
                                         key={i}

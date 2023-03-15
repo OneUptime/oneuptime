@@ -59,6 +59,7 @@ import { ModalWidth } from '../Modal/Modal';
 import ProjectUtil from '../../Utils/Project';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import { DropdownOption } from '../Dropdown/Dropdown';
 
 export enum ShowTableAs {
     Table,
@@ -67,14 +68,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -206,8 +207,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 alignItem: column.alignItem,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                          return column.getElement!(item, onBeforeFetchData);
-                      }
+                        return column.getElement!(item, onBeforeFetchData);
+                    }
                     : undefined,
             });
 
@@ -241,6 +242,130 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         setIsLoading(false);
     };
+
+    const serializeToTableColumns: Function = (): void => {
+        // Convert ModelColumns to TableColumns.
+
+        const columns: Array<TableColumn> = [];
+
+        const selectFields: Select<TBaseModel> = {
+            _id: true,
+        };
+
+        const slugifyColumn: string | null = model.getSlugifyColumn();
+
+        if (slugifyColumn) {
+            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+        }
+
+        const userPermissions: Array<Permission> = getUserPermissions();
+
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns();
+
+        for (const column of props.columns || []) {
+            const hasPermission: boolean = hasPermissionToReadColumn(column);
+            const key: string | null = getColumnKey(column);
+
+            if (hasPermission) {
+                let tooltipText: ((item: JSONObject) => string) | undefined =
+                    undefined;
+
+                if (column.tooltipText) {
+                    tooltipText = (item: JSONObject): string => {
+                        return column.tooltipText!(
+                            JSONFunctions.fromJSONObject(item, props.modelType)
+                        );
+                    };
+                }
+
+                // get filter options if they were already loaded. 
+
+                let filterDropdownOptions: Array<DropdownOption> | undefined = undefined;
+
+                const columnKey = column.selectedProperty
+                    ? key + '.' + column.selectedProperty
+                    : key;
+
+                    const existingTableColumn: TableColumn | undefined = tableColumns.find((i: TableColumn) => {
+                        return i.key === columnKey
+                    });
+
+                if (tableColumns && existingTableColumn && existingTableColumn.filterDropdownOptions) {
+                    filterDropdownOptions = existingTableColumn.filterDropdownOptions;
+                }
+
+                columns.push({
+                    ...column,
+                    disableSort: column.disableSort || shouldDisableSort(key),
+                    key: columnKey,
+                    tooltipText,
+                    filterDropdownOptions: filterDropdownOptions
+
+                });
+
+                if (key) {
+                    (selectFields as Dictionary<boolean>)[key] = true;
+                }
+            }
+        }
+
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
+
+        for (const moreField of selectMoreFields) {
+            let hasPermissionToSelectField: boolean = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[moreField as string]?.read || [];
+
+            if (
+                accessControl[moreField]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermissionToSelectField = false;
+            }
+
+            if (hasPermissionToSelectField) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                Logger.warn(
+                    'User does not have read permissions to read - ' + moreField
+                );
+            }
+        }
+
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
+
+        if (
+            (permissions &&
+                ((props.isDeleteable &&
+                    model.hasDeletePermissions(permissions)) ||
+                    (props.isEditable &&
+                        model.hasUpdatePermissions(permissions)) ||
+                    (props.isViewable &&
+                        model.hasReadPermissions(permissions)))) ||
+            (props.actionButtons && props.actionButtons.length > 0)
+        ) {
+            columns.push({
+                title: 'Actions',
+                type: FieldType.Actions,
+            });
+        }
+
+        setActionSchema();
+        setHeaderButtons();
+
+        console.log("Set Columns")
+        console.log(columns);
+
+        setColumns(columns);
+    };
+
 
     const getFilterDropdownItems: Function = async () => {
         setTableFilterError('');
@@ -340,6 +465,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 classicColumn.contentClassName = column.contentClassName;
             }
 
+            console.log("ModelTable")
+            console.log(classicColumns)
+
+
             setColumns(classicColumns);
         } catch (err) {
             setTableFilterError(API.getFriendlyMessage(err));
@@ -374,8 +503,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -493,9 +622,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${
-                    props.singularName || model.singularName
-                }`,
+                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                    }`,
                 buttonStyle: ButtonStyleType.NORMAL,
                 className:
                     props.showFilterButton || props.showRefreshButton
@@ -533,7 +661,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     : 'py-0 pr-0 pl-1 mt-1',
                 onClick: () => {
                     const newValue: boolean = !showTableFilter;
-                    if (!newValue) {
+                    if (!newValue && Object.keys(query).length > 0) {
                         setQuery({});
                     }
                     setShowTableFilter(newValue);
@@ -629,108 +757,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return userPermissions;
     };
 
-    const serializeToTableColumns: Function = (): void => {
-        // Convert ModelColumns to TableColumns.
-
-        const columns: Array<TableColumn> = [];
-
-        const selectFields: Select<TBaseModel> = {
-            _id: true,
-        };
-
-        const slugifyColumn: string | null = model.getSlugifyColumn();
-
-        if (slugifyColumn) {
-            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
-        }
-
-        const userPermissions: Array<Permission> = getUserPermissions();
-
-        const accessControl: Dictionary<ColumnAccessControl> =
-            model.getColumnAccessControlForAllColumns();
-
-        for (const column of props.columns || []) {
-            const hasPermission: boolean = hasPermissionToReadColumn(column);
-            const key: string | null = getColumnKey(column);
-
-            if (hasPermission) {
-                let tooltipText: ((item: JSONObject) => string) | undefined =
-                    undefined;
-
-                if (column.tooltipText) {
-                    tooltipText = (item: JSONObject): string => {
-                        return column.tooltipText!(
-                            JSONFunctions.fromJSONObject(item, props.modelType)
-                        );
-                    };
-                }
-
-                columns.push({
-                    ...column,
-                    disableSort: column.disableSort || shouldDisableSort(key),
-                    key: column.selectedProperty
-                        ? key + '.' + column.selectedProperty
-                        : key,
-                    tooltipText,
-                });
-
-                if (key) {
-                    (selectFields as Dictionary<boolean>)[key] = true;
-                }
-            }
-        }
-
-        const selectMoreFields: Array<string> = props.selectMoreFields
-            ? Object.keys(props.selectMoreFields)
-            : [];
-
-        for (const moreField of selectMoreFields) {
-            let hasPermissionToSelectField: boolean = true;
-            let fieldPermissions: Array<Permission> = [];
-            fieldPermissions = accessControl[moreField as string]?.read || [];
-
-            if (
-                accessControl[moreField]?.read &&
-                !PermissionHelper.doesPermissionsIntersect(
-                    userPermissions,
-                    fieldPermissions
-                )
-            ) {
-                hasPermissionToSelectField = false;
-            }
-
-            if (hasPermissionToSelectField) {
-                (selectFields as Dictionary<boolean>)[moreField] = true;
-            } else {
-                Logger.warn(
-                    'User does not have read permissions to read - ' + moreField
-                );
-            }
-        }
-
-        const permissions: Array<Permission> | null =
-            PermissionUtil.getAllPermissions();
-
-        if (
-            (permissions &&
-                ((props.isDeleteable &&
-                    model.hasDeletePermissions(permissions)) ||
-                    (props.isEditable &&
-                        model.hasUpdatePermissions(permissions)) ||
-                    (props.isViewable &&
-                        model.hasReadPermissions(permissions)))) ||
-            (props.actionButtons && props.actionButtons.length > 0)
-        ) {
-            columns.push({
-                title: 'Actions',
-                type: FieldType.Actions,
-            });
-        }
-
-        setActionSchema();
-        setHeaderButtons();
-        setColumns(columns);
-    };
 
     useEffect(() => {
         serializeToTableColumns();
@@ -889,42 +915,44 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return (
             <Table
                 onFilterChanged={(filterData: FilterData) => {
-                    const query: Query<TBaseModel> = {};
+                    const newQuery: Query<TBaseModel> = {};
 
                     for (const key in filterData) {
                         if (
                             filterData[key] &&
                             typeof filterData[key] === Typeof.String
                         ) {
-                            query[key as keyof TBaseModel] = (
+                            newQuery[key as keyof TBaseModel] = (
                                 filterData[key] || ''
                             ).toString();
                         }
 
                         if (typeof filterData[key] === Typeof.Boolean) {
-                            query[key as keyof TBaseModel] = Boolean(
+                            newQuery[key as keyof TBaseModel] = Boolean(
                                 filterData[key]
                             );
                         }
 
                         if (filterData[key] instanceof Date) {
-                            query[key as keyof TBaseModel] = filterData[key];
+                            newQuery[key as keyof TBaseModel] = filterData[key];
                         }
 
                         if (filterData[key] instanceof Search) {
-                            query[key as keyof TBaseModel] = filterData[key];
+                            newQuery[key as keyof TBaseModel] = filterData[key];
                         }
 
                         if (filterData[key] instanceof InBetween) {
-                            query[key as keyof TBaseModel] = filterData[key];
+                            newQuery[key as keyof TBaseModel] = filterData[key];
                         }
 
                         if (Array.isArray(filterData[key])) {
-                            query[key as keyof TBaseModel] = filterData[key];
+                            newQuery[key as keyof TBaseModel] = filterData[key];
                         }
                     }
 
-                    setQuery(query);
+                    setQuery(newQuery);
+
+
                 }}
                 onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
                     setSortBy(sortBy);
@@ -994,9 +1022,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                  item: JSONObject,
-                  onBeforeFetchData?: JSONObject | undefined
-              ) => ReactElement)
+                item: JSONObject,
+                onBeforeFetchData?: JSONObject | undefined
+            ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -1040,10 +1068,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                              setOrderedStatesListNewItemOrder(order);
-                              setModalType(ModalType.Create);
-                              setShowModal(true);
-                          }
+                            setOrderedStatesListNewItemOrder(order);
+                            setModalType(ModalType.Create);
+                            setShowModal(true);
+                        }
                         : undefined
                 }
                 singularLabel={
@@ -1110,9 +1138,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             }}
                         >
                             <Pill
-                                text={`${
-                                    new props.modelType().readBillingPlan
-                                } Plan`}
+                                text={`${new props.modelType().readBillingPlan
+                                    } Plan`}
                                 color={Yellow}
                             />
                         </span>
@@ -1212,20 +1239,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
+                            }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     modalWidth={props.createEditModalWidth}
                     name={
                         modalType === ModalType.Create
-                            ? `${props.name} > ${
-                                  props.createVerb || 'Create'
-                              } New ${props.singularName || model.singularName}`
-                            : `${props.name} > Edit ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.name} > ${props.createVerb || 'Create'
+                            } New ${props.singularName || model.singularName}`
+                            : `${props.name} > Edit ${props.singularName || model.singularName
+                            }`
                     }
                     initialValues={
                         modalType === ModalType.Create
@@ -1237,9 +1261,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                            }`
                             : `Save Changes`
                     }
                     onSuccess={async (item: TBaseModel) => {
