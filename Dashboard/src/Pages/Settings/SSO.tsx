@@ -27,6 +27,7 @@ import URL from 'Common/Types/API/URL';
 import { DASHBOARD_URL, IDENTITY_URL } from 'CommonUI/src/Config';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -59,6 +60,13 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <>
+                <Banner
+                    openInNewTab={true}
+                    title="Need help with configuring SSO?"
+                    description="Watch this 10 minute video which will help you get set up"
+                    link={URL.fromString('https://youtu.be/tq4WRgxbIwk')}
+                />
+
                 <ModelTable<ProjectSSO>
                     modelType={ProjectSSO}
                     query={{
