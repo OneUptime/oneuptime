@@ -101,26 +101,34 @@ module.exports = {
                         return JSON.parse(i.blob!);
                     })
                     .filter((site: any) => {
+                        logger.info('Filter Site: ');
+                        logger.info(site);
                         if (site.deletedAt) {
+                            logger.info('Filter Site: DeletedAt');
                             return false;
                         }
                         if (site.expiresAt >= expiresBefore) {
+                            logger.info('Filter Site: expiresAt');
                             return false;
                         }
                         if (site.issuedAt >= issuedBefore) {
+                            logger.info('Filter Site: issuedAt');
                             return false;
                         }
                         if (site.renewAt >= renewBefore) {
+                            logger.info('Filter Site: renewAt');
                             return false;
                         }
 
                         // after attribute filtering, before cert filtering
                         if (matchAll) {
+                            logger.info('Filter Site: MatchAll');
                             return true;
                         }
 
                         // if subject is specified, don't return anything else
                         if (site.subject === args.subject) {
+                            logger.info('Filter Site: Subject');
                             return true;
                         }
 
