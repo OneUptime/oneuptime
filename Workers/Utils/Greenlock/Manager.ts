@@ -62,7 +62,7 @@ module.exports = {
                 // { subject, servernames, altnames, renewBefore }
 
                 // i.e. find certs more than 30 days old
-                // args.issuedBefore = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                args.issuedBefore = Date.now() - 30 * 24 * 60 * 60 * 1000;
                 // i.e. find certs more that will expire in less than 45 days
                 //args.expiresBefore = Date.now() + 45 * 24 * 60 * 60 * 1000;
                 const issuedBefore: any = args.issuedBefore || Infinity;
@@ -130,6 +130,8 @@ module.exports = {
                         });
                     });
 
+                logger.info('Sites: ');
+                logger.info(sites);
                 return sites;
             },
 
