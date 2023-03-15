@@ -18,6 +18,7 @@ export interface ComponentProps {
     title?: string | undefined;
     onClick?: (() => void) | undefined;
     name: string;
+    showDropdown: boolean;
 }
 
 const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
@@ -30,6 +31,11 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         setDropdownVisible(isComponentVisible);
     }, [isComponentVisible]);
+
+    useEffect(() => {
+        setDropdownVisible(Boolean(props.showDropdown));
+        setIsComponentVisible(Boolean(props.showDropdown));
+    }, [props.showDropdown]);
 
     return (
         <div className="relative ml-4 flex-shrink-0">

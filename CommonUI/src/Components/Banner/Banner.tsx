@@ -14,7 +14,7 @@ const Banner: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div className="flex border-gray-200 rounded-xl border-2 py-2.5 px-6 sm:px-3.5">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400 hover:text-gray-500">
                 <Link to={props.link} openInNewTab={props.openInNewTab}>
                     <>
                         <strong className="font-semibold">{props.title}</strong>

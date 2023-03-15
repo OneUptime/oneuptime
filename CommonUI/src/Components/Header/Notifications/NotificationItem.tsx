@@ -9,13 +9,18 @@ export interface ComponentProps {
     title: string;
     description: string;
     createdAt: Date;
+    onClick?: (() => void) | undefined;
 }
 
 const NotificationItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <a className="text-reset notification-item" href="/">
+        <a
+            className="text-reset notification-item"
+            href="/"
+            onClick={props.onClick}
+        >
             <div className="d-flex">
                 <CircularIconImage icon={props.icon} />
                 <div className="flex-grow-1">

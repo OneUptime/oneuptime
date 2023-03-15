@@ -45,16 +45,16 @@ const Link: FunctionComponent<ComponentProps> = (
             onMouseLeave={props.onMouseLeave}
             style={props.style}
             onClick={() => {
+                if (props.onClick) {
+                    props.onClick();
+                }
+
                 if (props.openInNewTab) {
                     return;
                 }
 
                 if (props.to) {
                     Navigation.navigate(props.to);
-                }
-
-                if (props.onClick) {
-                    props.onClick();
                 }
 
                 if (props.onNavigateComplete) {

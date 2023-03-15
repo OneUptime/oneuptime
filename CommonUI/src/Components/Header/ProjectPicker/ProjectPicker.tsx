@@ -93,6 +93,9 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                                                     onProjectSelected={(
                                                         project: Project
                                                     ) => {
+                                                        setIsComponentVisible(
+                                                            false
+                                                        );
                                                         props.onProjectSelected(
                                                             project
                                                         );

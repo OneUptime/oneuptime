@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -15,16 +15,23 @@ export interface ComponentProps {
 const DashboardUserProfile: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
+
     return (
         <>
             <HeaderIconDropdownButton
                 iconImageUrl={BlankProfilePic}
                 name="User Profile"
+                showDropdown={isDropdownVisible}
+                onClick={() => {
+                    setIsDropdownVisible(true);
+                }}
             >
                 <IconDropdwonMenu>
                     <IconDropdwonItem
                         title="Profile"
                         onClick={() => {
+                            setIsDropdownVisible(false);
                             props.onClickUserProfle();
                         }}
                         icon={IconProp.User}
@@ -32,6 +39,9 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
                     <IconDropdwonItem
                         title="Log out"
+                        onClick={() => {
+                            setIsDropdownVisible(false);
+                        }}
                         url={RouteUtil.populateRouteParams(
                             RouteMap[PageMap.LOGOUT] as Route
                         )}
