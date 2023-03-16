@@ -49,6 +49,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
             isLoading={props.isLoading}
             error={props.error}
+            className="flex flex-col h-screen justify-between"
         >
             {props.children}
         </MasterPage>

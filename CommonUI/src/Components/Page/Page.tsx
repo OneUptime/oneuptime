@@ -32,7 +32,7 @@ const Page: FunctionComponent<ComponentProps> = (
         <div
             className={
                 props.className ||
-                'mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-full'
+                'mb-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-max'
             }
         >
             {((props.breadcrumbLinks && props.breadcrumbLinks.length > 0) ||

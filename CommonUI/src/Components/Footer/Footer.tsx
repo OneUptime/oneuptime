@@ -16,7 +16,7 @@ const Footer: FunctionComponent<ComponentProps> = (
         <React.Fragment>
             <footer
                 className={
-                    props.className || 'bg-white fixed inset-x-0 bottom-0'
+                    props.className || 'bg-white h-16 inset-x-0 bottom-0'
                 }
                 style={props.style}
             >

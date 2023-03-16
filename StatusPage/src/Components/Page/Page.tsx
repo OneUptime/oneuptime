@@ -7,7 +7,7 @@ const StausPagePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page {...props} className="mx-auto max-w-full mt-5 mb-20 h-full p-0" />
+        <Page {...props} className="mx-auto w-full mt-5 mb-auto h-full p-0" />
     );
 };
 
