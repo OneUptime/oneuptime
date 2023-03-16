@@ -35,16 +35,13 @@ const StaticModelList: Function = <TBaseModel extends BaseModel>(
                             onClick={() => {
                                 props.onClick(model);
                             }}
-                            className={`cursor-pointer mt-2 mb-2 relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
+                            className={`cursor-pointer mt-2 mb-2 flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${
                                 isSelected ? 'ring ring-indigo-500' : ''
                             }`}
                         >
                             <div className="min-w-0 flex-1">
                                 <div className="focus:outline-none">
-                                    <span
-                                        className="absolute inset-0"
-                                        aria-hidden="true"
-                                    ></span>
+                                    
                                     {props.headerField &&
                                         typeof props.headerField ===
                                             Typeof.String && (
