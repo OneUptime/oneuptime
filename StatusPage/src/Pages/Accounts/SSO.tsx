@@ -4,7 +4,7 @@ import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
 import URL from 'Common/Types/API/URL';
 import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { FILE_URL, IDENTITY_URL } from 'CommonUI/src/Config';
+import { DASHBOARD_API_URL, FILE_URL, IDENTITY_URL } from 'CommonUI/src/Config';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -70,13 +70,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <ModelList<StatusPageSSO>
-                        query={{
-                            statusPageId: props.statusPageId,
-                            isEnabled: true,
-                        }}
-                        fetchRequestOptions={{
-                            isMultiTenantRequest: true,
-                        }}
+                        overrideFetchApiUrl={URL.fromString(DASHBOARD_API_URL.toString()).addRoute("/status-page/sso/"+props.statusPageId.toString())}
                         modelType={StatusPageSSO}
                         titleField="name"
                         descriptionField="description"

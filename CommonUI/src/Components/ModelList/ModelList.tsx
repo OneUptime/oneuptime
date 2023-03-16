@@ -13,14 +13,19 @@ import Input from '../Input/Input';
 import StaicModelList from '../ModelList/StaticModelList';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import API from '../../Utils/API/API';
+import URL from 'Common/Types/API/URL';
+import { JSONArray } from 'Common/Types/JSON';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
     selectMultiple?: boolean | undefined;
+    overrideFetchApiUrl: URL | undefined;
     select: Select<TBaseModel>;
     fetchRequestOptions?: RequestOptions | undefined;
     noItemsMessage: string;
@@ -57,8 +62,27 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            const listResult: ListResult<TBaseModel> =
-                await ModelAPI.getList<TBaseModel>(
+            let listResult: ListResult<TBaseModel> = {
+                data: [],
+                count: 0,
+                skip: 0,
+                limit: 0
+            }
+
+            if (props.overrideFetchApiUrl) {
+                const result: HTTPResponse<JSONArray> = await API.post(
+                    props.overrideFetchApiUrl, {}, {}
+                ) as  HTTPResponse<JSONArray>;
+
+                listResult = {
+                    data: JSONFunctions.fromJSONArray(result.data as JSONArray, props.modelType),
+                    count:(result.data as JSONArray).length as number, 
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT
+                }
+
+            } else {
+                listResult = await ModelAPI.getList<TBaseModel>(
                     props.modelType,
                     {
                         ...props.query,
@@ -70,6 +94,10 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                     {},
                     props.fetchRequestOptions
                 );
+            }
+
+
+
 
             setModalList(listResult.data);
         } catch (err) {
