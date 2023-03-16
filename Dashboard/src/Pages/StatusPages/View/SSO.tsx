@@ -26,6 +26,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -70,6 +71,13 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <>
+                <Banner
+                    openInNewTab={true}
+                    title="Need help with configuring SSO?"
+                    description="Watch this 10 minute video which will help you get set up"
+                    link={URL.fromString('https://youtu.be/F_h74p38SU0')}
+                />
+
                 <ModelTable<StatusPageSSO>
                     modelType={StatusPageSSO}
                     query={{
