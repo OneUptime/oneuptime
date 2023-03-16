@@ -71,27 +71,27 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     },
                 },
                 {
-                    name: 'Custom Domain',
-                    plans: {
-                        free: true,
-                        growth: true,
-                        scale: true,
-                        enterprise: true,
-                    },
-                },
-                {
-                    name: 'SSL',
-                    plans: {
-                        free: true,
-                        growth: true,
-                        scale: true,
-                        enterprise: true,
-                    },
-                },
-                {
                     name: 'Custom Branding',
                     plans: {
                         free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'SSL Certificate',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Custom Domain',
+                    plans: {
+                        free: false,
                         growth: true,
                         scale: true,
                         enterprise: true,

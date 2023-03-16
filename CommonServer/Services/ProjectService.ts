@@ -642,12 +642,14 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Project does not have any plans');
         }
 
+        const plan: PlanSelect = SubscriptionPlan.getPlanSelect(
+            project.paymentProviderPlanId,
+            getAllEnvVars()
+        );
+
         return {
-            plan: SubscriptionPlan.getPlanSelect(
-                project.paymentProviderPlanId,
-                getAllEnvVars()
-            ),
-            isSubscriptionUnpaid: SubscriptionPlan.isUnpaid(
+            plan: plan,
+            isSubscriptionUnpaid: plan === PlanSelect.Free ? false : SubscriptionPlan.isUnpaid(
                 project.paymentProviderSubscriptionStatus || 'active'
             ),
         };
