@@ -649,9 +649,12 @@ export class Service extends DatabaseService<Model> {
 
         return {
             plan: plan,
-            isSubscriptionUnpaid: plan === PlanSelect.Free ? false : SubscriptionPlan.isUnpaid(
-                project.paymentProviderSubscriptionStatus || 'active'
-            ),
+            isSubscriptionUnpaid:
+                plan === PlanSelect.Free
+                    ? false
+                    : SubscriptionPlan.isUnpaid(
+                          project.paymentProviderSubscriptionStatus || 'active'
+                      ),
         };
     }
 }
