@@ -70,7 +70,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <ModelList<StatusPageSSO>
-                        overrideFetchApiUrl={URL.fromString(DASHBOARD_API_URL.toString()).addRoute("/status-page/sso/"+props.statusPageId.toString())}
+                        overrideFetchApiUrl={URL.fromString(
+                            DASHBOARD_API_URL.toString()
+                        ).addRoute(
+                            '/status-page/sso/' + props.statusPageId.toString()
+                        )}
                         modelType={StatusPageSSO}
                         titleField="name"
                         descriptionField="description"

@@ -20,7 +20,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
@@ -66,21 +66,25 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                 data: [],
                 count: 0,
                 skip: 0,
-                limit: 0
-            }
+                limit: 0,
+            };
 
             if (props.overrideFetchApiUrl) {
-                const result: HTTPResponse<JSONArray> = await API.post(
-                    props.overrideFetchApiUrl, {}, {}
-                ) as  HTTPResponse<JSONArray>;
+                const result: HTTPResponse<JSONArray> = (await API.post(
+                    props.overrideFetchApiUrl,
+                    {},
+                    {}
+                )) as HTTPResponse<JSONArray>;
 
                 listResult = {
-                    data: JSONFunctions.fromJSONArray(result.data as JSONArray, props.modelType),
-                    count:(result.data as JSONArray).length as number, 
+                    data: JSONFunctions.fromJSONArray(
+                        result.data as JSONArray,
+                        props.modelType
+                    ),
+                    count: (result.data as JSONArray).length as number,
                     skip: 0,
-                    limit: LIMIT_PER_PROJECT
-                }
-
+                    limit: LIMIT_PER_PROJECT,
+                };
             } else {
                 listResult = await ModelAPI.getList<TBaseModel>(
                     props.modelType,
@@ -95,9 +99,6 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                     props.fetchRequestOptions
                 );
             }
-
-
-
 
             setModalList(listResult.data);
         } catch (err) {

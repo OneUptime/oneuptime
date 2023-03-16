@@ -348,7 +348,6 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
-
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
@@ -364,25 +363,32 @@ export default class StatusPageAPI extends BaseAPI<
                         req.params['statusPageId'] as string
                     );
 
-                    const sso: Array<StatusPageSSO> = await StatusPageSsoService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                            isEnabled: true
-                        },
-                        select: {
-                            signOnURL: true,
-                            name: true,
-                            description: true,
-                            _id: true
-                        },
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        props: {
-                            isRoot: true,
-                        }
-                    })
+                    const sso: Array<StatusPageSSO> =
+                        await StatusPageSsoService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                                isEnabled: true,
+                            },
+                            select: {
+                                signOnURL: true,
+                                name: true,
+                                description: true,
+                                _id: true,
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
-                    return Response.sendEntityArrayResponse(req, res, sso, new PositiveNumber(sso.length), StatusPageSSO);
+                    return Response.sendEntityArrayResponse(
+                        req,
+                        res,
+                        sso,
+                        new PositiveNumber(sso.length),
+                        StatusPageSSO
+                    );
                 } catch (err) {
                     next(err);
                 }
