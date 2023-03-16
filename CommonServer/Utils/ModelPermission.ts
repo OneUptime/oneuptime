@@ -32,7 +32,9 @@ import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { getAllEnvVars, IsBillingEnabled } from '../Config';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
@@ -1000,7 +1002,8 @@ export default class ModelPermission {
 
             if (
                 props.isSubscriptionUnpaid &&
-                !model.allowAccessIfSubscriptionIsUnpaid
+                !model.allowAccessIfSubscriptionIsUnpaid &&
+                props.currentPlan !== PlanSelect.Free
             ) {
                 throw new PaymentRequiredException(
                     'Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.'

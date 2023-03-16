@@ -49,16 +49,17 @@ export class Service extends DatabaseService<Model> {
             }
 
             // if the user is unsubscribed, delete this record and it'll create a new one.
-
-            await this.deleteOneBy({
-                query: {
-                    _id: subscriber?._id!,
-                },
-                props: {
-                    ignoreHooks: true,
-                    isRoot: true,
-                },
-            });
+            if (subscriber) {
+                await this.deleteOneBy({
+                    query: {
+                        _id: subscriber?._id!,
+                    },
+                    props: {
+                        ignoreHooks: true,
+                        isRoot: true,
+                    },
+                });
+            }
         }
 
         const statuspage: StatusPage | null =
