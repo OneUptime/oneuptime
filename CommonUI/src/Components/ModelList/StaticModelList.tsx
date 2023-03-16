@@ -41,7 +41,6 @@ const StaticModelList: Function = <TBaseModel extends BaseModel>(
                         >
                             <div className="min-w-0 flex-1">
                                 <div className="focus:outline-none">
-                                    
                                     {props.headerField &&
                                         typeof props.headerField ===
                                             Typeof.String && (
