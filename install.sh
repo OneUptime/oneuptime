@@ -4,6 +4,10 @@ set -e
 
 bash preinstall.sh
 
+# Load env values from config.env
+export $(grep -v '^#' config.env | xargs)
+
+
 # Pull latest changes
 git pull
 
@@ -11,7 +15,7 @@ sudo docker compose pull
 
 
 # Create database if it does not exists
-sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database created" 
+sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database already created" 
 
 # Start all containers.
 npm run start
