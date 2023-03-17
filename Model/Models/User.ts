@@ -46,6 +46,7 @@ import ObjectID from 'Common/Types/ObjectID';
     singularName: 'User',
     pluralName: 'Users',
     icon: IconProp.User,
+    tableDescription: ""
 })
 @CurrentUserCanAccessRecordBy('_id')
 class User extends UserModel {
