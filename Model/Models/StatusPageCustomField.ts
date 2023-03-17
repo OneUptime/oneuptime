@@ -19,7 +19,9 @@ import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import BaseModel from 'Common/Models/BaseModel';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
     read: PlanSelect.Growth,

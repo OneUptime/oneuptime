@@ -17,7 +17,9 @@ import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @CanAccessIfCanReadOn('scheduledMaintenance')
 @TenantColumn('projectId')
 @TableAccessControl({

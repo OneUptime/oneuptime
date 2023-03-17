@@ -20,7 +20,9 @@ import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import URL from 'Common/Types/API/URL';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({

@@ -83,6 +83,8 @@ export default class BaseModel extends BaseEntity {
 
     public enableWorkflowOn!: EnableWorkflowOn;
 
+    public enableDocumentation!: boolean;
+
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
@@ -108,6 +110,8 @@ export default class BaseModel extends BaseEntity {
     public accessControlColumn!: string | null;
 
     public icon!: IconProp | null;
+
+    public tableDescription!: string | null;
 
     public tableName!: string | null;
 

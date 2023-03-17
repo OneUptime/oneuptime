@@ -21,7 +21,9 @@ import StatusPage from './StatusPage';
 import Monitor from './Monitor';
 import StatusPageGroup from './StatusPageGroup';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({

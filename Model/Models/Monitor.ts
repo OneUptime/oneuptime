@@ -30,7 +30,9 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MonitorStatus from './MonitorStatus';
 import { JSONObject } from 'Common/Types/JSON';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({

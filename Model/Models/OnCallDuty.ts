@@ -26,7 +26,9 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Label from './Label';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({

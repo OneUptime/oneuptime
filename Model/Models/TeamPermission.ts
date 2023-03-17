@@ -26,6 +26,9 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+
+@EnableDocumentation()
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,

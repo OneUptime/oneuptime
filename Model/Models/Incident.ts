@@ -33,7 +33,9 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
 import Label from './Label';
 import IncidentSeverity from './IncidentSeverity';
 import { JSONObject } from 'Common/Types/JSON';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')

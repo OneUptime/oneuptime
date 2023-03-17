@@ -19,7 +19,9 @@ import BaseModel from 'Common/Models/BaseModel';
 import Project from './Project';
 import Team from './Team';
 import User from './User';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,

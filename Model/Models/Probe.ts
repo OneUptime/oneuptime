@@ -19,6 +19,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
+
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/probe'))

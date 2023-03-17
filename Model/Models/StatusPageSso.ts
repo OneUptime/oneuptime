@@ -23,7 +23,9 @@ import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import StatusPage from './StatusPage';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @MultiTenentQueryAllowed(true)
 @TableBillingAccessControl({
     create: PlanSelect.Scale,
@@ -60,8 +62,8 @@ import StatusPage from './StatusPage';
 @CrudApiEndpoint(new Route('/status-page-sso'))
 @TableMetadata({
     tableName: 'StatusPageSSO',
-    singularName: 'SSO',
-    pluralName: 'SSO',
+    singularName: 'Status Page SSO',
+    pluralName: 'Status Page SSO',
     icon: IconProp.Lock,
 })
 @Entity({

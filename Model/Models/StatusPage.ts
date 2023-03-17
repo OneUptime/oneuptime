@@ -31,7 +31,9 @@ import File from './File';
 import Color from 'Common/Types/Color';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import { JSONObject } from 'Common/Types/JSON';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
