@@ -257,7 +257,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     });
 
     return (
-        <div className="max-w-5xl m-auto">
+        <div className="max-w-5xl m-auto px-5">
             {
                 <div>
                     <Banner
