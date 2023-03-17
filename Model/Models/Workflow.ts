@@ -74,6 +74,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Workflow',
     pluralName: 'Workflows',
     icon: IconProp.Workflow,
+    tableDescription: "Integrate your OneUptime project with rest of your software stack."
 })
 export default class Workflow extends BaseModel {
     @ColumnAccessControl({

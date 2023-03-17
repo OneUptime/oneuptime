@@ -62,6 +62,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Monitor Status',
     pluralName: 'Monitor Statuses',
     icon: IconProp.AltGlobe,
+    tableDescription: "Manage monitor status in your project. Monitor Status are Operational, Degraded and Offline for example. Add custom status like Monitoring or more."
 })
 @Entity({
     name: 'MonitorStatus',

@@ -65,6 +65,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Resource',
     pluralName: 'Status Page Resources',
     icon: IconProp.AltGlobe,
+    tableDescription:"Add resources like monitors to your status page"
 })
 @Entity({
     name: 'StatusPageResource',

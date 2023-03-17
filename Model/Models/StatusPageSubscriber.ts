@@ -67,6 +67,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Subscriber',
     pluralName: 'Status Page Subscribers',
     icon: IconProp.Team,
+    tableDescription: "Subscriber that subscribed to your status page"
 })
 @Entity({
     name: 'StatusPageSubscriber',

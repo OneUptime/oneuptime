@@ -44,6 +44,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
     singularName: 'Project',
     pluralName: 'Projects',
     icon: IconProp.Folder,
+    tableDescription: "OneUptime Project, and everything happens inside it"
 })
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')

@@ -15,8 +15,36 @@ import BaseModel from 'Common/Models/BaseModel';
 export interface ModelDocumentation {
     name: string;
     path: string;
-    model: BaseModel
+    model: BaseModel;
+    description: string;
 }
+
+const sortByName = (a: ModelDocumentation, b: ModelDocumentation) => {
+    if (a.name < b.name) {
+        return -1;
+    }
+    if (a.name > b.name) {
+        return 1;
+    }
+    return 0;
+}
+
+const Resources: Array<ModelDocumentation> = Models.filter((model: typeof BaseModel) => {
+    const modelInstance: BaseModel = new model();
+    return modelInstance.enableDocumentation;
+}).map((model: typeof BaseModel) => {
+
+    const modelInstance: BaseModel = new model();
+
+    return {
+        name: modelInstance.singularName!,
+        path: Text.pascalCaseToDashes(modelInstance.singularName as string),
+        model: modelInstance,
+        description: modelInstance.tableDescription!
+    }
+}).sort(sortByName);
+
+const featuredResources = ['Monitor', 'Scheduled Maintenance Event', 'Status Page', 'Incident', 'Team', 'On Call Duty', 'Label', 'Team Member'];
 
 const APP_NAME: string = 'docs';
 
@@ -44,67 +72,58 @@ app.get(['/docs'], (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(['/docs/:page'], (req: ExpressRequest, res: ExpressResponse) => {
 
 
-    const sortByName = (a: ModelDocumentation, b: ModelDocumentation) => {
-        if (a.name < b.name) {
-            return -1;
-        }
-        if (a.name > b.name) {
-            return 1;
-        }
-        return 0;
-    }
-
-    const resources: Array<ModelDocumentation> = Models.filter((model: typeof BaseModel) => {
-        const modelInstance: BaseModel = new model();
-        return modelInstance.enableDocumentation;
-    }).map((model: typeof BaseModel) => {
-
-        const modelInstance: BaseModel = new model();
-
-        return {
-            name: modelInstance.singularName!,
-            path: Text.pascalCaseToDashes(modelInstance.singularName as string),
-            model: modelInstance
-        }
-    }).sort(sortByName);
-
     let pageTitle: string = "Home";
+    let pageDescription: string = "API Documntation for OneUptime";
 
-    if (req.params['page'] === "quickstart") {
-        pageTitle = "Quickstart"
+    let pageData: {
+        featuredResources?: Array<ModelDocumentation> | undefined;
+        modelTableColumns?: Array<TableColumnMetadata> | undefined;
+    } = {
+        
+    };
+
+    if (req.params['page'] === "permissions") {
+        pageTitle = "Permissions"
+        pageDescription = "Learn how permisisons work with OneUptime"
     }
 
     else if (req.params['page'] === "authentication") {
         pageTitle = "Authentication"
+        pageDescription = "Learn how to authenticate requests with OneUptime"
     }
 
     else if (req.params['page'] === "errors") {
         pageTitle = "Errors"
+        pageDescription = "Learn more about how we reuturn errors from API"
     }
 
     else if (req.params['page'] === "index") {
+        pageData.featuredResources = Resources.filter((resource)=> featuredResources.includes(resource.name));
         pageTitle = "Home"
+        pageDescription = "API Documntation for OneUptime";
     }
 
-
-    let modelTableColumns: Array<TableColumnMetadata> = []
-
-    const currentResource: ModelDocumentation | undefined = resources.find((reosurce) => {
+    const currentResource: ModelDocumentation | undefined = Resources.find((reosurce) => {
         return reosurce.path === req.params['page']
     });
 
     if (currentResource) {
+        // Resource Page. 
         pageTitle = currentResource.name;
-        modelTableColumns = currentResource.model.getTableColumns().columns.map((columnName: string) => {
-            return currentResource.model.getTableColumnMetadata(columnName);
-        });
+        pageDescription = currentResource.description;
+        pageData = {
+            modelTableColumns: currentResource.model.getTableColumns().columns.map((columnName: string) => {
+                return currentResource.model.getTableColumnMetadata(columnName);
+            })
+        }
     }
 
     return res.render('pages/index', {
         page: req.params['page'],
-        resources: resources,
+        resources: Resources,
         pageTitle: pageTitle,
-        modelTableColumns: modelTableColumns
+        pageDescription: pageDescription,
+        pageData: pageData
     });
 });
 

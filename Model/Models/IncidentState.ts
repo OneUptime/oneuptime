@@ -62,6 +62,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident State',
     pluralName: 'Incident States',
     icon: IconProp.ArrowCircleRight,
+    tableDescription: "Manage incident states for your project (Created, Acknowledged for example). Add / edit or remove states."
 })
 @Entity({
     name: 'IncidentState',

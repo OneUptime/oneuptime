@@ -68,9 +68,10 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 @CrudApiEndpoint(new Route('/status-page-domain'))
 @TableMetadata({
     tableName: 'StatusPageDomain',
-    singularName: 'Domain',
-    pluralName: 'Domains',
+    singularName: 'Staus Page Domain',
+    pluralName: 'Staus Page Domains',
     icon: IconProp.Globe,
+    tableDescription: "Manage custom domains for your status page"
 })
 @Entity({
     name: 'StatusPageDomain',

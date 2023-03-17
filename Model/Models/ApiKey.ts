@@ -60,6 +60,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'API Key',
     pluralName: 'API Keys',
     icon: IconProp.Code,
+    tableDescription: "Manage API Keys for your project"
 })
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({

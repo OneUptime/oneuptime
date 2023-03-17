@@ -72,6 +72,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
     singularName: 'SSO',
     pluralName: 'SSO',
     icon: IconProp.Lock,
+    tableDescription: "Manage SSO for your project"
 })
 @Entity({
     name: 'ProjectSSO',

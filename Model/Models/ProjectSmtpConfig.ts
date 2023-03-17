@@ -52,6 +52,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
     singularName: 'SMTP Config',
     pluralName: 'SMTP Configs',
     icon: IconProp.Email,
+    tableDescription: "Manage Custom SMTP Servers for your project"
 })
 @Entity({
     name: 'ProjectSMTPConfig',

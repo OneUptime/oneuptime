@@ -64,6 +64,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident State Tiemline',
     pluralName: 'Incident State Timelines',
     icon: IconProp.List,
+    tableDescription: "Change state of the incidents (Created to Acknowledged for example)"
 })
 export default class IncidentStateTimeline extends BaseModel {
     @ColumnAccessControl({

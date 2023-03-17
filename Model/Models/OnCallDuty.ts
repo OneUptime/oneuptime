@@ -67,6 +67,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'On Call Duty',
     pluralName: 'On Call Duties',
     icon: IconProp.Call,
+    tableDescription: "Manage on-call duty, schedules and roster for your project"
 })
 export default class OnCallDuty extends BaseModel {
     @ColumnAccessControl({

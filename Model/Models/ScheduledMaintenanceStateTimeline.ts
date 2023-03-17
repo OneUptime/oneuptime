@@ -64,6 +64,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     icon: IconProp.List,
     singularName: 'Scheduled Maintenance State Tiemline',
     pluralName: 'Scheduled Maintenance State Timelines',
+    tableDescription: "Change state of your scheduled maintenance event."
 })
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({

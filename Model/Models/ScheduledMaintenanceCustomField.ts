@@ -58,6 +58,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Scheduled Maintenance Custom Field',
     pluralName: 'Scheduled Maintenance Custom Fields',
     icon: IconProp.TableCells,
+    tableDescription: "Manage custom fields for your scheduled event"
 })
 @Entity({
     name: 'ScheduledMaintenanceCustomField',

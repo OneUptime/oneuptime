@@ -65,6 +65,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page SSO',
     pluralName: 'Status Page SSO',
     icon: IconProp.Lock,
+    tableDescription: "Configure Status Page SSO"
 })
 @Entity({
     name: 'StatusPageSSO',

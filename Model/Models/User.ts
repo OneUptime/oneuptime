@@ -46,7 +46,7 @@ import ObjectID from 'Common/Types/ObjectID';
     singularName: 'User',
     pluralName: 'Users',
     icon: IconProp.User,
-    tableDescription: ""
+    tableDescription: "A signed up or invited OneUptime user."
 })
 @CurrentUserCanAccessRecordBy('_id')
 class User extends UserModel {

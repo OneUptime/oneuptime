@@ -71,6 +71,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Team Permission',
     pluralName: 'Team Permissions',
     icon: IconProp.Lock,
+    tableDescription: "Permissions for your OneUptime team"
 })
 export default class TeamPermission extends BaseModel {
     @ColumnAccessControl({

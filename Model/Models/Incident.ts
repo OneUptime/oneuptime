@@ -81,6 +81,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident',
     pluralName: 'Incidents',
     icon: IconProp.Alert,
+    tableDescription: "Manage incidents for your project"
 })
 export default class Incident extends BaseModel {
     @ColumnAccessControl({

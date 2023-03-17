@@ -58,6 +58,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Monitor Custom Field',
     pluralName: 'Monitor Custom Fields',
     icon: IconProp.TableCells,
+    tableDescription: "Manage custom fields for your monitor"
 })
 @Entity({
     name: 'MonitorCustomField',

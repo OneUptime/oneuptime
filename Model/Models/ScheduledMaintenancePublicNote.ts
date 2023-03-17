@@ -63,6 +63,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Scheduled Event Public Note',
     pluralName: 'Scheduled Event Public Notes',
     icon: IconProp.Public,
+    tableDescription: "Manage public notes for your scheduled event"
 })
 export default class ScheduledMaintenancePublicNote extends BaseModel {
     @ColumnAccessControl({

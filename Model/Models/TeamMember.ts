@@ -70,6 +70,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Team Member',
     pluralName: 'Team Members',
     icon: IconProp.User,
+    tableDescription: "This model connects users and teams"
 })
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
