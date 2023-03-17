@@ -38,6 +38,7 @@ Deploy a single-server instance in one line on Debian / Ubuntu with Docker (reco
 
  ```bash 
   git clone https://github.com/OneUptime/oneuptime
+  cd oneuptime
   bash preinstall.sh
  ``` 
 
