@@ -271,14 +271,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 </div>
             }
             <MasterPage
-                className=" m-auto"
+                className="flex flex-col h-screen justify-between m-auto"
                 makeTopSectionUnstick={true}
                 topSectionClassName="shadow p-1 bg-white rounded mb-5 flex justify-center"
                 hideHeader={!headerHtml && !logo && links.length === 0}
                 footer={
                     !footerHtml ? (
                         <Footer
-                            className="inset-x-0 bottom-0 max-w-4xl flex m-auto inset-x-0 bottom-0"
+                            className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8"
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(
                                     masterPageData || {},
