@@ -69,13 +69,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             const logoutRoute: Route = props.isPreview
                 ? RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.PREVIEW_LOGOUT]!,
-                      statusPageId
-                  )
+                    RouteMap[PageMap.PREVIEW_LOGOUT]!,
+                    statusPageId
+                )
                 : RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.LOGOUT]!,
-                      statusPageId
-                  );
+                    RouteMap[PageMap.LOGOUT]!,
+                    statusPageId
+                );
 
             const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
                 sso_token
@@ -108,13 +108,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             Navigation.navigate(
                 !props.isPreview
                     ? RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.OVERVIEW]!,
-                          statusPageId
-                      )
+                        RouteMap[PageMap.OVERVIEW]!,
+                        statusPageId
+                    )
                     : RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.PREVIEW_OVERVIEW]!,
-                          statusPageId
-                      )
+                        RouteMap[PageMap.PREVIEW_OVERVIEW]!,
+                        statusPageId
+                    )
             );
         }
     }, [statusPageId]);
@@ -271,73 +271,70 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 </div>
             }
             <MasterPage
-                className="flex flex-col h-screen justify-between m-auto"
                 makeTopSectionUnstick={true}
-                topSectionClassName="shadow p-1 bg-white rounded mb-5 flex justify-center"
-                hideHeader={!headerHtml && !logo && links.length === 0}
-                footer={
-                    !footerHtml ? (
-                        <Footer
-                            className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8"
-                            copyright={
-                                (JSONFunctions.getJSONValueInPath(
-                                    masterPageData || {},
-                                    'statusPage.copyrightText'
-                                ) as string) || ''
-                            }
-                            links={(
-                                (JSONFunctions.getJSONValueInPath(
-                                    masterPageData || {},
-                                    'footerLinks'
-                                ) as Array<JSONObject>) || []
-                            ).map((link: JSONObject) => {
-                                return {
-                                    title: link['title'] as string,
-                                    to: link['link'] as URL,
-                                    openInNewTab: true,
-                                };
-                            })}
-                        />
-                    ) : (
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: footerHtml as string,
-                            }}
-                        />
-                    )
-                }
-                header={
-                    !headerHtml ? (
-                        <Header
-                            logo={logo}
-                            links={links}
-                            onLogoClicked={() => {
-                                Navigation.navigate(
-                                    props.isPreview
-                                        ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
-                                        : RouteMap[PageMap.OVERVIEW]!
-                                );
-                            }}
-                        />
-                    ) : (
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: headerHtml as string,
-                            }}
-                        />
-                    )
-                }
-                navBar={
+                isLoading={props.isLoading || false}
+                error={props.error || ''}
+            >
+                <>
+                    {
+                        !headerHtml ? (
+                            <Header
+                                logo={logo}
+                                links={links}
+                                onLogoClicked={() => {
+                                    Navigation.navigate(
+                                        props.isPreview
+                                            ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                                            : RouteMap[PageMap.OVERVIEW]!
+                                    );
+                                }}
+                            />
+                        ) : (
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: headerHtml as string,
+                                }}
+                            />
+                        )
+                    }
                     <NavBar
                         isPrivateStatusPage={props.isPrivateStatusPage}
                         show={true}
                         isPreview={true}
                     />
-                }
-                isLoading={props.isLoading || false}
-                error={props.error || ''}
-            >
-                {props.children}
+                    {props.children}
+                    {
+                        !footerHtml ? (
+                            <Footer
+                                className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8"
+                                copyright={
+                                    (JSONFunctions.getJSONValueInPath(
+                                        masterPageData || {},
+                                        'statusPage.copyrightText'
+                                    ) as string) || ''
+                                }
+                                links={(
+                                    (JSONFunctions.getJSONValueInPath(
+                                        masterPageData || {},
+                                        'footerLinks'
+                                    ) as Array<JSONObject>) || []
+                                ).map((link: JSONObject) => {
+                                    return {
+                                        title: link['title'] as string,
+                                        to: link['link'] as URL,
+                                        openInNewTab: true,
+                                    };
+                                })}
+                            />
+                        ) : (
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: footerHtml as string,
+                                }}
+                            />
+                        )
+                    }
+                </>
             </MasterPage>
         </div>
     );
