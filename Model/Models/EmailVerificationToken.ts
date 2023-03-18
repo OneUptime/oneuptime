@@ -22,7 +22,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
     singularName: 'Email Verification Token',
     pluralName: 'Email Verification Tokens',
     icon: IconProp.Email,
-    tableDescription: "Email verification token is stored here"
+    tableDescription: 'Email verification token is stored here',
 })
 @TableAccessControl({
     create: [],

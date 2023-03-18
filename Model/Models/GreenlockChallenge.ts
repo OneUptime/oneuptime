@@ -19,7 +19,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
     singularName: 'Greenlock Challenge',
     pluralName: 'Greenlock Challenges',
     icon: IconProp.Lock,
-    tableDescription: "HTTP Challege for Lets Encrypt Certificates"
+    tableDescription: 'HTTP Challege for Lets Encrypt Certificates',
 })
 @Entity({
     name: 'GreenlockChallenge',

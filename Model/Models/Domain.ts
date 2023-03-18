@@ -51,7 +51,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Domain',
     pluralName: 'Domains',
     icon: IconProp.Globe,
-    tableDescription: "Manage Custom Domains for your project"
+    tableDescription: 'Manage Custom Domains for your project',
 })
 @Entity({
     name: 'Domain',

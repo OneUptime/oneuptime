@@ -77,7 +77,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Monitor',
     pluralName: 'Monitors',
     icon: IconProp.AltGlobe,
-    tableDescription: "Monitor is anything that monitors your API, Websites, IP, Network or more. You can also create static monitor that does not monitor anything."
+    tableDescription:
+        'Monitor is anything that monitors your API, Websites, IP, Network or more. You can also create static monitor that does not monitor anything.',
 })
 export default class Monitor extends BaseModel {
     @ColumnAccessControl({

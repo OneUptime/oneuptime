@@ -62,7 +62,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident Severity',
     pluralName: 'Incident Severities',
     icon: IconProp.Alert,
-    tableDescription: "Manage incident severity for your project (Created, Acknowledged for example). Add / edit or remove severities."
+    tableDescription:
+        'Manage incident severity for your project (Created, Acknowledged for example). Add / edit or remove severities.',
 })
 @Entity({
     name: 'IncidentSeverity',

@@ -62,7 +62,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Scheduled Maintenance State',
     pluralName: 'Scheduled Maintenance States',
     icon: IconProp.ArrowCircleRight,
-    tableDescription: "Manage different scheduled maintenance state to your project (Scheduled, Ongoing, Completed for example)"
+    tableDescription:
+        'Manage different scheduled maintenance state to your project (Scheduled, Ongoing, Completed for example)',
 })
 @Entity({
     name: 'ScheduledMaintenanceState',

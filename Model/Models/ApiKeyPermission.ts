@@ -71,7 +71,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'API Key Permission',
     pluralName: 'API Key Permissions',
     icon: IconProp.Lock,
-    tableDescription: "Permissions for your API Keys"
+    tableDescription: 'Permissions for your API Keys',
 })
 export default class APIKeyPermission extends BaseModel {
     @ColumnAccessControl({

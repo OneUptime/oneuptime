@@ -63,7 +63,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident Public Note',
     pluralName: 'Incident Public Notes',
     icon: IconProp.Team,
-    tableDescription: "Manage public notes for your incident"
+    tableDescription: 'Manage public notes for your incident',
 })
 export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({

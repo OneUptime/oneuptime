@@ -51,7 +51,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Workflow Log',
     pluralName: 'Workflow Logs',
     icon: IconProp.Logs,
-    tableDescription: "Logs of the workflows executed"
+    tableDescription: 'Logs of the workflows executed',
 })
 export default class WorkflowLog extends BaseModel {
     @ColumnAccessControl({

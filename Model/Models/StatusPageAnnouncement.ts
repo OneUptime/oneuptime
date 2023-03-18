@@ -71,7 +71,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Announcement',
     pluralName: 'Status Page Announcements',
     icon: IconProp.Anouncement,
-    tableDescription: "Manage announcements on your status page"
+    tableDescription: 'Manage announcements on your status page',
 })
 @Entity({
     name: 'StatusPageAnnouncement',

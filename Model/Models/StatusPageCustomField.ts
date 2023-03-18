@@ -58,7 +58,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Custom Field',
     pluralName: 'Status Page Custom Fields',
     icon: IconProp.TableCells,
-    tableDescription: "Manage custom fields on your status page"
+    tableDescription: 'Manage custom fields on your status page',
 })
 @Entity({
     name: 'StatusPageCustomField',

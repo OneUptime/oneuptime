@@ -1,25 +1,27 @@
-import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
-import ResourceUtil from "../Utils/Resources";
+import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
+import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 
-const Resources = ResourceUtil.getResources();
+const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
-export default class ServiceHandler { 
-    public static async executeResponse(req: ExpressRequest, res: ExpressResponse): Promise<void> {
+export default class ServiceHandler {
+    public static async executeResponse(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
+        let pageTitle: string = '';
+        let pageDescription: string = '';
+        const page: string | undefined = req.params['page'];
+        const pageData: any = {};
 
-        let pageTitle: string = "";
-        let pageDescription: string = "";
-        let page = req.params['page'];
-        let pageData: any = {};
-
-        pageTitle = "Permissions"
-        pageDescription = "Learn how permisisons work with OneUptime"
+        pageTitle = 'Permissions';
+        pageDescription = 'Learn how permisisons work with OneUptime';
 
         return res.render('pages/index', {
             page: page,
             resources: Resources,
             pageTitle: pageTitle,
             pageDescription: pageDescription,
-            pageData: pageData
+            pageData: pageData,
         });
     }
 }

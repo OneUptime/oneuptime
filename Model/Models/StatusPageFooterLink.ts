@@ -63,7 +63,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Footer Link',
     pluralName: 'Status Page Footer Links',
     icon: IconProp.ArrowCircleDown,
-    tableDescription: "Manage footer links on your status page"
+    tableDescription: 'Manage footer links on your status page',
 })
 @Entity({
     name: 'StatusPageFooterLink',

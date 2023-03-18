@@ -71,7 +71,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Staus Page Domain',
     pluralName: 'Staus Page Domains',
     icon: IconProp.Globe,
-    tableDescription: "Manage custom domains for your status page"
+    tableDescription: 'Manage custom domains for your status page',
 })
 @Entity({
     name: 'StatusPageDomain',

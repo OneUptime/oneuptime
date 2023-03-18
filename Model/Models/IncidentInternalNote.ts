@@ -63,7 +63,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident Internal Note',
     pluralName: 'Incident Internal Notes',
     icon: IconProp.Lock,
-    tableDescription: "Manage internal notes for your incident"
+    tableDescription: 'Manage internal notes for your incident',
 })
 export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({

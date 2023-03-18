@@ -63,7 +63,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Header Link',
     pluralName: 'Header Links',
     icon: IconProp.ArrowCircleUp,
-    tableDescription: "Manage header links on your status page"
+    tableDescription: 'Manage header links on your status page',
 })
 @Entity({
     name: 'StatusPageHeaderLink',

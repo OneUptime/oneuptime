@@ -66,7 +66,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Monitor Status Event',
     pluralName: 'Monitor Status Events',
     icon: IconProp.List,
-    tableDescription: "Change state of the monitor (Operational to Offline for example)"
+    tableDescription:
+        'Change state of the monitor (Operational to Offline for example)',
 })
 export default class MonitorStatusTimeline extends BaseModel {
     @ColumnAccessControl({

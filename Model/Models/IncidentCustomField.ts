@@ -58,7 +58,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Incident Custom Field',
     pluralName: 'Incident Custom Fields',
     icon: IconProp.TableCells,
-    tableDescription: "Manage custom fields for your incident."
+    tableDescription: 'Manage custom fields for your incident.',
 })
 @Entity({
     name: 'IncidentCustomField',

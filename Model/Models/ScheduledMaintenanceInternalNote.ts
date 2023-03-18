@@ -61,7 +61,8 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     singularName: 'Scheduled Event Internal Note',
     pluralName: 'Scheduled Event Internal Notes',
     icon: IconProp.Lock,
-    tableDescription: "Manage internal or postmortem note for your scheduled event"
+    tableDescription:
+        'Manage internal or postmortem note for your scheduled event',
 })
 export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({

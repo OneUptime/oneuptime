@@ -32,7 +32,8 @@ import IconProp from 'Common/Types/Icon/IconProp';
     singularName: 'Probe',
     pluralName: 'Probes',
     icon: IconProp.Settings,
-    tableDescription: "Manages custom probes. Deploy probes anywhere in the world and connect it to your project."
+    tableDescription:
+        'Manages custom probes. Deploy probes anywhere in the world and connect it to your project.',
 })
 @TableAccessControl({
     create: [

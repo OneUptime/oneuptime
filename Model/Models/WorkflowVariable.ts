@@ -61,7 +61,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Workflow Variable',
     pluralName: 'Workflow Variables',
     icon: IconProp.Variable,
-    tableDescription: "Store environment variables or secrets for your workflows."
+    tableDescription:
+        'Store environment variables or secrets for your workflows.',
 })
 export default class WorkflowVariable extends BaseModel {
     @ColumnAccessControl({

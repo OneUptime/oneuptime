@@ -81,7 +81,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     pluralName: 'Scheduled Maintenance Events',
     icon: IconProp.Clock,
     tableName: 'ScheduledMaintenance',
-    tableDescription: "Manage scheduled maintenance event for your project"
+    tableDescription: 'Manage scheduled maintenance event for your project',
 })
 export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({

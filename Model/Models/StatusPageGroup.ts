@@ -64,7 +64,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Group',
     pluralName: 'Status Page Groups',
     icon: IconProp.Folder,
-    tableDescription: "Manage groups on your status page and categorize resources like monitors into these groups."
+    tableDescription:
+        'Manage groups on your status page and categorize resources like monitors into these groups.',
 })
 @Entity({
     name: 'StatusPageGroup',

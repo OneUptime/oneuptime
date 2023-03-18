@@ -1,18 +1,20 @@
-import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
-import ResourceUtil from "../Utils/Resources";
+import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
+import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 
-const Resources = ResourceUtil.getResources();
+const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
 export default class ServiceHandler {
-    public static async executeResponse(_req: ExpressRequest, res: ExpressResponse): Promise<void> {
-
+    public static async executeResponse(
+        _req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
         res.status(404);
         return res.render('pages/index', {
-            page: "404",
-            pageTitle: "Page Not Found",
+            page: '404',
+            pageTitle: 'Page Not Found',
             pageDescription: "Page you're looking for is not found.",
             resources: Resources,
-            pageData: {}
+            pageData: {},
         });
     }
 }

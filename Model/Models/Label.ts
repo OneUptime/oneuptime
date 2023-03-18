@@ -59,7 +59,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Label',
     pluralName: 'Labels',
     icon: IconProp.Label,
-    tableDescription: "Organize resources for your project by using labels / tags."
+    tableDescription:
+        'Organize resources for your project by using labels / tags.',
 })
 @Entity({
     name: 'Label',

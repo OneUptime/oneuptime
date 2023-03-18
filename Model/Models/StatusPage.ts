@@ -78,7 +78,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page',
     pluralName: 'Status Pages',
     icon: IconProp.CheckCircle,
-    tableDescription: "Manage status pages for your project."
+    tableDescription: 'Manage status pages for your project.',
 })
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({

@@ -73,7 +73,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Status Page Private User',
     pluralName: 'Status Page Private Users',
     icon: IconProp.User,
-    tableDescription:" Manage private users on your status page"
+    tableDescription: ' Manage private users on your status page',
 })
 @Entity({
     name: 'StatusPagePrivateUser',

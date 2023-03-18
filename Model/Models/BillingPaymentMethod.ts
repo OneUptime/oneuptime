@@ -31,7 +31,8 @@ import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessContr
     singularName: 'Payment Method',
     pluralName: 'Payment Methods',
     icon: IconProp.Billing,
-    tableDescription: "Manage billing payment methods like visa and master card for your project"
+    tableDescription:
+        'Manage billing payment methods like visa and master card for your project',
 })
 @Entity({
     name: 'BillingPaymentMethod',

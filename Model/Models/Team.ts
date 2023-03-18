@@ -63,7 +63,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     singularName: 'Team',
     pluralName: 'Teams',
     icon: IconProp.Team,
-    tableDescription: "Teams lets your organize users of your project into groups and lets you assign different level of permissions."
+    tableDescription:
+        'Teams lets your organize users of your project into groups and lets you assign different level of permissions.',
 })
 export default class Team extends BaseModel {
     @ColumnAccessControl({

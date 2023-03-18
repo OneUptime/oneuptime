@@ -36,7 +36,7 @@ import URL from 'Common/Types/API/URL';
     singularName: 'Invoice',
     pluralName: 'Invoices',
     icon: IconProp.Invoice,
-    tableDescription: "Manage invoices for your project"
+    tableDescription: 'Manage invoices for your project',
 })
 @Entity({
     name: 'BillingInvoice',
