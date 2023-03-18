@@ -1,90 +1,149 @@
 <head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-       rel="stylesheet">
-    <style>
-       * {
-          font-family: Inter;
-       }
- 
- 
-       input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-          background: transparent;
-          bottom: 0;
-          color: transparent;
-          cursor: pointer;
-          height: auto;
-          left: 0;
-          position: absolute;
-          right: 0;
-          top: 0;
-          width: auto;
-       }
- 
-       input[type="date"]::-webkit-calendar-picker-indicator {
-          background: transparent;
-          bottom: 0;
-          color: transparent;
-          cursor: pointer;
-          height: auto;
-          left: 0;
-          position: absolute;
-          right: 0;
-          top: 0;
-          width: auto;
-       }
-    </style>
-    <script src="https://cdn.tailwindcss.com"></script>
- 
-    <!-- Google Tag Manager -->
-    <script>(function (w, d, s, l, i) {
-          w[l] = w[l] || []; w[l].push({
-             'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-          }); var f = d.getElementsByTagName(s)[0],
-             j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-       })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
-    <!-- End Google Tag Manager -->
- 
- 
-    <style>
-       .async-hide {
-          opacity: 0 !important
-       }
-    </style>
- 
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="shortcut icon" href="/img/favicons/favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/img/favicons/favicon-16x16.png">
-    <link rel="mask-icon" href="/img/favicons/safari-pinned-tab.svg" color="#32335b">
-    <meta name="msapplication-TileColor" content="#32335b">
-    <link rel="apple-touch-icon-precomposed" href="/img/ou-wb.svg">
-    <link rel="icon" href="/img/ou-wb.svg">
-    <link rel="image_src" type="image/png" href="/img/hou-wb.svg">
-    <link rel="canonical" href="/">
-    <link rel="manifest" href="/manifest.json">
-    <meta property="og:title" content="OneUptime - One Complete SRE and DevOps platform.">
-    <meta property="og:url" content="https://oneuptime.com">
-    <meta property="og:type" content="website" />
-    <meta property="og:description"
-       content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime. ">
-    <meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
- 
-    <meta name="twitter:card" content="summary">
-    <meta name="theme-color" content="#000000">
-    <meta name="twitter:image" content="/img/ou-wb.svg">
-    <meta name="twitter:site" content="@oneuptimeinc">
-    <meta name="twitter:title" content="OneUptime - One Complete SRE and DevOps platform.">
-    <meta name="twitter:description"
-       content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet">
 
- 
-    <script type="application/ld+json">
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+   <script>hljs.highlightAll();</script>
+
+
+   <script>
+      function applyStyles() {
+         applyStylesTo("h1", "font-bold text-xl mb-5")
+         applyStylesTo("h2", "mb-5 scroll-mt-24 mt-24 font-bold text-lg")
+         applyStylesTo("p", "mb-5")
+         applyStylesTo("inline-code", "rounded p-0.5 px-1 text-sm text-gray-500 bg-gray-100 border-2 border-gray-200")
+      }
+
+      function applyStylesTo(tagOrClassName, classList) {
+         
+         
+         let elements = document.getElementsByClassName(tagOrClassName);
+
+         if(elements.length === 0){
+            elements = document.getElementsByTagName(tagOrClassName);
+         }
+
+         for (var i = 0, all = elements.length; i < all; i++) {
+            classList.split(" ").map((classItem)=> {
+               elements[i].classList.add(classItem);
+            })
+         }
+      }
+
+
+   </script>
+
+   <style>
+      .hljs {
+         color: unset;
+         background-color: unset;
+      }
+
+      .hljs-string {
+         color: #6ee7b7
+      }
+
+      .hljs-number {
+         color: #7dd3fc
+      }
+
+      .hljs-punctuation {
+         color: #e5e7eb
+      }
+
+      .hljs-comment {
+         color: #9ca3af
+      }
+
+      .hljs-keyword{
+         color: #7dd3fc;
+         font-weight: unset;
+      }
+
+      * {
+         font-family: Inter;
+      }
+
+
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+         bottom: 0;
+         color: transparent;
+         cursor: pointer;
+         height: auto;
+         left: 0;
+         position: absolute;
+         right: 0;
+         top: 0;
+         width: auto;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+         bottom: 0;
+         color: transparent;
+         cursor: pointer;
+         height: auto;
+         left: 0;
+         position: absolute;
+         right: 0;
+         top: 0;
+         width: auto;
+      }
+   </style>
+   <script src="https://cdn.tailwindcss.com"></script>
+
+   <!-- Google Tag Manager -->
+   <script>(function (w, d, s, l, i) {
+         w[l] = w[l] || []; w[l].push({
+            'gtm.start':
+               new Date().getTime(), event: 'gtm.js'
+         }); var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+               'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
+   <!-- End Google Tag Manager -->
+
+
+   <style>
+      .async-hide {
+         opacity: 0 !important
+      }
+   </style>
+
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <link rel="shortcut icon" href="/img/favicons/favicon.ico">
+   <link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
+   <link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png">
+   <link rel="icon" type="image/png" sizes="16x16" href="/img/favicons/favicon-16x16.png">
+   <link rel="mask-icon" href="/img/favicons/safari-pinned-tab.svg" color="#32335b">
+   <meta name="msapplication-TileColor" content="#32335b">
+   <link rel="apple-touch-icon-precomposed" href="/img/ou-wb.svg">
+   <link rel="icon" href="/img/ou-wb.svg">
+   <link rel="image_src" type="image/png" href="/img/hou-wb.svg">
+   <link rel="canonical" href="/">
+   <link rel="manifest" href="/manifest.json">
+   <meta property="og:title" content="OneUptime - One Complete SRE and DevOps platform.">
+   <meta property="og:url" content="https://oneuptime.com">
+   <meta property="og:type" content="website" />
+   <meta property="og:description"
+      content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime. ">
+   <meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
+
+   <meta name="twitter:card" content="summary">
+   <meta name="theme-color" content="#000000">
+   <meta name="twitter:image" content="/img/ou-wb.svg">
+   <meta name="twitter:site" content="@oneuptimeinc">
+   <meta name="twitter:title" content="OneUptime - One Complete SRE and DevOps platform.">
+   <meta name="twitter:description"
+      content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+
+
+   <script type="application/ld+json">
      {
      "@context": "http://schema.org",
      "@type": "Corporation",
@@ -99,45 +158,45 @@
      "description": "OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime."
  }
  </script>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>OneUptime API Reference - <%= pageTitle -%></title>
-    <meta name="description"
-       content="<%= pageDescription -%>">
-    <meta name="next-head-count" content="4">
-    <script>
-       let darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
- 
-       updateMode()
-       darkModeMediaQuery.addEventListener('change', updateModeWithoutTransitions)
-       window.addEventListener('storage', updateModeWithoutTransitions)
- 
-       function updateMode() {
-          let isSystemDarkMode = darkModeMediaQuery.matches
-          let isDarkMode = window.localStorage.isDarkMode === 'true' || (!('isDarkMode' in window.localStorage) && isSystemDarkMode)
- 
-          if (isDarkMode) {
-             document.documentElement.classList.add('dark')
-          } else {
-             document.documentElement.classList.remove('dark')
-          }
- 
-          if (isDarkMode === isSystemDarkMode) {
-             delete window.localStorage.isDarkMode
-          }
-       }
- 
-       function disableTransitionsTemporarily() {
-          document.documentElement.classList.add('[&_*]:!transition-none')
-          window.setTimeout(() => {
-             document.documentElement.classList.remove('[&_*]:!transition-none')
-          }, 0)
-       }
- 
-       function updateModeWithoutTransitions() {
-          disableTransitionsTemporarily()
-          updateMode()
-       }
-    </script>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width">
+   <title>OneUptime API Reference - <%= pageTitle -%>
+   </title>
+   <meta name="description" content="<%= pageDescription -%>">
+   <meta name="next-head-count" content="4">
+   <script>
+      let darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
- </head>
+      updateMode()
+      darkModeMediaQuery.addEventListener('change', updateModeWithoutTransitions)
+      window.addEventListener('storage', updateModeWithoutTransitions)
+
+      function updateMode() {
+         let isSystemDarkMode = darkModeMediaQuery.matches
+         let isDarkMode = window.localStorage.isDarkMode === 'true' || (!('isDarkMode' in window.localStorage) && isSystemDarkMode)
+
+         if (isDarkMode) {
+            document.documentElement.classList.add('dark')
+         } else {
+            document.documentElement.classList.remove('dark')
+         }
+
+         if (isDarkMode === isSystemDarkMode) {
+            delete window.localStorage.isDarkMode
+         }
+      }
+
+      function disableTransitionsTemporarily() {
+         document.documentElement.classList.add('[&_*]:!transition-none')
+         window.setTimeout(() => {
+            document.documentElement.classList.remove('[&_*]:!transition-none')
+         }, 0)
+      }
+
+      function updateModeWithoutTransitions() {
+         disableTransitionsTemporarily()
+         updateMode()
+      }
+   </script>
+
+</head>

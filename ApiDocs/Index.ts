@@ -7,44 +7,16 @@ import Express, {
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import path from 'path';
-import Models from "Model/Models/Index";
-import Text from "Common/Types/Text";
-import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import BaseModel from 'Common/Models/BaseModel';
+import ResourceUtil, { ModelDocumentation } from './Utils/Resources';
+import IntroductionServiceHandler from "./Service/Introduction"
+import ErrorServiceHandler from "./Service/Errors"
+import PermissionServiceHandler from "./Service/Permissions"
+import AuthenticationServiceHandler from "./Service/Permissions"
+import PageNotFoundServiceHandler from "./Service/PageNotFound";
+import ModelServiceHandler from './Service/Model';
+import PaginationServiceHandler from './Service/Pagination';
 
-export interface ModelDocumentation {
-    name: string;
-    path: string;
-    model: BaseModel;
-    description: string;
-}
-
-const sortByName = (a: ModelDocumentation, b: ModelDocumentation) => {
-    if (a.name < b.name) {
-        return -1;
-    }
-    if (a.name > b.name) {
-        return 1;
-    }
-    return 0;
-}
-
-const Resources: Array<ModelDocumentation> = Models.filter((model: typeof BaseModel) => {
-    const modelInstance: BaseModel = new model();
-    return modelInstance.enableDocumentation;
-}).map((model: typeof BaseModel) => {
-
-    const modelInstance: BaseModel = new model();
-
-    return {
-        name: modelInstance.singularName!,
-        path: Text.pascalCaseToDashes(modelInstance.singularName as string),
-        model: modelInstance,
-        description: modelInstance.tableDescription!
-    }
-}).sort(sortByName);
-
-const featuredResources = ['Monitor', 'Scheduled Maintenance Event', 'Status Page', 'Incident', 'Team', 'On Call Duty', 'Label', 'Team Member'];
+const ResourceDictionary = ResourceUtil.getReosurceDictionaryByPath();
 
 const APP_NAME: string = 'docs';
 
@@ -64,67 +36,54 @@ app.use(
 
 // Index page
 app.get(['/docs'], (_req: ExpressRequest, res: ExpressResponse) => {
-    return res.redirect('/docs/index');
+    return res.redirect('/docs/introduction');
 });
+
+
+app.get(['/docs/page-not-found'], (req: ExpressRequest, res: ExpressResponse) => {
+    return PageNotFoundServiceHandler.executeResponse(req, res);
+});
+
 
 
 // All Pages 
 app.get(['/docs/:page'], (req: ExpressRequest, res: ExpressResponse) => {
 
 
-    let pageTitle: string = "Home";
-    let pageDescription: string = "API Documntation for OneUptime";
+    let page = req.params['page'];
 
-    let pageData: {
-        featuredResources?: Array<ModelDocumentation> | undefined;
-        modelTableColumns?: Array<TableColumnMetadata> | undefined;
-    } = {
-        
-    };
-
-    if (req.params['page'] === "permissions") {
-        pageTitle = "Permissions"
-        pageDescription = "Learn how permisisons work with OneUptime"
+    if (!page) {
+        return PageNotFoundServiceHandler.executeResponse(req, res);
     }
 
-    else if (req.params['page'] === "authentication") {
-        pageTitle = "Authentication"
-        pageDescription = "Learn how to authenticate requests with OneUptime"
+    const currentResource: ModelDocumentation | undefined = ResourceDictionary[page];
+
+    if (req.params['page'] === "permissions") {
+        return PermissionServiceHandler.executeResponse(req, res);
+    } else if (req.params['page'] === "authentication") {
+        return AuthenticationServiceHandler.executeResponse(req, res);
+    } else if (req.params['page'] === "pagination") {
+        return PaginationServiceHandler.executeResponse(req, res);
     }
 
     else if (req.params['page'] === "errors") {
-        pageTitle = "Errors"
-        pageDescription = "Learn more about how we reuturn errors from API"
+        return ErrorServiceHandler.executeResponse(req, res);
+    }
+    else if (req.params['page'] === "introduction") {
+        return IntroductionServiceHandler.executeResponse(req, res);
+    }
+    else if (currentResource) {
+        return ModelServiceHandler.executeResponse(req, res);
+    } else {
+        // page not found
+        return PageNotFoundServiceHandler.executeResponse(req, res);
     }
 
-    else if (req.params['page'] === "index") {
-        pageData.featuredResources = Resources.filter((resource)=> featuredResources.includes(resource.name));
-        pageTitle = "Home"
-        pageDescription = "API Documntation for OneUptime";
-    }
+});
 
-    const currentResource: ModelDocumentation | undefined = Resources.find((reosurce) => {
-        return reosurce.path === req.params['page']
-    });
 
-    if (currentResource) {
-        // Resource Page. 
-        pageTitle = currentResource.name;
-        pageDescription = currentResource.description;
-        pageData = {
-            modelTableColumns: currentResource.model.getTableColumns().columns.map((columnName: string) => {
-                return currentResource.model.getTableColumnMetadata(columnName);
-            })
-        }
-    }
-
-    return res.render('pages/index', {
-        page: req.params['page'],
-        resources: Resources,
-        pageTitle: pageTitle,
-        pageDescription: pageDescription,
-        pageData: pageData
-    });
+app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
+    return PageNotFoundServiceHandler.executeResponse(req, res);
 });
 
 const init: Function = async (): Promise<void> => {

@@ -44,6 +44,14 @@ export default abstract class LocalCache {
         return this.cache[namespace + '.' + key] as string;
     }
 
+    public static async getOrSetString(namespace: string, key: string, getStringFunction: () => Promise<string>): Promise<string> {
+        if(!LocalCache.getString(namespace, key)){
+            LocalCache.setString(namespace, key, await getStringFunction());
+        }
+
+        return LocalCache.getString(namespace, key)
+    }
+
     public static hasValue(namespace: string, key: string): boolean {
         return Boolean(this.cache[namespace + '.' + key]);
     }

@@ -60,8 +60,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 @CrudApiEndpoint(new Route('/status-page-footer-link'))
 @TableMetadata({
     tableName: 'StatusPageFooterLink',
-    singularName: 'Footer Link',
-    pluralName: 'Footer Links',
+    singularName: 'Status Page Footer Link',
+    pluralName: 'Status Page Footer Links',
     icon: IconProp.ArrowCircleDown,
     tableDescription: "Manage footer links on your status page"
 })
