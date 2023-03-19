@@ -91,7 +91,7 @@ export default class StatusPageResource extends BaseModel {
         type: TableColumnType.Entity,
         modelType: Project,
         title: "Project",
-        description: "Relation to Project Resource"
+        description: "Relation to Project Resource in which this object belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -128,7 +128,7 @@ export default class StatusPageResource extends BaseModel {
         required: true,
         canReadOnPopulate: true,
         title: "Project ID",
-        description: "ID of your OneUptime Project"
+        description: "ID of your OneUptime Project in which this object belongs"
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -152,10 +152,12 @@ export default class StatusPageResource extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({
+   @TableColumn({
         manyToOneRelationColumn: 'statusPageId',
         type: TableColumnType.Entity,
         modelType: StatusPage,
+        title: "Status Page",
+        description: "Relation to Status Page Resource in which this object belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -187,7 +189,8 @@ export default class StatusPageResource extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Status Page ID",
+    description: "ID of your Status Page resource where this object belongs" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

@@ -126,7 +126,7 @@ export default class TeamPermission extends BaseModel {
         type: TableColumnType.Entity,
         modelType: Project,
         title: "Project",
-        description: "Relation to Project Resource"
+        description: "Relation to Project Resource in which this object belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -162,7 +162,7 @@ export default class TeamPermission extends BaseModel {
         required: true,
         canReadOnPopulate: true,
         title: "Project ID",
-        description: "ID of your OneUptime Project"
+        description: "ID of your OneUptime Project in which this object belongs"
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -352,6 +352,8 @@ export default class TeamPermission extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: "Labels",
+        description: "Relation to Labels Array where this permission is scoped at."
     })
     @ManyToMany(
         () => {
