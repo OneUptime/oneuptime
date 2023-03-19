@@ -5,9 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
-    "chromium":"npx playwright test --project chromium --headed",
-    "show-report":"npx playwright show-report",
-    "codegen":"npx playwright codegen https://test.oneuptime.com",
+    "codegen": "npx playwright codegen https://test.oneuptime.com",
     "debug": "npx playwright test --debug"
   },
   "keywords": [],
