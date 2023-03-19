@@ -60,8 +60,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 @CrudApiEndpoint(new Route('/status-page-header-link'))
 @TableMetadata({
     tableName: 'StatusPageHeaderLink',
-    singularName: 'Header Link',
-    pluralName: 'Header Links',
+    singularName: 'Status Page Header Link',
+    pluralName: 'Status Page Header Links',
     icon: IconProp.ArrowCircleUp,
     tableDescription: 'Manage header links on your status page',
 })

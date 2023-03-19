@@ -13,7 +13,7 @@ enum ColumnType {
     Buffer = "Buffer",
     ShortURL = "Short URL",
     Markdown = "Markdown",
-    Domain = "Doamin",
+    Domain = "Domain",
     LongURL = "URL",
     ShortText = "Text",
     OTP = "One Time Password",
@@ -33,6 +33,7 @@ enum ColumnType {
     Entity = "Entity",
     EntityArray ="Entity Array",
     JSON = "JSON",
+    Permission = "Permission"
 }
 
 export default ColumnType;

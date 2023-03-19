@@ -140,6 +140,8 @@ export default class Domain extends BaseModel {
         required: true,
         type: TableColumnType.Domain,
         canReadOnPopulate: true,
+        title: "Domain",
+        description: "Domain - acmeinc.com for example."
     })
     @Column({
         nullable: false,
@@ -287,7 +289,7 @@ export default class Domain extends BaseModel {
             Permission.CanEditProjectDomain,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Verified", description: "Is this domain verified?" })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -307,7 +309,7 @@ export default class Domain extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ShortText })
+    @TableColumn({ type: TableColumnType.ShortText, title: "Domain Verification Text", description: "Verification text that you need to add to your domains TXT record to veify the domain." })
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,

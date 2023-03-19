@@ -277,7 +277,7 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug , title: "Slug", description: "Friendly globally unique name for your object" })
     @Column({
         nullable: false,
         type: ColumnType.Slug,

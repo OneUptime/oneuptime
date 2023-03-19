@@ -175,6 +175,8 @@ export default class Incident extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
+        title: "Title",
+        description: "Title of this incident"
     })
     @Column({
         nullable: false,
@@ -203,7 +205,7 @@ export default class Incident extends BaseModel {
             Permission.CanEditProjectIncident,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.Description })
+    @TableColumn({ required: false, type: TableColumnType.Description, title: "Description", description: "Short description of this incident." })
     @Column({
         nullable: true,
         type: ColumnType.VeryLongText,
@@ -226,7 +228,7 @@ export default class Incident extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug , title: "Slug", description: "Friendly globally unique name for your object" })
     @Column({
         nullable: false,
         type: ColumnType.Slug,

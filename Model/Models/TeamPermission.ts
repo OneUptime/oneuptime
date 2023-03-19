@@ -321,7 +321,7 @@ export default class TeamPermission extends BaseModel {
             Permission.CanEditProjectTeam,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.Permission, title: "Permission", description: "Permission. You can find list of permissions on the Permissions page." })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
