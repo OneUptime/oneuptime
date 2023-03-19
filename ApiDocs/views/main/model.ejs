@@ -1,105 +1,210 @@
 <main class="py-16">
-    <article class="prose dark:prose-invert">
-       <h1><%= pageData.title -%></h1>
-       <p class="lead"><%= pageData.description -%></p>
-       <h2 id="the-contact-model" class="scroll-mt-24">
+   <article class="prose dark:prose-invert">
+      <h1>
+         <%= pageData.title -%>
+      </h1>
+      <p class="lead">
+         <%= pageData.description -%>
+      </p>
+      <h2 id="the-contact-model" class="scroll-mt-24">
          The <%= pageData.title -%> model
-       </h2>
-      
-       <h3>Properties</h3>
-       <div class="my-6">
-          <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+      </h2>
+
+      <h3>Properties</h3>
+      <div class="my-6">
+         <ul role="list"
+            class="m-0 w-full list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
             <% for(var i=0; i<Object.keys(pageData.columns).length; i++) {%>
-             <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                   <dt class="sr-only">Name</dt>
-                   <dd><code class="inline-code"><%= Object.keys(pageData.columns)[i] -%></code></dd>
-                   <dt class="sr-only">Type</dt>
-                   <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">
-                     
-                     <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
+               <li class="m-0 px-0 py-4 first:pt-0 last:pb-0 mt-5">
+                  <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                     <dt class="sr-only">Name</dt>
+                     <dd><code class="inline-code"><%= Object.keys(pageData.columns)[i] -%></code></dd>
+                     <dt class="sr-only">Type</dt>
+                     <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">
 
-                     <% if(pageData.columns[Object.keys(pageData.columns)[i]].required){ %>
-                        Required
-                     <% } %>
+                        <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
 
-                     
-                  </dd>
-                   <dt class="sr-only">Description</dt>
-                   <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                      <p><%= pageData.columns[Object.keys(pageData.columns)[i]].title -%> - <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%></p>
-                   </dd>
-                </dl>
-             </li>
-             <% } %>
-          </ul>
-       </div>
-       <hr>
-       <div class="flex items-center gap-x-3"><span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400">GET</span><span class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts</span></div>
-       <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit" href="/contacts#list-all-contacts">List all contacts</a></h2>
-       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-             <p>This endpoint allows you to retrieve a paginated list of all your contacts. By default, a maximum of ten contacts are shown per page.</p>
-             <h3>Optional attributes</h3>
-             <div class="my-6">
-                <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code">limit</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">integer</dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>Limit the number of contacts returned.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                </ul>
-             </div>
-          </div>
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
-                   <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal"><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400" id="headlessui-tabs-tab-:r9:" role="tab" type="button" aria-selected="true" tabindex="0" data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:rd:">cURL</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:ra:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:re:">JavaScript</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rb:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rf:">Python</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rc:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rg:">PHP</button></div>
-                </div>
-                <div>
-                   <div id="headlessui-tabs-panel-:rd:" role="tabpanel" tabindex="0" data-headlessui-state="selected" aria-labelledby="headlessui-tabs-tab-:r9:">
-                      <div class="group dark:bg-white/2.5">
-                         <div class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
-                            <div class="dark flex"><span class="font-mono text-[0.625rem] font-semibold leading-6 text-emerald-500 dark:text-emerald-400">GET</span></div>
-                            <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts</span>
-                         </div>
-                         <div class="relative">
-                            <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl -G https://api.protocol.chat/v1/contacts \</span></span>
+                           <% if(pageData.columns[Object.keys(pageData.columns)[i]].required){ %>
+                              (Required)
+                              <% } %>
+
+
+                     </dd>
+                     <dt class="sr-only">Description</dt>
+                     <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                        <p>
+                           <%= pageData.columns[Object.keys(pageData.columns)[i]].title -%> - <%=
+                                 pageData.columns[Object.keys(pageData.columns)[i]].description -%>
+                        </p>
+                     </dd>
+                     <dd class="font-mono text-xs ">
+
+                        <div class="mb-3 mt-3">
+                           <span class="text-gray-400 text-xs">Permissions to Create:&nbsp;</span>
+
+                           <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length; j++) {%>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-blue-500 bg-blue-100 border-2 border-blue-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
+                              
+                              <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length-1){ %>
+                              <span class="text-gray-400 text-xs ml-1 mr-1">or</span>
+                              <% } %>
+                              
+                              <% } %>
+
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                           <span class="text-gray-400 text-xs">Permissions to Read:&nbsp;</span>
+
+                           <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length; j++) {%>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-blue-500 bg-blue-100 border-2 border-blue-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
+                              
+                              <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length-1){ %>
+                                 <span class="text-gray-400 text-xs ml-1 mr-1">or</span>
+                                 <% } %>
+                             
+                              <% } %>
+
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                           <span class="text-gray-400 text-xs">Permissions to Update:&nbsp;</span>
+
+                           <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length; j++) {%>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-blue-500 bg-blue-100 border-2 border-blue-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
+                             
+                              <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length-1){ %>
+                                 <span class="text-gray-400 text-xs ml-1 mr-1">or</span>
+                                 <% } %>
+                             
+                              <% } %>
+
+
+                           <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length === 0){ %>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-red-500 bg-red-100 border-2 border-red-200"> You cannot update this property. </span>
+                              <% } %>
+
+                        </div>
+
+
+                  
+
+                     </dd>
+                  </dl>
+               </li>
+               <% } %>
+         </ul>
+      </div>
+      <hr>
+      <div class="flex items-center gap-x-3"><span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400">GET</span><span
+            class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+            class="font-mono text-xs text-zinc-400">/v1/contacts</span></div>
+      <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit"
+            href="/contacts#list-all-contacts">List all contacts</a></h2>
+      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <p>This endpoint allows you to retrieve a paginated list of all your contacts. By default, a maximum of ten
+               contacts are shown per page.</p>
+            <h3>Optional attributes</h3>
+            <div class="my-6">
+               <ul role="list"
+                  class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <dt class="sr-only">Name</dt>
+                        <dd><code class="inline-code">limit</code></dd>
+                        <dt class="sr-only">Type</dt>
+                        <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">integer</dd>
+                        <dt class="sr-only">Description</dt>
+                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                           <p>Limit the number of contacts returned.</p>
+                        </dd>
+                     </dl>
+                  </li>
+               </ul>
+            </div>
+         </div>
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
+                  <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal">
+                     <button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400"
+                        id="headlessui-tabs-tab-:r9:" role="tab" type="button" aria-selected="true" tabindex="0"
+                        data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:rd:">cURL</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:ra:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:re:">JavaScript</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rb:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rf:">Python</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rc:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rg:">PHP</button></div>
+               </div>
+               <div>
+                  <div id="headlessui-tabs-panel-:rd:" role="tabpanel" tabindex="0" data-headlessui-state="selected"
+                     aria-labelledby="headlessui-tabs-tab-:r9:">
+                     <div class="group dark:bg-white/2.5">
+                        <div
+                           class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
+                           <div class="dark flex"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 text-emerald-500 dark:text-emerald-400">GET</span>
+                           </div>
+                           <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span
+                              class="font-mono text-xs text-zinc-400">/v1/contacts</span>
+                        </div>
+                        <div class="relative">
+                           <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl -G https://api.protocol.chat/v1/contacts \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -H </span><span style="color: var(--shiki-token-string-expression)">"Authorization: Bearer {token}"</span><span style="color: var(--shiki-color-text)"> \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -d active=true \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -d limit=10</span></span>
      <span></span></code></pre>
-                            <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                               <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                                  <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                                     <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                                     <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                                  </svg>
-                                  Copy
-                               </span>
-                               <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                            </button>
-                         </div>
-                      </div>
-                   </div>
-                   <span id="headlessui-tabs-panel-:re:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:ra:"></span><span id="headlessui-tabs-panel-:rf:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rb:"></span><span id="headlessui-tabs-panel-:rg:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rc:"></span>
-                </div>
-             </div>
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
-                </div>
-                <div class="group dark:bg-white/2.5">
-                   <div class="relative">
-                      <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
+                           <button type="button"
+                              class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                              <span aria-hidden="false"
+                                 class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                                 <svg viewBox="0 0 20 20" aria-hidden="true"
+                                    class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                                    <path stroke-width="0"
+                                       d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                                    </path>
+                                    <path fill="none" stroke-linejoin="round"
+                                       d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                                    </path>
+                                 </svg>
+                                 Copy
+                              </span>
+                              <span aria-hidden="true"
+                                 class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                  <span id="headlessui-tabs-panel-:re:" role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:ra:"></span><span id="headlessui-tabs-panel-:rf:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rb:"></span><span id="headlessui-tabs-panel-:rg:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rc:"></span>
+               </div>
+            </div>
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
+               </div>
+               <div class="group dark:bg-white/2.5">
+                  <div class="relative">
+                     <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"has_more"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">false</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"data"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> [</span></span>
      <span><span style="color: var(--shiki-color-text)">    {</span></span>
@@ -119,129 +224,182 @@
      <span><span style="color: var(--shiki-color-text)">  ]</span></span>
      <span><span style="color: var(--shiki-color-text)">}</span></span>
      <span></span></code></pre>
-                      <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                         <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                               <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                               <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                            </svg>
-                            Copy
-                         </span>
-                         <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                      </button>
-                   </div>
-                </div>
-             </div>
-          </div>
-       </div>
-       <hr>
-       <div class="flex items-center gap-x-3"><span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-500 dark:ring-sky-400/30 dark:bg-sky-400/10 dark:text-sky-400">POST</span><span class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts</span></div>
-       <h2 id="create-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit" href="/contacts#create-a-contact">Create a contact</a></h2>
-       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-             <p>This endpoint allows you to add a new contact to your contact list in Protocol. To add a contact, you must provide their Protocol username and phone number.</p>
-             <h3>Required attributes</h3>
-             <div class="my-6">
-                <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code">username</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>The username for the contact.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code">phone_number</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>The phone number for the contact.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                </ul>
-             </div>
-             <h3>Optional attributes</h3>
-             <div class="my-6">
-                <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code">avatar_url</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>The avatar image URL for the contact.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code">display_name</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>The contact display name in the contact list. By default, this is just the username.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                </ul>
-             </div>
-          </div>
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
-                   <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal"><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400" id="headlessui-tabs-tab-:rh:" role="tab" type="button" aria-selected="true" tabindex="0" data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:rl:">cURL</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:ri:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rm:">JavaScript</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rj:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rn:">Python</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rk:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:ro:">PHP</button></div>
-                </div>
-                <div>
-                   <div id="headlessui-tabs-panel-:rl:" role="tabpanel" tabindex="0" data-headlessui-state="selected" aria-labelledby="headlessui-tabs-tab-:rh:">
-                      <div class="group dark:bg-white/2.5">
-                         <div class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
-                            <div class="dark flex"><span class="font-mono text-[0.625rem] font-semibold leading-6 text-sky-500">POST</span></div>
-                            <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts</span>
-                         </div>
-                         <div class="relative">
-                            <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl https://api.protocol.chat/v1/contacts \</span></span>
+                     <button type="button"
+                        class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                        <span aria-hidden="false"
+                           class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                           <svg viewBox="0 0 20 20" aria-hidden="true"
+                              class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                              <path stroke-width="0"
+                                 d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                              </path>
+                              <path fill="none" stroke-linejoin="round"
+                                 d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                              </path>
+                           </svg>
+                           Copy
+                        </span>
+                        <span aria-hidden="true"
+                           class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <hr>
+      <div class="flex items-center gap-x-3"><span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-500 dark:ring-sky-400/30 dark:bg-sky-400/10 dark:text-sky-400">POST</span><span
+            class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+            class="font-mono text-xs text-zinc-400">/v1/contacts</span></div>
+      <h2 id="create-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit"
+            href="/contacts#create-a-contact">Create a contact</a></h2>
+      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <p>This endpoint allows you to add a new contact to your contact list in Protocol. To add a contact, you
+               must provide their Protocol username and phone number.</p>
+            <h3>Required attributes</h3>
+            <div class="my-6">
+               <ul role="list"
+                  class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <dt class="sr-only">Name</dt>
+                        <dd><code class="inline-code">username</code></dd>
+                        <dt class="sr-only">Type</dt>
+                        <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
+                        <dt class="sr-only">Description</dt>
+                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                           <p>The username for the contact.</p>
+                        </dd>
+                     </dl>
+                  </li>
+                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <dt class="sr-only">Name</dt>
+                        <dd><code class="inline-code">phone_number</code></dd>
+                        <dt class="sr-only">Type</dt>
+                        <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
+                        <dt class="sr-only">Description</dt>
+                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                           <p>The phone number for the contact.</p>
+                        </dd>
+                     </dl>
+                  </li>
+               </ul>
+            </div>
+            <h3>Optional attributes</h3>
+            <div class="my-6">
+               <ul role="list"
+                  class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <dt class="sr-only">Name</dt>
+                        <dd><code class="inline-code">avatar_url</code></dd>
+                        <dt class="sr-only">Type</dt>
+                        <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
+                        <dt class="sr-only">Description</dt>
+                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                           <p>The avatar image URL for the contact.</p>
+                        </dd>
+                     </dl>
+                  </li>
+                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <dt class="sr-only">Name</dt>
+                        <dd><code class="inline-code">display_name</code></dd>
+                        <dt class="sr-only">Type</dt>
+                        <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
+                        <dt class="sr-only">Description</dt>
+                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                           <p>The contact display name in the contact list. By default, this is just the username.</p>
+                        </dd>
+                     </dl>
+                  </li>
+               </ul>
+            </div>
+         </div>
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
+                  <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal">
+                     <button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400"
+                        id="headlessui-tabs-tab-:rh:" role="tab" type="button" aria-selected="true" tabindex="0"
+                        data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:rl:">cURL</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:ri:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rm:">JavaScript</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rj:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rn:">Python</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rk:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:ro:">PHP</button></div>
+               </div>
+               <div>
+                  <div id="headlessui-tabs-panel-:rl:" role="tabpanel" tabindex="0" data-headlessui-state="selected"
+                     aria-labelledby="headlessui-tabs-tab-:rh:">
+                     <div class="group dark:bg-white/2.5">
+                        <div
+                           class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
+                           <div class="dark flex"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 text-sky-500">POST</span>
+                           </div>
+                           <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span
+                              class="font-mono text-xs text-zinc-400">/v1/contacts</span>
+                        </div>
+                        <div class="relative">
+                           <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl https://api.protocol.chat/v1/contacts \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -H </span><span style="color: var(--shiki-token-string-expression)">"Authorization: Bearer {token}"</span><span style="color: var(--shiki-color-text)"> \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -d username=</span><span style="color: var(--shiki-token-string-expression)">"FrankMcCallister"</span><span style="color: var(--shiki-color-text)"> \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -d phone_number=</span><span style="color: var(--shiki-token-string-expression)">"1-800-759-3000"</span><span style="color: var(--shiki-color-text)"> \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -d avatar_url=</span><span style="color: var(--shiki-token-string-expression)">"https://assets.protocol.chat/avatars/frank.jpg"</span></span>
      <span></span></code></pre>
-                            <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                               <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                                  <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                                     <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                                     <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                                  </svg>
-                                  Copy
-                               </span>
-                               <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                            </button>
-                         </div>
-                      </div>
-                   </div>
-                   <span id="headlessui-tabs-panel-:rm:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:ri:"></span><span id="headlessui-tabs-panel-:rn:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rj:"></span><span id="headlessui-tabs-panel-:ro:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rk:"></span>
-                </div>
-             </div>
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
-                </div>
-                <div class="group dark:bg-white/2.5">
-                   <div class="relative">
-                      <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
+                           <button type="button"
+                              class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                              <span aria-hidden="false"
+                                 class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                                 <svg viewBox="0 0 20 20" aria-hidden="true"
+                                    class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                                    <path stroke-width="0"
+                                       d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                                    </path>
+                                    <path fill="none" stroke-linejoin="round"
+                                       d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                                    </path>
+                                 </svg>
+                                 Copy
+                              </span>
+                              <span aria-hidden="true"
+                                 class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                  <span id="headlessui-tabs-panel-:rm:" role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:ri:"></span><span id="headlessui-tabs-panel-:rn:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rj:"></span><span id="headlessui-tabs-panel-:ro:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rk:"></span>
+               </div>
+            </div>
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
+               </div>
+               <div class="group dark:bg-white/2.5">
+                  <div class="relative">
+                     <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"WAz8eIbvDR60rouK"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"username"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"FrankMcCallister"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"phone_number"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"1-800-759-3000"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
@@ -252,68 +410,121 @@
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"created_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">692233200</span></span>
      <span><span style="color: var(--shiki-color-text)">}</span></span>
      <span></span></code></pre>
-                      <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                         <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                               <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                               <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                            </svg>
-                            Copy
-                         </span>
-                         <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                      </button>
-                   </div>
-                </div>
-             </div>
-          </div>
-       </div>
-       <hr>
-       <div class="flex items-center gap-x-3"><span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400">GET</span><span class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts/:id</span></div>
-       <h2 id="retrieve-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit" href="/contacts#retrieve-a-contact">Retrieve a contact</a></h2>
-       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-             <p>This endpoint allows you to retrieve a contact by providing their Protocol id. Refer to <a href="/contacts#the-contact-model">the list</a> at the top of this page to see which properties are included with contact objects.</p>
-          </div>
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
-                   <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal"><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400" id="headlessui-tabs-tab-:rp:" role="tab" type="button" aria-selected="true" tabindex="0" data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:rt:">cURL</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rq:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:ru:">JavaScript</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rr:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rv:">Python</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:rs:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r10:">PHP</button></div>
-                </div>
-                <div>
-                   <div id="headlessui-tabs-panel-:rt:" role="tabpanel" tabindex="0" data-headlessui-state="selected" aria-labelledby="headlessui-tabs-tab-:rp:">
-                      <div class="group dark:bg-white/2.5">
-                         <div class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
-                            <div class="dark flex"><span class="font-mono text-[0.625rem] font-semibold leading-6 text-emerald-500 dark:text-emerald-400">GET</span></div>
-                            <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts/WAz8eIbvDR60rouK</span>
-                         </div>
-                         <div class="relative">
-                            <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl https://api.protocol.chat/v1/contacts/WAz8eIbvDR60rouK \</span></span>
+                     <button type="button"
+                        class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                        <span aria-hidden="false"
+                           class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                           <svg viewBox="0 0 20 20" aria-hidden="true"
+                              class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                              <path stroke-width="0"
+                                 d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                              </path>
+                              <path fill="none" stroke-linejoin="round"
+                                 d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                              </path>
+                           </svg>
+                           Copy
+                        </span>
+                        <span aria-hidden="true"
+                           class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <hr>
+      <div class="flex items-center gap-x-3"><span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400">GET</span><span
+            class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+            class="font-mono text-xs text-zinc-400">/v1/contacts/:id</span></div>
+      <h2 id="retrieve-a-contact" class="mt-2 scroll-mt-32"><a
+            class="group text-inherit no-underline hover:text-inherit" href="/contacts#retrieve-a-contact">Retrieve a
+            contact</a></h2>
+      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <p>This endpoint allows you to retrieve a contact by providing their Protocol id. Refer to <a
+                  href="/contacts#the-contact-model">the list</a> at the top of this page to see which properties are
+               included with contact objects.</p>
+         </div>
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
+                  <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal">
+                     <button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400"
+                        id="headlessui-tabs-tab-:rp:" role="tab" type="button" aria-selected="true" tabindex="0"
+                        data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:rt:">cURL</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rq:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:ru:">JavaScript</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rr:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:rv:">Python</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:rs:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r10:">PHP</button></div>
+               </div>
+               <div>
+                  <div id="headlessui-tabs-panel-:rt:" role="tabpanel" tabindex="0" data-headlessui-state="selected"
+                     aria-labelledby="headlessui-tabs-tab-:rp:">
+                     <div class="group dark:bg-white/2.5">
+                        <div
+                           class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
+                           <div class="dark flex"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 text-emerald-500 dark:text-emerald-400">GET</span>
+                           </div>
+                           <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span
+                              class="font-mono text-xs text-zinc-400">/v1/contacts/WAz8eIbvDR60rouK</span>
+                        </div>
+                        <div class="relative">
+                           <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl https://api.protocol.chat/v1/contacts/WAz8eIbvDR60rouK \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -H </span><span style="color: var(--shiki-token-string-expression)">"Authorization: Bearer {token}"</span></span>
      <span></span></code></pre>
-                            <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                               <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                                  <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                                     <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                                     <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                                  </svg>
-                                  Copy
-                               </span>
-                               <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                            </button>
-                         </div>
-                      </div>
-                   </div>
-                   <span id="headlessui-tabs-panel-:ru:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rq:"></span><span id="headlessui-tabs-panel-:rv:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rr:"></span><span id="headlessui-tabs-panel-:r10:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:rs:"></span>
-                </div>
-             </div>
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
-                </div>
-                <div class="group dark:bg-white/2.5">
-                   <div class="relative">
-                      <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
+                           <button type="button"
+                              class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                              <span aria-hidden="false"
+                                 class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                                 <svg viewBox="0 0 20 20" aria-hidden="true"
+                                    class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                                    <path stroke-width="0"
+                                       d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                                    </path>
+                                    <path fill="none" stroke-linejoin="round"
+                                       d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                                    </path>
+                                 </svg>
+                                 Copy
+                              </span>
+                              <span aria-hidden="true"
+                                 class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                  <span id="headlessui-tabs-panel-:ru:" role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rq:"></span><span id="headlessui-tabs-panel-:rv:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rr:"></span><span id="headlessui-tabs-panel-:r10:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:rs:"></span>
+               </div>
+            </div>
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
+               </div>
+               <div class="group dark:bg-white/2.5">
+                  <div class="relative">
+                     <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"WAz8eIbvDR60rouK"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"username"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"FrankMcCallister"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"phone_number"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"1-800-759-3000"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
@@ -324,86 +535,140 @@
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"created_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">692233200</span></span>
      <span><span style="color: var(--shiki-color-text)">}</span></span>
      <span></span></code></pre>
-                      <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                         <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                               <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                               <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                            </svg>
-                            Copy
-                         </span>
-                         <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                      </button>
-                   </div>
-                </div>
-             </div>
-          </div>
-       </div>
-       <hr>
-       <div class="flex items-center gap-x-3"><span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-amber-300 bg-amber-400/10 text-amber-500 dark:ring-amber-400/30 dark:bg-amber-400/10 dark:text-amber-400">PUT</span><span class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts/:id</span></div>
-       <h2 id="update-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit" href="/contacts#update-a-contact">Update a contact</a></h2>
-       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-             <p>This endpoint allows you to perform an update on a contact. Currently, the only attribute that can be updated on contacts is the <code class="inline-code">display_name</code> attribute which controls how a contact appears in your contact list in Protocol.</p>
-             <h3>Optional attributes</h3>
-             <div class="my-6">
-                <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code">display_name</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>The contact display name in the contact list. By default, this is just the username.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                </ul>
-             </div>
-          </div>
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
-                   <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal"><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400" id="headlessui-tabs-tab-:r11:" role="tab" type="button" aria-selected="true" tabindex="0" data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:r15:">cURL</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r12:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r16:">JavaScript</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r13:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r17:">Python</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r14:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r18:">PHP</button></div>
-                </div>
-                <div>
-                   <div id="headlessui-tabs-panel-:r15:" role="tabpanel" tabindex="0" data-headlessui-state="selected" aria-labelledby="headlessui-tabs-tab-:r11:">
-                      <div class="group dark:bg-white/2.5">
-                         <div class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
-                            <div class="dark flex"><span class="font-mono text-[0.625rem] font-semibold leading-6 text-amber-500">PUT</span></div>
-                            <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts/WAz8eIbvDR60rouK</span>
-                         </div>
-                         <div class="relative">
-                            <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl -X PUT https://api.protocol.chat/v1/contacts/WAz8eIbvDR60rouK \</span></span>
+                     <button type="button"
+                        class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                        <span aria-hidden="false"
+                           class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                           <svg viewBox="0 0 20 20" aria-hidden="true"
+                              class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                              <path stroke-width="0"
+                                 d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                              </path>
+                              <path fill="none" stroke-linejoin="round"
+                                 d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                              </path>
+                           </svg>
+                           Copy
+                        </span>
+                        <span aria-hidden="true"
+                           class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <hr>
+      <div class="flex items-center gap-x-3"><span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-amber-300 bg-amber-400/10 text-amber-500 dark:ring-amber-400/30 dark:bg-amber-400/10 dark:text-amber-400">PUT</span><span
+            class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+            class="font-mono text-xs text-zinc-400">/v1/contacts/:id</span></div>
+      <h2 id="update-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit"
+            href="/contacts#update-a-contact">Update a contact</a></h2>
+      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <p>This endpoint allows you to perform an update on a contact. Currently, the only attribute that can be
+               updated on contacts is the <code class="inline-code">display_name</code> attribute which controls how a
+               contact appears in your contact list in Protocol.</p>
+            <h3>Optional attributes</h3>
+            <div class="my-6">
+               <ul role="list"
+                  class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <dt class="sr-only">Name</dt>
+                        <dd><code class="inline-code">display_name</code></dd>
+                        <dt class="sr-only">Type</dt>
+                        <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">string</dd>
+                        <dt class="sr-only">Description</dt>
+                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                           <p>The contact display name in the contact list. By default, this is just the username.</p>
+                        </dd>
+                     </dl>
+                  </li>
+               </ul>
+            </div>
+         </div>
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
+                  <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal">
+                     <button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400"
+                        id="headlessui-tabs-tab-:r11:" role="tab" type="button" aria-selected="true" tabindex="0"
+                        data-headlessui-state="selected"
+                        aria-controls="headlessui-tabs-panel-:r15:">cURL</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:r12:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r16:">JavaScript</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:r13:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r17:">Python</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:r14:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r18:">PHP</button></div>
+               </div>
+               <div>
+                  <div id="headlessui-tabs-panel-:r15:" role="tabpanel" tabindex="0" data-headlessui-state="selected"
+                     aria-labelledby="headlessui-tabs-tab-:r11:">
+                     <div class="group dark:bg-white/2.5">
+                        <div
+                           class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
+                           <div class="dark flex"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 text-amber-500">PUT</span>
+                           </div>
+                           <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span
+                              class="font-mono text-xs text-zinc-400">/v1/contacts/WAz8eIbvDR60rouK</span>
+                        </div>
+                        <div class="relative">
+                           <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl -X PUT https://api.protocol.chat/v1/contacts/WAz8eIbvDR60rouK \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -H </span><span style="color: var(--shiki-token-string-expression)">"Authorization: Bearer {token}"</span><span style="color: var(--shiki-color-text)"> \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -d display_name=</span><span style="color: var(--shiki-token-string-expression)">"UncleFrank"</span></span>
      <span></span></code></pre>
-                            <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                               <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                                  <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                                     <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                                     <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                                  </svg>
-                                  Copy
-                               </span>
-                               <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                            </button>
-                         </div>
-                      </div>
-                   </div>
-                   <span id="headlessui-tabs-panel-:r16:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r12:"></span><span id="headlessui-tabs-panel-:r17:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r13:"></span><span id="headlessui-tabs-panel-:r18:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r14:"></span>
-                </div>
-             </div>
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
-                </div>
-                <div class="group dark:bg-white/2.5">
-                   <div class="relative">
-                      <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
+                           <button type="button"
+                              class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                              <span aria-hidden="false"
+                                 class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                                 <svg viewBox="0 0 20 20" aria-hidden="true"
+                                    class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                                    <path stroke-width="0"
+                                       d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                                    </path>
+                                    <path fill="none" stroke-linejoin="round"
+                                       d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                                    </path>
+                                 </svg>
+                                 Copy
+                              </span>
+                              <span aria-hidden="true"
+                                 class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                  <span id="headlessui-tabs-panel-:r16:" role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:r12:"></span><span id="headlessui-tabs-panel-:r17:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:r13:"></span><span id="headlessui-tabs-panel-:r18:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:r14:"></span>
+               </div>
+            </div>
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Response</h3>
+               </div>
+               <div class="group dark:bg-white/2.5">
+                  <div class="relative">
+                     <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"WAz8eIbvDR60rouK"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"username"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"FrankMcCallister"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"phone_number"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"1-800-759-3000"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
@@ -414,62 +679,112 @@
      <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"created_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">692233200</span></span>
      <span><span style="color: var(--shiki-color-text)">}</span></span>
      <span></span></code></pre>
-                      <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                         <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                               <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                               <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                            </svg>
-                            Copy
-                         </span>
-                         <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                      </button>
-                   </div>
-                </div>
-             </div>
-          </div>
-       </div>
-       <hr>
-       <div class="flex items-center gap-x-3"><span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-rose-200 bg-rose-50 text-red-500 dark:ring-rose-500/20 dark:bg-rose-400/10 dark:text-rose-400">DELETE</span><span class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts/:id</span></div>
-       <h2 id="delete-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit" href="/contacts#delete-a-contact">Delete a contact</a></h2>
-       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-             <p>This endpoint allows you to delete contacts from your contact list in Protocol. Note: This will also delete your conversation with the given contact.</p>
-          </div>
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
-                   <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal"><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400" id="headlessui-tabs-tab-:r19:" role="tab" type="button" aria-selected="true" tabindex="0" data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:r1d:">cURL</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r1a:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r1e:">JavaScript</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r1b:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r1f:">Python</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r1c:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r1g:">PHP</button></div>
-                </div>
-                <div>
-                   <div id="headlessui-tabs-panel-:r1d:" role="tabpanel" tabindex="0" data-headlessui-state="selected" aria-labelledby="headlessui-tabs-tab-:r19:">
-                      <div class="group dark:bg-white/2.5">
-                         <div class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
-                            <div class="dark flex"><span class="font-mono text-[0.625rem] font-semibold leading-6 text-red-500 dark:text-rose-500">DELETE</span></div>
-                            <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-xs text-zinc-400">/v1/contacts/WAz8eIbvDR60rouK</span>
-                         </div>
-                         <div class="relative">
-                            <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl -X DELETE https://api.protocol.chat/v1/contacts/WAz8eIbvDR60rouK \</span></span>
+                     <button type="button"
+                        class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                        <span aria-hidden="false"
+                           class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                           <svg viewBox="0 0 20 20" aria-hidden="true"
+                              class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                              <path stroke-width="0"
+                                 d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                              </path>
+                              <path fill="none" stroke-linejoin="round"
+                                 d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                              </path>
+                           </svg>
+                           Copy
+                        </span>
+                        <span aria-hidden="true"
+                           class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <hr>
+      <div class="flex items-center gap-x-3"><span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-rose-200 bg-rose-50 text-red-500 dark:ring-rose-500/20 dark:bg-rose-400/10 dark:text-rose-400">DELETE</span><span
+            class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+            class="font-mono text-xs text-zinc-400">/v1/contacts/:id</span></div>
+      <h2 id="delete-a-contact" class="mt-2 scroll-mt-32"><a class="group text-inherit no-underline hover:text-inherit"
+            href="/contacts#delete-a-contact">Delete a contact</a></h2>
+      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <p>This endpoint allows you to delete contacts from your contact list in Protocol. Note: This will also
+               delete your conversation with the given contact.</p>
+         </div>
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+            <div
+               class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
+               <div
+                  class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+                  <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Request</h3>
+                  <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal">
+                     <button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400"
+                        id="headlessui-tabs-tab-:r19:" role="tab" type="button" aria-selected="true" tabindex="0"
+                        data-headlessui-state="selected"
+                        aria-controls="headlessui-tabs-panel-:r1d:">cURL</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:r1a:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r1e:">JavaScript</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:r1b:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r1f:">Python</button><button
+                        class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300"
+                        id="headlessui-tabs-tab-:r1c:" role="tab" type="button" aria-selected="false" tabindex="-1"
+                        data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r1g:">PHP</button></div>
+               </div>
+               <div>
+                  <div id="headlessui-tabs-panel-:r1d:" role="tabpanel" tabindex="0" data-headlessui-state="selected"
+                     aria-labelledby="headlessui-tabs-tab-:r19:">
+                     <div class="group dark:bg-white/2.5">
+                        <div
+                           class="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1">
+                           <div class="dark flex"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 text-red-500 dark:text-rose-500">DELETE</span>
+                           </div>
+                           <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span
+                              class="font-mono text-xs text-zinc-400">/v1/contacts/WAz8eIbvDR60rouK</span>
+                        </div>
+                        <div class="relative">
+                           <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-bash"><span><span style="color: var(--shiki-color-text)">curl -X DELETE https://api.protocol.chat/v1/contacts/WAz8eIbvDR60rouK \</span></span>
      <span><span style="color: var(--shiki-color-text)">  -H </span><span style="color: var(--shiki-token-string-expression)">"Authorization: Bearer {token}"</span></span>
      <span></span></code></pre>
-                            <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                               <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                                  <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                                     <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                                     <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                                  </svg>
-                                  Copy
-                               </span>
-                               <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                            </button>
-                         </div>
-                      </div>
-                   </div>
-                   <span id="headlessui-tabs-panel-:r1e:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r1a:"></span><span id="headlessui-tabs-panel-:r1f:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r1b:"></span><span id="headlessui-tabs-panel-:r1g:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r1c:"></span>
-                </div>
-             </div>
-          </div>
-       </div>
-    </article>
- </main>
+                           <button type="button"
+                              class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
+                              <span aria-hidden="false"
+                                 class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
+                                 <svg viewBox="0 0 20 20" aria-hidden="true"
+                                    class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
+                                    <path stroke-width="0"
+                                       d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z">
+                                    </path>
+                                    <path fill="none" stroke-linejoin="round"
+                                       d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1">
+                                    </path>
+                                 </svg>
+                                 Copy
+                              </span>
+                              <span aria-hidden="true"
+                                 class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                  <span id="headlessui-tabs-panel-:r1e:" role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:r1a:"></span><span id="headlessui-tabs-panel-:r1f:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:r1b:"></span><span id="headlessui-tabs-panel-:r1g:"
+                     role="tabpanel" tabindex="-1"
+                     style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+                     aria-labelledby="headlessui-tabs-tab-:r1c:"></span>
+               </div>
+            </div>
+         </div>
+      </div>
+   </article>
+</main>

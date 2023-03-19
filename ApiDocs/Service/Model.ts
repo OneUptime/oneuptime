@@ -36,9 +36,30 @@ export default class ServiceHandler {
 
         page = 'model';
 
+        const tableColumns: any = getTableColumns(currentResource.model);
+
+        for(const key in tableColumns){
+            const accessControl = currentResource.model.getColumnAccessControlFor(key);
+
+            if(!accessControl){
+                 // remove columns with no access
+                 delete tableColumns[key];
+                 continue;
+            }
+
+            if(accessControl?.create.length === 0 && accessControl?.read.length === 0 && accessControl?.update.length === 0){
+                // remove columns with no access
+                delete tableColumns[key];
+                continue;
+            }
+
+            tableColumns[key].permissions = accessControl;
+
+        }
+
         pageData.title = currentResource.model.singularName;
         pageData.description = currentResource.model.tableDescription;
-        pageData.columns = getTableColumns(currentResource.model);
+        pageData.columns = tableColumns;
 
         return res.render('pages/index', {
             page: page,
