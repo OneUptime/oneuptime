@@ -3,11 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "npx playwright test",
-    "codegen": "npx playwright codegen https://test.oneuptime.com",
-    "debug": "npx playwright test --debug"
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
