@@ -248,7 +248,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
     })
     @ManyToOne(
         (_type: string) => {

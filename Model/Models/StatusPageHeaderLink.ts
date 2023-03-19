@@ -320,7 +320,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
     })
     @ManyToOne(
         (_type: string) => {

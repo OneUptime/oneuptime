@@ -1,3 +1,4 @@
+import { getTableColumns } from 'Common/Types/Database/TableColumn';
 import Dictionary from 'Common/Types/Dictionary';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
@@ -31,17 +32,13 @@ export default class ServiceHandler {
         // Resource Page.
         pageTitle = currentResource.name;
         pageDescription = currentResource.description;
-        pageData = {
-            modelTableColumns: currentResource.model
-                .getTableColumns()
-                .columns.map((columnName: string) => {
-                    return currentResource.model.getTableColumnMetadata(
-                        columnName
-                    );
-                }),
-        };
+        
 
         page = 'model';
+
+        pageData.title = currentResource.model.singularName;
+        pageData.description = currentResource.model.tableDescription;
+        pageData.columns = getTableColumns(currentResource.model);
 
         return res.render('pages/index', {
             page: page,

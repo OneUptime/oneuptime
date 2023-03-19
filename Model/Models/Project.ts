@@ -309,7 +309,7 @@ export default class Model extends TenantModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
     })
     @ManyToOne(
         (_type: string) => {
