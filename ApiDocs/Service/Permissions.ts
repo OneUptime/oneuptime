@@ -1,3 +1,4 @@
+import { PermissionHelper, PermissionProps } from 'Common/Types/Permission';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 
@@ -15,6 +16,8 @@ export default class ServiceHandler {
 
         pageTitle = 'Permissions';
         pageDescription = 'Learn how permisisons work with OneUptime';
+
+        pageData.permissions = PermissionHelper.getAllPermissionProps().filter((i: PermissionProps) => i.isAssignableToTenant);
 
         return res.render('pages/index', {
             page: page,

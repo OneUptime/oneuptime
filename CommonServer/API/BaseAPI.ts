@@ -73,6 +73,24 @@ export default class BaseAPI<
             }
         );
 
+
+        // List
+        router.get(
+            `${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.getList(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
         // count
         router.post(
             `${new this.entityType().getCrudApiPath()?.toString()}/count`,
@@ -92,6 +110,25 @@ export default class BaseAPI<
 
         // Get Item
         router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/:id/get-item`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.getItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+        // Get Item
+        router.get(
             `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/:id/get-item`,

@@ -1,342 +1,38 @@
 <main class="py-16">
     <article class="prose dark:prose-invert">
-       <h1>Webhooks</h1>
-       <p class="lead">In this guide, we will look at how to register and consume webhooks to integrate your app with Protocol. With webhooks, your app can know when something happens in Protocol, such as someone sending a message or adding a contact.</p>
-       <h2 id="registering-webhooks" class="scroll-mt-24">
-          <a class="group text-inherit no-underline hover:text-inherit" href="/webhooks#registering-webhooks">
-             <div class="absolute mt-1 ml-[calc(-1*var(--width))] hidden w-[var(--width)] opacity-0 transition [--width:calc(2.625rem+0.5px+50%-min(50%,calc(theme(maxWidth.lg)+theme(spacing.8))))] group-hover:opacity-100 group-focus:opacity-100 md:block lg:z-50 2xl:[--width:theme(spacing.10)]">
-                <div class="group/anchor block h-5 w-5 rounded-lg bg-zinc-50 ring-1 ring-inset ring-zinc-300 transition hover:ring-zinc-500 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600">
-                   <svg viewBox="0 0 20 20" fill="none" stroke-linecap="round" aria-hidden="true" class="h-5 w-5 stroke-zinc-500 transition dark:stroke-zinc-400 dark:group-hover/anchor:stroke-white">
-                      <path d="m6.5 11.5-.964-.964a3.535 3.535 0 1 1 5-5l.964.964m2 2 .964.964a3.536 3.536 0 0 1-5 5L8.5 13.5m0-5 3 3"></path>
-                   </svg>
-                </div>
-             </div>
-             Registering webhooks
-          </a>
+       <h1>Permissions</h1>
+       <p class="lead"> Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys. </p>
+      
+   
+       <h2 id="consuming-webhooks" >
+         Permissions List
        </h2>
-       <p>To register a new webhook, you need to have a URL in your app that Protocol can call. You can configure a new webhook from the Protocol dashboard under <a href="/webhooks#">API settings</a>. Give your webhook a name, pick the <a href="/webhooks#event-types">events</a> you want to listen for, and add your URL.</p>
-       <p>Now, whenever something of interest happens in your app, a webhook is fired off by Protocol. In the next section, we'll look at how to consume webhooks.</p>
-       <h2 id="consuming-webhooks" class="scroll-mt-24">
-          <a class="group text-inherit no-underline hover:text-inherit" href="/webhooks#consuming-webhooks">
-             <div class="absolute mt-1 ml-[calc(-1*var(--width))] hidden w-[var(--width)] opacity-0 transition [--width:calc(2.625rem+0.5px+50%-min(50%,calc(theme(maxWidth.lg)+theme(spacing.8))))] group-hover:opacity-100 group-focus:opacity-100 md:block lg:z-50 2xl:[--width:theme(spacing.10)]">
-                <div class="group/anchor block h-5 w-5 rounded-lg bg-zinc-50 ring-1 ring-inset ring-zinc-300 transition hover:ring-zinc-500 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600">
-                   <svg viewBox="0 0 20 20" fill="none" stroke-linecap="round" aria-hidden="true" class="h-5 w-5 stroke-zinc-500 transition dark:stroke-zinc-400 dark:group-hover/anchor:stroke-white">
-                      <path d="m6.5 11.5-.964-.964a3.535 3.535 0 1 1 5-5l.964.964m2 2 .964.964a3.536 3.536 0 0 1-5 5L8.5 13.5m0-5 3 3"></path>
-                   </svg>
-                </div>
-             </div>
-             Consuming webhooks
-          </a>
-       </h2>
-       <p>When your app receives a webhook request from Protocol, check the <code>type</code> attribute to see what event caused it. The first part of the event type will tell you the payload type, e.g., a conversation, message, etc.</p>
-       <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-          <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-             <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Example webhook payload</h3>
-          </div>
-          <div class="group dark:bg-white/2.5">
-             <div class="relative">
-                <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"a056V7R7NmNRjl70"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"type"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"conversation.updated"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"payload"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> {</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"WAz8eIbvDR60rouK"</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-comment)">// ...</span></span>
- <span><span style="color: var(--shiki-color-text)">  }</span></span>
- <span><span style="color: var(--shiki-color-text)">}</span></span>
- <span></span></code></pre>
-                <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                   <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                      <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                         <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                         <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                      </svg>
-                      Copy
-                   </span>
-                   <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                </button>
-             </div>
-          </div>
-       </div>
-       <p>In the example above, a conversation was <code>updated</code>, and the payload type is a <code>conversation</code>.</p>
-       <div class="not-prose">
-          <a class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-500" href="/webhooks#event-types">
-             See all event types
-             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="mt-0.5 h-5 w-5 relative top-px -mr-1">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m11.5 6.5 3 3.5m0 0-3 3.5m3-3.5h-9"></path>
-             </svg>
-          </a>
-       </div>
-       <hr>
-       <h2 id="event-types" class="scroll-mt-24"><a class="group text-inherit no-underline hover:text-inherit" href="/webhooks#event-types">Event types</a></h2>
+       <p>Here is a list of all the permissions:</p>
        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
           <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
              <div class="my-6">
                 <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                  <% for(var i=0; i<pageData.permissions.length; i++) {%>
                    <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                       <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                          <dt class="sr-only">Name</dt>
-                         <dd><code>contact.created</code></dd>
+                         <dd><code class="inline-code"> <%= pageData.permissions[i].permission -%></code></dd>
                          <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
+                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.permissions[i].title -%></dd>
                          <dt class="sr-only">Description</dt>
                          <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A new contact was created.</p>
+                            <p><%= pageData.permissions[i].description -%></p>
                          </dd>
                       </dl>
                    </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>contact.updated</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>An existing contact was updated.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>contact.deleted</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A contact was successfully deleted.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>conversation.created</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A new conversation was created.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>conversation.updated</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>An existing conversation was updated.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>conversation.deleted</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A conversation was successfully deleted.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>message.created</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A new message was created.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>message.updated</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>An existing message was updated.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>message.deleted</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A message was successfully deleted.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>group.created</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A new group was created.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>group.updated</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>An existing group was updated.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>group.deleted</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A group was successfully deleted.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>attachment.created</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>A new attachment was created.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>attachment.updated</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>An existing attachment was updated.</p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code>attachment.deleted</code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p>An attachment was successfully deleted.</p>
-                         </dd>
-                      </dl>
-                   </li>
+                   <% } %>
+
+                   
                 </ul>
              </div>
           </div>
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-             <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-                <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-                   <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Example payload</h3>
-                </div>
-                <div class="group dark:bg-white/2.5">
-                   <div class="relative">
-                      <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-json"><span><span style="color: var(--shiki-color-text)">{</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"a056V7R7NmNRjl70"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"type"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"message.updated"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-keyword)">"payload"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> {</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"SIuAFUNKdSYHZF2w"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"conversation_id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"xgQQXg3hrtjh7AvZ"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"contact"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> {</span></span>
- <span><span style="color: var(--shiki-color-text)">      </span><span style="color: var(--shiki-token-keyword)">"id"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"WAz8eIbvDR60rouK"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">      </span><span style="color: var(--shiki-token-keyword)">"username"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"KevinMcCallister"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">      </span><span style="color: var(--shiki-token-keyword)">"phone_number"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"1-800-759-3000"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">      </span><span style="color: var(--shiki-token-keyword)">"avatar_url"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"https://assets.protocol.chat/avatars/kevin.jpg"</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">      </span><span style="color: var(--shiki-token-keyword)">"last_active_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">705103200</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">      </span><span style="color: var(--shiki-token-keyword)">"created_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">692233200</span></span>
- <span><span style="color: var(--shiki-color-text)">    }</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"message"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-string-expression)">"I’m traveling with my dad. He’s at a meeting. I hate meetings."</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"reactions"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> []</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"attachments"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> []</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"read_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">705103200</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"created_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">692233200</span><span style="color: var(--shiki-token-punctuation)">,</span></span>
- <span><span style="color: var(--shiki-color-text)">    </span><span style="color: var(--shiki-token-keyword)">"updated_at"</span><span style="color: var(--shiki-token-punctuation)">:</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">692233200</span></span>
- <span><span style="color: var(--shiki-color-text)">  }</span></span>
- <span><span style="color: var(--shiki-color-text)">}</span></span>
- <span></span></code></pre>
-                      <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                         <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                               <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                               <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                            </svg>
-                            Copy
-                         </span>
-                         <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                      </button>
-                   </div>
-                </div>
-             </div>
-          </div>
+      
        </div>
-       <hr>
-       <h2 id="security" class="scroll-mt-24"><a class="group text-inherit no-underline hover:text-inherit" href="/webhooks#security">Security</a></h2>
-       <p>To know for sure that a webhook was, in fact, sent by Protocol instead of a malicious actor, you can verify the request signature. Each webhook request contains a header named <code>x-protocol-signature</code>, and you can verify this signature by using your secret webhook key. The signature is an HMAC hash of the request payload hashed using your secret key. Here is an example of how to verify the signature in your app:</p>
-       <div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10">
-          <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
-             <h3 class="mr-auto pt-3 text-xs font-semibold text-white">Verifying a request</h3>
-             <div class="-mb-px flex gap-4 text-xs font-medium" role="tablist" aria-orientation="horizontal"><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-emerald-500 text-emerald-400" id="headlessui-tabs-tab-:r3:" role="tab" type="button" aria-selected="true" tabindex="0" data-headlessui-state="selected" aria-controls="headlessui-tabs-panel-:r6:">JavaScript</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r4:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r7:">Python</button><button class="border-b py-3 transition focus:[&amp;:not(:focus-visible)]:outline-none border-transparent text-zinc-400 hover:text-zinc-300" id="headlessui-tabs-tab-:r5:" role="tab" type="button" aria-selected="false" tabindex="-1" data-headlessui-state="" aria-controls="headlessui-tabs-panel-:r8:">PHP</button></div>
-          </div>
-          <div>
-             <div id="headlessui-tabs-panel-:r6:" role="tabpanel" tabindex="0" data-headlessui-state="selected" aria-labelledby="headlessui-tabs-tab-:r3:">
-                <div class="group dark:bg-white/2.5">
-                   <div class="relative">
-                      <pre class="overflow-x-auto p-4 text-xs text-white"><code class="language-js"><span><span style="color: var(--shiki-token-keyword)">const</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">signature</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-keyword)">=</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">req</span><span style="color: var(--shiki-color-text)">.headers[</span><span style="color: var(--shiki-token-string-expression)">'x-protocol-signature'</span><span style="color: var(--shiki-color-text)">]</span></span>
- <span><span style="color: var(--shiki-token-keyword)">const</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">hash</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-keyword)">=</span><span style="color: var(--shiki-color-text)"> </span><span style="color: var(--shiki-token-constant)">crypto</span><span style="color: var(--shiki-token-function)">.createHmac</span><span style="color: var(--shiki-color-text)">(</span><span style="color: var(--shiki-token-string-expression)">'sha256'</span><span style="color: var(--shiki-token-punctuation)">,</span><span style="color: var(--shiki-color-text)"> secret)</span><span style="color: var(--shiki-token-function)">.update</span><span style="color: var(--shiki-color-text)">(payload)</span><span style="color: var(--shiki-token-function)">.digest</span><span style="color: var(--shiki-color-text)">(</span><span style="color: var(--shiki-token-string-expression)">'hex'</span><span style="color: var(--shiki-color-text)">)</span></span>
- <span></span>
- <span><span style="color: var(--shiki-token-keyword)">if</span><span style="color: var(--shiki-color-text)"> (hash </span><span style="color: var(--shiki-token-keyword)">===</span><span style="color: var(--shiki-color-text)"> signature) {</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-comment)">// Request is verified</span></span>
- <span><span style="color: var(--shiki-color-text)">} </span><span style="color: var(--shiki-token-keyword)">else</span><span style="color: var(--shiki-color-text)"> {</span></span>
- <span><span style="color: var(--shiki-color-text)">  </span><span style="color: var(--shiki-token-comment)">// Request could not be verified</span></span>
- <span><span style="color: var(--shiki-color-text)">}</span></span>
- <span></span></code></pre>
-                      <button type="button" class="group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pl-2 pr-3 text-2xs font-medium opacity-0 backdrop-blur transition focus:opacity-100 group-hover:opacity-100 bg-white/5 hover:bg-white/7.5 dark:bg-white/2.5 dark:hover:bg-white/5">
-                         <span aria-hidden="false" class="pointer-events-none flex items-center gap-0.5 text-zinc-400 transition duration-300">
-                            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-zinc-500/20 stroke-zinc-500 transition-colors group-hover/button:stroke-zinc-400">
-                               <path stroke-width="0" d="M5.5 13.5v-5a2 2 0 0 1 2-2l.447-.894A2 2 0 0 1 9.737 4.5h.527a2 2 0 0 1 1.789 1.106l.447.894a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2Z"></path>
-                               <path fill="none" stroke-linejoin="round" d="M12.5 6.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2m5 0-.447-.894a2 2 0 0 0-1.79-1.106h-.527a2 2 0 0 0-1.789 1.106L7.5 6.5m5 0-1 1h-3l-1-1"></path>
-                            </svg>
-                            Copy
-                         </span>
-                         <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300 translate-y-1.5 opacity-0">Copied!</span>
-                      </button>
-                   </div>
-                </div>
-             </div>
-             <span id="headlessui-tabs-panel-:r7:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r4:"></span><span id="headlessui-tabs-panel-:r8:" role="tabpanel" tabindex="-1" style="position: fixed; top: 1px; left: 1px; width: 1px; height: 0px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;" aria-labelledby="headlessui-tabs-tab-:r5:"></span>
-          </div>
-       </div>
-       <p>If your generated signature matches the <code>x-protocol-signature</code> header, you can be sure that the request was truly coming from Protocol. It's essential to keep your secret webhook key safe — otherwise, you can no longer be sure that a given webhook was sent by Protocol. Don't commit your secret webhook key to GitHub!</p>
+       
     </article>
  </main>

@@ -3,8 +3,22 @@
        <h3 class="mr-auto pt-3 text-xs font-semibold text-white"><%= title -%></h3>
     </div>
     <div class="group dark:bg-white/2.5">
+      
+      
+      <% if(requestType && requestUrl){ %>
+         
+      <div class="flex h-9 items-center gap-2 border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4 dark:border-b-white/5 dark:bg-white/1 mb-2">
+         <% if( requestType === "GET"){ %>
+            <div class="dark flex"><span class="font-mono text-sm font-semibold leading-6 text-emerald-500 dark:text-emerald-400">GET</span></div>
+          <% } %>  
+         <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-sm text-zinc-300"><%= requestUrl -%></span>
+      </div>
+      
+       <% } %>  
+       <% if(code){ %>
        <div class="relative">
-          <pre class="overflow-x-auto p-4 text-xs text-white"><code class="text-base"><%= code -%></code></pre>
+          <pre class="overflow-x-auto p-4 text-xs text-white"><code class="text-sm"><%= code -%></code></pre>
        </div>
+       <% } %>  
     </div>
  </div>

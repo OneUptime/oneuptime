@@ -17,7 +17,7 @@
         Authentication with API Key
        </h2>
        <p>You can use OneUptime API Key on Request Header when you're making a requst. You can use <code class="rounded p-0.5 px-1 text-sm text-gray-500 bg-gray-100 border-2 border-gray-200">Authorization</code> header with your API Key when you make a request.</p>
-       <%- include('../partials/code', {title: "Example request with API Key", code: "curl --header \"Authorization: Bearer {secret-api-key}\" https://oneuptime.com/api/\<path\>" }) -%>
+       <%- include('../partials/code', {title: "Example request with API Key", requestUrl: "", requestType: "", code: "curl --header \"Authorization: Bearer {secret-api-key}\" https://oneuptime.com/api/\<path\>" }) -%>
        <p class="text-sm">Please don't commit your OneUptime API Key to GitHub, or on any other source control project. Please regenerate a new API Key, if your API Key is comitted by mistake.</p>
     </article>
  </main>
