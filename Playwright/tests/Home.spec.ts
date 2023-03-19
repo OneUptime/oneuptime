@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.goto('https://test.oneuptime.com');
 });
-test.describe('title', () => {
+test.describe('check if pages loades with its title', () => {
 test('has title', async ({ page }) => {
     await expect(page).toHaveTitle(/OneUptime | One Complete SRE and DevOps platform./);
 });
