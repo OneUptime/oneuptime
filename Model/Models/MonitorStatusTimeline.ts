@@ -85,10 +85,12 @@ export default class MonitorStatusTimeline extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({
+     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: "Project",
+        description: "Relation to Project Resource"
     })
     @ManyToOne(
         (_type: string) => {
@@ -120,10 +122,12 @@ export default class MonitorStatusTimeline extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({
+     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: "Project ID",
+        description: "ID of your OneUptime Project"
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -205,10 +209,12 @@ export default class MonitorStatusTimeline extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({
+   @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: "Created by User",
+        description: "Relation to User who created this object (if this object was created by a User)"
     })
     @ManyToOne(
         (_type: string) => {
@@ -239,7 +245,11 @@ export default class MonitorStatusTimeline extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: "Created by User ID",
+        description: "User ID who created this object (if this object was created by a User)"
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -255,6 +265,8 @@ export default class MonitorStatusTimeline extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
+        title: "Deleted by User",
+        description: "Relation to User who deleted this object (if this object was deleted by a User)"
     })
     @ManyToOne(
         (_type: string) => {
@@ -276,7 +288,8 @@ export default class MonitorStatusTimeline extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
+        description: "User ID who deleted this object (if this object was deleted by a User)" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

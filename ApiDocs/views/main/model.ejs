@@ -6,6 +6,139 @@
       <p class="lead">
          <%= pageData.description -%>
       </p>
+
+
+      <h2>Permissions</h2>
+       <p class="lead"> Your API Token needs permissions to create, update, read or delete this resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. </p>
+      
+   
+       <h3 id="consuming-webhooks" >
+         Read Permissions
+       </h3>
+       <p>You need one of these permissions to read <%= pageData.title -%>:</p>
+       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10">
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <div class="my-6">
+                <ul role="list" class="m-0 w-full">
+                  <% for(var i=0; i<pageData.tablePermissions.read.length; i++) {%>
+                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                         <dt class="sr-only">Name</dt>
+                         <dd><code class="inline-code"> <%= pageData.tablePermissions.read[i].permission -%></code></dd>
+                         <dt class="sr-only">Type</dt>
+                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.read[i].title -%></dd>
+                         <dt class="sr-only">Description</dt>
+                         <dd class="w-full text-sm flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                            <p><%= pageData.tablePermissions.read[i].description -%></p>
+                         </dd>
+                      </dl>
+                   </li>
+                   <% } %>
+
+                   
+                </ul>
+             </div>
+          </div>
+      
+       </div>
+
+
+       <h3 id="consuming-webhooks" >
+         Create Permissions
+       </h3>
+       <p>You need one of these permissions to create <%= pageData.title -%>:</p>
+       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10">
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <div class="my-6">
+                <ul role="list" class="m-0 w-full">
+                  <% for(var i=0; i<pageData.tablePermissions.read.length; i++) {%>
+                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                         <dt class="sr-only">Name</dt>
+                         <dd><code class="inline-code"> <%= pageData.tablePermissions.create[i].permission -%></code></dd>
+                         <dt class="sr-only">Type</dt>
+                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.create[i].title -%></dd>
+                         <dt class="sr-only">Description</dt>
+                         <dd class="w-full text-sm flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                            <p><%= pageData.tablePermissions.create[i].description -%></p>
+                         </dd>
+                      </dl>
+                   </li>
+                   <% } %>
+
+                   
+                </ul>
+             </div>
+          </div>
+      
+       </div>
+
+
+
+
+       <h3 id="consuming-webhooks" >
+         Update Permissions
+       </h3>
+       <p>You need one of these permissions to update <%= pageData.title -%>:</p>
+       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10">
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <div class="my-6">
+                <ul role="list" class="m-0 w-full">
+                  <% for(var i=0; i<pageData.tablePermissions.read.length; i++) {%>
+                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                         <dt class="sr-only">Name</dt>
+                         <dd><code class="inline-code"> <%= pageData.tablePermissions.update[i].permission -%></code></dd>
+                         <dt class="sr-only">Type</dt>
+                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.update[i].title -%></dd>
+                         <dt class="sr-only">Description</dt>
+                         <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                            <p><%= pageData.tablePermissions.update[i].description -%></p>
+                         </dd>
+                      </dl>
+                   </li>
+                   <% } %>
+
+                   
+                </ul>
+             </div>
+          </div>
+      
+       </div>
+
+
+
+       <h3 id="consuming-webhooks" >
+         Delete Permissions
+       </h3>
+       <p>You need one of these permissions to delete <%= pageData.title -%>:</p>
+       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10">
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <div class="my-6">
+                <ul role="list" class="m-0 w-full">
+                  <% for(var i=0; i<pageData.tablePermissions.read.length; i++) {%>
+                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                         <dt class="sr-only">Name</dt>
+                         <dd><code class="inline-code"> <%= pageData.tablePermissions.delete[i].permission -%></code></dd>
+                         <dt class="sr-only">Type</dt>
+                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.delete[i].title -%></dd>
+                         <dt class="sr-only">Description</dt>
+                         <dd class="w-full text-sm flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                            <p><%= pageData.tablePermissions.delete[i].description -%></p>
+                         </dd>
+                      </dl>
+                   </li>
+                   <% } %>
+
+                   
+                </ul>
+             </div>
+          </div>
+      
+       </div>
+
+
       <h2 id="the-contact-model" class="scroll-mt-24">
          The <%= pageData.title -%> model
       </h2>
@@ -31,19 +164,18 @@
 
                      </dd>
                      <dt class="sr-only">Description</dt>
-                     <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                     <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                         <p>
-                           <%= pageData.columns[Object.keys(pageData.columns)[i]].title -%> - <%=
-                                 pageData.columns[Object.keys(pageData.columns)[i]].description -%>
+                          <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%>
                         </p>
                      </dd>
                      <dd class="font-mono text-xs ">
 
                         <div class="mb-3 mt-3">
-                           <span class="text-gray-400 text-xs">Permissions to Create:&nbsp;</span>
+                           <span class="text-gray-700  text-xs">Permissions to Create:&nbsp;</span>
 
                            <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length; j++) {%>
-                              <span class="rounded-xl p-0.5 px-1 text-xs text-blue-500 bg-blue-100 border-2 border-blue-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-slate-500 bg-slate-100 border-2 border-slate-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
                               
                               <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length-1){ %>
                               <span class="text-gray-400 text-xs ml-1 mr-1">or</span>
@@ -51,13 +183,18 @@
                               
                               <% } %>
 
+                              <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length === 0){ %>
+                                 <span class="p-0.5 px-1 text-xs text-rose-400"> This property is autogenerated. </span>
+                                 <% } %>
+   
+
                         </div>
 
                         <div class="mb-3 mt-3">
-                           <span class="text-gray-400 text-xs">Permissions to Read:&nbsp;</span>
+                           <span class="text-gray-700  text-xs">Permissions to Read:&nbsp;</span>
 
                            <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length; j++) {%>
-                              <span class="rounded-xl p-0.5 px-1 text-xs text-blue-500 bg-blue-100 border-2 border-blue-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-slate-500 bg-slate-100 border-2 border-slate-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.read[j] -%></span>
                               
                               <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length-1){ %>
                                  <span class="text-gray-400 text-xs ml-1 mr-1">or</span>
@@ -65,13 +202,18 @@
                              
                               <% } %>
 
+                              <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length === 0){ %>
+                                 <span class="p-0.5 px-1 text-xs text-rose-400"> This property cannot be read. </span>
+                                 <% } %>
+   
+
                         </div>
 
                         <div class="mb-3 mt-3">
-                           <span class="text-gray-400 text-xs">Permissions to Update:&nbsp;</span>
+                           <span class="text-gray-700 text-xs">Permissions to Update:&nbsp;</span>
 
                            <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length; j++) {%>
-                              <span class="rounded-xl p-0.5 px-1 text-xs text-blue-500 bg-blue-100 border-2 border-blue-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%></span>
+                              <span class="rounded-xl p-0.5 px-1 text-xs text-slate-500 bg-slate-100 border-2 border-slate-200"> <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.update[j] -%></span>
                              
                               <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length-1){ %>
                                  <span class="text-gray-400 text-xs ml-1 mr-1">or</span>
@@ -81,7 +223,7 @@
 
 
                            <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length === 0){ %>
-                              <span class="rounded-xl p-0.5 px-1 text-xs text-red-500 bg-red-100 border-2 border-red-200"> You cannot update this property. </span>
+                              <span class="p-0.5 px-1 text-xs text-rose-400"> This property cannot be updated. </span>
                               <% } %>
 
                         </div>

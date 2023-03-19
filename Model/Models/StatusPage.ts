@@ -96,10 +96,12 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({
+     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: "Project",
+        description: "Relation to Project Resource"
     })
     @ManyToOne(
         (_type: string) => {
@@ -131,10 +133,12 @@ export default class StatusPage extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({
+     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: "Project ID",
+        description: "ID of your OneUptime Project"
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -165,11 +169,7 @@ export default class StatusPage extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({
-        required: true,
-        type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
-    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Name", description: "Any friendly name of this object" })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -253,7 +253,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Description", description: "Any friendly description of this object" })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -301,10 +301,12 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({
+   @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: "Created by User",
+        description: "Relation to User who created this object (if this object was created by a User)"
     })
     @ManyToOne(
         (_type: string) => {
@@ -379,7 +381,11 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: "Created by User ID",
+        description: "User ID who created this object (if this object was created by a User)"
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -395,6 +401,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
+        title: "Deleted by User",
+        description: "Relation to User who deleted this object (if this object was deleted by a User)"
     })
     @ManyToOne(
         (_type: string) => {
@@ -416,7 +424,8 @@ export default class StatusPage extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
+        description: "User ID who deleted this object (if this object was deleted by a User)" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

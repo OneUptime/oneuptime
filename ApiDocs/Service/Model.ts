@@ -1,5 +1,6 @@
 import { getTableColumns } from 'Common/Types/Database/TableColumn';
 import Dictionary from 'Common/Types/Dictionary';
+import Permission, { PermissionHelper, PermissionProps } from 'Common/Types/Permission';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import PageNotFoundServiceHandler from './PageNotFound';
@@ -7,6 +8,8 @@ import PageNotFoundServiceHandler from './PageNotFound';
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const ResourceDictionary: Dictionary<ModelDocumentation> =
     ResourceUtil.getReosurceDictionaryByPath();
+
+const PermissionDictionary: Dictionary<PermissionProps> = PermissionHelper.getAllPermissionPropsAsDictionary();
 
 export default class ServiceHandler {
     public static async executeResponse(
@@ -57,9 +60,20 @@ export default class ServiceHandler {
 
         }
 
+        delete tableColumns["deletedAt"];
+        delete tableColumns["deletedByUserId"];
+        delete tableColumns["deletedByUser"];
+        delete tableColumns["version"];
+
         pageData.title = currentResource.model.singularName;
         pageData.description = currentResource.model.tableDescription;
         pageData.columns = tableColumns;
+        pageData.tablePermissions = {
+            read: currentResource.model.readRecordPermissions.map((permission: Permission)=> PermissionDictionary[permission]),
+            update: currentResource.model.updateRecordPermissions.map((permission: Permission)=> PermissionDictionary[permission]),
+            delete: currentResource.model.deleteRecordPermissions.map((permission: Permission)=> PermissionDictionary[permission]),
+            create: currentResource.model.createRecordPermissions.map((permission: Permission)=> PermissionDictionary[permission]),
+        }
 
         return res.render('pages/index', {
             page: page,

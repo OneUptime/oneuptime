@@ -135,7 +135,7 @@ export default class Probe extends BaseModel {
         read: [Permission.Public],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug, title: "Slug", description: "Friendly globally unique name for your object" })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -278,7 +278,8 @@ export default class Probe extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
+        description: "User ID who deleted this object (if this object was deleted by a User)" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -321,7 +322,11 @@ export default class Probe extends BaseModel {
         read: [Permission.ProjectOwner],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: "Created by User ID",
+        description: "User ID who created this object (if this object was created by a User)"
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

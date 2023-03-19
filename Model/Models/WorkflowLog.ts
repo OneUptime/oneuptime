@@ -64,10 +64,12 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({
+     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: "Project",
+        description: "Relation to Project Resource"
     })
     @ManyToOne(
         (_type: string) => {
@@ -94,10 +96,12 @@ export default class WorkflowLog extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({
+     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: "Project ID",
+        description: "ID of your OneUptime Project"
     })
     @Column({
         type: ColumnType.ObjectID,

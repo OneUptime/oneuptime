@@ -1,4 +1,5 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
+import Dictionary from './Dictionary';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject } from './JSON';
 import ObjectID from './ObjectID';
@@ -1909,6 +1910,18 @@ export class PermissionHelper {
         ];
 
         return permissions;
+    }
+
+    public static getAllPermissionPropsAsDictionary(): Dictionary<PermissionProps> {
+        const permissions: Array<PermissionProps> =PermissionHelper.getAllPermissionProps(); 
+
+        const dict: Dictionary<PermissionProps> = {};
+
+        for(const permission of permissions){
+            dict[permission.permission] = permission;
+        }
+
+        return dict;
     }
 }
 
