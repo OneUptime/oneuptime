@@ -364,6 +364,8 @@ export default class Incident extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Monitor,
+        title: "Monitors",
+        description: "List of monitors affected by this incident"
     })
     @ManyToMany(
         () => {
@@ -454,6 +456,8 @@ export default class Incident extends BaseModel {
         manyToOneRelationColumn: 'currentIncidentStateId',
         type: TableColumnType.Entity,
         modelType: IncidentState,
+        title: "Current Incident State",
+        description: "Current state of this incident. Is the incident acknowledged? or resolved?. This is related to Incident State"
     })
     @ManyToOne(
         (_type: string) => {
@@ -489,7 +493,7 @@ export default class Incident extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Current Incident State ID", description: "Current Incident State ID" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -521,6 +525,9 @@ export default class Incident extends BaseModel {
         manyToOneRelationColumn: 'incidentSeverityId',
         type: TableColumnType.Entity,
         modelType: IncidentSeverity,
+        title: "Incident Severity",
+        description: "How severe is this incident. Is it critical? or a minor incident?. This is related to Incident Severity."
+
     })
     @ManyToOne(
         (_type: string) => {
@@ -556,7 +563,7 @@ export default class Incident extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Incident Severity ID", description: "Incident Severity ID" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -583,6 +590,7 @@ export default class Incident extends BaseModel {
         manyToOneRelationColumn: 'changeMonitorStatusToId',
         type: TableColumnType.Entity,
         modelType: IncidentState,
+        title: "Change Monitor Status To", description: "Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created."
     })
     @ManyToOne(
         (_type: string) => {
@@ -618,7 +626,7 @@ export default class Incident extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: false })
+    @TableColumn({ type: TableColumnType.ObjectID, required: false, title: "Change Monitor Status To ID", description: "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the incident is created." })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -631,7 +639,7 @@ export default class Incident extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Should subscribers be notified?", description: "Should we notify the subscribers about this incident?" })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -662,6 +670,7 @@ export default class Incident extends BaseModel {
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
+        title: "Custom Fields", description: "Custom Fields on this resource." 
     })
     @Column({
         type: ColumnType.JSON,

@@ -1350,6 +1350,7 @@ export default class StatusPage extends BaseModel {
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
+        title: "Custom Fields", description: "Custom Fields on this resource." 
     })
     @Column({
         type: ColumnType.JSON,
