@@ -151,6 +151,8 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
         manyToOneRelationColumn: 'scheduledMaintenanceId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenance,
+        title: "Scheduled Maintenance",
+        description: "Relation to Scheduled Maintenance Event this resource belongs to"
     })
     @ManyToOne(
         (_type: string) => {
@@ -182,7 +184,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Scheduled Maintenance ID", description: "ID of Scheduled Maintenance this resource belongs to" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

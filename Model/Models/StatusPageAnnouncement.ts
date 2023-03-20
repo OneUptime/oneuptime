@@ -202,7 +202,7 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Title", description: "Title of this resource" })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,

@@ -221,7 +221,7 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.CanEditStatusPageHeaderLink,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Title", description: "Title of this resource" })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -249,7 +249,7 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.CanEditStatusPageHeaderLink,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortURL })
+    @TableColumn({ required: true, type: TableColumnType.ShortURL, title: "Link", description: "URL to a website or any other resource on the internet" })
     @Column({
         nullable: false,
         type: ColumnType.ShortURL,

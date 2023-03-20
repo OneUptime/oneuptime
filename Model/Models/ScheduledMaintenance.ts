@@ -365,6 +365,8 @@ export default class ScheduledMaintenance extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Monitor,
+        title: "Monitors",
+        description: "List of monitors attached to this event"
     })
     @ManyToMany(
         () => {
@@ -409,6 +411,8 @@ export default class ScheduledMaintenance extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: StatusPage,
+        title: "Status Pages",
+        description: "List of status pages to show this event on"
     })
     @ManyToMany(
         () => {
@@ -499,6 +503,8 @@ export default class ScheduledMaintenance extends BaseModel {
         manyToOneRelationColumn: 'currentScheduledMaintenanceStateId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenanceState,
+        title: "Current Scheduled Maintenance State",
+        description: "Relation to Scheduled Maintenance State. The state the event currently is in."
     })
     @ManyToOne(
         (_type: string) => {
@@ -534,7 +540,7 @@ export default class ScheduledMaintenance extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Current Scheduled Maintenance State ID",  description: "Scheduled Maintenance State ID. The state the event currently is in."})
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -561,6 +567,7 @@ export default class ScheduledMaintenance extends BaseModel {
         manyToOneRelationColumn: 'changeMonitorStatusToId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenanceState,
+        title: "Change Monitor Status To", description: "Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing."
     })
     @ManyToOne(
         (_type: string) => {
@@ -596,7 +603,7 @@ export default class ScheduledMaintenance extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: false })
+    @TableColumn({ type: TableColumnType.ObjectID, required: false, title: "Change Monitor Status To ID", description: "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the event is ongoing."  })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -608,6 +615,7 @@ export default class ScheduledMaintenance extends BaseModel {
         title: 'Start At',
         type: TableColumnType.Date,
         required: true,
+        description: "When does this event start?"
     })
     @ColumnAccessControl({
         create: [
@@ -639,6 +647,7 @@ export default class ScheduledMaintenance extends BaseModel {
         title: 'End At',
         type: TableColumnType.Date,
         required: true,
+        description: "When does this event end?"
     })
     @ColumnAccessControl({
         create: [
@@ -671,7 +680,7 @@ export default class ScheduledMaintenance extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Status Page Subscribers Notified On Event Scheduled", description: "Status Page Subscribers Notified On Event Scheduled" })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -683,7 +692,7 @@ export default class ScheduledMaintenance extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Status Page Subscribers Notified On Ongoing Event", description: "Status Page Subscribers Notified On Ongoing Event" })
     @Column({
         type: ColumnType.Boolean,
         default: false,
