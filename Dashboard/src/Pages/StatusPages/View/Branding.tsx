@@ -147,62 +147,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Colors"
-                cardProps={{
-                    title: 'Page Colors',
-                    description:
-                        'Page background color and text colors for your status page',
-                    icon: IconProp.Layers,
-                }}
-                editButtonText={'Edit Colors'}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            pageBackgroundColor: true,
-                        },
-                        title: 'Page Background Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#ffffff',
-                    },
-                    {
-                        field: {
-                            pageTextColor: true,
-                        },
-                        title: 'Page Text Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#000000',
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                pageBackgroundColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Page Background Color',
-                            placeholder: '#ffffff',
-                        },
-                        {
-                            field: {
-                                pageTextColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Page Text Color',
-                            placeholder: '#000000',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
         </Page>
     );
 };
