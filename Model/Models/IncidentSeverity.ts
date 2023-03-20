@@ -354,6 +354,7 @@ title: "Name", description: "Any friendly name of this object"
         unique: false,
         type: TableColumnType.Color,
         canReadOnPopulate: true,
+        description: "Color of this resource in Hex (#32a852 for example)"
     })
     @Column({
         type: ColumnType.Color,
@@ -388,6 +389,8 @@ title: "Name", description: "Any friendly name of this object"
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
+        title: "Order",
+        description: "Order / Priority of this resource"
     })
     @Column({
         type: ColumnType.SmallNumber,

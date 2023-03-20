@@ -348,12 +348,13 @@ title: "Name", description: "Any friendly name of this object"
             Permission.CanEditProjectMonitorStatus,
         ],
     })
-    @TableColumn({
+ @TableColumn({
         title: 'Color',
         required: true,
         unique: false,
         type: TableColumnType.Color,
         canReadOnPopulate: true,
+        description: "Color of this resource in Hex (#32a852 for example)"
     })
     @Column({
         type: ColumnType.Color,
@@ -388,6 +389,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Is Operational State",
+        description: "Is this monitor in operational state?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -419,6 +422,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Is Offline State",
+        description: "Is this monitor in offline state?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -450,6 +455,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Number,
         canReadOnPopulate: true,
+        title: "Order",
+        description: "Order / Priority of this status. For example: Operational has priority 1, Degraded has 2, Offline has 3. Lower priority would mean bad state of the resource. "
     })
     @Column({
         type: ColumnType.Number,

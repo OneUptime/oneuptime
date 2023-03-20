@@ -348,12 +348,13 @@ title: "Name", description: "Any friendly name of this object"
             Permission.CanEditScheduledMaintenanceState,
         ],
     })
-    @TableColumn({
+ @TableColumn({
         title: 'Color',
         required: true,
         unique: false,
         type: TableColumnType.Color,
         canReadOnPopulate: true,
+        description: "Color of this resource in Hex (#32a852 for example)"
     })
     @Column({
         type: ColumnType.Color,

@@ -393,7 +393,7 @@ export default class Monitor extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.MonitorType, title: "Monitor Type", description: "Whats the type of this monitor? Website? API? etc." })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -425,6 +425,8 @@ export default class Monitor extends BaseModel {
         manyToOneRelationColumn: 'currentMonitorStatusId',
         type: TableColumnType.Entity,
         modelType: MonitorStatus,
+        title: "Current Monitor Status",
+        description: "Whats the current status of this monitor?"
     })
     @ManyToOne(
         (_type: string) => {
@@ -460,7 +462,8 @@ export default class Monitor extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Current Monitor Status ID",
+    description: "Whats the current status ID of this monitor?" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

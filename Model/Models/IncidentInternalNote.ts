@@ -151,6 +151,8 @@ export default class IncidentInternalNote extends BaseModel {
         manyToOneRelationColumn: 'incidentId',
         type: TableColumnType.Entity,
         modelType: Incident,
+        title: "Incident",
+        description: "Relation to Incident in which this resource belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -182,7 +184,8 @@ export default class IncidentInternalNote extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Incident ID",
+    description: "Relation to Incident ID in which this resource belongs" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -313,7 +316,7 @@ export default class IncidentInternalNote extends BaseModel {
             Permission.CanEditIncidentInternalNote,
         ],
     })
-    @TableColumn({ type: TableColumnType.Markdown })
+    @TableColumn({ type: TableColumnType.Markdown, title: "Note", description: "Notes in markdown" })
     @Column({
         type: ColumnType.Markdown,
         nullable: false,

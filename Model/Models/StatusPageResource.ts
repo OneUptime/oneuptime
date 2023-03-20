@@ -222,6 +222,8 @@ export default class StatusPageResource extends BaseModel {
         manyToOneRelationColumn: 'monitorId',
         type: TableColumnType.Entity,
         modelType: Monitor,
+        title: "Monitor",
+        description: "Relation to Monitor Resource in which this object belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -258,14 +260,14 @@ export default class StatusPageResource extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+   @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Monitor ID",
+    description: "Relation to Monitor ID Resource in which this object belongs" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public monitorId?: ObjectID = undefined;
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -555,9 +557,14 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
+     @TableColumn({
+        isDefaultValueColumn: false,
+        type: TableColumnType.SmallNumber,
+        title: "Order",
+        description: "Order / Priority of this resource"
+    })
     @Column({
-        type: ColumnType.Number,
+        type: ColumnType.SmallNumber,
     })
     public order?: number = undefined;
 }

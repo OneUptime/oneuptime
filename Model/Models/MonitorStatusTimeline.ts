@@ -155,6 +155,8 @@ export default class MonitorStatusTimeline extends BaseModel {
         manyToOneRelationColumn: 'monitorId',
         type: TableColumnType.Entity,
         modelType: Monitor,
+        title: "Monitor",
+        description: "Relation to Monitor Resource in which this object belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -186,7 +188,8 @@ export default class MonitorStatusTimeline extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Monitor ID",
+    description: "Relation to Monitor ID Resource in which this object belongs" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -321,6 +324,8 @@ export default class MonitorStatusTimeline extends BaseModel {
         manyToOneRelationColumn: 'monitorStatusId',
         type: TableColumnType.Entity,
         modelType: MonitorStatus,
+        title: "Monitor Status",
+        description: "Relation to Monitor Status Resource in which this object belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -356,7 +361,8 @@ export default class MonitorStatusTimeline extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Monitor Status ID",
+    description: "Relation to Monitor Status ID Resource in which this object belongs" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

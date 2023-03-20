@@ -356,9 +356,14 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
+     @TableColumn({
+        isDefaultValueColumn: false,
+        type: TableColumnType.SmallNumber,
+        title: "Order",
+        description: "Order / Priority of this resource"
+    })
     @Column({
-        type: ColumnType.Number,
+        type: ColumnType.SmallNumber,
     })
     public order?: number = undefined;
 

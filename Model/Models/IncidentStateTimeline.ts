@@ -153,6 +153,8 @@ export default class IncidentStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'incidentId',
         type: TableColumnType.Entity,
         modelType: Incident,
+        title: "Incident",
+        description: "Relation to Incident in which this resource belongs"
     })
     @ManyToOne(
         (_type: string) => {
@@ -184,7 +186,8 @@ export default class IncidentStateTimeline extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Incident ID",
+    description: "Relation to Incident ID in which this resource belongs" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -319,6 +322,8 @@ export default class IncidentStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'incidentStateId',
         type: TableColumnType.Entity,
         modelType: IncidentState,
+        title: "Incident State",
+        description: "Incident State Relation. Which incident state does this incident change to?"
     })
     @ManyToOne(
         (_type: string) => {
@@ -354,7 +359,8 @@ export default class IncidentStateTimeline extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Incident State ID",
+    description: "Incident State ID Relation. Which incident state does this incident change to?" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

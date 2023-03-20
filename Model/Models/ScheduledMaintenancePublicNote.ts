@@ -313,7 +313,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.CanEditScheduledMaintenancePublicNote,
         ],
     })
-    @TableColumn({ type: TableColumnType.Markdown })
+     @TableColumn({ type: TableColumnType.Markdown, title: "Note", description: "Notes in markdown" })
     @Column({
         type: ColumnType.Markdown,
         nullable: false,

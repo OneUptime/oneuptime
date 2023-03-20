@@ -348,12 +348,13 @@ title: "Name", description: "Any friendly name of this object"
             Permission.CanEditIncidentState,
         ],
     })
-    @TableColumn({
+ @TableColumn({
         title: 'Color',
         required: true,
         unique: false,
         type: TableColumnType.Color,
         canReadOnPopulate: true,
+        description: "Color of this resource in Hex (#32a852 for example)"
     })
     @Column({
         type: ColumnType.Color,
@@ -388,6 +389,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Is Created State",
+        description: "Is it the created state of the incident?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -419,6 +422,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Is Acknowledged State",
+        description: "Is it the acknowledged state of the incident?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -450,6 +455,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Is Resolved State",
+        description: "Is it the resolved state of the incident?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -482,6 +489,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
         canReadOnPopulate: true,
+        title: "Order",
+        description: "Order / Priority of this resource"
     })
     @Column({
         type: ColumnType.SmallNumber,
