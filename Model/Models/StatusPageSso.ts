@@ -227,6 +227,7 @@ export default class StatusPageSSO extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
+title: "Name", description: "Any friendly name of this object" 
     })
     @Column({
         nullable: false,

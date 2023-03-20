@@ -33,7 +33,8 @@ enum ColumnType {
     Entity = "Entity",
     EntityArray ="Entity Array",
     JSON = "JSON",
-    Permission = "Permission"
+    Permission = "Permission",
+    CustomFieldType = "Custom Field Type"
 }
 
 export default ColumnType;

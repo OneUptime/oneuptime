@@ -150,6 +150,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
+title: "Name", description: "Any friendly name of this object" 
     })
     @Column({
         nullable: false,
@@ -199,11 +200,11 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({ required: false, type: TableColumnType.CustomFieldType, title: "Custom Field Type", description: "Is this field Text, Number or Boolean?" })
     @Column({
         nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
     public type?: CustomFieldType = undefined;
 
