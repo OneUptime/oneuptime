@@ -30,7 +30,9 @@ import Label from './Label';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
     read: PlanSelect.Growth,
@@ -72,6 +74,8 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
     singularName: 'Workflow',
     pluralName: 'Workflows',
     icon: IconProp.Workflow,
+    tableDescription:
+        'Integrate your OneUptime project with rest of your software stack.',
 })
 export default class Workflow extends BaseModel {
     @ColumnAccessControl({
@@ -92,6 +96,9 @@ export default class Workflow extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -126,6 +133,9 @@ export default class Workflow extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -156,6 +166,8 @@ export default class Workflow extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,
@@ -175,7 +187,13 @@ export default class Workflow extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -201,7 +219,12 @@ export default class Workflow extends BaseModel {
             Permission.CanEditWorkflow,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -227,6 +250,9 @@ export default class Workflow extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -256,7 +282,12 @@ export default class Workflow extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -276,7 +307,10 @@ export default class Workflow extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -303,7 +337,12 @@ export default class Workflow extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -329,7 +368,12 @@ export default class Workflow extends BaseModel {
             Permission.CanEditWorkflow,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Is Enabled',
+        description: 'Is this workflow enabled?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -358,6 +402,9 @@ export default class Workflow extends BaseModel {
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
+        title: 'Workflow Graph',
+        description:
+            'Workflow Graph in JSON. Ideally, create this via UI and not via API.',
     })
     @Column({
         type: ColumnType.JSON,
@@ -387,6 +434,9 @@ export default class Workflow extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this object is categorized in.',
     })
     @ManyToMany(
         () => {

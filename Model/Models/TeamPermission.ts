@@ -26,6 +26,9 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+
+@EnableDocumentation()
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
@@ -68,41 +71,9 @@ import IconProp from 'Common/Types/Icon/IconProp';
     singularName: 'Team Permission',
     pluralName: 'Team Permissions',
     icon: IconProp.Lock,
+    tableDescription: 'Permissions for your OneUptime team',
 })
 export default class TeamPermission extends BaseModel {
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanReadProjectTeam,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'teamId',
-        type: TableColumnType.Entity,
-        modelType: Team,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return Team;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'teamId' })
-    public team?: Team = undefined;
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -121,6 +92,9 @@ export default class TeamPermission extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -155,6 +129,9 @@ export default class TeamPermission extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -177,8 +154,47 @@ export default class TeamPermission extends BaseModel {
         ],
         update: [],
     })
+    @TableColumn({
+        manyToOneRelationColumn: 'teamId',
+        type: TableColumnType.Entity,
+        modelType: Team,
+        title: 'Team',
+        description: 'Team this permission belongs in.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'teamId' })
+    public team?: Team = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectTeam,
+            Permission.CanEditProjectTeamPermissions,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectTeam,
+        ],
+        update: [],
+    })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Team ID',
+        description: 'ID of Team this permission belongs in.',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -203,6 +219,9 @@ export default class TeamPermission extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -231,7 +250,12 @@ export default class TeamPermission extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -254,7 +278,10 @@ export default class TeamPermission extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -276,7 +303,12 @@ export default class TeamPermission extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -304,7 +336,13 @@ export default class TeamPermission extends BaseModel {
             Permission.CanEditProjectTeam,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Permission,
+        title: 'Permission',
+        description:
+            'Permission. You can find list of permissions on the Permissions page.',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -335,6 +373,9 @@ export default class TeamPermission extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this permission is scoped at.',
     })
     @ManyToMany(
         () => {

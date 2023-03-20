@@ -44,7 +44,8 @@ export default class FileModel extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,

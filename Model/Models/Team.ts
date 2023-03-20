@@ -17,6 +17,9 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+
+@EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -60,6 +63,8 @@ import IconProp from 'Common/Types/Icon/IconProp';
     singularName: 'Team',
     pluralName: 'Teams',
     icon: IconProp.Team,
+    tableDescription:
+        'Teams lets your organize users of your project into groups and lets you assign different level of permissions.',
 })
 export default class Team extends BaseModel {
     @ColumnAccessControl({
@@ -80,6 +85,9 @@ export default class Team extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -114,6 +122,9 @@ export default class Team extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -144,7 +155,8 @@ export default class Team extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,
@@ -171,7 +183,12 @@ export default class Team extends BaseModel {
             Permission.CanEditProjectTeam,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -194,7 +211,13 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -221,6 +244,9 @@ export default class Team extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -250,7 +276,12 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -265,7 +296,10 @@ export default class Team extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -287,7 +321,12 @@ export default class Team extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -306,7 +345,13 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Permissions Editable',
+        description:
+            'Can you edit team permissions? Teams auto-created for you are uneditable but you should be able to edit permissions on the team you create',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -324,7 +369,13 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Team Deleteable',
+        description:
+            'Can you delete this team? Teams auto-created for you are not deleteable but you should be able to delete permissions on the team you create',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -342,7 +393,13 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should have one member?',
+        description:
+            'Can this team have no members? Owner team should have atleast 1 member, other teams can have no members',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -360,7 +417,13 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Team Editable',
+        description:
+            'Can you edit team? Teams auto-created for you are uneditable but you should be able to edit on the team you create',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,

@@ -28,10 +28,11 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 import File from './File';
-import Color from 'Common/Types/Color';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import { JSONObject } from 'Common/Types/JSON';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -76,6 +77,7 @@ import { JSONObject } from 'Common/Types/JSON';
     singularName: 'Status Page',
     pluralName: 'Status Pages',
     icon: IconProp.CheckCircle,
+    tableDescription: 'Manage status pages for your project.',
 })
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
@@ -97,6 +99,9 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -132,6 +137,9 @@ export default class StatusPage extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -165,7 +173,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,
@@ -194,7 +203,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.ShortText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'Page Title',
+        description: 'Title of your Status Page. This is used for SEO.',
+    })
     @Column({
         nullable: true,
         type: ColumnType.ShortText,
@@ -222,7 +236,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Page Description',
+        description: 'Description of your Status Page. This is used for SEO.',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -250,7 +269,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -274,7 +298,13 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -302,6 +332,9 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -341,6 +374,9 @@ export default class StatusPage extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this object is categorized in.',
     })
     @ManyToMany(
         () => {
@@ -376,7 +412,12 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -391,7 +432,10 @@ export default class StatusPage extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -413,7 +457,12 @@ export default class StatusPage extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -447,6 +496,8 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'faviconFileId',
         type: TableColumnType.Entity,
         modelType: File,
+        title: 'Favicon',
+        description: 'Status Page Favicon',
     })
     @ManyToOne(
         (_type: string) => {
@@ -482,7 +533,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Favicon',
+        description: 'Status Page Favicon File ID',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -514,6 +569,8 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'logoFileId',
         type: TableColumnType.Entity,
         modelType: File,
+        title: 'Logo',
+        description: 'Status Page Logo',
     })
     @ManyToOne(
         (_type: string) => {
@@ -549,7 +606,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Logo',
+        description: 'Status Page Logo File ID',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -581,6 +642,8 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'coverImageFileId',
         type: TableColumnType.Entity,
         modelType: File,
+        title: 'Cover Image',
+        description: 'Status Page Cover Image',
     })
     @ManyToOne(
         (_type: string) => {
@@ -616,7 +679,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Cover Image',
+        description: 'Status Page Cover Image ID',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -644,7 +711,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.HTML })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.HTML,
+        title: 'Header HTML',
+        description: 'Status Page Custom HTML Header',
+    })
     @Column({
         nullable: true,
         type: ColumnType.HTML,
@@ -671,7 +743,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.HTML })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.HTML,
+        title: 'Footer HTML',
+        description: 'Status Page Custom HTML Footer',
+    })
     @Column({
         nullable: true,
         type: ColumnType.HTML,
@@ -698,7 +775,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.CSS })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.CSS,
+        title: 'CSS',
+        description: 'Status Page Custom CSS Header',
+    })
     @Column({
         nullable: true,
         type: ColumnType.CSS,
@@ -725,7 +807,13 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.JavaScript })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.JavaScript,
+        title: 'JavaScript',
+        description:
+            'Status Page Custom JavaScript. Thsi runs when the status page is loaded.',
+    })
     @Column({
         nullable: true,
         type: ColumnType.JavaScript,
@@ -752,7 +840,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Public Status Page',
+        description: 'Is this status page public?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -779,7 +872,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable Subscribers',
+        description: 'Can subscribers subscribe to this Status Page?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -806,343 +904,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public bannerBackgroundColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public headerBackgroundColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public headerTextColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public footerBackgroundColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public footerTextColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public pageBackgroundColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public pageTextColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public navBarTextColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public navBarBackgroundColor?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
-    @Column({
-        type: ColumnType.Color,
-        nullable: true,
-        transformer: Color.getDatabaseTransformer(),
-    })
-    public pageDescriptionText?: Color = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showHeader?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showFooter?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.ShortText,
+        title: 'Copyright Text',
+        description: 'Copyright Text',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -1170,172 +936,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showNavbar?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showOverviewPage?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showIncidentsPage?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showRssPage?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showAnouncementsPage?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showScheduledMaintenancePage?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
-        ],
-    })
     @TableColumn({
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
+        title: 'Custom Fields',
+        description: 'Custom Fields on this resource.',
     })
     @Column({
         type: ColumnType.JSON,
@@ -1368,6 +974,8 @@ export default class StatusPage extends BaseModel {
         required: true,
         type: TableColumnType.Boolean,
         isDefaultValueColumn: true,
+        description: 'Should SSO be required to login to Private Status Page',
+        title: 'Require SSO',
     })
     @Column({
         type: ColumnType.Boolean,

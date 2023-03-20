@@ -1,0 +1,77 @@
+<main class="py-16">
+    <article class="prose dark:prose-invert">
+       <h1 class="font-bold text-xl mb-5">Errors</h1>
+       <p class="lead">In this guide, we will talk about what happens when something goes wrong while you work with the API. Mistakes happen, and mostly they will be yours, not ours. Let's look at some status codes and error types you might encounter.</p>
+       <p>You can tell if your request was successful by checking the status code when receiving an API response. If a response comes back unsuccessful, you can use the status code and error message to figure out what has gone wrong and do some rudimentary debugging (before contacting support).</p>
+       <div class="my-6 flex gap-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-50/50 p-4 leading-6 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/5 dark:text-emerald-200 dark:[--tw-prose-links:theme(colors.white)] dark:[--tw-prose-links-hover:theme(colors.emerald.300)]">
+          <svg viewBox="0 0 16 16" aria-hidden="true" class="mt-1 h-4 w-4 flex-none fill-emerald-500 stroke-white dark:fill-emerald-200/20 dark:stroke-emerald-200">
+             <circle cx="8" cy="8" r="8" stroke-width="0"></circle>
+             <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.75h1.5v3.5"></path>
+             <circle cx="8" cy="4" r=".5" fill="none"></circle>
+          </svg>
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <p>Before reaching out to support with an error, please be aware that 99% of all
+                reported errors are, in fact, user errors. Therefore, please carefully check
+                your code before contacting OneUptime support.
+             </p>
+          </div>
+       </div>
+       <hr>
+       <h2 id="status-codes" class="mb-5 scroll-mt-24 mt-24 font-bold text-lg">
+         Status codes
+       </h2>
+       <p>Here is a list of the different categories of status codes returned by the OneUptime API. Use these to understand if a request was successful.</p>
+       <div class="my-6">
+          <ul role="list" class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+             <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                   <dt class="sr-only">Name</dt>
+                   <dd><code class="inline-code">2xx</code></dd>
+                   <dt class="sr-only">Type</dt>
+                   <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
+                   <dt class="sr-only">Description</dt>
+                   <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                      <p>A 2xx status code indicates a successful response.</p>
+                   </dd>
+                </dl>
+             </li>
+             <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                   <dt class="sr-only">Name</dt>
+                   <dd><code class="inline-code">4xx</code></dd>
+                   <dt class="sr-only">Type</dt>
+                   <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
+                   <dt class="sr-only">Description</dt>
+                   <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                      <p>A 4xx status code indicates a client error — this means it's a <em>you</em>
+                         problem.
+                      </p>
+                   </dd>
+                </dl>
+             </li>
+             <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                   <dt class="sr-only">Name</dt>
+                   <dd><code class="inline-code">5xx</code></dd>
+                   <dt class="sr-only">Type</dt>
+                   <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"></dd>
+                   <dt class="sr-only">Description</dt>
+                   <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                      <p>A 5xx status code indicates a server error — you won't be seeing a lot of these.</p>
+                   </dd>
+                </dl>
+             </li>
+          </ul>
+       </div>
+       <hr>
+       <h2 id="error-types" class="mb-5 scroll-mt-24 mt-24 font-bold text-lg">Error Messages</h2>
+       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <p>Whenever a request is unsuccessful, the OneUptime API will return an error response with an error message. You can use this information to understand better what has gone wrong and how to fix it. Most of the error messages are pretty helpful and actionable.</p>
+             <p>Here is an example of an error message: </p>
+             
+          </div>
+          <%- include('../partials/code', {title: "Example error response", requestUrl: "", requestType: "", code: "{ \"message\": \"Name is required\" }" }) -%>
+       </div>
+    </article>
+ </main>

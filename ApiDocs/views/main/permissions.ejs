@@ -1,0 +1,38 @@
+<main class="py-16">
+    <article class="prose dark:prose-invert">
+       <h1>Permissions</h1>
+       <p class="lead"> Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys. </p>
+      
+   
+       <h2 id="consuming-webhooks" >
+         Permissions List
+       </h2>
+       <p>Here is a list of all the permissions:</p>
+       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+             <div class="my-6">
+                <ul role="list" class="m-0 w-full">
+                  <% for(var i=0; i<pageData.permissions.length; i++) {%>
+                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                         <dt class="sr-only">Name</dt>
+                         <dd><code class="inline-code"> <%= pageData.permissions[i].permission -%></code></dd>
+                         <dt class="sr-only">Type</dt>
+                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.permissions[i].title -%></dd>
+                         <dt class="sr-only">Description</dt>
+                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                            <p><%= pageData.permissions[i].description -%></p>
+                         </dd>
+                      </dl>
+                   </li>
+                   <% } %>
+
+                   
+                </ul>
+             </div>
+          </div>
+      
+       </div>
+       
+    </article>
+ </main>

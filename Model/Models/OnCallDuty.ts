@@ -26,7 +26,9 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Label from './Label';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -65,6 +67,8 @@ import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
     singularName: 'On Call Duty',
     pluralName: 'On Call Duties',
     icon: IconProp.Call,
+    tableDescription:
+        'Manage on-call duty, schedules and roster for your project',
 })
 export default class OnCallDuty extends BaseModel {
     @ColumnAccessControl({
@@ -86,6 +90,9 @@ export default class OnCallDuty extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -121,6 +128,9 @@ export default class OnCallDuty extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -153,7 +163,8 @@ export default class OnCallDuty extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,
@@ -186,6 +197,9 @@ export default class OnCallDuty extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this object is categorized in.',
     })
     @ManyToMany(
         () => {
@@ -226,7 +240,12 @@ export default class OnCallDuty extends BaseModel {
             Permission.CanEditProjectOnCallDuty,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -250,7 +269,13 @@ export default class OnCallDuty extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -278,6 +303,9 @@ export default class OnCallDuty extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -308,7 +336,12 @@ export default class OnCallDuty extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -323,7 +356,10 @@ export default class OnCallDuty extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -345,7 +381,12 @@ export default class OnCallDuty extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

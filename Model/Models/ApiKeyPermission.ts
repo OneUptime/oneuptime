@@ -27,7 +27,9 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
@@ -66,9 +68,10 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 })
 @TableMetadata({
     tableName: 'ApiKeyPermission',
-    singularName: 'Permission',
-    pluralName: 'Permissions',
+    singularName: 'API Key Permission',
+    pluralName: 'API Key Permissions',
     icon: IconProp.Lock,
+    tableDescription: 'Permissions for your API Keys',
 })
 export default class APIKeyPermission extends BaseModel {
     @ColumnAccessControl({
@@ -93,6 +96,9 @@ export default class APIKeyPermission extends BaseModel {
         manyToOneRelationColumn: 'apiKeyId',
         type: TableColumnType.Entity,
         modelType: ApiKey,
+        title: 'Api Key',
+        description:
+            'Relation to API Key resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -122,10 +128,41 @@ export default class APIKeyPermission extends BaseModel {
         ],
         update: [],
     })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'API Key ID',
+        description: 'ID of API Key resource in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public apiKeyId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectApiKey,
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectApiKey,
+        ],
+        update: [],
+    })
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -160,6 +197,9 @@ export default class APIKeyPermission extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -167,29 +207,6 @@ export default class APIKeyPermission extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public projectId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
-        ],
-        update: [],
-    })
-    @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public apiKeyId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -208,6 +225,9 @@ export default class APIKeyPermission extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -236,7 +256,12 @@ export default class APIKeyPermission extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -259,7 +284,10 @@ export default class APIKeyPermission extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -281,7 +309,12 @@ export default class APIKeyPermission extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -308,7 +341,13 @@ export default class APIKeyPermission extends BaseModel {
             Permission.CanEditProjectApiKey,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Permission,
+        title: 'Permission',
+        description:
+            'Permission. You can find list of permissions on the Permissions page.',
+    })
     @UniqueColumnBy('apiKeyId')
     @Column({
         nullable: false,
@@ -340,6 +379,9 @@ export default class APIKeyPermission extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this permission is scoped at.',
     })
     @ManyToMany(
         () => {

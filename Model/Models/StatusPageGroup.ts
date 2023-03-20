@@ -20,7 +20,9 @@ import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -62,6 +64,8 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     singularName: 'Status Page Group',
     pluralName: 'Status Page Groups',
     icon: IconProp.Folder,
+    tableDescription:
+        'Manage groups on your status page and categorize resources like monitors into these groups.',
 })
 @Entity({
     name: 'StatusPageGroup',
@@ -86,6 +90,9 @@ export default class StatusPageGroup extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -121,6 +128,9 @@ export default class StatusPageGroup extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -148,6 +158,9 @@ export default class StatusPageGroup extends BaseModel {
         manyToOneRelationColumn: 'statusPageId',
         type: TableColumnType.Entity,
         modelType: StatusPage,
+        title: 'Status Page',
+        description:
+            'Relation to Status Page Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -179,7 +192,13 @@ export default class StatusPageGroup extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Status Page ID',
+        description:
+            'ID of your Status Page resource where this object belongs',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -207,7 +226,12 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Group Name',
+        description: 'Name of the Group',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -226,7 +250,13 @@ export default class StatusPageGroup extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -254,7 +284,12 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -281,6 +316,9 @@ export default class StatusPageGroup extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -311,7 +349,12 @@ export default class StatusPageGroup extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -339,9 +382,14 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        type: TableColumnType.SmallNumber,
+        title: 'Order',
+        description: 'Order / Priority of this resource',
+    })
     @Column({
-        type: ColumnType.Number,
+        type: ColumnType.SmallNumber,
     })
     public order?: number = undefined;
 
@@ -365,7 +413,12 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Expanded by Default',
+        description: 'IS this group expanded by default',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,

@@ -44,6 +44,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
     singularName: 'Project',
     pluralName: 'Projects',
     icon: IconProp.Folder,
+    tableDescription: 'OneUptime Project, and everything happens inside it',
 })
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
@@ -71,7 +72,8 @@ export default class Model extends TenantModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,
@@ -93,7 +95,13 @@ export default class Model extends TenantModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -266,6 +274,9 @@ export default class Model extends TenantModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -293,7 +304,12 @@ export default class Model extends TenantModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -308,7 +324,10 @@ export default class Model extends TenantModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -337,7 +356,12 @@ export default class Model extends TenantModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
