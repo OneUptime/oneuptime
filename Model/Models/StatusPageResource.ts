@@ -86,12 +86,13 @@ export default class StatusPageResource extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -123,12 +124,13 @@ export default class StatusPageResource extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -152,12 +154,13 @@ export default class StatusPageResource extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'statusPageId',
         type: TableColumnType.Entity,
         modelType: StatusPage,
-        title: "Status Page",
-        description: "Relation to Status Page Resource in which this object belongs"
+        title: 'Status Page',
+        description:
+            'Relation to Status Page Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -189,8 +192,13 @@ export default class StatusPageResource extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Status Page ID",
-    description: "ID of your Status Page resource where this object belongs" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Status Page ID',
+        description:
+            'ID of your Status Page resource where this object belongs',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -222,8 +230,9 @@ export default class StatusPageResource extends BaseModel {
         manyToOneRelationColumn: 'monitorId',
         type: TableColumnType.Entity,
         modelType: Monitor,
-        title: "Monitor",
-        description: "Relation to Monitor Resource in which this object belongs"
+        title: 'Monitor',
+        description:
+            'Relation to Monitor Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -260,8 +269,13 @@ export default class StatusPageResource extends BaseModel {
         ],
     })
     @Index()
-   @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Monitor ID",
-    description: "Relation to Monitor ID Resource in which this object belongs" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Monitor ID',
+        description:
+            'Relation to Monitor ID Resource in which this object belongs',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -292,7 +306,9 @@ export default class StatusPageResource extends BaseModel {
         manyToOneRelationColumn: 'statusPageGroupId',
         type: TableColumnType.Entity,
         modelType: StatusPageGroup,
-        title: "Status Page Group", description: "Does this monitor belong to a status page group? If so - which one is it?"
+        title: 'Status Page Group',
+        description:
+            'Does this monitor belong to a status page group? If so - which one is it?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -329,7 +345,12 @@ export default class StatusPageResource extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: false, title: "Group ID", description: "Does this monitor belong to a status page group?" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        title: 'Group ID',
+        description: 'Does this monitor belong to a status page group?',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -357,7 +378,12 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Display Name", description: "Display name of the monitor on the Status Page" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Display Name',
+        description: 'Display name of the monitor on the Status Page',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -385,7 +411,12 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Display Description", description: "Display description of the monitor on the Status Page" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Display Description',
+        description: 'Display description of the monitor on the Status Page',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -413,7 +444,12 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Display Tooltip", description: "Tooltip of the monitor on the Status Page" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Display Tooltip',
+        description: 'Tooltip of the monitor on the Status Page',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -441,7 +477,13 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Show current status", description: "Show current status like offline, operational or degraded." })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Show current status',
+        description:
+            'Show current status like offline, operational or degraded.',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -468,7 +510,12 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Show History Chart", description: "Show a 90 day uptime history of this monitor" })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Show History Chart',
+        description: 'Show a 90 day uptime history of this monitor',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -490,12 +537,13 @@ export default class StatusPageResource extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -528,8 +576,9 @@ export default class StatusPageResource extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -558,11 +607,11 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-     @TableColumn({
+    @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
-        title: "Order",
-        description: "Order / Priority of this resource"
+        title: 'Order',
+        description: 'Order / Priority of this resource',
     })
     @Column({
         type: ColumnType.SmallNumber,

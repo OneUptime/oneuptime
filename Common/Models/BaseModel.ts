@@ -48,23 +48,43 @@ export type DbTypes =
     | Buffer;
 
 export default class BaseModel extends BaseEntity {
-    @TableColumn({ title: 'ID', type: TableColumnType.ObjectID, description: "ID of this object" })
+    @TableColumn({
+        title: 'ID',
+        type: TableColumnType.ObjectID,
+        description: 'ID of this object',
+    })
     @PrimaryGeneratedColumn('uuid')
     public _id?: string = undefined;
 
-    @TableColumn({ title: 'Created', type: TableColumnType.Date, description: "Date and Time when the object was created." })
+    @TableColumn({
+        title: 'Created',
+        type: TableColumnType.Date,
+        description: 'Date and Time when the object was created.',
+    })
     @CreateDateColumn()
     public createdAt?: Date = undefined;
 
-    @TableColumn({ title: 'Updated', type: TableColumnType.Date, description: "Date and Time when the object was updated." })
+    @TableColumn({
+        title: 'Updated',
+        type: TableColumnType.Date,
+        description: 'Date and Time when the object was updated.',
+    })
     @UpdateDateColumn()
     public updatedAt?: Date = undefined;
 
-    @TableColumn({ title: 'Deleted', type: TableColumnType.Date, description: "Date and Time when the object was deleted." })
+    @TableColumn({
+        title: 'Deleted',
+        type: TableColumnType.Date,
+        description: 'Date and Time when the object was deleted.',
+    })
     @DeleteDateColumn()
     public deletedAt?: Date = undefined;
 
-    @TableColumn({ title: 'Version', type: TableColumnType.Version, description: "Object version" })
+    @TableColumn({
+        title: 'Version',
+        type: TableColumnType.Version,
+        description: 'Object version',
+    })
     @VersionColumn()
     public version?: number = undefined;
 

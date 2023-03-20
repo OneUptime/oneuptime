@@ -89,12 +89,13 @@ export default class StatusPageFooterLink extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -126,12 +127,13 @@ export default class StatusPageFooterLink extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -155,12 +157,13 @@ export default class StatusPageFooterLink extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'statusPageId',
         type: TableColumnType.Entity,
         modelType: StatusPage,
-        title: "Status Page",
-        description: "Relation to Status Page Resource in which this object belongs"
+        title: 'Status Page',
+        description:
+            'Relation to Status Page Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -192,8 +195,13 @@ export default class StatusPageFooterLink extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true,  title: "Status Page ID",
-    description: "ID of your Status Page resource where this object belongs" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Status Page ID',
+        description:
+            'ID of your Status Page resource where this object belongs',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -221,7 +229,12 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.CanEditStatusPageFooterLink,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Title", description: "Title of this resource" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Title',
+        description: 'Title of this resource',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -249,7 +262,12 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.CanEditStatusPageFooterLink,
         ],
     })
-@TableColumn({ required: true, type: TableColumnType.ShortURL, title: "Link", description: "URL to a website or any other resource on the internet" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortURL,
+        title: 'Link',
+        description: 'URL to a website or any other resource on the internet',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortURL,
@@ -273,12 +291,13 @@ export default class StatusPageFooterLink extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -311,8 +330,9 @@ export default class StatusPageFooterLink extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -334,8 +354,9 @@ export default class StatusPageFooterLink extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
-        title: "Deleted by User",
-        description: "Relation to User who deleted this object (if this object was deleted by a User)"
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -372,11 +393,11 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.CanEditStatusPageFooterLink,
         ],
     })
-     @TableColumn({
+    @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
-        title: "Order",
-        description: "Order / Priority of this resource"
+        title: 'Order',
+        description: 'Order / Priority of this resource',
     })
     @Column({
         type: ColumnType.SmallNumber,

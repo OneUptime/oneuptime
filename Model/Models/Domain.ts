@@ -70,12 +70,13 @@ export default class Domain extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -105,12 +106,13 @@ export default class Domain extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -140,8 +142,8 @@ export default class Domain extends BaseModel {
         required: true,
         type: TableColumnType.Domain,
         canReadOnPopulate: true,
-        title: "Domain",
-        description: "Domain - acmeinc.com for example."
+        title: 'Domain',
+        description: 'Domain - acmeinc.com for example.',
     })
     @Column({
         nullable: false,
@@ -161,7 +163,13 @@ export default class Domain extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug, title: "Slug", description: "Friendly globally unique name for your object" })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -182,12 +190,13 @@ export default class Domain extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -218,8 +227,9 @@ export default class Domain extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -240,8 +250,9 @@ export default class Domain extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
-        title: "Deleted by User",
-        description: "Relation to User who deleted this object (if this object was deleted by a User)"
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -267,8 +278,12 @@ export default class Domain extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
-        description: "User ID who deleted this object (if this object was deleted by a User)" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -289,7 +304,12 @@ export default class Domain extends BaseModel {
             Permission.CanEditProjectDomain,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Verified", description: "Is this domain verified?" })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Verified',
+        description: 'Is this domain verified?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -309,7 +329,12 @@ export default class Domain extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ShortText, title: "Domain Verification Text", description: "Verification text that you need to add to your domains TXT record to veify the domain." })
+    @TableColumn({
+        type: TableColumnType.ShortText,
+        title: 'Domain Verification Text',
+        description:
+            'Verification text that you need to add to your domains TXT record to veify the domain.',
+    })
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,

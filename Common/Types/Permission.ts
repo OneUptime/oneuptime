@@ -454,8 +454,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanManageProjectBilling,
                 title: 'Can Manage Billing',
-                description:
-                    'This permission can update project billing.',
+                description: 'This permission can update project billing.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -503,8 +502,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanCreateProjectLabel,
                 title: 'Can Create Label',
-                description:
-                    'This permission can create labels this project.',
+                description: 'This permission can create labels this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -527,8 +525,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanEditProjectLabel,
                 title: 'Can Edit Label',
-                description:
-                    'This permission can edit labels of this project.',
+                description: 'This permission can edit labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -725,8 +722,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanEditProjectDomain,
                 title: 'Can Edit Domain',
-                description:
-                    'This permission can edit Domain in this project.',
+                description: 'This permission can edit Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -874,24 +870,21 @@ export class PermissionHelper {
             {
                 permission: Permission.CanDeleteProject,
                 title: 'Can Delete Project',
-                description:
-                    'This permission  can delete Project.',
+                description: 'This permission  can delete Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanEditProject,
                 title: 'Can Edit Project',
-                description:
-                    'This permission can edit Project.',
+                description: 'This permission can edit Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanReadProject,
                 title: 'Can Read Project',
-                description:
-                    'This permission  can read this Project.',
+                description: 'This permission  can read this Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1196,8 +1189,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanCreateProjectTeam,
                 title: 'Can Create Team',
-                description:
-                    'This permission can create teams this project.',
+                description: 'This permission can create teams this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1212,8 +1204,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanInviteProjectTeamMembers,
                 title: 'Can Invite New Members',
-                description:
-                    'This permission can inivte users to the team.',
+                description: 'This permission can inivte users to the team.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1228,16 +1219,14 @@ export class PermissionHelper {
             {
                 permission: Permission.CanEditProjectTeam,
                 title: 'Can Edit Team',
-                description:
-                    'This permission can edit teams of this project.',
+                description: 'This permission can edit teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanReadProjectTeam,
                 title: 'Can Read Teams',
-                description:
-                    'This permission  can read teams of this project.',
+                description: 'This permission  can read teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1245,8 +1234,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanCreateProjectMonitor,
                 title: 'Can Create Monitor',
-                description:
-                    'This permission can create monitor this project.',
+                description: 'This permission can create monitor this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1476,8 +1464,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanCreateProjectProbe,
                 title: 'Can Create Probe',
-                description:
-                    'This permission can create probe this project.',
+                description: 'This permission can create probe this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1492,16 +1479,14 @@ export class PermissionHelper {
             {
                 permission: Permission.CanEditProjectProbe,
                 title: 'Can Edit Probe',
-                description:
-                    'This permission can edit probe of this project.',
+                description: 'This permission can edit probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanReadProjectProbe,
                 title: 'Can Read Probe',
-                description:
-                    'This permission  can read probe of this project.',
+                description: 'This permission  can read probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1913,11 +1898,12 @@ export class PermissionHelper {
     }
 
     public static getAllPermissionPropsAsDictionary(): Dictionary<PermissionProps> {
-        const permissions: Array<PermissionProps> =PermissionHelper.getAllPermissionProps(); 
+        const permissions: Array<PermissionProps> =
+            PermissionHelper.getAllPermissionProps();
 
         const dict: Dictionary<PermissionProps> = {};
 
-        for(const permission of permissions){
+        for (const permission of permissions) {
             dict[permission.permission] = permission;
         }
 

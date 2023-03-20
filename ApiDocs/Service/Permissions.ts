@@ -17,7 +17,11 @@ export default class ServiceHandler {
         pageTitle = 'Permissions';
         pageDescription = 'Learn how permisisons work with OneUptime';
 
-        pageData.permissions = PermissionHelper.getAllPermissionProps().filter((i: PermissionProps) => i.isAssignableToTenant);
+        pageData.permissions = PermissionHelper.getAllPermissionProps().filter(
+            (i: PermissionProps) => {
+                return i.isAssignableToTenant;
+            }
+        );
 
         return res.render('pages/index', {
             page: page,

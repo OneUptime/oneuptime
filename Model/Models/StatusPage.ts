@@ -95,12 +95,13 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -132,12 +133,13 @@ export default class StatusPage extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -168,7 +170,12 @@ export default class StatusPage extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Name", description: "Any friendly name of this object" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Name',
+        description: 'Any friendly name of this object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -196,7 +203,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.ShortText, title: "Page Title", description: "Title of your Status Page. This is used for SEO." })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'Page Title',
+        description: 'Title of your Status Page. This is used for SEO.',
+    })
     @Column({
         nullable: true,
         type: ColumnType.ShortText,
@@ -224,7 +236,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Page Description", description: "Description of your Status Page. This is used for SEO." })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Page Description',
+        description: 'Description of your Status Page. This is used for SEO.',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -252,7 +269,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Description", description: "Any friendly description of this object" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -276,7 +298,13 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug , title: "Slug", description: "Friendly globally unique name for your object" })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -300,12 +328,13 @@ export default class StatusPage extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -345,8 +374,9 @@ export default class StatusPage extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
-        title: "Labels",
-        description: "Relation to Labels Array where this object is categorized in."
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this object is categorized in.',
     })
     @ManyToMany(
         () => {
@@ -384,8 +414,9 @@ export default class StatusPage extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -402,8 +433,9 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
-        title: "Deleted by User",
-        description: "Relation to User who deleted this object (if this object was deleted by a User)"
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -425,8 +457,12 @@ export default class StatusPage extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
-        description: "User ID who deleted this object (if this object was deleted by a User)" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -460,8 +496,8 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'faviconFileId',
         type: TableColumnType.Entity,
         modelType: File,
-        title: "Favicon",
-        description: "Status Page Favicon"
+        title: 'Favicon',
+        description: 'Status Page Favicon',
     })
     @ManyToOne(
         (_type: string) => {
@@ -497,8 +533,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ObjectID,  title: "Favicon",
-    description: "Status Page Favicon File ID" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Favicon',
+        description: 'Status Page Favicon File ID',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -530,8 +569,8 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'logoFileId',
         type: TableColumnType.Entity,
         modelType: File,
-        title: "Logo",
-        description: "Status Page Logo"
+        title: 'Logo',
+        description: 'Status Page Logo',
     })
     @ManyToOne(
         (_type: string) => {
@@ -567,8 +606,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ObjectID,  title: "Logo",
-    description: "Status Page Logo File ID" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Logo',
+        description: 'Status Page Logo File ID',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -600,8 +642,8 @@ export default class StatusPage extends BaseModel {
         manyToOneRelationColumn: 'coverImageFileId',
         type: TableColumnType.Entity,
         modelType: File,
-        title: "Cover Image",
-        description: "Status Page Cover Image"
+        title: 'Cover Image',
+        description: 'Status Page Cover Image',
     })
     @ManyToOne(
         (_type: string) => {
@@ -637,8 +679,11 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ObjectID,  title: "Cover Image",
-    description: "Status Page Cover Image ID" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Cover Image',
+        description: 'Status Page Cover Image ID',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -666,8 +711,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.HTML,  title: "Header HTML",
-    description: "Status Page Custom HTML Header" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.HTML,
+        title: 'Header HTML',
+        description: 'Status Page Custom HTML Header',
+    })
     @Column({
         nullable: true,
         type: ColumnType.HTML,
@@ -694,8 +743,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.HTML, title: "Footer HTML",
-    description: "Status Page Custom HTML Footer" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.HTML,
+        title: 'Footer HTML',
+        description: 'Status Page Custom HTML Footer',
+    })
     @Column({
         nullable: true,
         type: ColumnType.HTML,
@@ -722,8 +775,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.CSS, title: "CSS",
-    description: "Status Page Custom CSS Header" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.CSS,
+        title: 'CSS',
+        description: 'Status Page Custom CSS Header',
+    })
     @Column({
         nullable: true,
         type: ColumnType.CSS,
@@ -750,8 +807,13 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.JavaScript, title: "JavaScript",
-    description: "Status Page Custom JavaScript. Thsi runs when the status page is loaded." })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.JavaScript,
+        title: 'JavaScript',
+        description:
+            'Status Page Custom JavaScript. Thsi runs when the status page is loaded.',
+    })
     @Column({
         nullable: true,
         type: ColumnType.JavaScript,
@@ -778,7 +840,12 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Public Status Page", description: "Is this status page public?" })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Public Status Page',
+        description: 'Is this status page public?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -805,13 +872,17 @@ export default class StatusPage extends BaseModel {
             Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Enable Subscribers", description: "Can subscribers subscribe to this Status Page?" })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable Subscribers',
+        description: 'Can subscribers subscribe to this Status Page?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: true,
     })
     public enableSubscribers?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -836,15 +907,14 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.ShortText,
-        title: "Copyright Text",
-        description: "Copyright Text"
+        title: 'Copyright Text',
+        description: 'Copyright Text',
     })
     @Column({
         type: ColumnType.ShortText,
         nullable: true,
     })
     public copyrightText?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -870,7 +940,8 @@ export default class StatusPage extends BaseModel {
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
-        title: "Custom Fields", description: "Custom Fields on this resource." 
+        title: 'Custom Fields',
+        description: 'Custom Fields on this resource.',
     })
     @Column({
         type: ColumnType.JSON,
@@ -903,8 +974,8 @@ export default class StatusPage extends BaseModel {
         required: true,
         type: TableColumnType.Boolean,
         isDefaultValueColumn: true,
-        description: "Should SSO be required to login to Private Status Page",
-        title: "Require SSO"
+        description: 'Should SSO be required to login to Private Status Page',
+        title: 'Require SSO',
     })
     @Column({
         type: ColumnType.Boolean,

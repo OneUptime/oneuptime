@@ -73,7 +73,6 @@ export default class BaseAPI<
             }
         );
 
-
         // List
         router.get(
             `${new this.entityType().getCrudApiPath()?.toString()}/get-list`,

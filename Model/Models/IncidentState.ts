@@ -84,12 +84,13 @@ export default class IncidentState extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -121,12 +122,13 @@ export default class IncidentState extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -159,7 +161,8 @@ export default class IncidentState extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
-title: "Name", description: "Any friendly name of this object" 
+        title: 'Name',
+        description: 'Any friendly name of this object',
     })
     @Column({
         nullable: false,
@@ -179,7 +182,13 @@ title: "Name", description: "Any friendly name of this object"
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug, title: "Slug", description: "Friendly globally unique name for your object" })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -207,7 +216,12 @@ title: "Name", description: "Any friendly name of this object"
             Permission.CanEditIncidentState,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Description", description: "Any friendly description of this object" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -230,12 +244,13 @@ title: "Name", description: "Any friendly name of this object"
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -268,8 +283,9 @@ title: "Name", description: "Any friendly name of this object"
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -291,8 +307,9 @@ title: "Name", description: "Any friendly name of this object"
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
-        title: "Deleted by User",
-        description: "Relation to User who deleted this object (if this object was deleted by a User)"
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -319,8 +336,12 @@ title: "Name", description: "Any friendly name of this object"
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
-        description: "User ID who deleted this object (if this object was deleted by a User)" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -348,13 +369,13 @@ title: "Name", description: "Any friendly name of this object"
             Permission.CanEditIncidentState,
         ],
     })
- @TableColumn({
+    @TableColumn({
         title: 'Color',
         required: true,
         unique: false,
         type: TableColumnType.Color,
         canReadOnPopulate: true,
-        description: "Color of this resource in Hex (#32a852 for example)"
+        description: 'Color of this resource in Hex (#32a852 for example)',
     })
     @Column({
         type: ColumnType.Color,
@@ -389,8 +410,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
-        title: "Is Created State",
-        description: "Is it the created state of the incident?"
+        title: 'Is Created State',
+        description: 'Is it the created state of the incident?',
     })
     @Column({
         type: ColumnType.Boolean,
@@ -422,8 +443,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
-        title: "Is Acknowledged State",
-        description: "Is it the acknowledged state of the incident?"
+        title: 'Is Acknowledged State',
+        description: 'Is it the acknowledged state of the incident?',
     })
     @Column({
         type: ColumnType.Boolean,
@@ -455,8 +476,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
-        title: "Is Resolved State",
-        description: "Is it the resolved state of the incident?"
+        title: 'Is Resolved State',
+        description: 'Is it the resolved state of the incident?',
     })
     @Column({
         type: ColumnType.Boolean,
@@ -489,8 +510,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
         canReadOnPopulate: true,
-        title: "Order",
-        description: "Order / Priority of this resource"
+        title: 'Order',
+        description: 'Order / Priority of this resource',
     })
     @Column({
         type: ColumnType.SmallNumber,

@@ -79,12 +79,13 @@ export default class WorkflowVariable extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -115,12 +116,13 @@ export default class WorkflowVariable extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -147,8 +149,9 @@ export default class WorkflowVariable extends BaseModel {
         manyToOneRelationColumn: 'workflowId',
         type: TableColumnType.Entity,
         modelType: Workflow,
-        title: "Workflow",
-        description: "Workflow this variable belong to. If this is null then this variable will be a global variable"
+        title: 'Workflow',
+        description:
+            'Workflow this variable belong to. If this is null then this variable will be a global variable',
     })
     @ManyToOne(
         (_type: string) => {
@@ -183,8 +186,9 @@ export default class WorkflowVariable extends BaseModel {
         type: TableColumnType.ObjectID,
         required: false,
         canReadOnPopulate: true,
-        title: "Workflow ID",
-        description: "ID of Workflow this variable belong to. If this is null then this variable will be a global variable"
+        title: 'Workflow ID',
+        description:
+            'ID of Workflow this variable belong to. If this is null then this variable will be a global variable',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -215,8 +219,8 @@ export default class WorkflowVariable extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
-        title: "Name",
-        description: "Variable Name"
+        title: 'Name',
+        description: 'Variable Name',
     })
     @Column({
         nullable: false,
@@ -244,7 +248,12 @@ export default class WorkflowVariable extends BaseModel {
             Permission.CanEditWorkflowVariable,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Description", description: "Any friendly description of this object" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -261,7 +270,12 @@ export default class WorkflowVariable extends BaseModel {
         read: [],
         update: [Permission.ProjectOwner, Permission.ProjectAdmin],
     })
-    @TableColumn({ required: true, type: TableColumnType.LongText, title: "Content", description: "Content of the variable" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.LongText,
+        title: 'Content',
+        description: 'Content of the variable',
+    })
     @Column({
         nullable: false,
         type: ColumnType.VeryLongText,
@@ -282,7 +296,13 @@ export default class WorkflowVariable extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.Boolean, title: "Secret", description: "Is this variable a secret. If true, then it'll not be in the logs" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Boolean,
+        title: 'Secret',
+        description:
+            "Is this variable a secret. If true, then it'll not be in the logs",
+    })
     @Column({
         nullable: false,
         default: false,
@@ -304,12 +324,13 @@ export default class WorkflowVariable extends BaseModel {
         ],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -341,8 +362,9 @@ export default class WorkflowVariable extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -364,8 +386,9 @@ export default class WorkflowVariable extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
-        title: "Deleted by User",
-        description: "Relation to User who deleted this object (if this object was deleted by a User)"
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -392,8 +415,12 @@ export default class WorkflowVariable extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
-        description: "User ID who deleted this object (if this object was deleted by a User)" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

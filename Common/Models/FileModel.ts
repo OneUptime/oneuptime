@@ -41,7 +41,12 @@ export default class FileModel extends BaseModel {
         read: [Permission.CurrentUser],
         update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Name", description: "Any friendly name of this object" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Name',
+        description: 'Any friendly name of this object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,

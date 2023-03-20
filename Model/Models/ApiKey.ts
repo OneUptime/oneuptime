@@ -80,8 +80,9 @@ export default class ApiKey extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
-        title: "Project",
-        description: "Relation to Project Resource in which this object belongs"
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -115,8 +116,9 @@ export default class ApiKey extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
-        title: "Project ID",
-        description: "ID of your OneUptime Project in which this object belongs"
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -143,7 +145,12 @@ export default class ApiKey extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Name", description: "Any friendly name of this object" })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Name',
+        description: 'Any friendly name of this object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -168,7 +175,12 @@ export default class ApiKey extends BaseModel {
             Permission.CanEditProjectApiKey,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Description", description: "Any friendly description of this object" })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -185,7 +197,13 @@ export default class ApiKey extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug, title: "Slug", description: "Friendly globally unique name for your object" })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -210,8 +228,9 @@ export default class ApiKey extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
-        title: "Created by User",
-        description: "Relation to User who created this object (if this object was created by a User)"
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -242,8 +261,9 @@ export default class ApiKey extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: "Created by User ID",
-        description: "User ID who created this object (if this object was created by a User)"
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -260,8 +280,9 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.Entity,
-        title: "Deleted by User",
-        description: "Relation to User who deleted this object (if this object was deleted by a User)"
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -283,8 +304,12 @@ export default class ApiKey extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
-        description: "User ID who deleted this object (if this object was deleted by a User)" })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -313,7 +338,7 @@ export default class ApiKey extends BaseModel {
         title: 'Expires At',
         type: TableColumnType.Date,
         required: true,
-        description: "Date and Time when this API Key expires."
+        description: 'Date and Time when this API Key expires.',
     })
     @Column({
         type: ColumnType.Date,
@@ -342,8 +367,8 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         isDefaultValueColumn: false,
-        title: "API Key",
-        description: "Secret API Key"
+        title: 'API Key',
+        description: 'Secret API Key',
     })
     @Column({
         type: ColumnType.ObjectID,
