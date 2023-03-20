@@ -389,6 +389,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Scheduled State",
+        description: "Is this state a scheduled state?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -420,6 +422,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Ongoing State",
+        description: "Is this state a ongoing state?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -451,6 +455,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnPopulate: true,
+        title: "Resolved State",
+        description: "Is this state a resolved state?"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -483,6 +489,8 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
         canReadOnPopulate: true,
+        title: "Order",
+        description: "Order / Priority of this resource"
     })
     @Column({
         type: ColumnType.SmallNumber,

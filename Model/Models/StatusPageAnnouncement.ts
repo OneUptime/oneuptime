@@ -162,6 +162,8 @@ export default class StatusPageAnnouncement extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: StatusPage,
+       title: "Status Pages", 
+       description: "Status Pages to show show this announcement on."
     })
     @ManyToMany(
         () => {
@@ -214,6 +216,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         title: 'Show At',
         type: TableColumnType.Date,
         required: true,
+        description: "When should this announcement be shown?"
     })
     @ColumnAccessControl({
         create: [
@@ -245,6 +248,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         title: 'End At',
         type: TableColumnType.Date,
         required: true,
+        description: "When should this announcement hidden?"
     })
     @ColumnAccessControl({
         create: [
@@ -292,7 +296,7 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.Markdown })
+    @TableColumn({ required: true, type: TableColumnType.Markdown, title: "Announcement Description", description: "Text of the announcement. This is in Markdown." })
     @Column({
         nullable: false,
         type: ColumnType.Markdown,

@@ -226,7 +226,7 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.CanEditStatusPagePrivateUser,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.Email })
+    @TableColumn({ required: false, type: TableColumnType.Email, title: "Email", description: "Email of the user" })
     @Column({
         nullable: true,
         type: ColumnType.Email,
@@ -259,6 +259,7 @@ export default class StatusPagePrivateUser extends BaseModel {
         title: 'Password',
         hashed: true,
         type: TableColumnType.HashedString,
+        description: "Hashed password of the user"
     })
     @Column({
         type: ColumnType.HashedString,
@@ -420,7 +421,7 @@ export default class StatusPagePrivateUser extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "SSO User", description: "Did this user sign up via SSO?" })
     @Column({
         type: ColumnType.Boolean,
         default: false,

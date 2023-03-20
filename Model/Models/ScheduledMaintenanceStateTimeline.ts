@@ -320,6 +320,8 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'scheduledMaintenanceStateId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenanceState,
+        title: "Scheduled Maintenance State",
+        description: "Which state does this event belongs to?. Relation to Scheduled Maintenance State"
     })
     @ManyToOne(
         (_type: string) => {
@@ -355,7 +357,8 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, title: "Scheduled Maintenance State ID",
+    description: " Scheduled Maintenance State ID. Which state does this event belongs to?" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

@@ -218,7 +218,7 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Group Name", description: "Name of the Group" })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -387,7 +387,7 @@ export default class StatusPageGroup extends BaseModel {
             Permission.CanEditStatusPageGroup,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Expanded by Default", description: "IS this group expanded by default" })
     @Column({
         type: ColumnType.Boolean,
         default: true,

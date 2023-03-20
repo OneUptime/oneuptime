@@ -35,7 +35,8 @@ enum ColumnType {
     JSON = "JSON",
     Permission = "Permission",
     CustomFieldType = "Custom Field Type",
-    MonitorType = "Monitor Type"
+    MonitorType = "Monitor Type",
+    WorkflowStatus = "Workflow Status"
 }
 
 export default ColumnType;

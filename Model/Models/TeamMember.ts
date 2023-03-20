@@ -93,6 +93,8 @@ export default class TeamMember extends BaseModel {
         manyToOneRelationColumn: 'teamId',
         type: TableColumnType.Entity,
         modelType: Team,
+        title: "Team",
+        description: "Team this permission belongs in."
     })
     @ManyToOne(
         (_type: string) => {
@@ -125,7 +127,10 @@ export default class TeamMember extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID, title: "Team ID",
+        description: "ID of Team this user belongs to."
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -149,7 +154,7 @@ export default class TeamMember extends BaseModel {
         ],
         update: [],
     })
-     @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
@@ -187,7 +192,7 @@ export default class TeamMember extends BaseModel {
         update: [],
     })
     @Index()
-     @TableColumn({
+    @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
@@ -219,6 +224,8 @@ export default class TeamMember extends BaseModel {
         manyToOneRelationColumn: 'userId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: "User",
+        description: "User who belongs to this team."
     })
     @ManyToOne(
         (_type: string) => {
@@ -250,7 +257,10 @@ export default class TeamMember extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID, required: true, title: "User ID",
+        description: "ID of User who belongs to this team"
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -263,7 +273,7 @@ export default class TeamMember extends BaseModel {
         read: [],
         update: [],
     })
-   @TableColumn({
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
@@ -332,8 +342,10 @@ export default class TeamMember extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, title: "Deleted by User ID",
-        description: "User ID who deleted this object (if this object was deleted by a User)" })
+    @TableColumn({
+        type: TableColumnType.ObjectID, title: "Deleted by User ID",
+        description: "User ID who deleted this object (if this object was deleted by a User)"
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -361,6 +373,8 @@ export default class TeamMember extends BaseModel {
         isDefaultValueColumn: true,
         required: true,
         type: TableColumnType.Boolean,
+        title: "Has Accepted Invitation",
+        description: "Has this team member accepted invitation"
     })
     @Column({
         type: ColumnType.Boolean,
@@ -387,6 +401,8 @@ export default class TeamMember extends BaseModel {
     @TableColumn({
         required: false,
         type: TableColumnType.Date,
+        title: "Accepted Invitation At",
+        description: "When did this team member accept invitation"
     })
     @Column({
         type: ColumnType.Date,

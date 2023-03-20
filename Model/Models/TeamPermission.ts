@@ -74,38 +74,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     tableDescription: 'Permissions for your OneUptime team',
 })
 export default class TeamPermission extends BaseModel {
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanReadProjectTeam,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'teamId',
-        type: TableColumnType.Entity,
-        modelType: Team,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return Team;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'teamId' })
-    public team?: Team = undefined;
+
 
     @ColumnAccessControl({
         create: [
@@ -171,6 +140,42 @@ export default class TeamPermission extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectTeam,
+            Permission.CanEditProjectTeamPermissions,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectTeam,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'teamId',
+        type: TableColumnType.Entity,
+        modelType: Team,
+        title: "Team",
+        description: "Team this permission belongs in."
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'teamId' })
+    public team?: Team = undefined;
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -186,7 +191,8 @@ export default class TeamPermission extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, title: "Team ID",
+    description: "ID of Team this permission belongs in." })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

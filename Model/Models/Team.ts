@@ -320,7 +320,7 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Permissions Editable", description: "Can you edit team permissions? Teams auto-created for you are uneditable but you should be able to edit permissions on the team you create" })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -338,7 +338,7 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean,  title: "Team Deleteable", description: "Can you delete this team? Teams auto-created for you are not deleteable but you should be able to delete permissions on the team you create" })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -356,7 +356,7 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean,  title: "Should have one member?", description: "Can this team have no members? Owner team should have atleast 1 member, other teams can have no members" })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -374,7 +374,7 @@ export default class Team extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Team Editable", description: "Can you edit team? Teams auto-created for you are uneditable but you should be able to edit on the team you create" })
     @Column({
         type: ColumnType.Boolean,
         default: true,

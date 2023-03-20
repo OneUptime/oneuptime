@@ -347,7 +347,7 @@ title: "Name", description: "Any friendly name of this object"
             Permission.CanEditWorkflow,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Is Enabled", description: "Is this workflow enabled?" })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -376,6 +376,7 @@ title: "Name", description: "Any friendly name of this object"
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
+        title: "Workflow Graph", description: "Workflow Graph in JSON. Ideally, create this via UI and not via API."
     })
     @Column({
         type: ColumnType.JSON,

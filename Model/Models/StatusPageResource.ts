@@ -292,6 +292,7 @@ export default class StatusPageResource extends BaseModel {
         manyToOneRelationColumn: 'statusPageGroupId',
         type: TableColumnType.Entity,
         modelType: StatusPageGroup,
+        title: "Status Page Group", description: "Does this monitor belong to a status page group? If so - which one is it?"
     })
     @ManyToOne(
         (_type: string) => {
@@ -328,7 +329,7 @@ export default class StatusPageResource extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: false })
+    @TableColumn({ type: TableColumnType.ObjectID, required: false, title: "Group ID", description: "Does this monitor belong to a status page group?" })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -356,7 +357,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, title: "Display Name", description: "Display name of the monitor on the Status Page" })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -384,7 +385,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Display Description", description: "Display description of the monitor on the Status Page" })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -412,7 +413,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Display Tooltip", description: "Tooltip of the monitor on the Status Page" })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -440,7 +441,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Show current status", description: "Show current status like offline, operational or degraded." })
     @Column({
         type: ColumnType.Boolean,
         default: true,
@@ -467,7 +468,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanEditStatusPageResource,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Show History Chart", description: "Show a 90 day uptime history of this monitor" })
     @Column({
         type: ColumnType.Boolean,
         default: true,

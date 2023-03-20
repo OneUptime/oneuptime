@@ -124,6 +124,8 @@ export default class WorkflowLog extends BaseModel {
         manyToOneRelationColumn: 'workflowId',
         type: TableColumnType.Entity,
         modelType: Workflow,
+        title: "Workflow",
+        description: "Workflow this logs belong to"
     })
     @ManyToOne(
         (_type: string) => {
@@ -154,6 +156,8 @@ export default class WorkflowLog extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: "Workflow ID",
+        description: "ID of Workflow this logs belong to"
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -172,7 +176,7 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({ required: false, type: TableColumnType.LongText, title: "Logs", description: "Logs" })
     @Column({
         nullable: false,
         type: ColumnType.VeryLongText,
@@ -189,7 +193,7 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.WorkflowStatus, title: "Workflow Status", description: "Status of this workflow" })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -206,7 +210,7 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Date })
+    @TableColumn({ type: TableColumnType.Date, title: "Started At", description: "When did this workflow start" })
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -224,7 +228,7 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Date })
+    @TableColumn({ type: TableColumnType.Date, title: "Completed At", description: "When did this workflow complete" })
     @Column({
         type: ColumnType.Date,
         nullable: true,

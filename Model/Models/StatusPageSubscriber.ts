@@ -221,7 +221,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.CanEditStatusPageSubscriber,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.Email })
+    @TableColumn({ required: false, type: TableColumnType.Email, title: "Email", description: "Email address of subscriber" })
     @Column({
         nullable: true,
         type: ColumnType.Email,
@@ -251,7 +251,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.CanEditStatusPageSubscriber,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.Phone })
+    @TableColumn({ required: false, type: TableColumnType.Phone, title: "Phone", description: "Phone number of subscriber" })
     @Column({
         nullable: true,
         type: ColumnType.Phone,
@@ -281,7 +281,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.CanEditStatusPageSubscriber,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.ShortURL })
+    @TableColumn({ required: false, type: TableColumnType.ShortURL, title: "Webhook", description: "Webhook to ping when events happen on Status Page" })
     @Column({
         nullable: true,
         type: ColumnType.ShortURL,
@@ -388,7 +388,7 @@ export default class StatusPageSubscriber extends BaseModel {
         read: [Permission.CurrentUser],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, title: "Is Unsubscribed", description: "Is Subscriber Unsubscribed?" })
     @Column({
         type: ColumnType.Boolean,
         default: false,

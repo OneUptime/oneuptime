@@ -147,6 +147,8 @@ export default class WorkflowVariable extends BaseModel {
         manyToOneRelationColumn: 'workflowId',
         type: TableColumnType.Entity,
         modelType: Workflow,
+        title: "Workflow",
+        description: "Workflow this variable belong to. If this is null then this variable will be a global variable"
     })
     @ManyToOne(
         (_type: string) => {
@@ -181,6 +183,8 @@ export default class WorkflowVariable extends BaseModel {
         type: TableColumnType.ObjectID,
         required: false,
         canReadOnPopulate: true,
+        title: "Workflow ID",
+        description: "ID of Workflow this variable belong to. If this is null then this variable will be a global variable"
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -211,6 +215,8 @@ export default class WorkflowVariable extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
+        title: "Name",
+        description: "Variable Name"
     })
     @Column({
         nullable: false,
@@ -255,7 +261,7 @@ export default class WorkflowVariable extends BaseModel {
         read: [],
         update: [Permission.ProjectOwner, Permission.ProjectAdmin],
     })
-    @TableColumn({ required: true, type: TableColumnType.LongText })
+    @TableColumn({ required: true, type: TableColumnType.LongText, title: "Content", description: "Content of the variable" })
     @Column({
         nullable: false,
         type: ColumnType.VeryLongText,
@@ -276,7 +282,7 @@ export default class WorkflowVariable extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.Boolean })
+    @TableColumn({ required: true, type: TableColumnType.Boolean, title: "Secret", description: "Is this variable a secret. If true, then it'll not be in the logs" })
     @Column({
         nullable: false,
         default: false,
