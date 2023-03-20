@@ -395,12 +395,12 @@ export default class StatusPageHeaderLink extends BaseModel {
     })
     @TableColumn({
         isDefaultValueColumn: false,
-        type: TableColumnType.SmallNumber,
+        type: TableColumnType.Number,
         title: 'Order',
         description: 'Order / Priority of this resource',
     })
     @Column({
-        type: ColumnType.SmallNumber,
+        type: ColumnType.Number,
     })
     public order?: number = undefined;
 }
