@@ -484,12 +484,16 @@ export default class StatusPageAPI extends BaseAPI<
                                 displayName: true,
                                 showStatusHistoryChart: true,
                                 showCurrentStatus: true,
+                                order: true
                             },
                             populate: {
                                 monitor: {
                                     _id: true,
                                     currentMonitorStatusId: true,
                                 },
+                            },
+                            sort: {
+                                order: SortOrder.Ascending
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
