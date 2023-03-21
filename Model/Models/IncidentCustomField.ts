@@ -154,6 +154,7 @@ export default class IncidentCustomField extends BaseModel {
         canReadOnPopulate: true,
         title: 'Name',
         description: 'Any friendly name of this object',
+        canReadOnPopulate: true
     })
     @Column({
         nullable: false,

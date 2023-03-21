@@ -74,6 +74,7 @@ export default class Model extends TenantModel {
         type: TableColumnType.ShortText,
         title: 'Name',
         description: 'Any friendly name of this object',
+        canReadOnPopulate: true
     })
     @Column({
         nullable: false,
