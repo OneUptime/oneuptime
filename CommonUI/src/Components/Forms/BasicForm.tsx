@@ -122,8 +122,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setTouched({ ...touched, [fieldName]: value });
         };
 
-        const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
-            useState<boolean>(false);
 
         useEffect(() => {
 
@@ -573,14 +571,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     setFieldTouched(fieldName, true);
                                 }}
                                 initialValue={
-                                    currentValue &&
-                                    (currentValue as any)[fieldName] &&
-                                    ((currentValue as any)[fieldName] ===
-                                        true ||
-                                        (currentValue as any)[fieldName] ===
-                                            false)
-                                        ? (currentValue as any)[fieldName]
-                                        : field.defaultValue || false
+                                    currentValue && (currentValue as any)[fieldName] && ((currentValue as any)[fieldName] === true || (currentValue as any)[fieldName] === false) ? (currentValue as any)[fieldName] : false
                                 }
                             />
                         )}
@@ -941,9 +932,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
-            if (!props.initialValues || Object.keys(props.initialValues).length === 0 || isInitialValuesInitialized) {
-                return;
-            }
+            
 
             const values: FormValues<T> = { ...props.initialValues };
             for (const field of formFields) {
@@ -983,14 +972,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         }
                     );
                 }
+                
+                // if the field is still null but has a default value then... have the default inital value
+                if(field.defaultValue && (values as any)[fieldName] === undefined){
+                    (values as any)[fieldName] = field.defaultValue;
+                }
             }
 
             console.log("Set init value");
             console.log(values);
             refCurrentValue.current = values;
             setCurrentValue(refCurrentValue.current);
-            setIsInitialValuesInitialized(true);
-        }, [props.initialValues]);
+            
+        }, [props.initialValues, formFields]);
 
         const primaryButtonStyle: React.CSSProperties = {};
 
