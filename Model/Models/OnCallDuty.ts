@@ -165,6 +165,7 @@ export default class OnCallDuty extends BaseModel {
         type: TableColumnType.ShortText,
         title: 'Name',
         description: 'Any friendly name of this object',
+        canReadOnPopulate: true
     })
     @Column({
         nullable: false,
