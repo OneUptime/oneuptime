@@ -5,6 +5,7 @@ import React, {
     Ref,
     useEffect,
     useImperativeHandle,
+    useRef,
     useState,
 } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
@@ -102,9 +103,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         props: ComponentProps<T>,
         ref: Ref<any>
     ): ReactElement => {
+
+        const refCurrentValue = useRef(props.initialValues);
+
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
             props.initialValues
         );
+
         const [errors, setErrors] = useState<Dictionary<string>>({});
         const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
@@ -121,7 +126,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             useState<boolean>(false);
 
         useEffect(() => {
+
+
+            console.log("Value changed");
+
             validate(currentValue);
+            if (props.onChange) {
+                props.onChange(currentValue);
+            }
+
         }, [currentValue]);
 
         useImperativeHandle(
@@ -162,14 +175,20 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             fieldName: string,
             value: JSONValue
         ): void => {
+
+
             const updatedValue: FormValues<T> = {
-                ...currentValue,
+                ...refCurrentValue.current,
                 [fieldName]: value as any,
             };
-            setCurrentValue(updatedValue);
-            if (props.onChange) {
-                props.onChange(updatedValue);
-            }
+
+            refCurrentValue.current = updatedValue;
+
+            console.log("Set field value");
+            console.log(updatedValue);
+
+            setCurrentValue(refCurrentValue.current);
+            
         };
 
         const submitForm: Function = (): void => {
@@ -320,11 +339,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         | Array<DropdownValue>
                                         | null
                                 ) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
-
                                     field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
@@ -355,10 +369,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         : undefined
                                 }
                                 onChange={async (value: string) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
                                     field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
@@ -468,10 +478,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 }
                                 tabIndex={index}
                                 onChange={async (value: string) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
                                     field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
@@ -524,10 +530,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                             fileResult = null;
                                         }
                                     }
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        fieldName: fileResult,
-                                    });
+
                                     field.onChange &&
                                         field.onChange(fileResult);
                                     setFieldValue(fieldName, fileResult);
@@ -612,10 +615,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 dataTestId={fieldType}
                                 type={fieldType as InputType}
                                 onChange={(value: string) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
+                                    field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
                                 onEnterPress={() => {
@@ -941,7 +941,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
-            if (!props.initialValues || isInitialValuesInitialized) {
+            if (!props.initialValues || Object.keys(props.initialValues).length === 0 || isInitialValuesInitialized) {
                 return;
             }
 
@@ -984,7 +984,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     );
                 }
             }
-            setCurrentValue(values);
+
+            console.log("Set init value");
+            console.log(values);
+            refCurrentValue.current = values;
+            setCurrentValue(refCurrentValue.current);
             setIsInitialValuesInitialized(true);
         }, [props.initialValues]);
 
