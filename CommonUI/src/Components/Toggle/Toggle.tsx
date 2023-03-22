@@ -22,12 +22,12 @@ const Toggle: FunctionComponent<ComponentProps> = (
     const [isChecked, setIsChecked] = useState<boolean>(false);
 
     useEffect(() => {
-        if (props.initialValue) {
-            setIsChecked(props.initialValue);
-            props.onChange(true);
-        } else {
-            setIsChecked(false);
-            props.onChange(false);
+        if (props !== undefined) {
+            if (props.initialValue) {
+                setIsChecked(true);
+            } else {
+                setIsChecked(false);
+            }
         }
     }, [props.initialValue]);
 
@@ -64,6 +64,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
                             props.onBlur();
                         }
                         handleChange(!isChecked);
+                        props.onChange(!isChecked);
                     }}
                     tabIndex={props.tabIndex}
                     type="button"

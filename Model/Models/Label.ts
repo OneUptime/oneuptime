@@ -156,7 +156,6 @@ export default class Label extends AccessControlModel {
         canReadOnPopulate: true,
         title: 'Name',
         description: 'Any friendly name of this object',
-        
     })
     @Column({
         nullable: false,
