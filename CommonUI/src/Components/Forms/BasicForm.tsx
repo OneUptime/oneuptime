@@ -1,6 +1,7 @@
 import React, {
     forwardRef,
     ForwardRefExoticComponent,
+    MutableRefObject,
     ReactElement,
     Ref,
     useEffect,
@@ -103,7 +104,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         props: ComponentProps<T>,
         ref: Ref<any>
     ): ReactElement => {
-        const refCurrentValue = useRef(props.initialValues);
+        const isSubmitting: MutableRefObject<boolean> = useRef(false);
+
+        const refCurrentValue: MutableRefObject<FormValues<T>> = useRef(
+            props.initialValues
+        );
 
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
             props.initialValues
@@ -122,8 +127,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
-            console.log('Value changed');
-
             validate(currentValue);
             if (props.onChange) {
                 props.onChange(currentValue);
@@ -175,23 +178,23 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
             refCurrentValue.current = updatedValue;
 
-            console.log('Set field value');
-            console.log(updatedValue);
-
             setCurrentValue(refCurrentValue.current);
         };
 
         const submitForm: Function = (): void => {
             // check for any boolean values and if they dont exist in values - mark them as false.
+            isSubmitting.current = true;
             setAllTouched();
-            const validationErrors: Dictionary<string> = validate(currentValue);
+            const validationErrors: Dictionary<string> = validate(
+                refCurrentValue.current
+            );
 
             if (Object.keys(validationErrors).length > 0) {
                 // errors on form, do not submit.
                 return;
             }
 
-            const values: FormValues<T> = currentValue;
+            const values: FormValues<T> = refCurrentValue.current;
 
             for (const field of formFields) {
                 if (field.fieldType === FormFieldSchemaType.Toggle) {
@@ -931,6 +934,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
+            if (isSubmitting.current) {
+                return;
+            }
+
             const values: FormValues<T> = { ...props.initialValues };
             for (const field of formFields) {
                 const fieldName: string = getFieldName(field);
@@ -979,8 +986,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 }
             }
 
-            console.log('Set init value');
-            console.log(values);
             refCurrentValue.current = values;
             setCurrentValue(refCurrentValue.current);
         }, [props.initialValues, formFields]);
