@@ -103,7 +103,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         props: ComponentProps<T>,
         ref: Ref<any>
     ): ReactElement => {
-
         const refCurrentValue = useRef(props.initialValues);
 
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
@@ -122,17 +121,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setTouched({ ...touched, [fieldName]: value });
         };
 
-
         useEffect(() => {
-
-
-            console.log("Value changed");
+            console.log('Value changed');
 
             validate(currentValue);
             if (props.onChange) {
                 props.onChange(currentValue);
             }
-
         }, [currentValue]);
 
         useImperativeHandle(
@@ -173,8 +168,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             fieldName: string,
             value: JSONValue
         ): void => {
-
-
             const updatedValue: FormValues<T> = {
                 ...refCurrentValue.current,
                 [fieldName]: value as any,
@@ -182,11 +175,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
             refCurrentValue.current = updatedValue;
 
-            console.log("Set field value");
+            console.log('Set field value');
             console.log(updatedValue);
 
             setCurrentValue(refCurrentValue.current);
-            
         };
 
         const submitForm: Function = (): void => {
@@ -571,7 +563,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     setFieldTouched(fieldName, true);
                                 }}
                                 initialValue={
-                                    currentValue && (currentValue as any)[fieldName] && ((currentValue as any)[fieldName] === true || (currentValue as any)[fieldName] === false) ? (currentValue as any)[fieldName] : false
+                                    currentValue &&
+                                    (currentValue as any)[fieldName] &&
+                                    ((currentValue as any)[fieldName] ===
+                                        true ||
+                                        (currentValue as any)[fieldName] ===
+                                            false)
+                                        ? (currentValue as any)[fieldName]
+                                        : false
                                 }
                             />
                         )}
@@ -932,8 +931,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
-            
-
             const values: FormValues<T> = { ...props.initialValues };
             for (const field of formFields) {
                 const fieldName: string = getFieldName(field);
@@ -972,18 +969,20 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         }
                     );
                 }
-                
+
                 // if the field is still null but has a default value then... have the default inital value
-                if(field.defaultValue && (values as any)[fieldName] === undefined){
+                if (
+                    field.defaultValue &&
+                    (values as any)[fieldName] === undefined
+                ) {
                     (values as any)[fieldName] = field.defaultValue;
                 }
             }
 
-            console.log("Set init value");
+            console.log('Set init value');
             console.log(values);
             refCurrentValue.current = values;
             setCurrentValue(refCurrentValue.current);
-            
         }, [props.initialValues, formFields]);
 
         const primaryButtonStyle: React.CSSProperties = {};

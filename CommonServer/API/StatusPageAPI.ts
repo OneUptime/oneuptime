@@ -484,7 +484,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 displayName: true,
                                 showStatusHistoryChart: true,
                                 showCurrentStatus: true,
-                                order: true
+                                order: true,
                             },
                             populate: {
                                 monitor: {
@@ -493,7 +493,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 },
                             },
                             sort: {
-                                order: SortOrder.Ascending
+                                order: SortOrder.Ascending,
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,

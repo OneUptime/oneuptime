@@ -31,7 +31,6 @@ const Toggle: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-
     const handleChange: Function = (content: boolean): void => {
         setIsChecked(content);
         props.onChange(content);
