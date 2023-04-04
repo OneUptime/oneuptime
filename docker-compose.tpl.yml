@@ -28,6 +28,19 @@ services:
         env_file:
             - ./Redis/.env
 
+    clickhouse:
+        image: clickhouse/clickhouse-server:23.2
+        restart: always
+        env_file:
+            - ./Clickhouse/.env
+        ports:
+            - '8123:8123'
+            - '9000:9000'
+            - '9440:9440'
+            - '9009:9009'
+        volumes:
+            - clickhouse:/var/lib/clickhouse/
+
     postgres:
         image: postgres:latest
         restart: always
@@ -409,6 +422,8 @@ services:
         {{ end }}
     
 
+    
+
     file:
         ports:
             - '3125:3125'
@@ -544,6 +559,7 @@ services:
             - ./Certs:/etc/nginx/certs
 volumes:
     postgres:
+    clickhouse:
     {{ if eq .Env.ENVIRONMENT "development" }}
     # Add volumes to skip node_modules.
     dashboardApiNodeModules:
