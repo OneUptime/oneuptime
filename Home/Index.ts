@@ -91,7 +91,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                 {
                     name: 'Custom Domain',
                     plans: {
-                        free: false,
+                        free: true,
                         growth: true,
                         scale: true,
                         enterprise: true,
