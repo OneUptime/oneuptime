@@ -40,6 +40,7 @@ services:
             - '9009:9009'
         volumes:
             - clickhouse:/var/lib/clickhouse/
+            - clickhouse-logs:/var/log/clickhouse-server/
             - ./Clickhouse/initdb:/docker-entrypoint-initdb.d
             - ./Clickhouse/config.xml:/etc/clickhouse-server/config.xml
             - ./Clickhouse/users.xml:/etc/clickhouse-server/users.xml
@@ -563,6 +564,7 @@ services:
 volumes:
     postgres:
     clickhouse:
+    clickhouse-logs:
     {{ if eq .Env.ENVIRONMENT "development" }}
     # Add volumes to skip node_modules.
     dashboardApiNodeModules:

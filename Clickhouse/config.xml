@@ -1,0 +1,14 @@
+<clickhouse>
+  <path>/var/lib/clickhouse/</path>
+  <format_schema_path>format_schemas/</format_schema_path>
+  <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+  <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+  <logger>
+    <level>trace</level>
+    <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+    <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+    <size>1000M</size>
+    <count>10</count>
+    <stream_compress>true</stream_compress>
+</logger>
+</clickhouse>
