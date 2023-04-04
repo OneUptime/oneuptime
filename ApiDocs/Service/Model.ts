@@ -173,7 +173,6 @@ export default class ServiceHandler {
             }
         );
 
-
         pageData.deleteRequest = await LocalCache.getOrSetString(
             'model',
             'delete-request',
@@ -194,7 +193,6 @@ export default class ServiceHandler {
             }
         );
 
-
         pageData.listResponse = await LocalCache.getOrSetString(
             'model',
             'list-response',
@@ -207,8 +205,9 @@ export default class ServiceHandler {
 
         pageData.exampleObjectID = ObjectID.generate();
 
-        pageData.apiPath = DashboardApiRoute.toString() + currentResource.model.crudApiPath?.toString();
-
+        pageData.apiPath =
+            DashboardApiRoute.toString() +
+            currentResource.model.crudApiPath?.toString();
 
         return res.render('pages/index', {
             page: page,
