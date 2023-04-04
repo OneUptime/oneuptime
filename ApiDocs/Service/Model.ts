@@ -1,11 +1,15 @@
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import { getTableColumns } from 'Common/Types/Database/TableColumn';
 import Dictionary from 'Common/Types/Dictionary';
+import ObjectID from 'Common/Types/ObjectID';
 import Permission, {
     PermissionHelper,
     PermissionProps,
 } from 'Common/Types/Permission';
+import { DashboardApiRoute } from 'CommonServer/Config';
+import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
+import LocalFile from 'CommonServer/Utils/LocalFile';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import PageNotFoundServiceHandler from './PageNotFound';
 
@@ -98,6 +102,113 @@ export default class ServiceHandler {
                 }
             ),
         };
+
+        pageData.listRequest = await LocalCache.getOrSetString(
+            'model',
+            'list-request',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/ListRequest.md'
+                );
+            }
+        );
+
+        pageData.itemRequest = await LocalCache.getOrSetString(
+            'model',
+            'item-request',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/ItemRequest.md'
+                );
+            }
+        );
+
+        pageData.itemResponse = await LocalCache.getOrSetString(
+            'model',
+            'item-response',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/ItemResponse.md'
+                );
+            }
+        );
+
+        pageData.countRequest = await LocalCache.getOrSetString(
+            'model',
+            'count-request',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/CountRequest.md'
+                );
+            }
+        );
+
+        pageData.countResponse = await LocalCache.getOrSetString(
+            'model',
+            'count-response',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/CountResponse.md'
+                );
+            }
+        );
+
+        pageData.updateRequest = await LocalCache.getOrSetString(
+            'model',
+            'update-request',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/UpdateRequest.md'
+                );
+            }
+        );
+
+        pageData.updateResponse = await LocalCache.getOrSetString(
+            'model',
+            'update-response',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/UpdateResponse.md'
+                );
+            }
+        );
+
+
+        pageData.deleteRequest = await LocalCache.getOrSetString(
+            'model',
+            'delete-request',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/DeleteRequest.md'
+                );
+            }
+        );
+
+        pageData.deleteResponse = await LocalCache.getOrSetString(
+            'model',
+            'delete-response',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/DeleteResponse.md'
+                );
+            }
+        );
+
+
+        pageData.listResponse = await LocalCache.getOrSetString(
+            'model',
+            'list-response',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/ListResponse.md'
+                );
+            }
+        );
+
+        pageData.exampleObjectID = ObjectID.generate();
+
+        pageData.apiPath = DashboardApiRoute.toString() + currentResource.model.crudApiPath?.toString();
+
 
         return res.render('pages/index', {
             page: page,
