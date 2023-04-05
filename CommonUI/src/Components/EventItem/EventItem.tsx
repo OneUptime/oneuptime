@@ -9,6 +9,7 @@ import Pill from '../Pill/Pill';
 import BaseModel from 'Common/Models/BaseModel';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 
 export enum TimelineItemType {
     StateChange = 'StateChange',
@@ -283,7 +284,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                                             </div>
                                                             <div className="mt-2 text-sm text-gray-700">
                                                                 <p>
-                                                                    {item.note}
+                                                                    <MarkdownViewer text={item.note || ''} />
                                                                 </p>
                                                             </div>
                                                         </div>
