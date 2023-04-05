@@ -500,7 +500,7 @@ services:
             - /usr/src/Model/node_modules/
         {{ end }}
     
-    api-docs:
+    api-reference:
         ports:
             - '1445:1445'
             {{ if eq .Env.ENVIRONMENT "development" }}
@@ -517,7 +517,7 @@ services:
             context: .
             dockerfile: ./ApiDocs/Dockerfile
         {{ else }}
-        image:  oneuptime/api-docs:{{ .Env.APP_TAG }}
+        image:  oneuptime/api-reference:{{ .Env.APP_TAG }}
         {{ end }}
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
