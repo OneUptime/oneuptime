@@ -47,6 +47,7 @@ export enum ObjectType {
     Buffer = 'Buffer',
     InBetween = 'InBetween',
     NotNull = 'NotNull',
+    IsNull = "IsNull"
 }
 
 export type JSONValue =

@@ -1,0 +1,399 @@
+<main class="py-16">
+    <article class="prose dark:prose-invert">
+        <h1>Data Types</h1>
+        <p class="lead">In this guide, we will look at how to work with OneUptime Data Types when querying the OneUptime
+            API. </p>
+
+        <a href="#select" class="cursor-default">
+            <h2 id="example-using-cursors" class="scroll-mt-24">
+                Select
+            </h2>
+        </a>
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p>Select can be used to select fields from an Object in List or Get Item API. By default only ID's
+                    are returned to the client. To retrive more fields you need use:</p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Select</dt>
+                                <dd><code class="inline-code">select</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Select</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Dictionary of fieldName - boolean as JSON Object. Here's an example. If the
+                                        boolean is set to true then the field will be retrieved.</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Select Request Body" , requestUrl: "" , requestType: ""
+                    , code: pageData.selectCode }) -%>
+
+            </div>
+        </div>
+
+
+
+
+
+        <a href="#sort" class="cursor-default">
+            <h2 id="example-using-cursors" class="scroll-mt-24">
+                Sort
+            </h2>
+        </a>
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p>Sort can be used to sort list by fields in List API. By default objects are sorted by their createdAt
+                    date in descending order (recently created item will be first). To change the sort order you can:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Sort</dt>
+                                <dd><code class="inline-code">sort</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Sort</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Dictionary of fieldName - 'DESC' / 'ASC' as JSON Object. Here's an example. If
+                                        the
+                                        boolean is set to true then the field will be retrieved.</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Sort Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.sortCode }) -%>
+
+            </div>
+        </div>
+
+
+        <a href="#queries" class="cursor-default">
+            <h2 id="example-using-cursors" class="scroll-mt-24">
+                Query
+            </h2>
+        </a>
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Equal To
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use Equal To query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of Equal To Query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.equalToCode }) -%>
+
+            </div>
+        </div>
+
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Not Equal To
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use Not Equal To query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of Not Equal To Query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.notEqualToCode }) -%>
+
+            </div>
+        </div>
+
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Is Null
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `is null` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of is null query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.isNullCode }) -%>
+
+            </div>
+        </div>
+
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Is Not Null
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `is not null` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of is not null query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.notNullCode }) -%>
+
+            </div>
+        </div>
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Greater Than
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `greater than` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of greater than query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.greaterThanCode }) -%>
+
+            </div>
+        </div>
+
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Greater Than or Equal
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `greater than or equal` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of greater or equal than query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.greaterThanOrEqualCode }) -%>
+
+            </div>
+        </div>
+
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Less Than
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `less than` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of less than query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.lessThanCode }) -%>
+
+            </div>
+        </div>
+
+
+
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Less Than or Equal
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `less than or equal` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of less or equal than query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.lessThanOrEqualCode }) -%>
+
+            </div>
+        </div>
+
+    </article>
+</main>
