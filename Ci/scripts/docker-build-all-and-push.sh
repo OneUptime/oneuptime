@@ -35,7 +35,7 @@ build accounts $1
 build backend $1
 build home $1
 build StatusPage $1
-build ApiDocs $1
+build ApiReference $1
 build probe $1
 build AdminDashboard $1
 build InitScript $1

@@ -18,7 +18,7 @@ function update {
 update deployment/fi-accounts fi-accounts=oneuptime/accounts:$1
 update deployment/fi-dashboard fi-dashboard=oneuptime/dashboard:$1
 update deployment/fi-admin fi-admin=oneuptime/AdminDashboard:$1
-update deployment/fi-ApiDocs fi-ApiDocs=oneuptime/ApiDocs:$1
+update deployment/fi-ApiReference fi-ApiReference=oneuptime/ApiReference:$1
 update deployment/fi-app-scan fi-app-scan=oneuptime/ApplicationScanner:$1
 update deployment/fi-backend fi-backend=oneuptime/backend:$1
 update deployment/fi-cont-scan fi-cont-scan=oneuptime/ContainerScanner:$1

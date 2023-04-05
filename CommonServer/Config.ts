@@ -140,8 +140,8 @@ export const WorkflowRoute: Route = new Route(
     process.env['WORKFLOW_ROUTE'] || '/workflow'
 );
 
-export const ApiDocsRoute: Route = new Route(
-    process.env['APIDOCS_ROUTE'] || '/api-reference'
+export const ApiReferenceRoute: Route = new Route(
+    process.env['ApiReference_ROUTE'] || '/api-reference'
 );
 
 export const AdminDashboardRoute: Route = new Route(

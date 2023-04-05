@@ -1,4 +1,4 @@
-name: Compile ApiDocs
+name: Compile ApiReference
 
 on:
   pull_request: 
@@ -20,5 +20,5 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd ApiDocs && npm install && npm run compile
+      - run: cd ApiReference && npm install && npm run compile
   

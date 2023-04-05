@@ -3,7 +3,7 @@
 -   `accounts` - A React project used for Authentication (Log in, Sign up, Forgot Password, etc.)
 -   `dashboard` - A React project for OneUptime user where user can interact with the OneUptime platform.
 -   `admin-dashobard` - React Project where admin can block users, delete projects and more.
--   `ApiDocs` - HTML/CSS project. A public reference of OneUptime documentation.
+-   `ApiReference` - HTML/CSS project. A public reference of OneUptime documentation.
 -   `backend` - NodeJS Service. It's OneUptime API's.
 -   `home` - HTML/CSS. Home Page / Marketing page of OneUptime.
 -   `HttpTestServer` - A test server used to test website monitors for OneUptime.

@@ -22,9 +22,9 @@ sudo sed -i '/StatusPage/c\' /etc/hosts
 STATUSPAGE_IP=`sudo k describe svc oneuptime-status | grep Endpoints | cut -d ":" -f 2`
 echo $STATUSPAGE_IP'      status.app.local' | sudo tee -a /etc/hosts
 
-sudo sed -i '/ApiDocs/c\' /etc/hosts
-APIDOCS_IP=`sudo k describe svc oneuptime-ApiDocs | grep Endpoints | cut -d ":" -f 2`
-echo $APIDOCS_IP'      ApiDocs.app.local' | sudo tee -a /etc/hosts
+sudo sed -i '/ApiReference/c\' /etc/hosts
+ApiReference_IP=`sudo k describe svc oneuptime-ApiReference | grep Endpoints | cut -d ":" -f 2`
+echo $ApiReference_IP'      ApiReference.app.local' | sudo tee -a /etc/hosts
 
 sudo sed -i '/licensing/c\' /etc/hosts
 LICENSING_IP=`sudo k describe svc oneuptime-licensing | grep Endpoints | cut -d ":" -f 2`
