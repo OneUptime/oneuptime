@@ -16,6 +16,7 @@ import PageNotFoundServiceHandler from './Service/PageNotFound';
 import ModelServiceHandler from './Service/Model';
 import PaginationServiceHandler from './Service/Pagination';
 import StatusServiceHandler from './Service/Status';
+import DataTypeServiceHandler from './Service/DataType';
 import Dictionary from 'Common/Types/Dictionary';
 
 const ResourceDictionary: Dictionary<ModelDocumentation> =
@@ -72,6 +73,8 @@ app.get(['/reference/:page'], (req: ExpressRequest, res: ExpressResponse) => {
         return IntroductionServiceHandler.executeResponse(req, res);
     } else if (req.params['page'] === 'status') {
         return StatusServiceHandler.executeResponse(req, res);
+    } else if (req.params['page'] === 'data-types') {
+        return DataTypeServiceHandler.executeResponse(req, res);
     } else if (currentResource) {
         return ModelServiceHandler.executeResponse(req, res);
     }
