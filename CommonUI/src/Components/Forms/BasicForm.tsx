@@ -106,6 +106,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     ): ReactElement => {
         const isSubmitting: MutableRefObject<boolean> = useRef(false);
 
+        const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
+
         const refCurrentValue: MutableRefObject<FormValues<T>> = useRef(
             props.initialValues
         );
@@ -938,6 +940,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 return;
             }
 
+            if (isInitialValuesSet.current) {
+                return;
+            }
+
             const values: FormValues<T> = { ...props.initialValues };
             for (const field of formFields) {
                 const fieldName: string = getFieldName(field);
@@ -984,6 +990,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 ) {
                     (values as any)[fieldName] = field.defaultValue;
                 }
+
+                isInitialValuesSet.current = true;
             }
 
             refCurrentValue.current = values;
