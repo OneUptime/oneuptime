@@ -510,18 +510,18 @@ services:
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
-            - ./ApiDocs/.env
+            - ./ApiReference/.env
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
-            dockerfile: ./ApiDocs/Dockerfile
+            dockerfile: ./ApiReference/Dockerfile
         {{ else }}
         image:  oneuptime/api-reference:{{ .Env.APP_TAG }}
         {{ end }}
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
-            - ./ApiDocs:/usr/src/app
+            - ./ApiReference:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/

@@ -61,8 +61,8 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                   ports:
-                      - containerPort: {{ $.Values.host.apiDocsPort }}
-                        hostPort: {{ $.Values.host.apiDocsPort }}
+                      - containerPort: {{ $.Values.host.ApiReferencePort }}
+                        hostPort: {{ $.Values.host.ApiReferencePort }}
                         name: {{ printf "%s-%s" $.Release.Name "api-reference"  }}
             restartPolicy: {{ $.Values.image.restartPolicy }}
 
@@ -79,9 +79,9 @@ metadata:
     namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ $.Values.host.apiDocsServicePort }}
+        - port: {{ $.Values.host.ApiReferenceServicePort }}
           protocol: TCP
-          targetPort: {{ $.Values.host.apiDocsPort }}
+          targetPort: {{ $.Values.host.ApiReferencePort }}
     selector:
         app: {{ printf "%s-%s" $.Release.Name "api-reference"  }}
     type: ClusterIP

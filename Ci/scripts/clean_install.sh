@@ -19,7 +19,7 @@ clean_install accounts
 clean_install backend
 clean_install home 
 clean_install StatusPage 
-clean_install ApiDocs
+clean_install ApiReference
 clean_install probe
 clean_install AdminDashboard
 clean_install InitScript

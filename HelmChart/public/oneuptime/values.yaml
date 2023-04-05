@@ -172,7 +172,7 @@ host:
   dashboardPort: 3000
   accountsPort: 3003
   helmChartPort: 3423
-  apiDocsPort: 1445
+  ApiReferencePort: 1445
   initScriptPort: 1447
   # if port 25 is avaialble and accessible
   # then we can use it as default port
@@ -184,7 +184,7 @@ host:
   realtimeServicePort: 80
   fetchResourcesServicePort: 80
   homeServicePort: 80
-  apiDocsServicePort: 80
+  ApiReferenceServicePort: 80
   statusPageHttpServicePort: 80
   statusPageHttpsServicePort: 443
   dashboardServicePort: 80

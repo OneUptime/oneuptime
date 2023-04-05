@@ -26,7 +26,7 @@ function check {
         rollback backend
         rollback home
         rollback StatusPage 
-        rollback ApiDocs
+        rollback ApiReference
         rollback probe
         rollback AdminDashboard
         rollback licensing
@@ -43,7 +43,7 @@ check accounts
 check backend
 check home 
 check StatusPage 
-check ApiDocs
+check ApiReference
 check probe-1
 check probe-2
 check AdminDashboard

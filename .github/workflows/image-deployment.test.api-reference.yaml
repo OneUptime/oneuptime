@@ -1,4 +1,4 @@
-name: ApiDocs Test Image Deploy to DockerHub
+name: ApiReference Test Image Deploy to DockerHub
 
 on:
   push:
@@ -23,6 +23,6 @@ jobs:
         # Build and deploy api-reference.
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:5.0.$CI_PIPELINE_ID-test --push -f ./ApiDocs/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:test --push -f ./ApiDocs/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:5.0.$CI_PIPELINE_ID-test --push -f ./ApiReference/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:test --push -f ./ApiReference/Dockerfile .
       

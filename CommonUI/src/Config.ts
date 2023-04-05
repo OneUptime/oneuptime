@@ -40,7 +40,7 @@ export const INTEGRATION_ROUTE: Route = new Route(env('INTEGRATION_ROUTE'));
 
 export const HELM_ROUTE: Route = new Route(env('HELMCHART_ROUTE'));
 
-export const API_DOCS_ROUTE: Route = new Route(env('APIDOCS_ROUTE'));
+export const API_DOCS_ROUTE: Route = new Route(env('ApiReference_ROUTE'));
 
 export const ADMIN_DASHBOARD_ROUTE: Route = new Route(
     env('ADMINDASHBOARD_ROUTE')

@@ -16,7 +16,7 @@ version accounts
 version backend
 version home 
 version StatusPage 
-version ApiDocs
+version ApiReference
 version probe
 version AdminDashboard
 version InitScript
