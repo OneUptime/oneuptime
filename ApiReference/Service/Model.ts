@@ -173,6 +173,27 @@ export default class ServiceHandler {
             }
         );
 
+
+        pageData.createRequest = await LocalCache.getOrSetString(
+            'model',
+            'create-request',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/CreateRequest.md'
+                );
+            }
+        );
+
+        pageData.createResponse = await LocalCache.getOrSetString(
+            'model',
+            'create-response',
+            async () => {
+                return await LocalFile.read(
+                    '/usr/src/app/CodeExamples/Model/CreateResponse.md'
+                );
+            }
+        );
+
         pageData.deleteRequest = await LocalCache.getOrSetString(
             'model',
             'delete-request',
