@@ -75,7 +75,7 @@ app.get(['/reference/:page'], (req: ExpressRequest, res: ExpressResponse) => {
         return StatusServiceHandler.executeResponse(req, res);
     } else if (req.params['page'] === 'data-types') {
         return DataTypeServiceHandler.executeResponse(req, res);
-    }else if (currentResource) {
+    } else if (currentResource) {
         return ModelServiceHandler.executeResponse(req, res);
     }
     // page not found

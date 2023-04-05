@@ -32,7 +32,6 @@ export default class ServiceHandler {
             }
         );
 
-
         pageData.equalToCode = await LocalCache.getOrSetString(
             'data-type',
             'equal-to',
@@ -73,7 +72,6 @@ export default class ServiceHandler {
             }
         );
 
-
         pageData.lessThanCode = await LocalCache.getOrSetString(
             'data-type',
             'less-than',
@@ -104,7 +102,6 @@ export default class ServiceHandler {
             }
         );
 
-
         pageData.notNullCode = await LocalCache.getOrSetString(
             'data-type',
             'not-null',
@@ -114,7 +111,6 @@ export default class ServiceHandler {
                 );
             }
         );
-
 
         pageData.notEqualToCode = await LocalCache.getOrSetString(
             'data-type',
@@ -130,7 +126,8 @@ export default class ServiceHandler {
         return res.render('pages/index', {
             page: 'data-types',
             pageTitle: 'Data Types',
-            pageDescription: 'Data Types that can be used to interact with OneUptime API',
+            pageDescription:
+                'Data Types that can be used to interact with OneUptime API',
             resources: Resources,
             pageData: pageData,
         });
