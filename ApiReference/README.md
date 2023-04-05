@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/OneUptime/ApiDocs.svg?branch=master)](https://travis-ci.org/OneUptime/ApiDocs)
 
-This is the API Reference for OneUptime which is hosted at [https://oneuptime.com/docs](https://oneuptime.com/docs).
+This is the API Reference for OneUptime which is hosted at [https://oneuptime.com/reference](https://oneuptime.com/reference).
 
 # Contribute
 

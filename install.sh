@@ -63,7 +63,7 @@ bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/workflow
 echo "Workflow Server is up ✔️"
 
 echo "Checking API Docs Server Status..."
-bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/docs/status)" != "200" ]]; do sleep 5; done'
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/reference/status)" != "200" ]]; do sleep 5; done'
 echo "API Docs Server is up ✔️"
 
 
