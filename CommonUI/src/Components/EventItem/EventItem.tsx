@@ -284,7 +284,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                                             </div>
                                                             <div className="mt-2 text-sm text-gray-700">
                                                                 <p>
-                                                                    <MarkdownViewer text={item.note || ''} />
+                                                                    <MarkdownViewer
+                                                                        text={
+                                                                            item.note ||
+                                                                            ''
+                                                                        }
+                                                                    />
                                                                 </p>
                                                             </div>
                                                         </div>

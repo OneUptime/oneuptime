@@ -157,7 +157,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         title: '',
                         type: FieldType.DateTime,
                         contentClassName:
-                            'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3',
+                            'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3 text-right',
                     },
                     {
                         field: {
