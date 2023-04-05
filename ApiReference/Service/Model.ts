@@ -173,7 +173,6 @@ export default class ServiceHandler {
             }
         );
 
-
         pageData.createRequest = await LocalCache.getOrSetString(
             'model',
             'create-request',

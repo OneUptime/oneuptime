@@ -12,7 +12,7 @@ export default class ServiceHandler {
         return res.render('pages/index', {
             page: 'status',
             pageTitle: 'Status',
-            pageDescription: "200 - Success",
+            pageDescription: '200 - Success',
             resources: Resources,
             pageData: {},
         });
