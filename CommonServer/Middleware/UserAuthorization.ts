@@ -48,7 +48,6 @@ export default class UserMiddleware {
             accessToken = req.query['accessToken'] as string;
         }
 
-       
         if (accessToken?.includes(' ')) {
             accessToken = accessToken.split(' ')[1] || '';
         }
@@ -153,8 +152,6 @@ export default class UserMiddleware {
         } else {
             oneuptimeRequest.userType = UserType.User;
         }
-
-
 
         const userId: string =
             oneuptimeRequest.userAuthorization.userId.toString();

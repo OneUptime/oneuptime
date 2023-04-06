@@ -61,7 +61,9 @@ export default class AccessTokenService {
         }
     }
 
-    public static async getDefaultApiGlobalPermission(projectId: ObjectID): Promise<UserGlobalAccessPermission> {
+    public static async getDefaultApiGlobalPermission(
+        projectId: ObjectID
+    ): Promise<UserGlobalAccessPermission> {
         return {
             projectIds: [projectId],
             globalPermissions: [
@@ -73,8 +75,10 @@ export default class AccessTokenService {
         };
     }
 
-
-    public static async getApiTenantAccessPermission(projectId: ObjectID, apiKeyId: ObjectID): Promise<UserTenantAccessPermission> {
+    public static async getApiTenantAccessPermission(
+        projectId: ObjectID,
+        apiKeyId: ObjectID
+    ): Promise<UserTenantAccessPermission> {
         // get team permissions.
         const apiKeyPermission: Array<APIKeyPermission> =
             await ApiKeyPermissionService.findBy({
@@ -120,7 +124,6 @@ export default class AccessTokenService {
 
         return permission;
     }
-
 
     public static async refreshUserGlobalAccessPermission(
         userId: ObjectID

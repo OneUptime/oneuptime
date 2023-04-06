@@ -955,8 +955,7 @@ export default class ModelPermission {
         // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
 
         if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
-
-            if(props.userType === UserType.API){
+            if (props.userType === UserType.API) {
                 // if its an API request then continue.
                 return;
             }

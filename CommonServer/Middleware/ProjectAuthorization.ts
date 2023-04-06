@@ -38,7 +38,6 @@ export default class ProjectMiddleware {
     }
 
     public static getApiKey(req: ExpressRequest): ObjectID | null {
-
         if (req.headers && req.headers['apikey']) {
             return new ObjectID(req.headers['apikey'] as string);
         }
@@ -62,7 +61,6 @@ export default class ProjectMiddleware {
         const tenantId: ObjectID | null = this.getProjectId(req);
 
         console.log(tenantId);
-       
 
         const apiKey: ObjectID | null = this.getApiKey(req);
 
@@ -80,7 +78,9 @@ export default class ProjectMiddleware {
             query: {
                 projectId: tenantId,
                 apiKey: apiKey,
-                expiresAt: QueryHelper.greaterThan(OneUptimeDate.getCurrentDate()),
+                expiresAt: QueryHelper.greaterThan(
+                    OneUptimeDate.getCurrentDate()
+                ),
             },
             select: {
                 _id: true,
@@ -94,7 +94,10 @@ export default class ProjectMiddleware {
             // (req as OneUptimeRequest).permissions =
             //     apiKeyModel.permissions || [];
             (req as OneUptimeRequest).tenantId = tenantId;
-            (req as OneUptimeRequest).userGlobalAccessPermission = await AccessTokenService.getDefaultApiGlobalPermission(tenantId);
+            (req as OneUptimeRequest).userGlobalAccessPermission =
+                await AccessTokenService.getDefaultApiGlobalPermission(
+                    tenantId
+                );
 
             const userTenantAccessPermission: UserTenantAccessPermission | null =
                 await AccessTokenService.getApiTenantAccessPermission(
@@ -103,18 +106,20 @@ export default class ProjectMiddleware {
                 );
 
             if (userTenantAccessPermission) {
-                
                 (req as OneUptimeRequest).userTenantAccessPermission = {};
-                ((req as OneUptimeRequest).userTenantAccessPermission as Dictionary<UserTenantAccessPermission>)[
-                    tenantId.toString()
-                ] = userTenantAccessPermission;
+                (
+                    (req as OneUptimeRequest)
+                        .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
+                )[tenantId.toString()] = userTenantAccessPermission;
 
                 return next();
             }
-
-            
         }
 
-        return Response.sendErrorResponse(req, res,  new BadDataException('Invalid Project ID or API Key'));
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('Invalid Project ID or API Key')
+        );
     }
 }

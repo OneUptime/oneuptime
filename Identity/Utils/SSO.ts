@@ -8,7 +8,9 @@ export default class SSOUtil {
             throw new BadRequestException('SAML Response not found.');
         }
 
-        payload = (payload['saml2p:Response'] as JSONObject) || (payload['samlp:Response'] as JSONObject);
+        payload =
+            (payload['saml2p:Response'] as JSONObject) ||
+            (payload['samlp:Response'] as JSONObject);
 
         const issuers: JSONArray = payload['saml2:Issuer'] as JSONArray;
 
