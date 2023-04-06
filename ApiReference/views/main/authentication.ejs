@@ -20,20 +20,19 @@
          </svg>
       </a>
 
+
       <h2 id="basic-authentication" class="mb-5 scroll-mt-24 mt-24 font-bold text-lg">
          Project ID
       </h2>
       <p> Please head over to <b>Project Settings</b> > <b>Project</b>. You should see your Project ID there.</p>
 
       <h2 id="basic-authentication">
-         Authentication with API Key and Project ID
+         Authentication with API Key
       </h2>
       <p>You can use OneUptime API Key on Request Header when you're making a requst. You can use <code
             class="rounded p-0.5 px-1 text-sm text-gray-500 bg-gray-100 border-2 border-gray-200">Authorization</code>
          header with your API Key when you make a request.</p>
-      <%- include('../partials/code', {title: "Example request with API Key" , requestUrl: "" , requestType: "" ,
-         code: "curl --header \" Authorization: Bearer {secret-api-key}\" --header \"TenantId: {project-id}\"
-         https://oneuptime.com/api/\<path\>" }) -%>
+      <%- include('../partials/code', {title: "Example request with API Key" , requestUrl: "" , requestType: "" , code: "curl --header \"ApiKey: {secret-api-key}\" --header \"ProjectID: {project-id}\" https://oneuptime.com/api/\<path\>" }) -%>
          <p class="text-sm">Please don't commit your OneUptime API Key to GitHub, or on any other source control
             project. Please regenerate a new API Key, if your API Key is comitted by mistake.</p>
    </article>

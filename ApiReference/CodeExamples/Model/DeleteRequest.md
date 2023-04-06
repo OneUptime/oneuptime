@@ -1,4 +1,4 @@
 Request Headers: 
 
-Authorization: Bearer {secret-api-key}
-TenantId: {project-id}
+ApiKey: {secret-api-key}
+ProjectID: {project-id}

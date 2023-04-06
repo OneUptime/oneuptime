@@ -4,11 +4,11 @@ import Email from 'Common/Types/Email';
 
 export default class SSOUtil {
     public static isPayloadValid(payload: JSONObject): void {
-        if (!payload['saml2p:Response']) {
+        if (!payload['saml2p:Response'] && !payload['samlp:Response']) {
             throw new BadRequestException('SAML Response not found.');
         }
 
-        payload = payload['saml2p:Response'] as JSONObject;
+        payload = (payload['saml2p:Response'] as JSONObject) || (payload['samlp:Response'] as JSONObject);
 
         const issuers: JSONArray = payload['saml2:Issuer'] as JSONArray;
 
