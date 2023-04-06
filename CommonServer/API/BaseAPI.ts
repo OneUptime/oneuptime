@@ -222,7 +222,7 @@ export default class BaseAPI<
             userGlobalAccessPermission: undefined,
             userTenantAccessPermission: undefined,
             userId: undefined,
-            userType: undefined,
+            userType: (req as OneUptimeRequest).userType,
             isMultiTenantRequest: undefined,
         };
 

@@ -9,9 +9,13 @@ import {
 } from '../Utils/Express';
 
 import ApiKey from 'Model/Models/ApiKey';
-import { LessThan } from 'typeorm';
 import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';
+import AccessTokenService from '../Services/AccessTokenService';
+import { UserTenantAccessPermission } from 'Common/Types/Permission';
+import Dictionary from 'Common/Types/Dictionary';
+import Response from '../Utils/Response';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -23,6 +27,9 @@ export default class ProjectMiddleware {
         } else if (req.headers && req.headers['tenantid']) {
             // Header keys are automatically transformed to lowercase
             projectId = new ObjectID(req.headers['tenantid'] as string);
+        } else if (req.headers && req.headers['projectid']) {
+            // Header keys are automatically transformed to lowercase
+            projectId = new ObjectID(req.headers['projectid'] as string);
         } else if (req.body && req.body.projectId) {
             projectId = new ObjectID(req.body.projectId as string);
         }
@@ -31,17 +38,11 @@ export default class ProjectMiddleware {
     }
 
     public static getApiKey(req: ExpressRequest): ObjectID | null {
-        let apiKey: ObjectID | null = null;
-
-        if (req.query && req.query['apiKey']) {
-            apiKey = new ObjectID(req.query['apiKey'] as string);
-        } else if (req.headers && req.headers['apikey']) {
-            apiKey = new ObjectID(req.headers['apikey'] as string);
-        } else if (req.body && req.body.apiKey) {
-            apiKey = req.body.apiKey;
+        if (req.headers && req.headers['apikey']) {
+            return new ObjectID(req.headers['apikey'] as string);
         }
 
-        return apiKey;
+        return null;
     }
 
     public static hasApiKey(req: ExpressRequest): boolean {
@@ -54,14 +55,19 @@ export default class ProjectMiddleware {
 
     public static async isValidProjectIdAndApiKeyMiddleware(
         req: ExpressRequest,
-        _res: ExpressResponse,
+        res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
         const tenantId: ObjectID | null = this.getProjectId(req);
+
+        console.log(tenantId);
+
         const apiKey: ObjectID | null = this.getApiKey(req);
 
+        console.log(apiKey);
+
         if (!tenantId) {
-            throw new BadDataException('ProjectID not found in the request');
+            throw new BadDataException('tenantId not found in the request');
         }
 
         if (!apiKey) {
@@ -72,7 +78,12 @@ export default class ProjectMiddleware {
             query: {
                 projectId: tenantId,
                 apiKey: apiKey,
-                expiresAt: LessThan(OneUptimeDate.getCurrentDate()),
+                expiresAt: QueryHelper.greaterThan(
+                    OneUptimeDate.getCurrentDate()
+                ),
+            },
+            select: {
+                _id: true,
             },
             props: { isRoot: true },
         });
@@ -83,9 +94,32 @@ export default class ProjectMiddleware {
             // (req as OneUptimeRequest).permissions =
             //     apiKeyModel.permissions || [];
             (req as OneUptimeRequest).tenantId = tenantId;
-            return next();
+            (req as OneUptimeRequest).userGlobalAccessPermission =
+                await AccessTokenService.getDefaultApiGlobalPermission(
+                    tenantId
+                );
+
+            const userTenantAccessPermission: UserTenantAccessPermission | null =
+                await AccessTokenService.getApiTenantAccessPermission(
+                    tenantId,
+                    apiKeyModel.id!
+                );
+
+            if (userTenantAccessPermission) {
+                (req as OneUptimeRequest).userTenantAccessPermission = {};
+                (
+                    (req as OneUptimeRequest)
+                        .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
+                )[tenantId.toString()] = userTenantAccessPermission;
+
+                return next();
+            }
         }
 
-        throw new BadDataException('Invalid Project ID or API Key');
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('Invalid Project ID or API Key')
+        );
     }
 }

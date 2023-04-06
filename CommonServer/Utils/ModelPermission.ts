@@ -36,6 +36,7 @@ import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
+import UserType from 'Common/Types/UserType';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -954,6 +955,11 @@ export default class ModelPermission {
         // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
 
         if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
+            if (props.userType === UserType.API) {
+                // if its an API request then continue.
+                return;
+            }
+
             // this means the record is not publicly createable and the user is not logged in.
             throw new NotAuthenticatedException(
                 `A user should be logged in to ${type} record of ${

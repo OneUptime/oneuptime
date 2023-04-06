@@ -13,6 +13,8 @@ import TeamPermissionService from './TeamPermissionService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Label from 'Model/Models/Label';
 import QueryHelper from '../Types/Database/QueryHelper';
+import APIKeyPermission from 'Model/Models/ApiKeyPermission';
+import ApiKeyPermissionService from './ApiKeyPermissionService';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',
@@ -57,6 +59,70 @@ export default class AccessTokenService {
                 projectId
             );
         }
+    }
+
+    public static async getDefaultApiGlobalPermission(
+        projectId: ObjectID
+    ): Promise<UserGlobalAccessPermission> {
+        return {
+            projectIds: [projectId],
+            globalPermissions: [
+                Permission.Public,
+                Permission.User,
+                Permission.CurrentUser,
+            ],
+            _type: 'UserGlobalAccessPermission',
+        };
+    }
+
+    public static async getApiTenantAccessPermission(
+        projectId: ObjectID,
+        apiKeyId: ObjectID
+    ): Promise<UserTenantAccessPermission> {
+        // get team permissions.
+        const apiKeyPermission: Array<APIKeyPermission> =
+            await ApiKeyPermissionService.findBy({
+                query: {
+                    apiKeyId: apiKeyId,
+                },
+                select: {
+                    permission: true,
+                    labels: true,
+                },
+                populate: {
+                    labels: {
+                        _id: true,
+                    },
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const userPermissions: Array<UserPermission> = [];
+
+        for (const apiPermission of apiKeyPermission) {
+            if (!apiPermission.labels) {
+                apiPermission.labels = [];
+            }
+
+            userPermissions.push({
+                permission: apiPermission.permission!,
+                labelIds: apiPermission.labels.map((label: Label) => {
+                    return label.id!;
+                }),
+                _type: 'UserPermission',
+            });
+        }
+
+        const permission: UserTenantAccessPermission =
+            AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
+
+        permission.permissions = permission.permissions.concat(userPermissions);
+
+        return permission;
     }
 
     public static async refreshUserGlobalAccessPermission(
