@@ -1,23 +1,40 @@
 <main class="py-16">
-    <article class="prose dark:prose-invert">
-       <h1>Authentication</h1>
-       <p class="lead">You'll need to authenticate your requests to access any of the endpoints in the OneUptime API. In this guide, we'll look at how authentication works. OneUptime offers one way to authenticate your API requests - by using an API Key.</p>
-       <h2 id="basic-authentication" class="mb-5 scroll-mt-24 mt-24 font-bold text-lg">
-        Generate an API Key
-       </h2>
-       <p> Please head over to <b>Project Settings</b> > <b>API Keys</b>. Create a new API Key. Please note: New API Keys have no permissions assigned to them, so you will have to assign a permission before you can use it.</p>
-       <a class="mt-5 inline-flex gap-0.5 justify-center overflow-hidden font-medium transition text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-500" href="/reference/permissions">
-        Read more about permissions
-        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="mt-0.5 h-5 w-5 relative top-px -mr-1">
-           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m11.5 6.5 3 3.5m0 0-3 3.5m3-3.5h-9"></path>
-        </svg>
-     </a>
-       
-       <h2 id="basic-authentication">
-        Authentication with API Key
-       </h2>
-       <p>You can use OneUptime API Key on Request Header when you're making a requst. You can use <code class="rounded p-0.5 px-1 text-sm text-gray-500 bg-gray-100 border-2 border-gray-200">Authorization</code> header with your API Key when you make a request.</p>
-       <%- include('../partials/code', {title: "Example request with API Key", requestUrl: "", requestType: "", code: "curl --header \"Authorization: Bearer {secret-api-key}\" https://oneuptime.com/api/\<path\>" }) -%>
-       <p class="text-sm">Please don't commit your OneUptime API Key to GitHub, or on any other source control project. Please regenerate a new API Key, if your API Key is comitted by mistake.</p>
-    </article>
- </main>
+   <article class="prose dark:prose-invert">
+      <h1>Authentication</h1>
+      <p class="lead">You'll need to authenticate your requests to access any of the endpoints in the OneUptime API. In
+         this guide, we'll look at how authentication works. OneUptime offers one way to authenticate your API requests
+         - by using an API Key.</p>
+
+
+      <h2 id="basic-authentication" class="mb-5 scroll-mt-24 mt-24 font-bold text-lg">
+         Generate an API Key
+      </h2>
+      <p> Please head over to <b>Project Settings</b> > <b>API Keys</b>. Create a new API Key. Please note: New API Keys
+         have no permissions assigned to them, so you will have to assign a permission before you can use it.</p>
+      <a class="mt-5 inline-flex gap-0.5 justify-center overflow-hidden font-medium transition text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-500"
+         href="/reference/permissions">
+         Read more about permissions
+         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="mt-0.5 h-5 w-5 relative top-px -mr-1">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+               d="m11.5 6.5 3 3.5m0 0-3 3.5m3-3.5h-9"></path>
+         </svg>
+      </a>
+
+      <h2 id="basic-authentication" class="mb-5 scroll-mt-24 mt-24 font-bold text-lg">
+         Project ID
+      </h2>
+      <p> Please head over to <b>Project Settings</b> > <b>Project</b>. You should see your Project ID there.</p>
+
+      <h2 id="basic-authentication">
+         Authentication with API Key and Project ID
+      </h2>
+      <p>You can use OneUptime API Key on Request Header when you're making a requst. You can use <code
+            class="rounded p-0.5 px-1 text-sm text-gray-500 bg-gray-100 border-2 border-gray-200">Authorization</code>
+         header with your API Key when you make a request.</p>
+      <%- include('../partials/code', {title: "Example request with API Key" , requestUrl: "" , requestType: "" ,
+         code: "curl --header \" Authorization: Bearer {secret-api-key}\" --header \"TenantId: {project-id}\"
+         https://oneuptime.com/api/\<path\>" }) -%>
+         <p class="text-sm">Please don't commit your OneUptime API Key to GitHub, or on any other source control
+            project. Please regenerate a new API Key, if your API Key is comitted by mistake.</p>
+   </article>
+</main>
