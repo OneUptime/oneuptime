@@ -27,8 +27,11 @@ export default class SSOUtil {
             throw new BadRequestException('Issuers not found');
         }
 
-        const issuer: JSONObject | undefined = issuers[0];
+        const issuer: JSONObject | string | undefined = issuers[0];
 
+        if (typeof issuer === 'string') {
+            return issuer;
+        }
         if (!issuer) {
             throw new BadRequestException('Issuer not found');
         }
@@ -59,9 +62,7 @@ export default class SSOUtil {
 
         const samlNameId: JSONArray =
             ((samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray) ||
-            ((samlSubject[0] as JSONObject)[
-                'saml:NameIdentifier'
-            ] as JSONArray);
+            ((samlSubject[0] as JSONObject)['saml:NameID'] as JSONArray);
 
         if (!samlNameId || samlNameId.length === 0) {
             throw new BadRequestException('SAML NAME ID not found');
@@ -133,9 +134,7 @@ export default class SSOUtil {
 
         const samlNameId: JSONArray =
             ((samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray) ||
-            ((samlSubject[0] as JSONObject)[
-                'saml:NameIdentifier'
-            ] as JSONArray);
+            ((samlSubject[0] as JSONObject)['saml:NameID'] as JSONArray);
 
         if (!samlNameId || samlNameId.length === 0) {
             throw new BadRequestException('SAML NAME ID not found');
@@ -145,7 +144,7 @@ export default class SSOUtil {
             '_'
         ] as string;
 
-        return new Email(emailString);
+        return new Email(emailString.trim());
     }
 
     public static getIssuer(payload: JSONObject): string {
@@ -165,7 +164,11 @@ export default class SSOUtil {
             throw new BadRequestException('Issuers not found');
         }
 
-        const issuer: JSONObject | undefined = issuers[0];
+        const issuer: JSONObject | string | undefined = issuers[0];
+
+        if (typeof issuer === 'string') {
+            return issuer;
+        }
 
         if (!issuer) {
             throw new BadRequestException('Issuer not found');
@@ -179,6 +182,6 @@ export default class SSOUtil {
             );
         }
 
-        return issuerUrl;
+        return issuerUrl.trim();
     }
 }
