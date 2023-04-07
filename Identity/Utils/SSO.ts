@@ -2,11 +2,15 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Email from 'Common/Types/Email';
 import xmldom from 'xmldom';
-import xmlCrypto from 'xml-crypto';
+import xmlCrypto, { FileKeyInfo } from 'xml-crypto';
 
 export default class SSOUtil {
     public static isPayloadValid(payload: JSONObject): void {
-        if (!payload['saml2p:Response'] && !payload['samlp:Response'] && !payload['samlp:Response']) {
+        if (
+            !payload['saml2p:Response'] &&
+            !payload['samlp:Response'] &&
+            !payload['samlp:Response']
+        ) {
             throw new BadRequestException('SAML Response not found.');
         }
 
@@ -45,21 +49,19 @@ export default class SSOUtil {
             throw new BadRequestException('SAML Assertion not found');
         }
 
-        const samlSubject: JSONArray = (samlAssertion[0] as JSONObject)[
-            'saml2:Subject'
-        ] as JSONArray || (samlAssertion[0] as JSONObject)[
-        'saml:Subject'
-        ] as JSONArray;
+        const samlSubject: JSONArray =
+            ((samlAssertion[0] as JSONObject)['saml2:Subject'] as JSONArray) ||
+            ((samlAssertion[0] as JSONObject)['saml:Subject'] as JSONArray);
 
         if (!samlSubject || samlSubject.length === 0) {
             throw new BadRequestException('SAML Subject not found');
         }
 
-        const samlNameId: JSONArray = (samlSubject[0] as JSONObject)[
-            'saml2:NameID'
-        ] as JSONArray || (samlSubject[0] as JSONObject)[
-        'saml:NameIdentifier'
-        ] as JSONArray;
+        const samlNameId: JSONArray =
+            ((samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray) ||
+            ((samlSubject[0] as JSONObject)[
+                'saml:NameIdentifier'
+            ] as JSONArray);
 
         if (!samlNameId || samlNameId.length === 0) {
             throw new BadRequestException('SAML NAME ID not found');
@@ -74,20 +76,20 @@ export default class SSOUtil {
                 throw new BadRequestException('SAML Email not found');
             }
         }
-
     }
 
     public static isSignatureValid(
         samlPayload: string,
         certificate: string
     ): boolean {
-
-        const dom = new xmldom.DOMParser().parseFromString(samlPayload);
-        const signature = dom.getElementsByTagNameNS(
+        const dom: Document = new xmldom.DOMParser().parseFromString(
+            samlPayload
+        );
+        const signature: Element | undefined = dom.getElementsByTagNameNS(
             'http://www.w3.org/2000/09/xmldsig#',
             'Signature'
         )[0];
-        const sig = new xmlCrypto.SignedXml();
+        const sig: xmlCrypto.SignedXml = new xmlCrypto.SignedXml();
 
         sig.keyInfoProvider = {
             getKeyInfo: function (_key: any) {
@@ -96,13 +98,12 @@ export default class SSOUtil {
             getKey: function () {
                 return certificate;
             } as any,
-        } as any;
+        } as FileKeyInfo;
 
         sig.loadSignature(signature!.toString());
-        const res = sig.checkSignature(samlPayload);
+        const res: boolean = sig.checkSignature(samlPayload);
 
         return res;
-
     }
 
     public static getEmail(payload: JSONObject): Email {
@@ -122,21 +123,19 @@ export default class SSOUtil {
             throw new BadRequestException('SAML Assertion not found');
         }
 
-        const samlSubject: JSONArray = (samlAssertion[0] as JSONObject)[
-            'saml2:Subject'
-        ] as JSONArray || (samlAssertion[0] as JSONObject)[
-        'saml:Subject'
-        ] as JSONArray;
+        const samlSubject: JSONArray =
+            ((samlAssertion[0] as JSONObject)['saml2:Subject'] as JSONArray) ||
+            ((samlAssertion[0] as JSONObject)['saml:Subject'] as JSONArray);
 
         if (!samlSubject || samlSubject.length === 0) {
             throw new BadRequestException('SAML Subject not found');
         }
 
-        const samlNameId: JSONArray = (samlSubject[0] as JSONObject)[
-            'saml2:NameID'
-        ] as JSONArray || (samlSubject[0] as JSONObject)[
-        'saml:NameIdentifier'
-        ] as JSONArray;
+        const samlNameId: JSONArray =
+            ((samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray) ||
+            ((samlSubject[0] as JSONObject)[
+                'saml:NameIdentifier'
+            ] as JSONArray);
 
         if (!samlNameId || samlNameId.length === 0) {
             throw new BadRequestException('SAML NAME ID not found');
@@ -147,7 +146,6 @@ export default class SSOUtil {
         ] as string;
 
         return new Email(emailString);
-
     }
 
     public static getIssuer(payload: JSONObject): string {
@@ -182,6 +180,5 @@ export default class SSOUtil {
         }
 
         return issuerUrl;
-
     }
 }

@@ -60,11 +60,7 @@ export default class ProjectMiddleware {
     ): Promise<void> {
         const tenantId: ObjectID | null = this.getProjectId(req);
 
-        console.log(tenantId);
-
         const apiKey: ObjectID | null = this.getApiKey(req);
-
-        console.log(apiKey);
 
         if (!tenantId) {
             throw new BadDataException('tenantId not found in the request');
