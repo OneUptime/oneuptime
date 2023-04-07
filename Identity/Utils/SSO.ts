@@ -1,18 +1,23 @@
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Email from 'Common/Types/Email';
+import xmldom from 'xmldom';
+import xmlCrypto from 'xml-crypto';
 
 export default class SSOUtil {
     public static isPayloadValid(payload: JSONObject): void {
-        if (!payload['saml2p:Response'] && !payload['samlp:Response']) {
+        if (!payload['saml2p:Response'] && !payload['samlp:Response'] && !payload['samlp:Response']) {
             throw new BadRequestException('SAML Response not found.');
         }
 
         payload =
             (payload['saml2p:Response'] as JSONObject) ||
+            (payload['samlp:Response'] as JSONObject) ||
             (payload['samlp:Response'] as JSONObject);
 
-        const issuers: JSONArray = payload['saml2:Issuer'] as JSONArray;
+        const issuers: JSONArray =
+            (payload['saml2:Issuer'] as JSONArray) ||
+            (payload['saml:Issuer'] as JSONArray);
 
         if (issuers.length === 0) {
             throw new BadRequestException('Issuers not found');
@@ -32,9 +37,9 @@ export default class SSOUtil {
             );
         }
 
-        const samlAssertion: JSONArray = payload[
-            'saml2:Assertion'
-        ] as JSONArray;
+        const samlAssertion: JSONArray =
+            (payload['saml2:Assertion'] as JSONArray) ||
+            (payload['saml:Assertion'] as JSONArray);
 
         if (!samlAssertion || samlAssertion.length === 0) {
             throw new BadRequestException('SAML Assertion not found');
@@ -42,6 +47,8 @@ export default class SSOUtil {
 
         const samlSubject: JSONArray = (samlAssertion[0] as JSONObject)[
             'saml2:Subject'
+        ] as JSONArray || (samlAssertion[0] as JSONObject)[
+        'saml:Subject'
         ] as JSONArray;
 
         if (!samlSubject || samlSubject.length === 0) {
@@ -50,6 +57,8 @@ export default class SSOUtil {
 
         const samlNameId: JSONArray = (samlSubject[0] as JSONObject)[
             'saml2:NameID'
+        ] as JSONArray || (samlSubject[0] as JSONObject)[
+        'saml:NameIdentifier'
         ] as JSONArray;
 
         if (!samlNameId || samlNameId.length === 0) {
@@ -65,28 +74,49 @@ export default class SSOUtil {
                 throw new BadRequestException('SAML Email not found');
             }
         }
+
     }
 
     public static isSignatureValid(
-        payload: JSONObject,
-        _certificate: string
+        samlPayload: string,
+        certificate: string
     ): boolean {
-        SSOUtil.isPayloadValid(payload);
 
-        // TODO  add signature verification.
-        return true;
+        const dom = new xmldom.DOMParser().parseFromString(samlPayload);
+        const signature = dom.getElementsByTagNameNS(
+            'http://www.w3.org/2000/09/xmldsig#',
+            'Signature'
+        )[0];
+        const sig = new xmlCrypto.SignedXml();
+
+        sig.keyInfoProvider = {
+            getKeyInfo: function (_key: any) {
+                return `<X509Data><X509Certificate>${certificate}</X509Certificate></X509Data>`;
+            },
+            getKey: function () {
+                return certificate;
+            } as any,
+        } as any;
+
+        sig.loadSignature(signature!.toString());
+        const res = sig.checkSignature(samlPayload);
+
+        return res;
+
     }
 
     public static getEmail(payload: JSONObject): Email {
-        if (!payload['saml2p:Response']) {
+        if (!payload['saml2p:Response'] && !payload['samlp:Response']) {
             throw new BadRequestException('SAML Response not found.');
         }
 
-        payload = payload['saml2p:Response'] as JSONObject;
+        payload =
+            (payload['saml2p:Response'] as JSONObject) ||
+            (payload['samlp:Response'] as JSONObject);
 
-        const samlAssertion: JSONArray = payload[
-            'saml2:Assertion'
-        ] as JSONArray;
+        const samlAssertion: JSONArray =
+            (payload['saml2:Assertion'] as JSONArray) ||
+            (payload['saml:Assertion'] as JSONArray);
 
         if (!samlAssertion || samlAssertion.length === 0) {
             throw new BadRequestException('SAML Assertion not found');
@@ -94,6 +124,8 @@ export default class SSOUtil {
 
         const samlSubject: JSONArray = (samlAssertion[0] as JSONObject)[
             'saml2:Subject'
+        ] as JSONArray || (samlAssertion[0] as JSONObject)[
+        'saml:Subject'
         ] as JSONArray;
 
         if (!samlSubject || samlSubject.length === 0) {
@@ -102,6 +134,8 @@ export default class SSOUtil {
 
         const samlNameId: JSONArray = (samlSubject[0] as JSONObject)[
             'saml2:NameID'
+        ] as JSONArray || (samlSubject[0] as JSONObject)[
+        'saml:NameIdentifier'
         ] as JSONArray;
 
         if (!samlNameId || samlNameId.length === 0) {
@@ -113,16 +147,21 @@ export default class SSOUtil {
         ] as string;
 
         return new Email(emailString);
+
     }
 
     public static getIssuer(payload: JSONObject): string {
-        if (!payload['saml2p:Response']) {
+        if (!payload['saml2p:Response'] && !payload['samlp:Response']) {
             throw new BadRequestException('SAML Response not found.');
         }
 
-        payload = payload['saml2p:Response'] as JSONObject;
+        payload =
+            (payload['saml2p:Response'] as JSONObject) ||
+            (payload['samlp:Response'] as JSONObject);
 
-        const issuers: JSONArray = payload['saml2:Issuer'] as JSONArray;
+        const issuers: JSONArray =
+            (payload['saml2:Issuer'] as JSONArray) ||
+            (payload['saml:Issuer'] as JSONArray);
 
         if (issuers.length === 0) {
             throw new BadRequestException('Issuers not found');
@@ -143,5 +182,6 @@ export default class SSOUtil {
         }
 
         return issuerUrl;
+
     }
 }
