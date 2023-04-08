@@ -63,7 +63,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 {
                     title: 'Resources Affected',
                     id: 'resources-affected',
-                }
+                },
             ]}
             formFields={[
                 {
@@ -72,6 +72,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Title',
                     fieldType: FormFieldSchemaType.Text,
+                    stepId: 'incident-details',
                     required: true,
                     placeholder: 'Incident Title',
                     validation: {
@@ -83,6 +84,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         description: true,
                     },
                     title: 'Description',
+                    stepId: 'incident-details',
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder: 'Description',
@@ -92,6 +94,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         incidentSeverity: true,
                     },
                     title: 'Incident Severity',
+                    stepId: 'incident-details',
                     description: 'What type of incident is this?',
                     fieldType: FormFieldSchemaType.Dropdown,
                     dropdownModal: {
@@ -107,6 +110,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         monitors: true,
                     },
                     title: 'Monitors affected',
+                    stepId: 'resources-affected',
                     description: 'Select monitors affected by this incident.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
@@ -122,6 +126,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         changeMonitorStatusTo: true,
                     },
                     title: 'Change Monitor Status to ',
+                    stepId: 'resources-affected',
                     description:
                         'This will change the status of all the monitors attached to this incident.',
                     fieldType: FormFieldSchemaType.Dropdown,
@@ -138,6 +143,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         labels: true,
                     },
                     title: 'Labels ',
+                    stepId: 'incident-details',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,

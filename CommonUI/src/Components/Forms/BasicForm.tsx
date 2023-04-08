@@ -1029,7 +1029,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 {/* Form Steps */}
 
                                 {props.steps && currentFormStepId && (
-                                    <Steps currentFormStepId={currentFormStepId} steps={props.steps} onClick={() => { }} />
+                                    <Steps currentFormStepId={currentFormStepId} steps={props.steps} onClick={(step: FormStep) => {
+                                        setCurrentFormStepId(step.id);
+                                     }} />
                                 )}
                             </div>
                             <div>
@@ -1050,7 +1052,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     >
                                         {formFields && formFields.filter((field: Field<T>) => {
 
-                                            if (props.steps && currentFormStepId) {
+                                            if (currentFormStepId) {
                                                 return field.stepId === currentFormStepId;
                                             }
 

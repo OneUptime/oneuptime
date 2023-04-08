@@ -16,7 +16,7 @@ const Steps: FunctionComponent<ComponentProps> = (
 
 
     return (
-        <div className="px-4 py-12 sm:px-6 lg:px-8">
+        <div className="pr-4 py-12 sm:pr-6 lg:pr-8">
             <nav className="flex justify-center" aria-label="Progress">
                 <ol role="list" className="space-y-6">
                     {props.steps.map((step, index) => {

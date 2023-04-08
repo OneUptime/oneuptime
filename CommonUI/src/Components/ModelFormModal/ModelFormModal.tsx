@@ -38,10 +38,17 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
 
     const formRef: any = useRef<any>(null);
+
+    let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
+
+    if(props.formProps.steps && props.formProps.steps.length > 0) {
+        modalWidth = ModalWidth.Large;
+    }
+
     return (
         <Modal
             {...props}
-            modalWidth={props.modalWidth}
+            modalWidth={modalWidth}
             submitButtonType={ButtonType.Submit}
             isLoading={isFormLoading}
             description={props.description}

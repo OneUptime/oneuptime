@@ -13,8 +13,10 @@ const Step: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <li onClick={() => {
-            props.onClick(props.step);
-        }}>
+            if (props.state === FormStepState.COMPLETED) {
+                props.onClick(props.step);
+            }
+        }} className={`${props.state === FormStepState.COMPLETED ? 'cursor-pointer' : ''}`}>
             {props.state === FormStepState.COMPLETED && <div className="group">
                 <span className="flex items-start">
                     <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center">
@@ -37,9 +39,9 @@ const Step: FunctionComponent<ComponentProps> = (
             {props.state === FormStepState.INACTIVE && <div className="group">
                 <div className="flex items-start">
                     <div className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center" aria-hidden="true">
-                        <div className="h-2 w-2 rounded-full bg-gray-300 group-hover:bg-gray-400"></div>
+                        <div className="h-2 w-2 rounded-full bg-gray-300"></div>
                     </div>
-                    <p className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900">{props.step.title}</p>
+                    <p className="ml-3 text-sm font-medium text-gray-500">{props.step.title}</p>
                 </div>
             </div>}
 
