@@ -7,5 +7,4 @@ export enum FormStepState {
 export interface FormStep {
     id: string;
     title: string;
-    state: FormStepState;
 }

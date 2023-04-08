@@ -1,10 +1,11 @@
 
 import React, { FunctionComponent, ReactElement } from 'react';
-import { FormStep } from '../Types/FormStep';
+import { FormStep, FormStepState } from '../Types/FormStep';
 
 export interface ComponentProps {
     step: FormStep;
     onClick: (step: FormStep) => void;
+    state: FormStepState
 }
 
 const Step: FunctionComponent<ComponentProps> = (

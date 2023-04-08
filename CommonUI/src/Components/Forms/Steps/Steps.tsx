@@ -1,23 +1,43 @@
 
 import React, { FunctionComponent, ReactElement } from 'react';
-import { FormStep } from '../Types/FormStep';
+import { FormStep, FormStepState } from '../Types/FormStep';
 import Step from './Step';
 
 export interface ComponentProps {
     steps: Array<FormStep>;
     onClick: (step: FormStep) => void;
+    currentFormStepId: string;
 }
 
-const LabelElement: FunctionComponent<ComponentProps> = (
+const Steps: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+
     return (
         <div className="px-4 py-12 sm:px-6 lg:px-8">
             <nav className="flex justify-center" aria-label="Progress">
                 <ol role="list" className="space-y-6">
                     {props.steps.map((step, index) => {
+
+
+                        const indexOfCurrentState = props.steps.findIndex((step) => {
+                            return step.id === props.currentFormStepId;
+                        });
+
+                        let state: FormStepState = FormStepState.INACTIVE;
+
+                        if (indexOfCurrentState > index) {
+                            state = FormStepState.COMPLETED;
+                        } else if (indexOfCurrentState === index) {
+                            state = FormStepState.ACTIVE;
+                        } else {
+                            state = FormStepState.INACTIVE;
+                        }
+
                         return (
-                            <Step step={step} key={index} onClick={(step: FormStep) => {
+                            <Step state={state} step={step} key={index} onClick={(step: FormStep) => {
                                 props.onClick(step);
                             }} />
                         )
@@ -29,4 +49,4 @@ const LabelElement: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default LabelElement;
+export default Steps;

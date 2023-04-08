@@ -55,6 +55,16 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     'Here is a list of incidents for this project.',
             }}
             noItemsMessage={props.noItemsMessage || 'No incidents found.'}
+            formSteps={[
+                {
+                    title: 'Incident Details',
+                    id: 'incident-details',
+                },
+                {
+                    title: 'Resources Affected',
+                    id: 'resources-affected',
+                }
+            ]}
             formFields={[
                 {
                     field: {
