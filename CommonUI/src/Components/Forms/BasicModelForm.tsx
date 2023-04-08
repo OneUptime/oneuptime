@@ -10,6 +10,7 @@ import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicForm, { DefaultValidateFunction } from './BasicForm';
 import { ButtonStyleType } from '../Button/Button';
+import { FormStep } from './Types/FormStep';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -24,6 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
     name: string;
+    steps?: undefined | Array<FormStep>;
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
@@ -92,6 +94,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
             }
+            steps={props.steps}
             name={props.name}
             submitButtonStyleType={props.submitButtonStyleType}
             onSubmit={props.onSubmit}

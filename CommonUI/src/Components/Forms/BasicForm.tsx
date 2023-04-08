@@ -1048,23 +1048,29 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         className={`grid md:grid-cols-${props.showAsColumns || 1
                                             } grid-cols-1 gap-4`}
                                     >
-                                        {formFields &&
-                                            formFields.map(
-                                                (field: Field<T>, i: number) => {
-                                                    return (
-                                                        <div key={i}>
-                                                            {getFormField(
-                                                                field,
-                                                                i,
-                                                                props.isLoading,
-                                                                errors,
-                                                                touched
-                                                            )}
-                                                            {field.footerElement}
-                                                        </div>
-                                                    );
-                                                }
-                                            )}
+                                        {formFields && formFields.filter((field: Field<T>) => {
+
+                                            if (props.steps && currentFormStepId) {
+                                                return field.stepId === currentFormStepId;
+                                            }
+
+                                            return true;
+                                        }).map(
+                                            (field: Field<T>, i: number) => {
+                                                return (
+                                                    <div key={i}>
+                                                        {getFormField(
+                                                            field,
+                                                            i,
+                                                            props.isLoading,
+                                                            errors,
+                                                            touched
+                                                        )}
+                                                        {field.footerElement}
+                                                    </div>
+                                                );
+                                            }
+                                        )}
                                     </div>
                                 </div>
 

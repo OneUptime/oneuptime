@@ -12,10 +12,10 @@ const Step: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <li onClick={()=>{
+        <li onClick={() => {
             props.onClick(props.step);
         }}>
-            <div className="group">
+            {props.state === FormStepState.COMPLETED && <div className="group">
                 <span className="flex items-start">
                     <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center">
                         <svg className="h-full w-full text-indigo-600 group-hover:text-indigo-800" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -24,7 +24,25 @@ const Step: FunctionComponent<ComponentProps> = (
                     </span>
                     <span className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900">{props.step.title}</span>
                 </span>
-            </div>
+            </div>}
+
+            {props.state === FormStepState.ACTIVE && <div className="flex items-start" aria-current="step">
+                <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center" aria-hidden="true">
+                    <span className="absolute h-4 w-4 rounded-full bg-indigo-200"></span>
+                    <span className="relative block h-2 w-2 rounded-full bg-indigo-600"></span>
+                </span>
+                <span className="ml-3 text-sm font-medium text-indigo-600">{props.step.title}</span>
+            </div>}
+
+            {props.state === FormStepState.INACTIVE && <div className="group">
+                <div className="flex items-start">
+                    <div className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center" aria-hidden="true">
+                        <div className="h-2 w-2 rounded-full bg-gray-300 group-hover:bg-gray-400"></div>
+                    </div>
+                    <p className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900">{props.step.title}</p>
+                </div>
+            </div>}
+
         </li>
     );
 };
