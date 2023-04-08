@@ -44,6 +44,7 @@ import RadioButtons from '../RadioButtons/RadioButtons';
 import UiAnalytics from '../../Utils/Analytics';
 import Dictionary from 'Common/Types/Dictionary';
 import Field from './Types/Field';
+import { FormStep } from './Types/FormStep';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -60,6 +61,7 @@ export interface ComponentProps<T extends Object> {
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
     fields: Fields<T>;
+    steps?: undefined | Array<FormStep>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
     description?: undefined | string;

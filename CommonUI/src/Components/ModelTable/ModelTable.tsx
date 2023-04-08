@@ -60,6 +60,7 @@ import ProjectUtil from '../../Utils/Project';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { DropdownOption } from '../Dropdown/Dropdown';
+import { FormStep } from '../Forms/Types/FormStep';
 
 export enum ShowTableAs {
     Table,
@@ -85,6 +86,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isCreateable: boolean;
     disablePagination?: undefined | boolean;
     formFields?: undefined | Fields<TBaseModel>;
+    formSteps?: undefined | Array<FormStep>;
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
@@ -1297,6 +1299,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         model: model,
                         id: `create-${props.modelType.name}-from`,
                         fields: props.formFields || [],
+                        steps: props.formSteps || [],
                         formType:
                             modalType === ModalType.Create
                                 ? FormType.Create

@@ -38,6 +38,7 @@ import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { ButtonStyleType } from '../Button/Button';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from '../../Utils/API/API';
+import { FormStep } from './Types/FormStep';
 
 export enum FormType {
     Create,
@@ -53,6 +54,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
               values: FormValues<TBaseModel>
           ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
+    steps?: undefined | Array<FormStep>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
     description?: undefined | string;
@@ -486,6 +488,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 id={props.id}
                 name={props.name}
                 fields={fields}
+                steps={props.steps}
                 showAsColumns={props.showAsColumns}
                 footer={props.footer}
                 isLoading={isLoading}
