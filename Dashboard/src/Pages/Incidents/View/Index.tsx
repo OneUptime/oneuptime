@@ -73,12 +73,23 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}
+                formSteps={[
+                    {
+                        title: 'Incident Details',
+                        id: 'incident-details',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
                             title: true,
                         },
                         title: 'Incident Title',
+                        stepId: 'incident-details',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Incident Title',
@@ -91,6 +102,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
+                        stepId: 'incident-details',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
@@ -103,6 +115,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         title: 'Incident Severity',
                         description: 'What type of incident is this?',
                         fieldType: FormFieldSchemaType.Dropdown,
+                        stepId: 'incident-details',
                         dropdownModal: {
                             type: IncidentSeverity,
                             labelField: 'name',
@@ -116,6 +129,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels ',
+                        stepId: 'labels',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,

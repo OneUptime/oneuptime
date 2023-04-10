@@ -309,6 +309,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         const getFormField: Function = (
             field: Field<T>,
+            fieldName: string,
             index: number,
             isDisabled: boolean,
             errors: Dictionary<string>,
@@ -331,8 +332,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 );
             }
 
-            const fieldName: string = getFieldName(field);
-
             if (field.showIf && !field.showIf(currentValue)) {
                 return <></>;
             }
@@ -348,7 +347,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             }
 
             return (
-                <div className="sm:col-span-4 mt-0 mb-2" key={index}>
+                <div className="sm:col-span-4 mt-0 mb-2" key={fieldName}>
                     <label className="block text-sm font-medium text-gray-700 flex justify-between">
                         <span>
                             {field.title}{' '}
@@ -1125,7 +1124,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 className={`pt-6 ${
                                     props.steps && currentFormStepId
                                         ? 'w-2/3'
-                                        : ''
+                                        : 'w-full'
                                 }`}
                             >
                                 {props.error && (
@@ -1160,10 +1159,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                         field: Field<T>,
                                                         i: number
                                                     ) => {
+                                                        
+                                                        
+
                                                         return (
-                                                            <div key={i}>
+                                                            <div key={getFieldName(field)}>
                                                                 {getFormField(
                                                                     field,
+                                                                    getFieldName(field), 
                                                                     i,
                                                                     props.isLoading,
                                                                     errors,
