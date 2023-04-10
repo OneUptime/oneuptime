@@ -42,6 +42,16 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 item.monitorType = MonitorType.Manual;
                 return item;
             }}
+            formSteps={[
+                {
+                    title: 'Monitor Info',
+                    id: 'monitor-info',
+                },
+                {
+                    title: 'Labels',
+                    id: 'labels',
+                },
+            ]}
             cardProps={{
                 icon: IconProp.AltGlobe,
                 title: props.title || 'Monitors',
@@ -56,6 +66,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         name: true,
                     },
                     title: 'Name',
+                    stepId: 'monitor-info',
                     fieldType: FormFieldSchemaType.Text,
                     required: true,
                     placeholder: 'Monitor Name',
@@ -67,6 +78,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         description: true,
                     },
+                    stepId: 'monitor-info',
                     title: 'Description',
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
@@ -88,6 +100,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         labels: true,
                     },
                     title: 'Labels ',
+                    stepId: 'labels',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,

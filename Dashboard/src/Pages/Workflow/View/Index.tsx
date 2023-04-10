@@ -66,11 +66,22 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Workflow,
                 }}
                 isEditable={true}
+                formSteps={[
+                    {
+                        title: 'Workflow Info',
+                        id: 'workflow-info',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
                             name: true,
                         },
+                        stepId: 'workflow-info',
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
@@ -83,6 +94,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'workflow-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -99,6 +111,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
+                        stepId: 'labels',
                         title: 'Labels ',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',

@@ -1159,14 +1159,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                         field: Field<T>,
                                                         i: number
                                                     ) => {
-                                                        
-                                                        
-
                                                         return (
-                                                            <div key={getFieldName(field)}>
+                                                            <div
+                                                                key={getFieldName(
+                                                                    field
+                                                                )}
+                                                            >
                                                                 {getFormField(
                                                                     field,
-                                                                    getFieldName(field), 
+                                                                    getFieldName(
+                                                                        field
+                                                                    ),
                                                                     i,
                                                                     props.isLoading,
                                                                     errors,

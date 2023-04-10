@@ -72,12 +72,35 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                     description: "Here's more details for this event.",
                     icon: IconProp.Clock,
                 }}
+                formSteps={[
+                    {
+                        title: 'Event Info',
+                        id: 'event-info',
+                    },
+                    {
+                        title: 'Event Time',
+                        id: 'event-time',
+                    },
+                    {
+                        title: 'Resources Affected',
+                        id: 'resources-affected',
+                    },
+                    {
+                        title: 'Status Pages',
+                        id: 'status-pages',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 isEditable={true}
                 formFields={[
                     {
                         field: {
                             title: true,
                         },
+                        stepId: 'event-info',
                         title: 'Scheduled Maintenance Title',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
@@ -90,6 +113,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'event-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -99,6 +123,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         field: {
                             startsAt: true,
                         },
+                        stepId: 'event-time',
                         title: 'Event Starts At',
                         description:
                             'This is in your local timezone - ' +
@@ -112,6 +137,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             endsAt: true,
                         },
                         title: 'Ends At',
+                        stepId: 'event-time',
                         description:
                             'This is in your local timezone - ' +
                             OneUptimeDate.getCurrentTimezoneString(),
@@ -124,6 +150,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             monitors: true,
                         },
                         title: 'Monitors affected ',
+                        stepId: 'resources-affected',
                         description:
                             'Select monitors affected by this scheduled maintenance.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -140,6 +167,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             statusPages: true,
                         },
                         title: 'Show event on these status pages ',
+                        stepId: 'status-pages',
                         description:
                             'Select status pages to show this event on',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -156,6 +184,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels ',
+                        stepId: 'labels',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,

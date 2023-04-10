@@ -114,6 +114,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             {/* Monitor View  */}
             <CardModelDetail
                 name="Monitor Details"
+                formSteps={[
+                    {
+                        title: 'Monitor Info',
+                        id: 'monitor-info',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 cardProps={{
                     title: 'Monitor Details',
                     description: "Here's more details for this monitor.",
@@ -125,6 +135,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
+                        stepId: 'monitor-info',
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
@@ -137,6 +148,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'monitor-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -146,6 +158,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
+                        stepId: 'labels',
                         title: 'Labels ',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',

@@ -51,6 +51,16 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of status page for this project.',
                 }}
+                formSteps={[
+                    {
+                        title: 'Status Page Info',
+                        id: 'status-page-info',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 noItemsMessage={'No status pages found.'}
                 formFields={[
                     {
@@ -58,6 +68,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
+                        stepId: 'status-page-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Status Page Name',
@@ -69,6 +80,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'status-page-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -79,6 +91,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels ',
+                        stepId: 'labels',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
