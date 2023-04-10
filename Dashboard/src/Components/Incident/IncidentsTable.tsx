@@ -64,6 +64,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     title: 'Resources Affected',
                     id: 'resources-affected',
                 },
+                {
+                    title: 'Labels',
+                    id: 'labels',
+                },
             ]}
             formFields={[
                 {
@@ -142,8 +146,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         labels: true,
                     },
+                    
                     title: 'Labels ',
-                    stepId: 'incident-details',
+                    stepId: 'labels',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,

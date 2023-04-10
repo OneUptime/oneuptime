@@ -54,6 +54,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
               values: FormValues<TBaseModel>
           ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
+    onFormStepChange?: undefined | ((stepId: string) => void);
     steps?: undefined | Array<FormStep>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -72,6 +73,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     hideSubmitButton?: undefined | boolean;
     submitButtonStyleType?: ButtonStyleType | undefined;
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     initialValues?: FormValues<TBaseModel> | undefined;
     modelIdToEdit?: ObjectID | undefined;
@@ -487,6 +489,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 model={model}
                 id={props.id}
                 name={props.name}
+                onFormStepChange={props.onFormStepChange}
+                onIsLastFormStep={props.onIsLastFormStep}
+
                 fields={fields}
                 steps={props.steps}
                 showAsColumns={props.showAsColumns}

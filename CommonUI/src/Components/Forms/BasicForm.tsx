@@ -74,6 +74,8 @@ export interface ComponentProps<T extends Object> {
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
     hideSubmitButton?: undefined | boolean;
+    onFormStepChange?: undefined | ((stepId: string) => void);
+    onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
@@ -109,6 +111,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     ): ReactElement => {
         const isSubmitting: MutableRefObject<boolean> = useRef(false);
 
+
+        const [submitButtonText, setSubmitButtonText] = useState<string>(props.submitButtonText || 'Submit');
+
         const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
 
         const refCurrentValue: MutableRefObject<FormValues<T>> = useRef(
@@ -122,7 +127,28 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             if (props.steps && props.steps.length > 0 && props.steps[0]) {
                 setCurrentFormStepId(props.steps[0].id);
             }
-        })
+        }, [])
+
+        useEffect(() => {
+            // if last step, 
+
+            if (props.steps && props.steps.length > 0 && ((props.steps as Array<FormStep>)[props.steps.length - 1] as FormStep).id === currentFormStepId) {
+                setSubmitButtonText(props.submitButtonText || 'Submit');
+                if (props.onIsLastFormStep) {
+                    props.onIsLastFormStep(true)
+                }
+            } else {
+                setSubmitButtonText('Next');
+                if (props.onIsLastFormStep) {
+                    props.onIsLastFormStep(false)
+                }
+            }
+
+            if (props.onFormStepChange && currentFormStepId) {
+                props.onFormStepChange(currentFormStepId);
+            }
+
+        }, [currentFormStepId])
 
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
             props.initialValues
@@ -175,10 +201,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             const touchedObj: Dictionary<boolean> = {};
 
             for (const field of formFields) {
+
+                if (currentFormStepId && field.stepId && field.stepId !== currentFormStepId) {
+                    continue;
+                }
+
                 touchedObj[getFieldName(field)] = true;
             }
 
-            setTouched(touchedObj);
+            setTouched({ ...touched, ...touchedObj });
         };
 
         const setFieldValue: Function = (
@@ -197,44 +228,63 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         const submitForm: Function = (): void => {
             // check for any boolean values and if they dont exist in values - mark them as false.
-            isSubmitting.current = true;
+
+
             setAllTouched();
+
             const validationErrors: Dictionary<string> = validate(
                 refCurrentValue.current
             );
+
+            isSubmitting.current = true;
 
             if (Object.keys(validationErrors).length > 0) {
                 // errors on form, do not submit.
                 return;
             }
 
-            const values: FormValues<T> = refCurrentValue.current;
 
-            for (const field of formFields) {
-                if (field.fieldType === FormFieldSchemaType.Toggle) {
-                    const fieldName: string = getFieldName(field);
-                    if (!(values as any)[fieldName]) {
-                        (values as any)[fieldName] = false;
+            // if last step then submit. 
+
+            if (props.steps && props.steps.length > 0 && ((props.steps as Array<FormStep>)[props.steps.length - 1] as FormStep).id === currentFormStepId) {
+                const values: FormValues<T> = refCurrentValue.current;
+
+                for (const field of formFields) {
+                    if (field.fieldType === FormFieldSchemaType.Toggle) {
+                        const fieldName: string = getFieldName(field);
+                        if (!(values as any)[fieldName]) {
+                            (values as any)[fieldName] = false;
+                        }
+                    }
+
+                    if (field.fieldType === FormFieldSchemaType.Password) {
+                        const fieldName: string = getFieldName(field);
+                        if (
+                            (values as any)[fieldName] &&
+                            typeof (values as any)[fieldName] === Typeof.String
+                        ) {
+                            (values as any)[fieldName] = new HashedString(
+                                (values as any)[fieldName],
+                                false
+                            );
+                        }
                     }
                 }
 
-                if (field.fieldType === FormFieldSchemaType.Password) {
-                    const fieldName: string = getFieldName(field);
-                    if (
-                        (values as any)[fieldName] &&
-                        typeof (values as any)[fieldName] === Typeof.String
-                    ) {
-                        (values as any)[fieldName] = new HashedString(
-                            (values as any)[fieldName],
-                            false
-                        );
+                UiAnalytics.capture('FORM SUBMIT: ' + props.name);
+
+                props.onSubmit(values);
+            }else{
+                // swith to next step
+                if (props.steps && props.steps.length > 0) {
+                    const currentStepIndex: number = props.steps.findIndex((step: FormStep) => step.id === currentFormStepId);
+                    if (currentStepIndex > -1) {
+                        setCurrentFormStepId((props.steps[currentStepIndex + 1] as FormStep).id)
                     }
                 }
             }
 
-            UiAnalytics.capture('FORM SUBMIT: ' + props.name);
 
-            props.onSubmit(values);
         };
 
         const getFormField: Function = (
@@ -852,6 +902,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             const entries: JSONObject = { ...values } as JSONObject;
 
             for (const field of formFields) {
+
+                if (currentFormStepId && field.stepId !== currentFormStepId) {
+                    continue;
+                }
+
                 const name: string = getFieldName(field);
 
                 if (name in entries) {
@@ -1031,10 +1086,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 {props.steps && currentFormStepId && (
                                     <Steps currentFormStepId={currentFormStepId} steps={props.steps} onClick={(step: FormStep) => {
                                         setCurrentFormStepId(step.id);
-                                     }} />
+                                    }} />
                                 )}
                             </div>
-                            <div>
+                            <div className='pt-6 w-full'>
 
                                 {props.error && (
                                     <div className="mb-3">
@@ -1089,7 +1144,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         >
                                             <Button
                                                 title={
-                                                    props.submitButtonText || 'Submit'
+                                                    submitButtonText
                                                 }
                                                 dataTestId={props.submitButtonText!}
                                                 onClick={() => {

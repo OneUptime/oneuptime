@@ -41,7 +41,7 @@ const Step: FunctionComponent<ComponentProps> = (
                     <div className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center" aria-hidden="true">
                         <div className="h-2 w-2 rounded-full bg-gray-300"></div>
                     </div>
-                    <p className="ml-3 text-sm font-medium text-gray-500">{props.step.title}</p>
+                    <p className="ml-3 text-sm font-medium text-gray-500 w-max">{props.step.title}</p>
                 </div>
             </div>}
 

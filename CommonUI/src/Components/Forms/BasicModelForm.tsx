@@ -26,6 +26,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonStyleType?: ButtonStyleType | undefined;
     name: string;
     steps?: undefined | Array<FormStep>;
+    onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
+    onFormStepChange?: undefined | ((stepId: string) => void);
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
@@ -96,6 +98,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             }
             steps={props.steps}
             name={props.name}
+            onFormStepChange={props.onFormStepChange}
             submitButtonStyleType={props.submitButtonStyleType}
             onSubmit={props.onSubmit}
             initialValues={initialValues}
@@ -108,6 +111,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             cancelButtonText={props.cancelButtonText}
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
             error={props.error}
+            onIsLastFormStep={props.onIsLastFormStep}
             hideSubmitButton={props.hideSubmitButton}
             ref={props.formRef}
         ></BasicForm>
