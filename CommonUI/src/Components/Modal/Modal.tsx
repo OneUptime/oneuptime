@@ -70,11 +70,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                             props.modalWidth === ModalWidth.Medium
                                 ? 'sm:max-w-3xl'
                                 : ''
-                        } ${
-                            !props.modalWidth 
-                                ? 'sm:max-w-lg'
-                                : ''
-                        } `}
+                        } ${!props.modalWidth ? 'sm:max-w-lg' : ''} `}
                     >
                         {props.onClose && (
                             <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">

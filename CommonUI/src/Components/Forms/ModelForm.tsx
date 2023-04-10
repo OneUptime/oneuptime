@@ -491,7 +491,6 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 name={props.name}
                 onFormStepChange={props.onFormStepChange}
                 onIsLastFormStep={props.onIsLastFormStep}
-
                 fields={fields}
                 steps={props.steps}
                 showAsColumns={props.showAsColumns}

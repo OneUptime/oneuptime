@@ -146,7 +146,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         labels: true,
                     },
-                    
+
                     title: 'Labels ',
                     stepId: 'labels',
                     description:

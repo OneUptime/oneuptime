@@ -1,5 +1,5 @@
 export enum FormStepState {
-    ACTIVE, 
+    ACTIVE,
     INACTIVE,
     COMPLETED,
 }
