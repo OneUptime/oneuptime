@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -37,8 +37,11 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-        <Page
-            title={'Scheduled Maintenance Event'}
+         <ModelPage
+            title="Scheduled Event"
+            modelType={ScheduledMaintenance}
+            modelId={modelId}
+            modelNameField="title"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -65,7 +68,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             {/* ScheduledMaintenance View  */}
-            <CardModelDetail
+            <CardModelDetail<ScheduledMaintenance>
                 name="Scheduled Maintenance Details"
                 cardProps={{
                     title: 'Scheduled Maintenance Details',
@@ -437,7 +440,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </Page>
+        </ModelPage>
     );
 };
 
