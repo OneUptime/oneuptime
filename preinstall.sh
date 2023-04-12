@@ -175,7 +175,7 @@ export $(grep -v '^#' config.env | xargs)
 # Write env vars in config files. 
 
 
-for directory_name in $(find . -type d -maxdepth 1) ; do
+for directory_name in $(find . -maxdepth 1 -type d) ; do
     if [ -f "$directory_name/.env.tpl" ]; then
         cat $directory_name/.env.tpl | gomplate > $directory_name/.env
     fi
