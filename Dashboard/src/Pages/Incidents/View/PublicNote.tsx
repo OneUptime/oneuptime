@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -22,14 +22,18 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import Incident from 'Model/Models/Incident';
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Incidents'}
+        <ModelPage
+            title="Incident"
+            modelType={Incident}
+            modelId={modelId}
+            modelNameField="title"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -172,7 +176,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

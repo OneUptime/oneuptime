@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -37,8 +37,11 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-        <Page
-            title={'Incidents'}
+        <ModelPage
+            title="Incident"
+            modelType={Incident}
+            modelId={modelId}
+            modelNameField="title"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -382,7 +385,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </Page>
+        </ModelPage>
     );
 };
 
