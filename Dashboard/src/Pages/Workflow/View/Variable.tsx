@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -13,6 +13,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import SideMenu from './SideMenu';
+import Workflow from 'Model/Models/Workflow';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -20,8 +21,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Workflows'}
+        <ModelPage
+        title="Workflow"
+        modelType={Workflow}
+        modelId={modelId}
+        modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -159,7 +163,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

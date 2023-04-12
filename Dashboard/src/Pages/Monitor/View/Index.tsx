@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -84,8 +84,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-        <Page
-            title={'Monitors'}
+         <ModelPage
+            title="Monitor"
+            modelType={Monitor}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -277,7 +280,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     isLoading={isLoading}
                 />
             </Card>
-        </Page>
+        </ModelPage>
     );
 };
 
