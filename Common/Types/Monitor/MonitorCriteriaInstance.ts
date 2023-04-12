@@ -19,7 +19,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return this;
     }
 
-    public isValid(): boolean {
+    public static isValid(_json: JSONObject): boolean {
         return true;
     }
 
