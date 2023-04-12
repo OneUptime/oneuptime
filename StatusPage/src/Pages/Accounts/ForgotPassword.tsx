@@ -64,7 +64,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 {props.logoFileId && props.logoFileId.toString() ? (
                     <img
-                        style={{ height: '70px' }}
+                        style={{ height: '70px', margin: 'auto' }}
                         src={`${URL.fromString(FILE_URL.toString()).addRoute(
                             '/image/' + props.logoFileId.toString()
                         )}`}
