@@ -19,7 +19,10 @@ const StatusPageCustomFields: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-            title={'Status Pages'}
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -46,7 +49,7 @@ const StatusPageCustomFields: FunctionComponent<PageComponentProps> = (
                     title: 'Custom Fields',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                        PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                         ] as Route,
                         modelId
                     ),
