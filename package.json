@@ -9,7 +9,7 @@
         "eslint-plugin-progress": "^0.0.1",
         "the-new-css-reset": "^1.7.3",
         "ts-node": "^10.9.1",
-        "typeorm": "^0.3.11"
+        "typeorm": "^0.3.14"
     },
     "devDependencies": {
         "@babel/core": "^7.17.8",
