@@ -54,7 +54,7 @@ const Page: FunctionComponent<ComponentProps> = (
                     {props.title && (
                         <div className="mt-2 md:flex md:items-center md:justify-between">
                             <div className="min-w-0">
-                                <h2 className="text-xl leading-7  text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                                <h2 className="text-xl leading-7  text-gray-900 sm:truncate sm:text-2xl sm:tracking-tight">
                                     {props.title}
                                 </h2>
                             </div>
