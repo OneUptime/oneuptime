@@ -32,12 +32,8 @@ const Page: FunctionComponent<ComponentProps> = (
         }
     }, [props.breadcrumbLinks]);
 
-    if(props.error){
+    if (props.error) {
         return <ErrorMessage error={props.error} />;
-    }
-
-    if(props.isLoading){
-        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -72,14 +68,20 @@ const Page: FunctionComponent<ComponentProps> = (
                     <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
                         {props.sideMenu}
 
-                        <div className="space-y-6 sm:px-6 lg:col-span-10 md:col-span-9 lg:px-0">
-                            {props.children}
-                        </div>
+                        {!props.isLoading && (
+                            <div className="space-y-6 sm:px-6 lg:col-span-10 md:col-span-9 lg:px-0">
+                                {props.children}
+                            </div>
+                        )}
+                        {props.isLoading && <PageLoader isVisible={true} />}
                     </div>
                 </main>
             )}
 
-            {!props.sideMenu && props.children}
+            {!props.sideMenu && !props.isLoading && props.children}
+            {!props.sideMenu && props.isLoading && (
+                <PageLoader isVisible={true} />
+            )}
         </div>
     );
 };

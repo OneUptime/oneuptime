@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -17,16 +17,19 @@ import NotNull from 'Common/Types/Database/NotNull';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Red } from 'Common/Types/BrandColors';
-// import NotNull from 'Common/Types/Database/NotNull';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPage from 'Model/Models/StatusPage';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Status Page'}
+        <ModelPage
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -142,7 +145,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -17,14 +17,18 @@ import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Status Page'}
+        <ModelPage
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -170,7 +174,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

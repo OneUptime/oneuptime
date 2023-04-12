@@ -25,10 +25,10 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
+            title="Status Page"
             modelType={StatusPage}
             modelId={modelId}
             modelNameField="name"
-            title={'Status Page'}
             breadcrumbLinks={[
                 {
                     title: 'Project',

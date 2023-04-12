@@ -6,8 +6,7 @@ import Page from './Page';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
 
-
-export interface ComponentProps<TBaseModel extends BaseModel>  {
+export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: string | undefined;
     breadcrumbLinks?: Array<Link> | undefined;
     children: Array<ReactElement> | ReactElement;
@@ -21,8 +20,6 @@ export interface ComponentProps<TBaseModel extends BaseModel>  {
 const ModelPage: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    
-
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [error, setError] = useState<string>('');
@@ -30,22 +27,19 @@ const ModelPage: Function = <TBaseModel extends BaseModel>(
     const fetchItem: Function = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
-       
+
         setError('');
         try {
-            
-
             const item: TBaseModel | null = await ModelAPI.getItem(
                 props.modelType,
                 props.modelId,
                 {
-                    [props.modelNameField]: true
+                    [props.modelNameField]: true,
                 } as any,
                 {}
             );
 
             if (!item) {
-
                 setError(
                     `Cannot load ${(
                         new props.modelType()?.singularName || 'item'
@@ -53,9 +47,15 @@ const ModelPage: Function = <TBaseModel extends BaseModel>(
                         new props.modelType()?.singularName || 'item'
                     ).toLowerCase()}.`
                 );
+
+                return;
             }
 
-            setTitle(`${props.title || ''} - ${item?.getColumnValue(props.modelNameField) as string}`);
+            setTitle(
+                `${props.title || ''} - ${
+                    (item as any)[props.modelNameField] as string
+                }`
+            );
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -64,13 +64,14 @@ const ModelPage: Function = <TBaseModel extends BaseModel>(
 
     const [title, setTitle] = useState<string | undefined>(props.title);
 
-    useEffect(()=>{
+    useEffect(() => {
         // fetch the model
         fetchItem();
+    }, []);
 
-    })
-
-    return <Page isLoading={isLoading} error={error} title={title} {...props} />;
+    return (
+        <Page {...props} isLoading={isLoading} error={error} title={title} />
+    );
 };
 
 export default ModelPage;
