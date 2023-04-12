@@ -2,6 +2,8 @@ import Link from 'Common/Types/Link';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import Analytics from '../../Utils/Analytics';
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
+import PageLoader from '../Loader/PageLoader';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 export interface ComponentProps {
     title?: string | undefined;
@@ -9,6 +11,8 @@ export interface ComponentProps {
     children: Array<ReactElement> | ReactElement;
     sideMenu?: undefined | ReactElement;
     className?: string | undefined;
+    isLoading?: boolean | undefined;
+    error?: string | undefined;
 }
 
 const Page: FunctionComponent<ComponentProps> = (
@@ -27,6 +31,14 @@ const Page: FunctionComponent<ComponentProps> = (
             );
         }
     }, [props.breadcrumbLinks]);
+
+    if(props.error){
+        return <ErrorMessage error={props.error} />;
+    }
+
+    if(props.isLoading){
+        return <PageLoader isVisible={true} />;
+    }
 
     return (
         <div

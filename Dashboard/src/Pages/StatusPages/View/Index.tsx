@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -24,7 +24,10 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-        <Page
+        <ModelPage
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             title={'Status Page'}
             breadcrumbLinks={[
                 {
@@ -164,7 +167,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </Page>
+        </ModelPage>
     );
 };
 
