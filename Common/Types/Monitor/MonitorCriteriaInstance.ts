@@ -1,208 +1,48 @@
-export default class MonitorCriteriaInstance {}
+import { FindOperator } from "typeorm";
+import DatabaseProperty from "../Database/DatabaseProperty";
+import { JSONObject } from "../JSON";
 
-/*
- * @Column()
- * const criterionEventSchema!: Schema = new Schema({
- */
+export default class MonitorCriteriaInstance extends DatabaseProperty {
+    
+    public monitorCriteriaInstance: JSONObject = {};
+    
+    public constructor(){
+        super();
+    }
 
-/*
- *  @Column()
- * schedules!: [String];
- */
+    public toJSON(): JSONObject {
+        return this.monitorCriteriaInstance;
+    }
 
-/*
- * @Column()
- * createAlert!: boolean;
- */
+    public fromJSON(json: JSONObject): MonitorCriteriaInstance {
+        this.monitorCriteriaInstance = json;
+        return this;
+    }
 
-/*
- * @Column()
- * autoAcknowledge!: boolean;
- */
+    public isValid(): boolean {
+        return true;
+    }
 
-/*
- * @Column()
- * autoResolve!: boolean;
- */
+    protected static override toDatabase(
+        _value: MonitorCriteriaInstance | FindOperator<MonitorCriteriaInstance>
+    ): JSONObject | null {
+        if (_value) {
+            return (_value as MonitorCriteriaInstance).toJSON();
+        }
 
-/*
- * @Column()
- * title: { type: string, default !: '' };
- */
+        return null;
+    }
 
-/*
- * @Column()
- * description: { type: string, default !: '' };
- */
+    protected static override fromDatabase(value: JSONObject): MonitorCriteriaInstance | null {
+        if (value) {
+            return new MonitorCriteriaInstance().fromJSON(value);
+        }
 
-/*
- * @Column()
- *     default !: boolean;
- */
+        return null;
+    }
 
-/*
- * @Column()
- * name!: string;
- */
+    public override toString(): string {
+        return JSON.stringify(this.toJSON());
+    }
+}
 
-/*
- * @Column()
- * criteria!: {
- */
-
-/*
- *    @Column()
- *    condition!: string;
- */
-
-/*
- *    @Column()
- *    criteria!: [Schema.Types.Mixed];
- * };
- */
-
-/*
- * @Column()
- * scripts!: [
- *    {
- */
-
-/*
- *  @Column()
- * script!: {
- */
-
-/*
- *    @Column()
- *       type!: Schema.Types.Object;
- */
-
-/*
- *    @Column()
- *    ref!: 'AutomationSript';
- */
-
-/*
- *    @Column()
- *    index!: true;
- * };
- *         };
- *     ];
- * }
- */
-
-/**
- * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
- * Depending of on the level, criteria will house all the conditions;
- * in addition to nested condition if present (the nested condition will follow the same structural pattern)
- *
- *
- * /*
- *  @Column()
- *  * criteria!: {
- */
-
-/*
- *  @Column()
- *  *  condition!: 'and';
- */
-
-/*
- *  @Column()
- *  *  criteria!: [
- *  *      {
- */
-
-/*
- *  @Column()
- *  *         condition!: 'or';
- */
-
-/*
- *  @Column()
- *  *         criteria!: [
- *  *            {
- */
-
-/*
- *  @Column()
- *  *               "responseType"!: "requestBody";
- */
-
-/*
- *  @Column()
- *  *               "filter"!: "equalTo";
- */
-
-/*
- *  @Column()
- *  *                "field1"!: "ok"
- *  *            };
- *  *            {
- */
-
-/*
- *  @Column()
- *  *               "responseType"!: "requestBody";
- */
-
-/*
- *  @Column()
- *  *               "filter"!: "equalTo";
- */
-
-/*
- *  @Column()
- *  *                "field1"!: "healthy"
- *  *            };
- *  *            {
- */
-
-/*
- *  @Column()
- *  *               condition!: 'and';
- */
-
-/*
- *  @Column()
- *  *               criteria!: [{}, {}; ...]
- *  *            }
- *  *         ]
- *  *      };
- *  *      {
- */
-
-/*
- *  @Column()
- *  *          "responseType"!: "statusCode";
- */
-
-/*
- *  @Column()
- *  *           "filter"!: "equalTo";
- */
-
-/*
- *  @Column()
- *  *           "field1"!: "200"
- *  *      };
- *  *      {
- */
-
-/*
- *  @Column()
- *  *           "responseType"!: "requestTime";
- */
-
-/*
- *  @Column()
- *  *           "filter"!: "lessthan";
- */
-
-//  @Column()
-//  *           "field1"!: "1000"
-//  *      };
-//  *      ...
-//  *   ]
-//  * }
-//  */
