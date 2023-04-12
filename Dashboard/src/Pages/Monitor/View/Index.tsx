@@ -84,7 +84,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-         <ModelPage
+        <ModelPage
             title="Monitor"
             modelType={Monitor}
             modelId={modelId}

@@ -37,7 +37,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-         <ModelPage
+        <ModelPage
             title="Scheduled Event"
             modelType={ScheduledMaintenance}
             modelId={modelId}

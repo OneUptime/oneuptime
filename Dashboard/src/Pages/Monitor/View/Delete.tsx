@@ -16,7 +16,7 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-         <ModelPage
+        <ModelPage
             title="Monitor"
             modelType={Monitor}
             modelId={modelId}

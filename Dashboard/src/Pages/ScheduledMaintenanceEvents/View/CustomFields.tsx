@@ -18,7 +18,7 @@ const ScheduledMaintenanceCustomFields: FunctionComponent<
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-         <ModelPage
+        <ModelPage
             title="Scheduled Event"
             modelType={ScheduledMaintenance}
             modelId={modelId}

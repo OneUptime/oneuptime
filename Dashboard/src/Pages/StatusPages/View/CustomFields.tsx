@@ -49,7 +49,7 @@ const StatusPageCustomFields: FunctionComponent<PageComponentProps> = (
                     title: 'Custom Fields',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                            PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                         ] as Route,
                         modelId
                     ),

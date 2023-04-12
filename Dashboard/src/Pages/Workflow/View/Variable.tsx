@@ -22,10 +22,10 @@ const Workflows: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-        title="Workflow"
-        modelType={Workflow}
-        modelId={modelId}
-        modelNameField="name"
+            title="Workflow"
+            modelType={Workflow}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
