@@ -35,6 +35,10 @@ export default class MonitorCriteria extends DatabaseProperty {
 
     public fromJSON(json: JSONObject): MonitorCriteria {
 
+        if(!json || json['_type'] !== "MonitorCriteria"){
+            throw new BadDataException("Invalid monitor criteria");
+        }
+
         if(!json){
             throw new BadDataException("Invalid monitor criteria");
         }

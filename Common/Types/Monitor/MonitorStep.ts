@@ -6,16 +6,16 @@ import IP from "../IP/IP";
 import MonitorCriteria from "./MonitorCriteria";
 import BadDataException from "../Exception/BadDataException";
 
-export interface MonitorStepType { 
+export interface MonitorStepType {
     monitorDestination: URL | IP;
     monitorCriteria: MonitorCriteria;
 }
 
 export default class MonitorStep extends DatabaseProperty {
-    
+
     public monitorStep: MonitorStepType | undefined = undefined;
-    
-    public constructor(){
+
+    public constructor() {
         super();
     }
 
@@ -24,37 +24,51 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     public toJSON(): JSONObject {
-        if(this.monitorStep){
+        if (this.monitorStep) {
             return {
-                monitorDestination: this.monitorStep.monitorDestination.toJSON(),
-                monitorCriteria: this.monitorStep.monitorCriteria.toJSON()
+                _type: "MonitorStep",
+                value: {
+                    monitorDestination: this.monitorStep.monitorDestination.toJSON(),
+                    monitorCriteria: this.monitorStep.monitorCriteria.toJSON()
+                }
             };
         }
 
         return {}
-        
+
     }
 
     public fromJSON(json: JSONObject): MonitorStep {
+
+        if (!json || json['_type'] !== "MonitorStep") {
+            throw new BadDataException("Invalid monitor step");
+        }
+
+        if (!json['value']) {
+            throw new BadDataException("Invalid monitor step");
+        }
+
+        json = json['value'] as JSONObject;
+
         let monitorDestination: URL | IP | undefined = undefined;
 
-        if(json && json['monitorDestination'] && (json['monitorDestination'] as JSONObject)['_type'] === "URL"){
-            monitorDestination =  URL.fromJSON(json['monitorDestination'] as JSONObject);
+        if (json && json['monitorDestination'] && (json['monitorDestination'] as JSONObject)['_type'] === "URL") {
+            monitorDestination = URL.fromJSON(json['monitorDestination'] as JSONObject);
         }
 
-        if(json && json['monitorDestination'] && (json['monitorDestination'] as JSONObject)['_type'] === "IP"){
-            monitorDestination =  IP.fromJSON(json['monitorDestination'] as JSONObject);
+        if (json && json['monitorDestination'] && (json['monitorDestination'] as JSONObject)['_type'] === "IP") {
+            monitorDestination = IP.fromJSON(json['monitorDestination'] as JSONObject);
         }
 
-        if(!monitorDestination){
+        if (!monitorDestination) {
             throw new BadDataException("Invalid monitor destination");
         }
 
-        if(!json['monitorCriteria']){
+        if (!json['monitorCriteria']) {
             throw new BadDataException("Invalid monitor criteria");
         }
 
-        if(MonitorCriteria.isValid(json['monitorCriteria'] as JSONObject) === false){
+        if (MonitorCriteria.isValid(json['monitorCriteria'] as JSONObject) === false) {
             throw new BadDataException("Invalid monitor criteria");
         }
 

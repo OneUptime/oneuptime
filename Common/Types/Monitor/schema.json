@@ -1,0 +1,39 @@
+
+{
+    "_type": "MonitorSteps",
+    "value": {
+        "monitorStepsInstanceArray": [
+            {
+                "_type": "MonitorStep",
+                "value": {
+                    
+                        "monitorDestination": {
+                            "_type": "URL",
+                            "value": "http://www.google.com"
+                        },
+                        "monitorCriteria": {
+                            "_type": "MonitorCriteria",
+                            "value": {
+                                "monitorCriteriaInstanceArray": [
+                                    {
+                                        "_type": "MonitorCriteriaInstance",
+                                        "value": {
+                                            "monitorCriteriaType": {
+                                                "_type": "MonitorCriteriaType",
+                                                "value": "HTTP_STATUS_CODE"
+                                            },
+                                            "monitorCriteriaValue": {
+                                                "_type": "MonitorCriteriaValue",
+                                                "value": "200"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    
+                }
+            }
+        ]
+    }
+}
