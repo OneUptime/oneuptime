@@ -11,31 +11,24 @@ export default class IP extends DatabaseProperty {
         return this._ip;
     }
     public set ip(value: string) {
-        if (this.type === IPType.IPv4) {
-            if (IP.isIPv4(value)) {
-                this._ip = value;
-                this.type = IPType.IPv4;
-            } else {
-                throw new BadDataException('IP is not a valid IPv4 address');
-            }
-        } else if (this.type === IPType.IPv6) {
-            if (IP.isIPv6(value)) {
-                this._ip = value;
-                this.type = IPType.IPv6;
-            } else {
-                throw new BadDataException('IP is not a valid IPv6 address');
-            }
+
+        if (IP.isIPv4(value)) {
+            this._ip = value;
+            this.type = IPType.IPv4;
+        } if (IP.isIPv6(value)) {
+            this._ip = value;
+            this.type = IPType.IPv6;
+        } else {
+            throw new BadDataException('IP is not a valid address');
         }
+
     }
 
-    public constructor(ip: string, type?: IPType) {
+    public constructor(ip: string) {
         super();
 
         this.ip = ip;
 
-        if (type) {
-            this.type = type;
-        }
     }
 
     public override toString(): string {
@@ -96,11 +89,7 @@ export default class IP extends DatabaseProperty {
 
     public static override fromDatabase(value: string): IP | null {
         if (value) {
-            if (IP.isIPv4(value)) {
-                return new IP(value, IPType.IPv4);
-            } else if (IP.isIPv6(value)) {
-                return new IP(value, IPType.IPv6);
-            }
+            return new IP(value);
         }
         return null;
     }
