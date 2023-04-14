@@ -182,20 +182,20 @@ export default class URL extends DatabaseProperty {
         return URL.fromString(this.toString().split('?')[0] || '');
     }
 
-    public toJSON():JSONObject {
+    public toJSON(): JSONObject {
         return {
             value: this.toString(),
-            _type: "URL"
-        }
+            _type: 'URL',
+        };
     }
 
-    public static fromJSON(json: JSONObject):URL {
-        if(json && json['_type'] !== "URL") {
-            throw new BadDataException("Invalid JSON for URL")
+    public static fromJSON(json: JSONObject): URL {
+        if (json && json['_type'] !== 'URL') {
+            throw new BadDataException('Invalid JSON for URL');
         }
 
-        if(json && json['value'] && typeof json['value'] === Typeof.String) {
-            throw new BadDataException("Invalid JSON for URL")
+        if (json && json['value'] && typeof json['value'] === Typeof.String) {
+            throw new BadDataException('Invalid JSON for URL');
         }
 
         return URL.fromString(json['value'] as string);

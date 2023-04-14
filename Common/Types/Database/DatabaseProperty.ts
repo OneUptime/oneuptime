@@ -26,7 +26,7 @@ export default class DatabaseProperty {
 
     protected static _toDatabase(
         value: DatabaseProperty | FindOperator<DatabaseProperty>
-    ): string | number | JSONObject| JSONArray | null {
+    ): string | number | JSONObject | JSONArray | null {
         // if its a RAW query. Return a raw query.
         if (value && (value as any)._type === 'raw') {
             return value as any;

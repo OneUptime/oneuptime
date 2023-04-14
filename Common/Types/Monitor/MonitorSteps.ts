@@ -1,58 +1,65 @@
-import { FindOperator } from "typeorm";
-import DatabaseProperty from "../Database/DatabaseProperty";
-import { JSONArray, JSONObject } from "../JSON";
-import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import BadDataException from "../Exception/BadDataException";
-
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from '../Database/DatabaseProperty';
+import { JSONArray, JSONObject } from '../JSON';
+import MonitorStep from './MonitorStep';
+import BadDataException from '../Exception/BadDataException';
 
 export interface MonitorStepsType {
-    monitorStepsInstanceArray: Array<MonitorCriteriaInstance>;
+    monitorStepsInstanceArray: Array<MonitorStep>;
 }
 
-export default class MonitorSteps extends DatabaseProperty { 
+export default class MonitorSteps extends DatabaseProperty {
     public monitorSteps: MonitorStepsType | undefined = undefined;
-    
-    public constructor(){
+
+    public constructor() {
         super();
     }
 
     public toJSON(): JSONObject {
-
-        if(!this.monitorSteps){
+        if (!this.monitorSteps) {
             return {
-                _type: "MonitorSteps",
-                value: {}
+                _type: 'MonitorSteps',
+                value: {},
             };
         }
 
         return {
-            _type: "MonitorSteps",
+            _type: 'MonitorSteps',
             value: {
-                monitorStepsInstanceArray: this.monitorSteps.monitorStepsInstanceArray.map((criteria) => criteria.toJSON())
-            }
-        }
+                monitorStepsInstanceArray:
+                    this.monitorSteps.monitorStepsInstanceArray.map(
+                        (step: MonitorStep) => {
+                            return step.toJSON();
+                        }
+                    ),
+            },
+        };
     }
 
     public fromJSON(json: JSONObject): MonitorSteps {
-
-        if(!json){
-            throw new BadDataException("Invalid monitor steps");
+        if (!json) {
+            throw new BadDataException('Invalid monitor steps');
         }
 
-        if(!json['value']){
-            throw new BadDataException("Invalid monitor steps");
-        }
-        
-        if(!(json['value'] as JSONObject)['monitorStepsInstanceArray']){
-            throw new BadDataException("Invalid monitor steps");
+        if (!json['value']) {
+            throw new BadDataException('Invalid monitor steps');
         }
 
-        let monitorStepsInstanceArray: JSONArray = (json['value'] as JSONObject)['monitorStepsInstanceArray'] as JSONArray;
+        if (!(json['value'] as JSONObject)['monitorStepsInstanceArray']) {
+            throw new BadDataException('Invalid monitor steps');
+        }
 
+        const monitorStepsInstanceArray: JSONArray = (
+            json['value'] as JSONObject
+        )['monitorStepsInstanceArray'] as JSONArray;
 
         this.monitorSteps = {
-            monitorStepsInstanceArray:  monitorStepsInstanceArray.map((json: JSONObject) => new MonitorCriteriaInstance().fromJSON(json))
-        }
+            monitorStepsInstanceArray: monitorStepsInstanceArray.map(
+                (json: JSONObject) => {
+                    return new MonitorStep().fromJSON(json);
+                }
+            ),
+        };
 
         return this;
     }
@@ -71,7 +78,9 @@ export default class MonitorSteps extends DatabaseProperty {
         return null;
     }
 
-    protected static override fromDatabase(value: JSONObject): MonitorSteps | null {
+    protected static override fromDatabase(
+        value: JSONObject
+    ): MonitorSteps | null {
         if (value) {
             return new MonitorSteps().fromJSON(value);
         }

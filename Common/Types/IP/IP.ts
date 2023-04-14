@@ -11,8 +11,6 @@ export default class IP extends DatabaseProperty {
         return this._ip;
     }
     public set ip(value: string) {
-
-
         if (this.type === IPType.IPv4) {
             if (IP.isIPv4(value)) {
                 this._ip = value;
@@ -32,10 +30,10 @@ export default class IP extends DatabaseProperty {
 
     public constructor(ip: string, type?: IPType) {
         super();
-        
+
         this.ip = ip;
 
-        if(type){
+        if (type) {
             this.type = type;
         }
     }
@@ -70,23 +68,23 @@ export default class IP extends DatabaseProperty {
         return false;
     }
 
-    public static fromJSON(json: JSONObject):IP {
-        if(json && json['_type'] !== "IP") {
-            throw new BadDataException("Invalid JSON for IP")
+    public static fromJSON(json: JSONObject): IP {
+        if (json && json['_type'] !== 'IP') {
+            throw new BadDataException('Invalid JSON for IP');
         }
 
-        if(json && json['value'] && typeof json['value'] === Typeof.String) {
-            throw new BadDataException("Invalid JSON for IP")
+        if (json && json['value'] && typeof json['value'] === Typeof.String) {
+            throw new BadDataException('Invalid JSON for IP');
         }
 
-        return new IP(json['value'] as string)
+        return new IP(json['value'] as string);
     }
 
     public toJSON(): JSONObject {
         return {
             value: this.toString(),
-            _type: "IP"
-        }
+            _type: 'IP',
+        };
     }
 
     public static override toDatabase(_value: string): string | null {

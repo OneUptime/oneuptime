@@ -1,7 +1,7 @@
-import { FindOperator } from "typeorm";
-import DatabaseProperty from "../Database/DatabaseProperty";
-import { JSONObject } from "../JSON";
-import ObjectID from "../ObjectID";
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from '../Database/DatabaseProperty';
+import { JSONObject } from '../JSON';
+import ObjectID from '../ObjectID';
 
 export enum CheckOn {
     ResponseTime = 'Response Time',
@@ -23,7 +23,7 @@ export interface CriteriaIncident {
     incidentSeverityId: ObjectID;
 }
 
-export enum FilterType{
+export enum FilterType {
     EqualTo = 'Equal To',
     NotEqualTo = 'Not Equal To',
     GreaterThan = 'Greater Than',
@@ -38,10 +38,9 @@ export enum FilterType{
     IsNotEmpty = 'Is Not Empty',
 }
 
-
 export enum FilterCondtion {
-    All = 'All', 
-    Any = 'Any'
+    All = 'All',
+    Any = 'Any',
 }
 
 export interface MonitorCriteriaInstanceType {
@@ -49,16 +48,14 @@ export interface MonitorCriteriaInstanceType {
     filter: {
         filterCondition: FilterCondtion;
         filters: Array<CriteriaFilter>;
-    }
+    };
     createIncidents: Array<CriteriaIncident>;
 }
 
-
 export default class MonitorCriteriaInstance extends DatabaseProperty {
-    
     public monitorCriteriaInstance: JSONObject = {};
-    
-    public constructor(){
+
+    public constructor() {
         super();
     }
 
@@ -85,7 +82,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return null;
     }
 
-    protected static override fromDatabase(value: JSONObject): MonitorCriteriaInstance | null {
+    protected static override fromDatabase(
+        value: JSONObject
+    ): MonitorCriteriaInstance | null {
         if (value) {
             return new MonitorCriteriaInstance().fromJSON(value);
         }
@@ -97,4 +96,3 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return JSON.stringify(this.toJSON());
     }
 }
-
