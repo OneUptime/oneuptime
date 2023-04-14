@@ -508,7 +508,6 @@ export default class Monitor extends BaseModel {
     })
     public currentMonitorStatusId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

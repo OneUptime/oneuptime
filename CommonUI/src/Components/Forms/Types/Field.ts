@@ -9,6 +9,12 @@ import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/RadioButtons';
 import { ReactElement } from 'react';
 
+export interface FormFieldSideLink {
+    text: string;
+    url: Route | URL;
+    openLinkInNewTab?: boolean;
+}
+
 export default interface Field<TEntity> {
     title?: string;
     description?: string;
@@ -25,11 +31,7 @@ export default interface Field<TEntity> {
         valueField: string;
     };
     fileTypes?: Array<MimeType> | undefined;
-    sideLink?: {
-        text: string;
-        url: Route | URL;
-        openLinkInNewTab?: boolean;
-    };
+    sideLink?: FormFieldSideLink | undefined;
     validation?: {
         minLength?: number;
         maxLength?: number;
@@ -48,4 +50,5 @@ export default interface Field<TEntity> {
     defaultValue?: boolean | string | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
+    customElement?: ReactElement | undefined; // custom element to render instead of the elements in the form.
 }

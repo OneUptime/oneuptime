@@ -9,14 +9,14 @@ export interface MonitorStepsType {
 }
 
 export default class MonitorSteps extends DatabaseProperty {
-    public monitorSteps: MonitorStepsType | undefined = undefined;
+    public data: MonitorStepsType | undefined = undefined;
 
     public constructor() {
         super();
     }
 
     public toJSON(): JSONObject {
-        if (!this.monitorSteps) {
+        if (!this.data) {
             return {
                 _type: 'MonitorSteps',
                 value: {},
@@ -27,7 +27,7 @@ export default class MonitorSteps extends DatabaseProperty {
             _type: 'MonitorSteps',
             value: {
                 monitorStepsInstanceArray:
-                    this.monitorSteps.monitorStepsInstanceArray.map(
+                    this.data.monitorStepsInstanceArray.map(
                         (step: MonitorStep) => {
                             return step.toJSON();
                         }
@@ -53,7 +53,7 @@ export default class MonitorSteps extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorStepsInstanceArray'] as JSONArray;
 
-        this.monitorSteps = {
+        this.data = {
             monitorStepsInstanceArray: monitorStepsInstanceArray.map(
                 (json: JSONObject) => {
                     return new MonitorStep().fromJSON(json);

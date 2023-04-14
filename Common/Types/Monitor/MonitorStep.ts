@@ -12,7 +12,7 @@ export interface MonitorStepType {
 }
 
 export default class MonitorStep extends DatabaseProperty {
-    public monitorStep: MonitorStepType | undefined = undefined;
+    public data: MonitorStepType | undefined = undefined;
 
     public constructor() {
         super();
@@ -23,13 +23,12 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     public toJSON(): JSONObject {
-        if (this.monitorStep) {
+        if (this.data) {
             return {
                 _type: 'MonitorStep',
                 value: {
-                    monitorDestination:
-                        this.monitorStep.monitorDestination.toJSON(),
-                    monitorCriteria: this.monitorStep.monitorCriteria.toJSON(),
+                    monitorDestination: this.data.monitorDestination.toJSON(),
+                    monitorCriteria: this.data.monitorCriteria.toJSON(),
                 },
             };
         }
@@ -85,7 +84,7 @@ export default class MonitorStep extends DatabaseProperty {
             throw new BadDataException('Invalid monitor criteria');
         }
 
-        this.monitorStep = {
+        this.data = {
             monitorDestination: monitorDestination,
             monitorCriteria: new MonitorCriteria().fromJSON(
                 json['monitorCriteria'] as JSONObject

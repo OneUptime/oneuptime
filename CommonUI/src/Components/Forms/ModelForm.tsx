@@ -63,6 +63,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     name: string;
+    onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
     onSuccess?:
         | undefined
         | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
@@ -493,6 +494,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 onIsLastFormStep={props.onIsLastFormStep}
                 fields={fields}
                 steps={props.steps}
+                onChange={props.onChange}
                 showAsColumns={props.showAsColumns}
                 footer={props.footer}
                 isLoading={isLoading}

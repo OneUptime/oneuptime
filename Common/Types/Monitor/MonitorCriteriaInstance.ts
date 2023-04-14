@@ -2,69 +2,98 @@ import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import { JSONObject } from '../JSON';
 import ObjectID from '../ObjectID';
-
-export enum CheckOn {
-    ResponseTime = 'Response Time',
-    ResponseCode = 'Response Code',
-    ResponseHeader = 'Response Header',
-    ResponseBody = 'Response Body',
-    IsOnline = 'Is Online',
-}
-
-export interface CriteriaFilter {
-    checkOn: CheckOn;
-    filterType: FilterType;
-    value: string | number;
-}
-
-export interface CriteriaIncident {
-    title: string;
-    description: string;
-    incidentSeverityId: ObjectID;
-}
-
-export enum FilterType {
-    EqualTo = 'Equal To',
-    NotEqualTo = 'Not Equal To',
-    GreaterThan = 'Greater Than',
-    LessThan = 'Less Than',
-    GreaterThanOrEqualTo = 'Greater Than Or Equal To',
-    LessThanOrEqualTo = 'Less Than Or Equal To',
-    Contains = 'Contains',
-    NotContains = 'Not Contains',
-    StartsWith = 'Starts With',
-    EndsWith = 'Ends With',
-    IsEmpty = 'Is Empty',
-    IsNotEmpty = 'Is Not Empty',
-}
-
-export enum FilterCondtion {
-    All = 'All',
-    Any = 'Any',
-}
+import { CriteriaIncident } from './CriteriaIncident';
+import { CriteriaFilter, FilterCondition } from './CriteriaFilter';
+import BadDataException from '../Exception/BadDataException';
 
 export interface MonitorCriteriaInstanceType {
-    monitorStateId: ObjectID;
-    filter: {
-        filterCondition: FilterCondtion;
-        filters: Array<CriteriaFilter>;
-    };
+    monitorStatusId: ObjectID;
+    filterCondition: FilterCondition;
+    filters: Array<CriteriaFilter>;
     createIncidents: Array<CriteriaIncident>;
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
-    public monitorCriteriaInstance: JSONObject = {};
+    public data: MonitorCriteriaInstanceType | undefined = undefined;
 
     public constructor() {
         super();
     }
 
     public toJSON(): JSONObject {
-        return this.monitorCriteriaInstance;
+        if (!this.data) {
+            throw new BadDataException('data is null');
+        }
+
+        return {
+            monitorStatusId: this.data.monitorStatusId,
+            filterCondition: this.data.filterCondition,
+            filters: this.data.filters,
+            createIncidents: this.data.createIncidents,
+        };
     }
 
     public fromJSON(json: JSONObject): MonitorCriteriaInstance {
-        this.monitorCriteriaInstance = json;
+        if (!json) {
+            throw new BadDataException('json is null');
+        }
+
+        if (!json['monitorStatusId']) {
+            throw new BadDataException('json.monitorStatusId is null');
+        }
+
+        if (!json['filterCondition']) {
+            throw new BadDataException('json.filterCondition is null');
+        }
+
+        if (!json['filters']) {
+            throw new BadDataException('json.filters is null');
+        }
+
+        if (!Array.isArray(json['filters'])) {
+            throw new BadDataException('json.filters should be an array');
+        }
+
+        if (!json['createIncidents']) {
+            throw new BadDataException('json.createIncidents is null');
+        }
+
+        if (!Array.isArray(json['createIncidents'])) {
+            throw new BadDataException(
+                'json.createIncidents should be an array'
+            );
+        }
+
+        if (!(json['monitorStatusId'] as JSONObject)['value']) {
+            throw new BadDataException('json.monitorStatusId.value is null');
+        }
+
+        const monitorStatusId: ObjectID = new ObjectID(
+            (json['monitorStatusId'] as JSONObject)['value'] as string
+        );
+        const filterCondition: FilterCondition = json[
+            'filterCondition'
+        ] as FilterCondition;
+
+        const filters: Array<CriteriaFilter> = [];
+
+        const createIncidents: Array<CriteriaIncident> = [];
+
+        for (const filter of json['filters']) {
+            filters.push({ ...filter });
+        }
+
+        for (const incident of json['createIncidents']) {
+            createIncidents.push({ ...incident });
+        }
+
+        this.data = {
+            monitorStatusId,
+            filterCondition,
+            filters,
+            createIncidents,
+        };
+
         return this;
     }
 

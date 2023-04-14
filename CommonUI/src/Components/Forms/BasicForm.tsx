@@ -17,7 +17,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
-import Link from '../Link/Link';
 import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
@@ -46,6 +45,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import Field from './Types/Field';
 import { FormStep } from './Types/FormStep';
 import Steps from './Steps/Steps';
+import FieldLabelElement from './Fields/FieldLabel';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -354,32 +354,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
             return (
                 <div className="sm:col-span-4 mt-0 mb-2" key={fieldName}>
-                    <label className="block text-sm font-medium text-gray-700 flex justify-between">
-                        <span>
-                            {field.title}{' '}
-                            <span className="text-gray-400 text-xs">
-                                {field.required ? '' : '(Optional)'}
-                            </span>
-                        </span>
-                        {field.sideLink &&
-                            field.sideLink?.text &&
-                            field.sideLink?.url && (
-                                <span data-testid="login-forgot-password">
-                                    <Link
-                                        to={field.sideLink?.url}
-                                        className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-                                    >
-                                        {field.sideLink?.text}
-                                    </Link>
-                                </span>
-                            )}
-                    </label>
-
-                    {field.description && (
-                        <p className="mt-1 text-sm text-gray-500">
-                            {field.description}
-                        </p>
-                    )}
+                    <FieldLabelElement
+                        title={field.title || ''}
+                        description={field.description}
+                        sideLink={field.sideLink}
+                        required={field.required}
+                    />
 
                     <div className="mt-1">
                         {field.fieldType === FormFieldSchemaType.Color && (

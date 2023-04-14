@@ -9,14 +9,14 @@ export interface MonitorCriteriaType {
 }
 
 export default class MonitorCriteria extends DatabaseProperty {
-    public monitorCriteria: MonitorCriteriaType | undefined = undefined;
+    public data: MonitorCriteriaType | undefined = undefined;
 
     public constructor() {
         super();
     }
 
     public toJSON(): JSONObject {
-        if (!this.monitorCriteria) {
+        if (!this.data) {
             return {
                 _type: 'MonitorCriteria',
                 value: {},
@@ -27,7 +27,7 @@ export default class MonitorCriteria extends DatabaseProperty {
             _type: 'MonitorCriteria',
             value: {
                 monitorCriteriaInstanceArray:
-                    this.monitorCriteria.monitorCriteriaInstanceArray.map(
+                    this.data.monitorCriteriaInstanceArray.map(
                         (criteria: MonitorCriteriaInstance) => {
                             return criteria.toJSON();
                         }
@@ -57,7 +57,7 @@ export default class MonitorCriteria extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorCriteriaInstanceArray'] as JSONArray;
 
-        this.monitorCriteria = {
+        this.data = {
             monitorCriteriaInstanceArray: monitorCriteriaInstanceArray.map(
                 (json: JSONObject) => {
                     return new MonitorCriteriaInstance().fromJSON(json);

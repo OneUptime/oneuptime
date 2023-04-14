@@ -29,6 +29,7 @@ enum FormFieldSchemaType {
     RadioButton = 'RadioButton',
     JSON = 'JSON',
     Query = 'Query',
+    CustomComponment = 'CustomComponment',
 }
 
 export default FormFieldSchemaType;
