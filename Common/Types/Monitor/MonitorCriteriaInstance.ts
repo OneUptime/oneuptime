@@ -3,7 +3,6 @@ import DatabaseProperty from "../Database/DatabaseProperty";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 
-
 export enum CheckOn {
     ResponseTime = 'Response Time',
     ResponseCode = 'Response Code',
