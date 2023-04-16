@@ -11,24 +11,21 @@ export default class IP extends DatabaseProperty {
         return this._ip;
     }
     public set ip(value: string) {
-
         if (IP.isIPv4(value)) {
             this._ip = value;
             this.type = IPType.IPv4;
-        } if (IP.isIPv6(value)) {
+        } else if (IP.isIPv6(value)) {
             this._ip = value;
             this.type = IPType.IPv6;
         } else {
             throw new BadDataException('IP is not a valid address');
         }
-
     }
 
     public constructor(ip: string) {
         super();
 
         this.ip = ip;
-
     }
 
     public override toString(): string {
@@ -38,7 +35,9 @@ export default class IP extends DatabaseProperty {
     private static isIPv4(str: string): boolean {
         const regexExp: RegExp =
             /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-        return regexExp.test(str);
+        const result = regexExp.test(str);
+
+        return result;
     }
 
     private static isIPv6(str: string): boolean {
