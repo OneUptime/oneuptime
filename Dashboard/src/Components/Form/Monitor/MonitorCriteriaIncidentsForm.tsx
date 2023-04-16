@@ -48,7 +48,6 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                 );
             })}
 
-
             {/** Future Proofing */}
             {/* <Button
                 title="Add Incident"

@@ -14,9 +14,7 @@ export default class MonitorSteps extends DatabaseProperty {
     public constructor() {
         super();
         this.data = {
-            monitorStepsInstanceArray: [
-                new MonitorStep(),
-            ],
+            monitorStepsInstanceArray: [new MonitorStep()],
         };
     }
 
@@ -24,13 +22,10 @@ export default class MonitorSteps extends DatabaseProperty {
         return {
             _type: 'MonitorSteps',
             value: {
-                monitorStepsInstanceArray: [
-                    new MonitorStep().toJSON(),
-                ],
+                monitorStepsInstanceArray: [new MonitorStep().toJSON()],
             },
         };
     }
-
 
     public toJSON(): JSONObject {
         if (!this.data) {
@@ -51,9 +46,7 @@ export default class MonitorSteps extends DatabaseProperty {
     }
 
     public fromJSON(json: JSONObject): MonitorSteps {
-
-
-        if(json instanceof MonitorSteps){
+        if (json instanceof MonitorSteps) {
             return json;
         }
 

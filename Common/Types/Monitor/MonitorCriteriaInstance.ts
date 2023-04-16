@@ -35,8 +35,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         };
     }
 
-
-
     public toJSON(): JSONObject {
         if (!this.data) {
             return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -51,8 +49,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     public fromJSON(json: JSONObject): MonitorCriteriaInstance {
-
-        if(json instanceof MonitorCriteriaInstance){
+        if (json instanceof MonitorCriteriaInstance) {
             return json;
         }
 
@@ -84,7 +81,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
         let monitorStatusId: ObjectID | undefined = undefined;
 
-        if(json['monitorStatusId'] && (json['monitorStatusId'] as JSONObject)['value'] !== null) {
+        if (
+            json['monitorStatusId'] &&
+            (json['monitorStatusId'] as JSONObject)['value'] !== null
+        ) {
             monitorStatusId = new ObjectID(
                 (json['monitorStatusId'] as JSONObject)['value'] as string
             );

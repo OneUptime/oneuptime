@@ -16,62 +16,63 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps extends CustomElementProps {
     error?: string | undefined;
-    onChange?: ((value: MonitorSteps) => void) | undefined
-    onBlur?: () => void; 
+    onChange?: ((value: MonitorSteps) => void) | undefined;
+    onBlur?: () => void;
     initialValue?: MonitorSteps;
-    monitorType: MonitorType
+    monitorType: MonitorType;
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] = React.useState<Array<DropdownOption>>([]);
+    const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
+        React.useState<Array<DropdownOption>>([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>();
 
-
-    useEffect(()=>{
-        setError(props.error)
-    }, [props.error])
-
-
+    useEffect(() => {
+        setError(props.error);
+    }, [props.error]);
 
     const fetchMonitorStatuses = async () => {
         setIsLoading(true);
 
-
         try {
-
-            const list: ListResult<MonitorStatus> = await ModelAPI.getList(MonitorStatus, {}, LIMIT_PER_PROJECT, 0, {
-                name: true
-            }, {}, {});
+            const list: ListResult<MonitorStatus> = await ModelAPI.getList(
+                MonitorStatus,
+                {},
+                LIMIT_PER_PROJECT,
+                0,
+                {
+                    name: true,
+                },
+                {},
+                {}
+            );
 
             if (list.data) {
-                setMonitorStatusDropdownOptions(list.data.map((i: MonitorStatus) => {
-                    return {
-                        value: i._id!,
-                        label: i.name!
-                    }
-                }));
+                setMonitorStatusDropdownOptions(
+                    list.data.map((i: MonitorStatus) => {
+                        return {
+                            value: i._id!,
+                            label: i.name!,
+                        };
+                    })
+                );
             }
-        
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
-
-    }
+    };
     useEffect(() => {
-
         fetchMonitorStatuses();
-    }, [])
+    }, []);
 
     const [monitorSteps, setMonitorSteps] = React.useState<MonitorSteps>(
-        props.initialValue ||
-        new MonitorSteps()
+        props.initialValue || new MonitorSteps()
     );
 
     useEffect(() => {
@@ -79,19 +80,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             props.onChange(monitorSteps);
         }
 
-        if(props.onBlur){
+        if (props.onBlur) {
             props.onBlur();
         }
     }, [monitorSteps]);
 
-    if(error){
-        <ErrorMessage error={error}></ErrorMessage>
+    if (error) {
+        <ErrorMessage error={error}></ErrorMessage>;
     }
 
-    if(isLoading){
-        return <ComponentLoader></ComponentLoader>
+    if (isLoading) {
+        return <ComponentLoader></ComponentLoader>;
     }
-
 
     return (
         <div>
@@ -157,18 +157,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     const newMonitorSteps: Array<MonitorStep> = [
                         ...(monitorSteps.data?.monitorStepsInstanceArray || []),
                     ];
-                    newMonitorSteps.push(
-                        new MonitorStep()
-                    );
+                    newMonitorSteps.push(new MonitorStep());
 
                     monitorSteps.data = {
                         monitorStepsInstanceArray: newMonitorSteps,
                     };
 
-
                     setMonitorSteps(
                         new MonitorSteps().fromJSON(monitorSteps.toJSON())
-
                     );
                 }}
             />

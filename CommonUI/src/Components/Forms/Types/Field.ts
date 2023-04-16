@@ -15,12 +15,11 @@ export interface FormFieldSideLink {
     openLinkInNewTab?: boolean;
 }
 
-
 export interface CustomElementProps {
     error?: string | undefined;
-    tabIndex?: number  | undefined;
-    onChange?: ((value: any) => void) | undefined
-    onBlur?: () => void; 
+    tabIndex?: number | undefined;
+    onChange?: ((value: any) => void) | undefined;
+    onBlur?: () => void;
     initialValue?: any;
     placeholder?: string | undefined;
 }
@@ -60,5 +59,8 @@ export default interface Field<TEntity> {
     defaultValue?: boolean | string | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
-    getCustomElement?: (values: FormValues<TEntity>, props: CustomElementProps) => ReactElement | undefined; // custom element to render instead of the elements in the form.
+    getCustomElement?: (
+        values: FormValues<TEntity>,
+        props: CustomElementProps
+    ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
 }

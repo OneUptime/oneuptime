@@ -31,9 +31,10 @@ export interface ComponentProps {
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [monitorCriteriaInstance, setMonitorCriteriaInstance] = useState<
-        MonitorCriteriaInstance
-    >(props.initialValue || new MonitorCriteriaInstance());
+    const [monitorCriteriaInstance, setMonitorCriteriaInstance] =
+        useState<MonitorCriteriaInstance>(
+            props.initialValue || new MonitorCriteriaInstance()
+        );
 
     const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
         ObjectID | undefined
@@ -73,7 +74,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                monitorCriteriaInstance?.data?.monitorStatusId?.id || undefined
+                                    monitorCriteriaInstance?.data
+                                        ?.monitorStatusId?.id || undefined
                             );
                         }
                     )}

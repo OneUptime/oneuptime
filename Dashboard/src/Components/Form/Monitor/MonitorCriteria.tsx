@@ -16,8 +16,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [monitorCriteria, setMonitorCriteria] =
         React.useState<MonitorCriteria>(
-            props.initialValue ||
-                new MonitorCriteria()
+            props.initialValue || new MonitorCriteria()
         );
 
     useEffect(() => {
@@ -95,9 +94,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                             ...(monitorCriteria.data
                                 ?.monitorCriteriaInstanceArray || []),
                         ];
-                    newMonitorCriterias.push(
-                        new MonitorCriteriaInstance()
-                    );
+                    newMonitorCriterias.push(new MonitorCriteriaInstance());
                     setMonitorCriteria(
                         new MonitorCriteria().fromJSON({
                             _type: 'MonitorCriteria',

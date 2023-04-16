@@ -14,13 +14,9 @@ export default class MonitorCriteria extends DatabaseProperty {
     public constructor() {
         super();
         this.data = {
-            monitorCriteriaInstanceArray: [
-                new MonitorCriteriaInstance(),
-            ],
+            monitorCriteriaInstanceArray: [new MonitorCriteriaInstance()],
         };
-        
     }
-
 
     public static getNewMonitorCriteriaAsJSON(): JSONObject {
         return {
@@ -33,9 +29,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         };
     }
 
-
     public toJSON(): JSONObject {
-        
         if (!this.data) {
             return MonitorCriteria.getNewMonitorCriteriaAsJSON();
         }
@@ -54,8 +48,7 @@ export default class MonitorCriteria extends DatabaseProperty {
     }
 
     public fromJSON(json: JSONObject): MonitorCriteria {
-
-        if(json instanceof MonitorCriteria){
+        if (json instanceof MonitorCriteria) {
             return json;
         }
 

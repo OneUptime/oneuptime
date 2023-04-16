@@ -112,9 +112,19 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitor Criteria',
                     fieldType: FormFieldSchemaType.CustomComponent,
                     required: true,
-                    getCustomElement: (value: FormValues<Monitor>, props: CustomElementProps) => {
-                        return <MonitorSteps monitorType={value.monitorType || MonitorType.Manual} {...props} />
-                    } 
+                    getCustomElement: (
+                        value: FormValues<Monitor>,
+                        props: CustomElementProps
+                    ) => {
+                        return (
+                            <MonitorSteps
+                                monitorType={
+                                    value.monitorType || MonitorType.Manual
+                                }
+                                {...props}
+                            />
+                        );
+                    },
                 },
                 {
                     field: {

@@ -46,24 +46,19 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     public setRequestBody(requestBody: string): MonitorStep {
-
         this.data!.requestBody = requestBody;
         return this;
-
     }
 
     public setMonitorDestination(monitorDestination: URL | IP): MonitorStep {
-
         this.data!.monitorDestination = monitorDestination;
         return this;
-
     }
 
     public setMonitorCriteria(monitorCriteria: MonitorCriteria): MonitorStep {
         this.data!.monitorCriteria = monitorCriteria;
         return this;
     }
-
 
     public static getNewMonitorStepAsJSON(): JSONObject {
         return {
@@ -87,7 +82,8 @@ export default class MonitorStep extends DatabaseProperty {
             return {
                 _type: 'MonitorStep',
                 value: {
-                    monitorDestination: this.data?.monitorDestination?.toJSON() || undefined,
+                    monitorDestination:
+                        this.data?.monitorDestination?.toJSON() || undefined,
                     monitorCriteria: this.data.monitorCriteria.toJSON(),
                 },
             };
@@ -97,7 +93,6 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     public fromJSON(json: JSONObject): MonitorStep {
-
         if (json instanceof MonitorStep) {
             return json;
         }
@@ -150,9 +145,10 @@ export default class MonitorStep extends DatabaseProperty {
             monitorCriteria: new MonitorCriteria().fromJSON(
                 json['monitorCriteria'] as JSONObject
             ),
-            requestType: json['requestType'] as HTTPMethod || HTTPMethod.GET,
-            requestHeaders: json['requestHeaders'] as Dictionary<string> || undefined,
-            requestBody: json['requestBody'] as string || undefined,
+            requestType: (json['requestType'] as HTTPMethod) || HTTPMethod.GET,
+            requestHeaders:
+                (json['requestHeaders'] as Dictionary<string>) || undefined,
+            requestBody: (json['requestBody'] as string) || undefined,
         };
 
         return this;
