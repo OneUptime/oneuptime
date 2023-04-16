@@ -5,10 +5,15 @@ import URL from '../API/URL';
 import IP from '../IP/IP';
 import MonitorCriteria from './MonitorCriteria';
 import BadDataException from '../Exception/BadDataException';
+import HTTPMethod from '../API/HTTPMethod';
+import Dictionary from '../Dictionary';
 
 export interface MonitorStepType {
     monitorDestination?: URL | IP | undefined;
     monitorCriteria: MonitorCriteria;
+    requestType: HTTPMethod;
+    requestHeaders?: Dictionary<string> | undefined;
+    requestBody?: string | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -20,7 +25,43 @@ export default class MonitorStep extends DatabaseProperty {
         this.data = {
             monitorDestination: undefined,
             monitorCriteria: new MonitorCriteria(),
+            requestType: HTTPMethod.GET,
+            requestHeaders: undefined,
+            requestBody: undefined,
         };
+    }
+
+    public setRequestType(requestType: HTTPMethod): MonitorStep {
+        this.data!.requestType = requestType;
+        return this;
+    }
+
+    public setRequestHeaders(requestHeaders: Dictionary<string>): MonitorStep {
+        this.data!.requestHeaders = requestHeaders;
+        return this;
+    }
+
+    public static clone(monitorStep: MonitorStep): MonitorStep {
+        return new MonitorStep().fromJSON(monitorStep.toJSON());
+    }
+
+    public setRequestBody(requestBody: string): MonitorStep {
+
+        this.data!.requestBody = requestBody;
+        return this;
+
+    }
+
+    public setMonitorDestination(monitorDestination: URL | IP): MonitorStep {
+
+        this.data!.monitorDestination = monitorDestination;
+        return this;
+
+    }
+
+    public setMonitorCriteria(monitorCriteria: MonitorCriteria): MonitorStep {
+        this.data!.monitorCriteria = monitorCriteria;
+        return this;
     }
 
 
@@ -30,6 +71,9 @@ export default class MonitorStep extends DatabaseProperty {
             value: {
                 monitorDestination: undefined,
                 monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
+                requestType: HTTPMethod.GET,
+                requestHeaders: undefined,
+                requestBody: undefined,
             },
         };
     }
@@ -54,7 +98,7 @@ export default class MonitorStep extends DatabaseProperty {
 
     public fromJSON(json: JSONObject): MonitorStep {
 
-        if(json instanceof MonitorStep){
+        if (json instanceof MonitorStep) {
             return json;
         }
 
@@ -106,6 +150,9 @@ export default class MonitorStep extends DatabaseProperty {
             monitorCriteria: new MonitorCriteria().fromJSON(
                 json['monitorCriteria'] as JSONObject
             ),
+            requestType: json['requestType'] as HTTPMethod || HTTPMethod.GET,
+            requestHeaders: json['requestHeaders'] as Dictionary<string> || undefined,
+            requestBody: json['requestBody'] as string || undefined,
         };
 
         return this;

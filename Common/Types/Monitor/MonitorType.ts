@@ -35,7 +35,7 @@ export class MonitorTypeHelper {
             },
             {
                 monitorType: MonitorType.Website,
-                title: 'Webiste',
+                title: 'Website',
                 description:
                     'This monitor type lets you monitor landing pages like home page of your company / blog or more.',
             },

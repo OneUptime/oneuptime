@@ -175,7 +175,7 @@ export default class Monitor extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Name',
-        description: 'Any friendly name of this object',
+        description: 'Any friendly name for this monitor',
         canReadOnPopulate: true,
     })
     @Column({
@@ -209,7 +209,7 @@ export default class Monitor extends BaseModel {
         required: false,
         type: TableColumnType.LongText,
         title: 'Description',
-        description: 'Any friendly description of this object',
+        description: 'Any friendly description for this monitor',
     })
     @Column({
         nullable: true,

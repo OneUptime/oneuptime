@@ -28,6 +28,17 @@ export default class IP extends DatabaseProperty {
         this.ip = ip;
     }
 
+    public static fromString(ip: string): IP {
+        return new IP(ip);
+    }
+
+    public static isIP(ip: string): boolean {
+        if (IP.isIPv4(ip) || IP.isIPv6(ip)) {
+            return true;
+        }
+        return false;
+    }
+
     public override toString(): string {
         return this.ip;
     }

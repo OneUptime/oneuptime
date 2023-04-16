@@ -32,8 +32,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [monitorCriteriaInstance, setMonitorCriteriaInstance] = useState<
-        MonitorCriteriaInstance | undefined
-    >(props.initialValue);
+        MonitorCriteriaInstance
+    >(props.initialValue || new MonitorCriteriaInstance());
 
     const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
         ObjectID | undefined

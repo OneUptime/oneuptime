@@ -71,12 +71,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
     const [monitorSteps, setMonitorSteps] = React.useState<MonitorSteps>(
         props.initialValue ||
-        new MonitorSteps().fromJSON({
-            _type: 'MonitorSteps',
-            value: {
-                monitorStepsInstanceArray: [],
-            },
-        })
+        new MonitorSteps()
     );
 
     useEffect(() => {
@@ -104,6 +99,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 (i: MonitorStep, index: number) => {
                     return (
                         <MonitorStepElement
+                            monitorType={props.monitorType}
                             key={index}
                             monitorStatusDropdownOptions={
                                 monitorStatusDropdownOptions
