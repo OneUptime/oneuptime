@@ -5,9 +5,9 @@ enum MonitorType {
     Website = 'Website',
     API = 'API',
     Ping = 'Ping',
-    Kubernetes = 'Kubernetes',
+    // Kubernetes = 'Kubernetes',
     IP = 'IP',
-    IncomingRequest = 'IncomingRequest',
+    // IncomingRequest = 'IncomingRequest',
 }
 
 export default MonitorType;
@@ -45,24 +45,24 @@ export class MonitorTypeHelper {
                 description:
                     'This monitor types does the basic ping test of an endpoint.',
             },
-            {
-                monitorType: MonitorType.Kubernetes,
-                title: 'Kubenretes',
-                description:
-                    'This monitor types lets you monitor kuberetes clusters.',
-            },
+            // {
+            //     monitorType: MonitorType.Kubernetes,
+            //     title: 'Kubenretes',
+            //     description:
+            //         'This monitor types lets you monitor kuberetes clusters.',
+            // },
             {
                 monitorType: MonitorType.IP,
                 title: 'IP',
                 description:
                     'This monitor types lets you monitor any IPv4 or IPv6 addresses.',
             },
-            {
-                monitorType: MonitorType.IncomingRequest,
-                title: 'Incoming Request',
-                description:
-                    'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
-            },
+            // {
+            //     monitorType: MonitorType.IncomingRequest,
+            //     title: 'Incoming Request',
+            //     description:
+            //         'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
+            // },
         ];
 
         return monitorTypeProps;

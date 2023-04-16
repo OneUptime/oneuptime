@@ -16,6 +16,10 @@ import Route from 'Common/Types/API/Route';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
+import MonitorTypeUtil from '../../Utils/MonitorType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import MonitorSteps from '../Form/Monitor/MonitorSteps';
+import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -46,6 +50,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 {
                     title: 'Monitor Info',
                     id: 'monitor-info',
+                },
+                {
+                    title: 'Criteria',
+                    id: 'criteria',
                 },
                 {
                     title: 'Labels',
@@ -84,17 +92,30 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     required: true,
                     placeholder: 'Description',
                 },
-                // {
-                //     field: {
-                //         monitorType: true,
-                //     },
-                //     title: 'Monitor Type',
-                //     fieldType: FormFieldSchemaType.Dropdown,
-                //     required: true,
-                //     placeholder: 'Select Monitor Type',
-                //     dropdownOptions:
-                //         MonitorTypeUtil.monitorTypesAsDropdownOptions(),
-                // },
+                {
+                    field: {
+                        monitorType: true,
+                    },
+                    title: 'Monitor Type',
+                    stepId: 'monitor-info',
+                    fieldType: FormFieldSchemaType.Dropdown,
+                    required: true,
+                    placeholder: 'Select Monitor Type',
+                    dropdownOptions:
+                        MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+                },
+                {
+                    field: {
+                        monitorSteps: true,
+                    },
+                    stepId: 'criteria',
+                    title: 'Monitor Criteria',
+                    fieldType: FormFieldSchemaType.CustomComponent,
+                    required: true,
+                    getCustomElement: (value: FormValues<Monitor>, props: CustomElementProps) => {
+                        return <MonitorSteps monitorType={value.monitorType || MonitorType.Manual} {...props} />
+                    } 
+                },
                 {
                     field: {
                         labels: true,
@@ -125,14 +146,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     type: FieldType.Text,
                     isFilterable: true,
                 },
-                // {
-                //     field: {
-                //         monitorType: true,
-                //     },
-                //     title: 'Monitor Type',
-                //     type: FieldType.Text,
-                //     isFilterable: true,
-                // },
+                {
+                    field: {
+                        monitorType: true,
+                    },
+                    title: 'Monitor Type',
+                    type: FieldType.Text,
+                    isFilterable: true,
+                },
                 {
                     field: {
                         currentMonitorStatus: {
