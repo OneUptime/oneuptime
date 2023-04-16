@@ -46,7 +46,6 @@ import Field from './Types/Field';
 import { FormStep } from './Types/FormStep';
 import Steps from './Steps/Steps';
 import FieldLabelElement from './Fields/FieldLabel';
-import { values } from 'lodash';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
