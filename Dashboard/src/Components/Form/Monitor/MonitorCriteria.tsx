@@ -101,12 +101,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 ?.monitorCriteriaInstanceArray || []),
                         ];
                     newMonitorCriterias.push(
-                        new MonitorCriteriaInstance().fromJSON({
-                            _type: 'MonitorCriteriaInstance',
-                            value: {
-                                monitorCriteriaInstanceArray: [],
-                            },
-                        })
+                        new MonitorCriteriaInstance()
                     );
                     setMonitorCriteria(
                         new MonitorCriteria().fromJSON({

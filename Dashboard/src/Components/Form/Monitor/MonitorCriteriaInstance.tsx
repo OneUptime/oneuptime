@@ -73,8 +73,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                monitorCriteriaInstance?.data?.monitorStatusId
-                                    .id
+                                monitorCriteriaInstance?.data?.monitorStatusId?.id || undefined
                             );
                         }
                     )}

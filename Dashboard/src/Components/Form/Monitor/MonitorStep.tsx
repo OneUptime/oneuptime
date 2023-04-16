@@ -36,11 +36,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <div>
-                <FieldLabelElement title="URL" />
+                <FieldLabelElement title="URL" required={true} />
                 <Input
                     initialValue={
-                        monitorStep?.data?.monitorDestination.toString() || ''
+                        monitorStep?.data?.monitorDestination?.toString() || ''
                     }
+                    
                     onChange={(value: string) => {
                         setMonitorStep(
                             new MonitorStep().fromJSON({
@@ -54,7 +55,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
             <div>
-                <FieldLabelElement title="Monitor Criteria" />
+                <FieldLabelElement title="Monitor Criteria" required={true} />
                 <MonitorCriteriaElement
                     monitorStatusDropdownOptions={
                         props.monitorStatusDropdownOptions
@@ -63,8 +64,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     onChange={(value: MonitorCriteria) => {
                         setMonitorStep(
                             new MonitorStep().fromJSON({
-                                monitorDestination:
-                                    monitorStep?.data?.monitorDestination || '',
+                                ...monitorStep?.toJSON(),
                                 monitorCriteria: value,
                             })
                         );

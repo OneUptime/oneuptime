@@ -7,7 +7,7 @@ import MonitorCriteria from './MonitorCriteria';
 import BadDataException from '../Exception/BadDataException';
 
 export interface MonitorStepType {
-    monitorDestination: URL | IP;
+    monitorDestination?: URL | IP | undefined;
     monitorCriteria: MonitorCriteria;
 }
 
@@ -16,6 +16,22 @@ export default class MonitorStep extends DatabaseProperty {
 
     public constructor() {
         super();
+
+        this.data = {
+            monitorDestination: undefined,
+            monitorCriteria: new MonitorCriteria(),
+        };
+    }
+
+
+    public static getNewMonitorStepAsJSON(): JSONObject {
+        return {
+            _type: 'MonitorStep',
+            value: {
+                monitorDestination: undefined,
+                monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
+            },
+        };
     }
 
     public static isValid(_json: JSONObject): boolean {
@@ -27,16 +43,21 @@ export default class MonitorStep extends DatabaseProperty {
             return {
                 _type: 'MonitorStep',
                 value: {
-                    monitorDestination: this.data.monitorDestination.toJSON(),
+                    monitorDestination: this.data?.monitorDestination?.toJSON() || undefined,
                     monitorCriteria: this.data.monitorCriteria.toJSON(),
                 },
             };
         }
 
-        return {};
+        return MonitorStep.getNewMonitorStepAsJSON();
     }
 
     public fromJSON(json: JSONObject): MonitorStep {
+
+        if(json instanceof MonitorStep){
+            return json;
+        }
+
         if (!json || json['_type'] !== 'MonitorStep') {
             throw new BadDataException('Invalid monitor step');
         }
@@ -69,10 +90,6 @@ export default class MonitorStep extends DatabaseProperty {
             );
         }
 
-        if (!monitorDestination) {
-            throw new BadDataException('Invalid monitor destination');
-        }
-
         if (!json['monitorCriteria']) {
             throw new BadDataException('Invalid monitor criteria');
         }
@@ -85,7 +102,7 @@ export default class MonitorStep extends DatabaseProperty {
         }
 
         this.data = {
-            monitorDestination: monitorDestination,
+            monitorDestination: monitorDestination || undefined,
             monitorCriteria: new MonitorCriteria().fromJSON(
                 json['monitorCriteria'] as JSONObject
             ),

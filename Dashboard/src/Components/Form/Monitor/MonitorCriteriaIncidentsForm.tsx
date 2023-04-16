@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaIncidentForm from './MonitorCriteriaIncidentForm';
-import Button from 'CommonUI/src/Components/Button/Button';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
 
 export interface ComponentProps {
@@ -49,7 +48,9 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                 );
             })}
 
-            <Button
+
+            {/** Future Proofing */}
+            {/* <Button
                 title="Add Incident"
                 onClick={() => {
                     const newIncidents: Array<CriteriaIncident> = [
@@ -61,7 +62,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                         incidentSeverityId: undefined,
                     });
                 }}
-            />
+            /> */}
         </div>
     );
 };

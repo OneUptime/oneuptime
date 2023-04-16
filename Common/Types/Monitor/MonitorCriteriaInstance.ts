@@ -7,7 +7,7 @@ import { CriteriaFilter, FilterCondition } from './CriteriaFilter';
 import BadDataException from '../Exception/BadDataException';
 
 export interface MonitorCriteriaInstanceType {
-    monitorStatusId: ObjectID;
+    monitorStatusId: ObjectID | undefined;
     filterCondition: FilterCondition;
     filters: Array<CriteriaFilter>;
     createIncidents: Array<CriteriaIncident>;
@@ -18,11 +18,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     public constructor() {
         super();
+        this.data = {
+            monitorStatusId: undefined,
+            filterCondition: FilterCondition.All,
+            filters: [],
+            createIncidents: [],
+        };
     }
+
+    public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
+        return {
+            monitorStatusId: undefined,
+            filterCondition: FilterCondition.All,
+            filters: [],
+            createIncidents: [],
+        };
+    }
+
+
 
     public toJSON(): JSONObject {
         if (!this.data) {
-            throw new BadDataException('data is null');
+            return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
         }
 
         return {
@@ -34,12 +51,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     public fromJSON(json: JSONObject): MonitorCriteriaInstance {
-        if (!json) {
-            throw new BadDataException('json is null');
+
+        if(json instanceof MonitorCriteriaInstance){
+            return json;
         }
 
-        if (!json['monitorStatusId']) {
-            throw new BadDataException('json.monitorStatusId is null');
+        if (!json) {
+            throw new BadDataException('json is null');
         }
 
         if (!json['filterCondition']) {
@@ -64,13 +82,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             );
         }
 
-        if (!(json['monitorStatusId'] as JSONObject)['value']) {
-            throw new BadDataException('json.monitorStatusId.value is null');
+        let monitorStatusId: ObjectID | undefined = undefined;
+
+        if(json['monitorStatusId'] && (json['monitorStatusId'] as JSONObject)['value'] !== null) {
+            monitorStatusId = new ObjectID(
+                (json['monitorStatusId'] as JSONObject)['value'] as string
+            );
         }
 
-        const monitorStatusId: ObjectID = new ObjectID(
-            (json['monitorStatusId'] as JSONObject)['value'] as string
-        );
         const filterCondition: FilterCondition = json[
             'filterCondition'
         ] as FilterCondition;

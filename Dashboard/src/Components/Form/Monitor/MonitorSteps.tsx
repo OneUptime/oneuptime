@@ -158,24 +158,21 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             <Button
                 title="Add Step"
                 onClick={() => {
-                    const newMonitorStepss: Array<MonitorStep> = [
+                    const newMonitorSteps: Array<MonitorStep> = [
                         ...(monitorSteps.data?.monitorStepsInstanceArray || []),
                     ];
-                    newMonitorStepss.push(
-                        new MonitorStep().fromJSON({
-                            _type: 'MonitorStep',
-                            value: {
-                                monitorStepsInstanceArray: [],
-                            },
-                        })
+                    newMonitorSteps.push(
+                        new MonitorStep()
                     );
+
+                    monitorSteps.data = {
+                        monitorStepsInstanceArray: newMonitorSteps,
+                    };
+
+
                     setMonitorSteps(
-                        new MonitorSteps().fromJSON({
-                            _type: 'MonitorSteps',
-                            value: {
-                                monitorStepsInstanceArray: newMonitorStepss,
-                            },
-                        })
+                        new MonitorSteps().fromJSON(monitorSteps.toJSON())
+
                     );
                 }}
             />
