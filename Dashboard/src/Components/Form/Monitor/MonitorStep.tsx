@@ -146,7 +146,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-
             {props.monitorType === MonitorType.API && (
                 <div>
                     <FieldLabelElement

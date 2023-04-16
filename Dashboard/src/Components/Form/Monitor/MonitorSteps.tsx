@@ -4,11 +4,10 @@ import MonitorStepElement from './MonitorStep';
 import Button from 'CommonUI/src/Components/Button/Button';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import API from 'CommonUI/src/Utils/API/API';
-import { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
@@ -35,7 +34,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setError(props.error);
     }, [props.error]);
 
-    const fetchMonitorStatuses = async () => {
+    const fetchMonitorStatuses: Function = async (): Promise<void> => {
         setIsLoading(true);
 
         try {
@@ -68,7 +67,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
     };
     useEffect(() => {
-        fetchMonitorStatuses();
+        fetchMonitorStatuses().catch();
     }, []);
 
     const [monitorSteps, setMonitorSteps] = React.useState<MonitorSteps>(
