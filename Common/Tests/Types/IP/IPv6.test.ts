@@ -14,6 +14,6 @@ describe('IPv6()', () => {
     test('Is not a valid address', () => {
         expect(() => {
             new IP('Invalid Ip');
-        }).toThrow('IP is not a valid IPv6 address');
+        }).toThrow('IP is not a valid address');
     });
 });

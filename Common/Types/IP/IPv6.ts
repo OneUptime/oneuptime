@@ -1,9 +1,12 @@
+import BadDataException from '../Exception/BadDataException';
 import IP from './IP';
-import IPType from './IPType';
 
-export default class IPv6 extends IP {
+export default class IPv4 extends IP {
     public constructor(ip: string) {
-        // TODO: Validate if this is actually ipv6 before calling super()
-        super(ip, IPType.IPv6);
+        super(ip);
+
+        if (!this.isIPv6()) {
+            throw new BadDataException('IP is not a valid IPv6 address');
+        }
     }
 }
