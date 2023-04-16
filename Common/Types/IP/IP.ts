@@ -35,7 +35,7 @@ export default class IP extends DatabaseProperty {
     private static isIPv4(str: string): boolean {
         const regexExp: RegExp =
             /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-        const result = regexExp.test(str);
+        const result: boolean = regexExp.test(str);
 
         return result;
     }
