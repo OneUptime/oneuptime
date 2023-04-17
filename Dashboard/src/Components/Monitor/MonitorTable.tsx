@@ -19,7 +19,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 import MonitorTypeUtil from '../../Utils/MonitorType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import MonitorSteps from '../Form/Monitor/MonitorSteps';
-import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
+import { CustomElementProps, FormFieldStyleType } from 'CommonUI/src/Components/Forms/Types/Field';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -109,7 +109,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         monitorSteps: true,
                     },
                     stepId: 'criteria',
-                    title: 'Monitor Criteria',
+                    styleType: FormFieldStyleType.Heading,
+                    title: 'Monitor Details',
                     fieldType: FormFieldSchemaType.CustomComponent,
                     required: true,
                     getCustomElement: (

@@ -49,32 +49,38 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                 {data.map((item: Item, index: number) => {
                     return (
                         <div key={index} className="flex">
-                            <Input
-                                value={item.key}
-                                placeholder={props.keyPlaceholder}
-                                onChange={(value: string) => {
-                                    const newData: Array<Item> = [...data];
-                                    newData[index]!.key = value;
-                                    setData(newData);
-                                }}
-                            />
-                            <Input
-                                value={item.value}
-                                placeholder={props.valuePlaceholder}
-                                onChange={(value: string) => {
-                                    const newData: Array<Item> = [...data];
-                                    newData[index]!.value = value;
-                                    setData(newData);
-                                }}
-                            />
-                            <Button
-                                title="Delete"
-                                onClick={() => {
-                                    const newData: Array<Item> = [...data];
-                                    newData.splice(index, 1);
-                                    setData(newData);
-                                }}
-                            />
+                            <div className='mr-1'>
+                                <Input
+                                    value={item.key}
+                                    placeholder={props.keyPlaceholder}
+                                    onChange={(value: string) => {
+                                        const newData: Array<Item> = [...data];
+                                        newData[index]!.key = value;
+                                        setData(newData);
+                                    }}
+                                />
+                            </div>
+                            <div className='ml-1'>
+                                <Input
+                                    value={item.value}
+                                    placeholder={props.valuePlaceholder}
+                                    onChange={(value: string) => {
+                                        const newData: Array<Item> = [...data];
+                                        newData[index]!.value = value;
+                                        setData(newData);
+                                    }}
+                                />
+                            </div>
+                            <div className='mr-1'>
+                                <Button
+                                    title="Delete"
+                                    onClick={() => {
+                                        const newData: Array<Item> = [...data];
+                                        newData.splice(index, 1);
+                                        setData(newData);
+                                    }}
+                                />
+                            </div>
                         </div>
                     );
                 })}

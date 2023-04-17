@@ -7,6 +7,7 @@ export interface ComponentProps {
     required?: boolean | undefined;
     sideLink?: FormFieldSideLink | undefined;
     description?: string | undefined;
+    isHeading?: boolean | undefined;
 }
 
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
@@ -14,7 +15,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <>
-            <label className="block text-sm font-medium text-gray-700 flex justify-between">
+            <label className={`block ${props.isHeading ? 'text-lg': 'text-sm'}  font-medium text-gray-700 flex justify-between`}>
                 <span>
                     {props.title}{' '}
                     <span className="text-gray-400 text-xs">

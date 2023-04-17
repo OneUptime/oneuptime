@@ -20,6 +20,7 @@ import CriteriaFilters from './CriteriaFilters';
 import Button from 'CommonUI/src/Components/Button/Button';
 import MonitorCriteriaIncidentsForm from './MonitorCriteriaIncidentsForm';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
+import Radio from 'CommonUI/src/Components/Radio/Radio';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -66,8 +67,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }, [props.monitorStatusDropdownOptions]);
 
     return (
-        <div>
-            <div>
+        <div className='mt-4'>
+            <div className='mt-4'>
                 <FieldLabelElement title="Monitor Status" />
                 <Dropdown
                     initialValue={props.monitorStatusDropdownOptions.find(
@@ -103,9 +104,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
-            <div>
+            <div className='mt-4'>
                 <FieldLabelElement title="Filter Condition" />
-                <Dropdown
+                <Radio
                     initialValue={filterConditionOptions.find(
                         (i: DropdownOption) => {
                             return (
@@ -137,7 +138,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
-            <div>
+            <div className='mt-4'>
                 <FieldLabelElement title="Filters" />
 
                 <CriteriaFilters
@@ -163,7 +164,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <div>
+            <div className='mt-4'>
                 <FieldLabelElement title="Create Incident" />
 
                 <MonitorCriteriaIncidentsForm
@@ -191,7 +192,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <div>
+            <div className='mt-4'>
                 <Button
                     onClick={() => {
                         if (props.onDelete) {

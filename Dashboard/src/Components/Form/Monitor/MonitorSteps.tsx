@@ -1,7 +1,6 @@
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorStepElement from './MonitorStep';
-import Button from 'CommonUI/src/Components/Button/Button';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -150,7 +149,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 }
             )}
 
-            <Button
+            {/* <Button
                 title="Add Step"
                 onClick={() => {
                     const newMonitorSteps: Array<MonitorStep> = [
@@ -166,7 +165,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         new MonitorSteps().fromJSON(monitorSteps.toJSON())
                     );
                 }}
-            />
+            /> */}
         </div>
     );
 };

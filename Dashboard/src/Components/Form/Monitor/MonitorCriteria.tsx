@@ -26,7 +26,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     }, [monitorCriteria]);
 
     return (
-        <div>
+        <div className='mt-4'>
             {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
                 (i: MonitorCriteriaInstance, index: number) => {
                     return (
@@ -85,27 +85,28 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     );
                 }
             )}
-
-            <Button
-                title="Add Criteria"
-                onClick={() => {
-                    const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                        [
-                            ...(monitorCriteria.data
-                                ?.monitorCriteriaInstanceArray || []),
-                        ];
-                    newMonitorCriterias.push(new MonitorCriteriaInstance());
-                    setMonitorCriteria(
-                        new MonitorCriteria().fromJSON({
-                            _type: 'MonitorCriteria',
-                            value: {
-                                monitorCriteriaInstanceArray:
-                                    newMonitorCriterias,
-                            },
-                        })
-                    );
-                }}
-            />
+            <div className='mt-4'>
+                <Button
+                    title="Add Criteria"
+                    onClick={() => {
+                        const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                            [
+                                ...(monitorCriteria.data
+                                    ?.monitorCriteriaInstanceArray || []),
+                            ];
+                        newMonitorCriterias.push(new MonitorCriteriaInstance());
+                        setMonitorCriteria(
+                            new MonitorCriteria().fromJSON({
+                                _type: 'MonitorCriteria',
+                                value: {
+                                    monitorCriteriaInstanceArray:
+                                        newMonitorCriterias,
+                                },
+                            })
+                        );
+                    }}
+                />
+            </div>
         </div>
     );
 };

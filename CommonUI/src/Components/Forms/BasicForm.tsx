@@ -42,7 +42,7 @@ import URL from 'Common/Types/API/URL';
 import RadioButtons from '../RadioButtons/RadioButtons';
 import UiAnalytics from '../../Utils/Analytics';
 import Dictionary from 'Common/Types/Dictionary';
-import Field from './Types/Field';
+import Field, { FormFieldStyleType } from './Types/Field';
 import { FormStep } from './Types/FormStep';
 import Steps from './Steps/Steps';
 import FieldLabelElement from './Fields/FieldLabel';
@@ -359,9 +359,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         description={field.description}
                         sideLink={field.sideLink}
                         required={field.required}
+                        isHeading={field.styleType === FormFieldStyleType.Heading}
                     />
 
-                    <div className="mt-1">
+                    <div className="mt-2">
                         {field.fieldType === FormFieldSchemaType.Color && (
                             <ColorPicker
                                 error={

@@ -17,7 +17,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div>
+        <div className='mt-4'>
             <ModelForm
                 modelType={Incident}
                 hideSubmitButton={true}
@@ -66,7 +66,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 ]}
             />
 
-            <div>
+            <div className='mt-4'>
                 <Button
                     onClick={() => {
                         if (props.onDelete) {

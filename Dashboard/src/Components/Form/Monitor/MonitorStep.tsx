@@ -20,7 +20,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import IP from 'Common/Types/IP/IP';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import DictionaryOfStrings from 'CommonUI/src/Components/Dictionary/String';
+import DictionaryOfStrings from 'CommonUI/src/Components/Dictionary/DictionaryOfStrings';
 import Dictionary from 'Common/Types/Dictionary';
 import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
@@ -78,8 +78,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }, [props.monitorType]);
 
     return (
-        <div>
-            <div>
+        <div className='mt-5'>
+            <div className='mt-5'>
                 <FieldLabelElement
                     title={destinationFieldTitle}
                     description={destinationFieldDescription}
@@ -116,7 +116,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
             {props.monitorType === MonitorType.API && (
-                <div>
+                <div className='mt-5'>
                     <FieldLabelElement
                         title={'API Request Type'}
                         description={'Whats the type of the API request?'}
@@ -147,7 +147,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             )}
 
             {props.monitorType === MonitorType.API && (
-                <div>
+                <div className='mt-5'>
                     <FieldLabelElement
                         title={'Request Headers'}
                         description={'Request Headers to send, if any.'}
@@ -166,7 +166,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             )}
 
             {props.monitorType === MonitorType.API && (
-                <div>
+                <div className='mt-5'>
                     <FieldLabelElement
                         title={'Request Body (in JSON)'}
                         description={'Request Body to send in JSON, if any.'}
@@ -183,7 +183,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-            <div>
+            <div className='mt-5'>
                 <FieldLabelElement title="Monitor Criteria" required={true} />
                 <MonitorCriteriaElement
                     monitorStatusDropdownOptions={
@@ -197,7 +197,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <div>
+            <div className='mt-5'>
                 <Button
                     onClick={() => {
                         if (props.onDelete) {

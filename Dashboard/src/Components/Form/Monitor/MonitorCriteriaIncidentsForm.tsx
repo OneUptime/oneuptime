@@ -21,7 +21,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
     }, [incidents]);
 
     return (
-        <div>
+        <div className='mt-4'>
             {incidents.map((i: CriteriaIncident, index: number) => {
                 return (
                     <MonitorCriteriaIncidentForm

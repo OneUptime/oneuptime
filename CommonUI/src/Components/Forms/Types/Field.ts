@@ -9,6 +9,13 @@ import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/RadioButtons';
 import { ReactElement } from 'react';
 
+export enum FormFieldStyleType { 
+    Default = 'Default',
+    Heading = 'Heading',
+    DividerBelow = 'DividerBelow',
+}
+
+
 export interface FormFieldSideLink {
     text: string;
     url: Route | URL;
@@ -52,6 +59,7 @@ export default interface Field<TEntity> {
         maxValue?: number;
         dateShouldBeInTheFuture?: boolean;
     };
+    styleType?: FormFieldStyleType | undefined;
     showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
     onChange?: ((value: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
