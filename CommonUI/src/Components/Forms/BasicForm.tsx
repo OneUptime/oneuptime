@@ -307,7 +307,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 );
                 if (currentStepIndex > -1) {
                     setCurrentFormStepId(
-                        (props.steps[currentStepIndex + 1] as FormStep<T>).id
+                        (props.steps.filter((step:FormStep<T>)=>{
+                            if(!step.showIf){
+                                return true;
+                            }
+    
+                            return step.showIf(refCurrentValue.current);
+     
+                        })[currentStepIndex + 1] as FormStep<T>).id
                     );
                 }
             }
