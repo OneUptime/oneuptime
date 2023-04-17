@@ -28,7 +28,7 @@ const Radio: FunctionComponent<ComponentProps> = (
     const groupName = Text.generateRandomText();
 
     return (
-        <div className={`mt-6 space-y-6 ${props.className}`}>
+        <div className={`mt-2 space-y-2 ${props.className}`}>
 
             {props.options.map((option: RadioOption, index: number) => {
                 return (<div key={index} className="flex items-center gap-x-3">

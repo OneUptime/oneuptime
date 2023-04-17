@@ -5,7 +5,8 @@ import {
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import CriteriaFilterElement from './CriteriaFilter';
-import Button from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonSize } from 'CommonUI/src/Components/Button/Button';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     initialValue: Array<CriteriaFilter> | undefined;
@@ -52,9 +53,11 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     />
                 );
             })}
-
+            <div className='mt-3 -ml-3'>
             <Button
-                title="Add Criteria Filter"
+                title="Add Filter"
+                buttonSize={ButtonSize.Small}
+                icon={IconProp.Add}
                 onClick={() => {
                     const newCriteriaFilters: Array<CriteriaFilter> = [
                         ...criteriaFilters,
@@ -66,6 +69,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     });
                 }}
             />
+            </div>
         </div>
     );
 };

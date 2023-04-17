@@ -11,6 +11,8 @@ export interface MonitorCriteriaInstanceType {
     filterCondition: FilterCondition;
     filters: Array<CriteriaFilter>;
     createIncidents: Array<CriteriaIncident>;
+    name: string;
+    description: string;
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
@@ -23,6 +25,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterCondition: FilterCondition.All,
             filters: [],
             createIncidents: [],
+            name: '',
+            description: '',
+
         };
     }
 
@@ -32,8 +37,77 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterCondition: FilterCondition.All,
             filters: [],
             createIncidents: [],
+            name: '',
+            description: '',
+
         };
     }
+
+    public setName(name: string): MonitorCriteriaInstance {
+        if (this.data) {
+            this.data.name = name;
+        }
+
+        return this;
+    }
+
+    public setDescription(description: string): MonitorCriteriaInstance {
+        if (this.data) {
+
+            this.data.description = description;
+        }
+
+        return this;
+    }
+
+    public static clone(
+        monitorCriteriaInstance: MonitorCriteriaInstance
+    ): MonitorCriteriaInstance {
+        return new MonitorCriteriaInstance().fromJSON(
+            monitorCriteriaInstance.toJSON()
+        );
+    }
+        
+
+    public setMonitorStatusId(
+        monitorStatusId: ObjectID | undefined
+    ): MonitorCriteriaInstance {
+        if (this.data) {
+            this.data.monitorStatusId = monitorStatusId;
+        }
+
+        return this;
+    }
+
+    public setFilterCondition(
+        filterCondition: FilterCondition
+    ): MonitorCriteriaInstance {
+        if (this.data) {
+            this.data.filterCondition = filterCondition;    
+        }
+
+        return this;
+    }
+
+    public setFilters(filters: Array<CriteriaFilter>): MonitorCriteriaInstance {
+        if (this.data) {
+            this.data.filters = filters;
+        }
+
+        return this;
+    }
+
+    public setCreateIncidents(      
+        createIncidents: Array<CriteriaIncident>
+    ): MonitorCriteriaInstance {
+        if (this.data) {
+
+            this.data.createIncidents = createIncidents;
+        }
+
+        return this;
+    }
+
 
     public toJSON(): JSONObject {
         if (!this.data) {
@@ -111,6 +185,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterCondition,
             filters,
             createIncidents,
+            name: json['name'] as string || '',
+            description: json['description'] as string || '',
         };
 
         return this;

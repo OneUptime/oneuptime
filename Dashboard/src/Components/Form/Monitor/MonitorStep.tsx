@@ -5,7 +5,7 @@ import React, {
     useState,
 } from 'react';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import Button from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import Input from 'CommonUI/src/Components/Input/Input';
 import MonitorCriteriaElement from './MonitorCriteria';
@@ -24,6 +24,8 @@ import DictionaryOfStrings from 'CommonUI/src/Components/Dictionary/DictionaryOf
 import Dictionary from 'Common/Types/Dictionary';
 import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -36,6 +38,9 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [showAdvancedOptionsRequestBodyAndHeaders, setShowAdvancedOptionsRequestBodyAndHeaders] = useState<boolean>(false);
+
     const [monitorStep, setMonitorStep] = useState<MonitorStep>(
         props.initialValue || new MonitorStep()
     );
@@ -146,7 +151,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-            {props.monitorType === MonitorType.API && (
+
+            {!showAdvancedOptionsRequestBodyAndHeaders && props.monitorType === MonitorType.API && <div className='mt-1 -ml-3'>
+                <Button title="Advanced: Add Request Headers and Body" buttonStyle={ButtonStyleType.SECONDARY_LINK} onClick={() => {
+                    setShowAdvancedOptionsRequestBodyAndHeaders(true);
+                }} /> 
+            </div>}
+            {showAdvancedOptionsRequestBodyAndHeaders && props.monitorType === MonitorType.API && (
                 <div className='mt-5'>
                     <FieldLabelElement
                         title={'Request Headers'}
@@ -154,6 +165,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         required={false}
                     />
                     <DictionaryOfStrings
+                    addButtonSuffix='Request Header'
                         keyPlaceholder={'Header Name'}
                         valuePlaceholder={'Header Value'}
                         initialValue={monitorStep.data?.requestHeaders || {}}
@@ -165,7 +177,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-            {props.monitorType === MonitorType.API && (
+            {showAdvancedOptionsRequestBodyAndHeaders && props.monitorType === MonitorType.API && (
                 <div className='mt-5'>
                     <FieldLabelElement
                         title={'Request Body (in JSON)'}
@@ -183,8 +195,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
+            <HorizontalRule />
+
             <div className='mt-5'>
-                <FieldLabelElement title="Monitor Criteria" required={true} />
+                <FieldLabelElement title="Monitor Criteria" isHeading={true} description={'Add Monitoiring Criteria for this monitor. Monitor different properties.'} required={true} />
                 <MonitorCriteriaElement
                     monitorStatusDropdownOptions={
                         props.monitorStatusDropdownOptions
@@ -197,16 +211,18 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <div className='mt-5'>
+            {/* <div className='mt-5 -ml-3'>
                 <Button
                     onClick={() => {
                         if (props.onDelete) {
                             props.onDelete();
                         }
                     }}
-                    title="Delete"
+                    buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                    buttonSize={ButtonSize.Small}
+                    title="Delete Monitor Step"
                 />
-            </div>
+            </div> */}
         </div>
     );
 };

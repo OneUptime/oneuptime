@@ -5,14 +5,16 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Button from '../Button/Button';
+import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
 import Input from '../Input/Input';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onChange?: undefined | ((value: Dictionary<string>) => void);
     initialValue?: Dictionary<string>;
     keyPlaceholder?: string;
     valuePlaceholder?: string;
+    addButtonSuffix?: string;
 
 }
 
@@ -25,12 +27,17 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [data, setData] = useState<Array<Item>>(
-        Object.keys(props.initialValue!).map((key: string) => {
+        Object.keys(props.initialValue || {
+            '': ''
+        }).map((key: string) => {
             return {
                 key: key!,
                 value: props.initialValue![key] || '',
             };
-        }) || []
+        }) || [{
+            key: '',
+            value: '',
+        }]
     );
 
     useEffect(() => {
@@ -71,9 +78,11 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                                     }}
                                 />
                             </div>
-                            <div className='mr-1'>
+                            <div className='ml-1 mt-1'>
                                 <Button
                                     title="Delete"
+                                    buttonStyle={ButtonStyleType.ICON}
+                                    icon={IconProp.Trash}
                                     onClick={() => {
                                         const newData: Array<Item> = [...data];
                                         newData.splice(index, 1);
@@ -84,9 +93,11 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                         </div>
                     );
                 })}
-                <div>
+                <div className='-ml-3 mt-4'>
                     <Button
-                        title="Add"
+                        title={`Add ${props.addButtonSuffix || 'Item'}`}
+                        icon={IconProp.Add}
+                        buttonSize={ButtonSize.Small}
                         onClick={() => {
                             setData([
                                 ...data,

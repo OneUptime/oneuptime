@@ -1,9 +1,10 @@
 import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaInstanceElement from './MonitorCriteriaInstance';
-import Button from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonSize } from 'CommonUI/src/Components/Button/Button';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     initialValue: MonitorCriteria | undefined;
@@ -30,64 +31,68 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
                 (i: MonitorCriteriaInstance, index: number) => {
                     return (
-                        <MonitorCriteriaInstanceElement
-                            key={index}
-                            monitorStatusDropdownOptions={
-                                props.monitorStatusDropdownOptions
-                            }
-                            initialValue={i}
-                            onDelete={() => {
-                                // remove the criteria filter
-                                const index: number =
-                                    monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
-                                        i
-                                    ) || -1;
-                                const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                                    [
-                                        ...(monitorCriteria.data
-                                            ?.monitorCriteriaInstanceArray ||
-                                            []),
-                                    ];
-                                newMonitorCriterias.splice(index, 1);
-                                setMonitorCriteria(
-                                    new MonitorCriteria().fromJSON({
-                                        _type: 'MonitorCriteria',
-                                        value: {
-                                            monitorCriteriaInstanceArray:
-                                                newMonitorCriterias,
-                                        },
-                                    })
-                                );
-                            }}
-                            onChange={(value: MonitorCriteriaInstance) => {
-                                const index: number =
-                                    monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
-                                        i
-                                    ) || -1;
-                                const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                                    [
-                                        ...(monitorCriteria.data
-                                            ?.monitorCriteriaInstanceArray ||
-                                            []),
-                                    ];
-                                newMonitorCriterias[index] = value;
-                                setMonitorCriteria(
-                                    new MonitorCriteria().fromJSON({
-                                        _type: 'MonitorCriteria',
-                                        value: {
-                                            monitorCriteriaInstanceArray:
-                                                newMonitorCriterias,
-                                        },
-                                    })
-                                );
-                            }}
-                        />
+                        <div className='mt-10 mb-10'>
+                            <MonitorCriteriaInstanceElement
+                                key={index}
+                                monitorStatusDropdownOptions={
+                                    props.monitorStatusDropdownOptions
+                                }
+                                initialValue={i}
+                                onDelete={() => {
+                                    // remove the criteria filter
+                                    const index: number =
+                                        monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
+                                            i
+                                        ) || -1;
+                                    const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                                        [
+                                            ...(monitorCriteria.data
+                                                ?.monitorCriteriaInstanceArray ||
+                                                []),
+                                        ];
+                                    newMonitorCriterias.splice(index, 1);
+                                    setMonitorCriteria(
+                                        new MonitorCriteria().fromJSON({
+                                            _type: 'MonitorCriteria',
+                                            value: {
+                                                monitorCriteriaInstanceArray:
+                                                    newMonitorCriterias,
+                                            },
+                                        })
+                                    );
+                                }}
+                                onChange={(value: MonitorCriteriaInstance) => {
+                                    const index: number =
+                                        monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
+                                            i
+                                        ) || -1;
+                                    const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                                        [
+                                            ...(monitorCriteria.data
+                                                ?.monitorCriteriaInstanceArray ||
+                                                []),
+                                        ];
+                                    newMonitorCriterias[index] = value;
+                                    setMonitorCriteria(
+                                        new MonitorCriteria().fromJSON({
+                                            _type: 'MonitorCriteria',
+                                            value: {
+                                                monitorCriteriaInstanceArray:
+                                                    newMonitorCriterias,
+                                            },
+                                        })
+                                    );
+                                }}
+                            />
+                        </div>
                     );
                 }
             )}
-            <div className='mt-4'>
+            <div className='mt-4 -ml-3'>
                 <Button
                     title="Add Criteria"
+                    buttonSize={ButtonSize.Small}
+                    icon={IconProp.Add}
                     onClick={() => {
                         const newMonitorCriterias: Array<MonitorCriteriaInstance> =
                             [
