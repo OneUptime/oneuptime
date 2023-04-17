@@ -24,6 +24,7 @@ import {
     FormFieldStyleType,
 } from 'CommonUI/src/Components/Forms/Types/Field';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import MonitoringIntrerval from '../Form/Monitor/MonitorInterval';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -59,6 +60,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 {
                     title: 'Criteria',
                     id: 'criteria',
+                },
+                {
+                    title: 'Interval',
+                    id: 'monitoring-interval',
                 },
                 {
                     title: 'Labels',
@@ -131,6 +136,17 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                             />
                         );
                     },
+                },
+                {
+                    field: {
+                        monitoringInterval: true,
+                    },
+                    stepId: 'monitoring-interval',
+                    title: 'Monitoring Interval',
+                    fieldType: FormFieldSchemaType.Dropdown,
+                    required: true,
+                    dropdownOptions: MonitoringIntrerval,
+                    placeholder: 'Select Monitoring Interval',
                 },
                 {
                     field: {

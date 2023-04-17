@@ -103,27 +103,27 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                 monitorStatusDropdownOptions
                             }
                             initialValue={i}
-                            onDelete={() => {
-                                // remove the criteria filter
-                                const index: number =
-                                    monitorSteps.data?.monitorStepsInstanceArray.indexOf(
-                                        i
-                                    ) || -1;
-                                const newMonitorStepss: Array<MonitorStep> = [
-                                    ...(monitorSteps.data
-                                        ?.monitorStepsInstanceArray || []),
-                                ];
-                                newMonitorStepss.splice(index, 1);
-                                setMonitorSteps(
-                                    new MonitorSteps().fromJSON({
-                                        _type: 'MonitorSteps',
-                                        value: {
-                                            monitorStepsInstanceArray:
-                                                newMonitorStepss,
-                                        },
-                                    })
-                                );
-                            }}
+                            // onDelete={() => {
+                            //     // remove the criteria filter
+                            //     const index: number =
+                            //         monitorSteps.data?.monitorStepsInstanceArray.indexOf(
+                            //             i
+                            //         ) || -1;
+                            //     const newMonitorStepss: Array<MonitorStep> = [
+                            //         ...(monitorSteps.data
+                            //             ?.monitorStepsInstanceArray || []),
+                            //     ];
+                            //     newMonitorStepss.splice(index, 1);
+                            //     setMonitorSteps(
+                            //         new MonitorSteps().fromJSON({
+                            //             _type: 'MonitorSteps',
+                            //             value: {
+                            //                 monitorStepsInstanceArray:
+                            //                     newMonitorStepss,
+                            //             },
+                            //         })
+                            //     );
+                            // }}
                             onChange={(value: MonitorStep) => {
                                 const index: number =
                                     monitorSteps.data?.monitorStepsInstanceArray.indexOf(

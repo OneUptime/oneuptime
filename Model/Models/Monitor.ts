@@ -185,6 +185,9 @@ export default class Monitor extends BaseModel {
     })
     public name?: string = undefined;
 
+
+    
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -540,6 +543,41 @@ export default class Monitor extends BaseModel {
         transformer: MonitorSteps.getDatabaseTransformer(),
     })
     public monitorSteps?: MonitorSteps = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'Monitoring Interval',
+        description: 'How often would you like OneUptime to monitor this resource?',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public monitoringInterval?: string = undefined;
 
     @ColumnAccessControl({
         create: [
