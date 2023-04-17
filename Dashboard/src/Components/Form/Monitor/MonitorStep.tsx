@@ -138,7 +138,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         ) => {
                             monitorStep.setRequestType(
                                 (value?.toString() as HTTPMethod) ||
-                                    HTTPMethod.GET
+                                HTTPMethod.GET
                             );
                             setMonitorStep(MonitorStep.clone(monitorStep));
                         }}
@@ -154,6 +154,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         required={false}
                     />
                     <DictionaryOfStrings
+                        keyPlaceholder={'Header Name'}
+                        valuePlaceholder={'Header Value'}
                         initialValue={monitorStep.data?.requestHeaders || {}}
                         onChange={(value: Dictionary<string>) => {
                             monitorStep.setRequestHeaders(value);

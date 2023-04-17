@@ -11,6 +11,9 @@ import Input from '../Input/Input';
 export interface ComponentProps {
     onChange?: undefined | ((value: Dictionary<string>) => void);
     initialValue?: Dictionary<string>;
+    keyPlaceholder?: string;
+    valuePlaceholder?: string;
+
 }
 
 interface Item {
@@ -48,6 +51,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                         <div key={index} className="flex">
                             <Input
                                 value={item.key}
+                                placeholder={props.keyPlaceholder}
                                 onChange={(value: string) => {
                                     const newData: Array<Item> = [...data];
                                     newData[index]!.key = value;
@@ -56,6 +60,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                             />
                             <Input
                                 value={item.value}
+                                placeholder={props.valuePlaceholder}
                                 onChange={(value: string) => {
                                     const newData: Array<Item> = [...data];
                                     newData[index]!.value = value;
