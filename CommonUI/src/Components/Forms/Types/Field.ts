@@ -9,12 +9,11 @@ import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/RadioButtons';
 import { ReactElement } from 'react';
 
-export enum FormFieldStyleType { 
+export enum FormFieldStyleType {
     Default = 'Default',
     Heading = 'Heading',
     DividerBelow = 'DividerBelow',
 }
-
 
 export interface FormFieldSideLink {
     text: string;

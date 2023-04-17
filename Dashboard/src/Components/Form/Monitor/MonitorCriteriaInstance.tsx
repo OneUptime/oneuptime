@@ -17,7 +17,10 @@ import {
 } from 'Common/Types/Monitor/CriteriaFilter';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import CriteriaFilters from './CriteriaFilters';
-import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Button, {
+    ButtonSize,
+    ButtonStyleType,
+} from 'CommonUI/src/Components/Button/Button';
 import MonitorCriteriaIncidentsForm from './MonitorCriteriaIncidentsForm';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
 import Radio from 'CommonUI/src/Components/Radio/Radio';
@@ -71,35 +74,42 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.monitorStatusDropdownOptions]);
 
-
-    const [showMonitorStatusChangeControl, setShowMonitorStatusChangeControl] = useState<boolean>(false);
-    const [showIncidentControl, setShowIncidentControl] = useState<boolean>(false);
+    const [showMonitorStatusChangeControl, setShowMonitorStatusChangeControl] =
+        useState<boolean>(false);
+    const [showIncidentControl, setShowIncidentControl] =
+        useState<boolean>(false);
 
     return (
-        <div className='mt-4'>
-            <div className='mt-5'>
+        <div className="mt-4">
+            <div className="mt-5">
                 <FieldLabelElement
                     title={'Criteria Name'}
-                    description={'Any friendly name for this criteria, that will help you remember later.'}
+                    description={
+                        'Any friendly name for this criteria, that will help you remember later.'
+                    }
                     required={true}
                 />
                 <Input
                     initialValue={
                         monitorCriteriaInstance?.data?.name?.toString() || ''
                     }
-                    placeholder='Online Criteria'
+                    placeholder="Online Criteria"
                     onChange={(value: string) => {
-
-
                         monitorCriteriaInstance.setName(value);
-                        setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                        setMonitorCriteriaInstance(
+                            MonitorCriteriaInstance.clone(
+                                monitorCriteriaInstance
+                            )
+                        );
                     }}
                 />
             </div>
-            <div className='mt-5'>
+            <div className="mt-5">
                 <FieldLabelElement
                     title={'Criteria Description'}
-                    description={'Any friendly description for this criteria, that will help you remember later.'}
+                    description={
+                        'Any friendly description for this criteria, that will help you remember later.'
+                    }
                     required={true}
                 />
                 <TextArea
@@ -108,13 +118,21 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     }
                     onChange={(value: string) => {
                         monitorCriteriaInstance.setName(value);
-                        setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                        setMonitorCriteriaInstance(
+                            MonitorCriteriaInstance.clone(
+                                monitorCriteriaInstance
+                            )
+                        );
                     }}
-                    placeholder='This criteria checks if the monitor is online.'
+                    placeholder="This criteria checks if the monitor is online."
                 />
             </div>
-            <div className='mt-4'>
-                <FieldLabelElement title="Filter Condition" description='Select All if you want all the criteria to be met. Select any if you like any criteria to be met.' required={true} />
+            <div className="mt-4">
+                <FieldLabelElement
+                    title="Filter Condition"
+                    description="Select All if you want all the criteria to be met. Select any if you like any criteria to be met."
+                    required={true}
+                />
                 <Radio
                     initialValue={filterConditionOptions.find(
                         (i: DropdownOption) => {
@@ -129,86 +147,145 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     onChange={(
                         value: DropdownValue | Array<DropdownValue> | null
                     ) => {
-                        monitorCriteriaInstance.setFilterCondition(value as FilterCondition);
-                        setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                        monitorCriteriaInstance.setFilterCondition(
+                            value as FilterCondition
+                        );
+                        setMonitorCriteriaInstance(
+                            MonitorCriteriaInstance.clone(
+                                monitorCriteriaInstance
+                            )
+                        );
                     }}
                 />
             </div>
-            <div className='mt-4'>
-                <FieldLabelElement title="Filters" required={true} description='Add criteria for different monitor properties.' />
+            <div className="mt-4">
+                <FieldLabelElement
+                    title="Filters"
+                    required={true}
+                    description="Add criteria for different monitor properties."
+                />
 
                 <CriteriaFilters
                     initialValue={monitorCriteriaInstance?.data?.filters || []}
                     onChange={(value: Array<CriteriaFilter>) => {
                         monitorCriteriaInstance.setFilters(value);
-                        setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                        setMonitorCriteriaInstance(
+                            MonitorCriteriaInstance.clone(
+                                monitorCriteriaInstance
+                            )
+                        );
                     }}
                 />
             </div>
 
-
-            <div className='mt-4'>
-                <Toggle initialValue={!!monitorCriteriaInstance?.data?.monitorStatusId?.id} title='When filters match, Change monitor status' onChange={(value: boolean) => {
-                    setShowMonitorStatusChangeControl(value);
-                    monitorCriteriaInstance.setChangeMonitorStatus(value);
-                    setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
-                }} />
-            </div>
-
-            {showMonitorStatusChangeControl && <div className='mt-4'>
-                <FieldLabelElement title='Change monitor status to' description="What would like the monitor status to be when the criteria is met?" />
-                <Dropdown
-                    initialValue={props.monitorStatusDropdownOptions.find(
-                        (i: DropdownOption) => {
-                            return (
-                                i.value ===
-                                monitorCriteriaInstance?.data
-                                    ?.monitorStatusId?.id || undefined
-                            );
-                        }
+            <div className="mt-4">
+                <Toggle
+                    initialValue={Boolean(
+                        monitorCriteriaInstance?.data?.monitorStatusId?.id
                     )}
-                    options={props.monitorStatusDropdownOptions}
-                    onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null
-                    ) => {
-                        monitorCriteriaInstance.setMonitorStatusId(value ? new ObjectID(value.toString()) : undefined);
-                        setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                    title="When filters match, Change monitor status"
+                    onChange={(value: boolean) => {
+                        setShowMonitorStatusChangeControl(value);
+                        monitorCriteriaInstance.setChangeMonitorStatus(value);
+                        setMonitorCriteriaInstance(
+                            MonitorCriteriaInstance.clone(
+                                monitorCriteriaInstance
+                            )
+                        );
                     }}
                 />
-            </div>}
-
-            <div className='mt-4'>
-                <Toggle initialValue={(monitorCriteriaInstance?.data?.incidents?.length || 0) > 0} title='When filters match, Create an incident.' onChange={(value: boolean) => {
-                    setShowIncidentControl(value);
-                    monitorCriteriaInstance.setCreateIncidents(value);
-
-                    if(!monitorCriteriaInstance.data?.incidents || monitorCriteriaInstance.data?.incidents?.length === 0){
-                        monitorCriteriaInstance.setIncidents([{
-                            title: '',
-                            description: '',
-                            incidentSeverityId: undefined,
-                        }]);
-                    }
-
-                    setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
-                }} />
             </div>
 
-            {showIncidentControl && <div className='mt-4'>
-                <FieldLabelElement title="Create Incident" />
+            {showMonitorStatusChangeControl && (
+                <div className="mt-4">
+                    <FieldLabelElement
+                        title="Change monitor status to"
+                        description="What would like the monitor status to be when the criteria is met?"
+                    />
+                    <Dropdown
+                        initialValue={props.monitorStatusDropdownOptions.find(
+                            (i: DropdownOption) => {
+                                return (
+                                    i.value ===
+                                        monitorCriteriaInstance?.data
+                                            ?.monitorStatusId?.id || undefined
+                                );
+                            }
+                        )}
+                        options={props.monitorStatusDropdownOptions}
+                        onChange={(
+                            value: DropdownValue | Array<DropdownValue> | null
+                        ) => {
+                            monitorCriteriaInstance.setMonitorStatusId(
+                                value
+                                    ? new ObjectID(value.toString())
+                                    : undefined
+                            );
+                            setMonitorCriteriaInstance(
+                                MonitorCriteriaInstance.clone(
+                                    monitorCriteriaInstance
+                                )
+                            );
+                        }}
+                    />
+                </div>
+            )}
 
-                <MonitorCriteriaIncidentsForm
+            <div className="mt-4">
+                <Toggle
                     initialValue={
-                        monitorCriteriaInstance?.data?.incidents || []
+                        (monitorCriteriaInstance?.data?.incidents?.length ||
+                            0) > 0
                     }
-                    onChange={(value: Array<CriteriaIncident>) => {
-                        monitorCriteriaInstance.setIncidents(value);
-                        setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                    title="When filters match, Create an incident."
+                    onChange={(value: boolean) => {
+                        setShowIncidentControl(value);
+                        monitorCriteriaInstance.setCreateIncidents(value);
+
+                        if (
+                            !monitorCriteriaInstance.data?.incidents ||
+                            monitorCriteriaInstance.data?.incidents?.length ===
+                                0
+                        ) {
+                            monitorCriteriaInstance.setIncidents([
+                                {
+                                    title: '',
+                                    description: '',
+                                    incidentSeverityId: undefined,
+                                },
+                            ]);
+                        }
+
+                        setMonitorCriteriaInstance(
+                            MonitorCriteriaInstance.clone(
+                                monitorCriteriaInstance
+                            )
+                        );
                     }}
                 />
-            </div>}
+            </div>
 
-            <div className='mt-4 -ml-3'>
+            {showIncidentControl && (
+                <div className="mt-4">
+                    <FieldLabelElement title="Create Incident" />
+
+                    <MonitorCriteriaIncidentsForm
+                        initialValue={
+                            monitorCriteriaInstance?.data?.incidents || []
+                        }
+                        onChange={(value: Array<CriteriaIncident>) => {
+                            monitorCriteriaInstance.setIncidents(value);
+                            setMonitorCriteriaInstance(
+                                MonitorCriteriaInstance.clone(
+                                    monitorCriteriaInstance
+                                )
+                            );
+                        }}
+                    />
+                </div>
+            )}
+
+            <div className="mt-4 -ml-3">
                 <Button
                     onClick={() => {
                         if (props.onDelete) {
@@ -221,11 +298,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     title="Delete Criteria"
                 />
             </div>
-        
-                    <HorizontalRule/>
+
+            <HorizontalRule />
         </div>
-
-
     );
 };
 

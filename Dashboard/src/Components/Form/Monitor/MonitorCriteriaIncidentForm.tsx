@@ -9,14 +9,14 @@ import Incident from 'Model/Models/Incident';
 export interface ComponentProps {
     initialValue?: undefined | CriteriaIncident;
     onChange?: undefined | ((value: CriteriaIncident) => void);
-    onDelete?: undefined | (() => void);
+    // onDelete?: undefined | (() => void);
 }
 
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className='mt-4'>
+        <div className="mt-4">
             <ModelForm
                 modelType={Incident}
                 hideSubmitButton={true}

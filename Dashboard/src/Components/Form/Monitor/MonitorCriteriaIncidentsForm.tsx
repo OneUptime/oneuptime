@@ -11,11 +11,13 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [incidents, setIncidents] = React.useState<Array<CriteriaIncident>>(
-        props.initialValue || [{
-            title: '',
-            description: '',
-            incidentSeverityId: undefined,
-        }]
+        props.initialValue || [
+            {
+                title: '',
+                description: '',
+                incidentSeverityId: undefined,
+            },
+        ]
     );
 
     useEffect(() => {
@@ -25,7 +27,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
     }, [incidents]);
 
     return (
-        <div className='mt-4'>
+        <div className="mt-4">
             {incidents.map((i: CriteriaIncident, index: number) => {
                 return (
                     <MonitorCriteriaIncidentForm

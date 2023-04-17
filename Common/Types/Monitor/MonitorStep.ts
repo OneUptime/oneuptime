@@ -41,7 +41,6 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
-
     public setRequestType(requestType: HTTPMethod): MonitorStep {
         this.data!.requestType = requestType;
         return this;
@@ -157,8 +156,6 @@ export default class MonitorStep extends DatabaseProperty {
             throw new BadDataException('Invalid monitor criteria');
         }
 
-       
-
         this.data = {
             monitorDestination: monitorDestination || undefined,
             monitorCriteria: new MonitorCriteria().fromJSON(
@@ -168,9 +165,13 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders:
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
-            defaultMonitorStatusId:
-            json['defaultMonitorStatusId'] ? new ObjectID((json['defaultMonitorStatusId'] as JSONObject)['value'] as string) : undefined,
-
+            defaultMonitorStatusId: json['defaultMonitorStatusId']
+                ? new ObjectID(
+                      (json['defaultMonitorStatusId'] as JSONObject)[
+                          'value'
+                      ] as string
+                  )
+                : undefined,
         };
 
         return this;

@@ -53,24 +53,24 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     />
                 );
             })}
-            <div className='mt-3 -ml-3'>
-            <Button
-                title="Add Filter"
-                buttonSize={ButtonSize.Small}
-                icon={IconProp.Add}
-                onClick={() => {
-                    const newCriteriaFilters: Array<CriteriaFilter> = [
-                        ...criteriaFilters,
-                    ];
-                    newCriteriaFilters.push({
-                        checkOn: CheckOn.IsOnline,
-                        filterType: FilterType.EqualTo,
-                        value: '',
-                    });
+            <div className="mt-3 -ml-3">
+                <Button
+                    title="Add Filter"
+                    buttonSize={ButtonSize.Small}
+                    icon={IconProp.Add}
+                    onClick={() => {
+                        const newCriteriaFilters: Array<CriteriaFilter> = [
+                            ...criteriaFilters,
+                        ];
+                        newCriteriaFilters.push({
+                            checkOn: CheckOn.IsOnline,
+                            filterType: FilterType.EqualTo,
+                            value: '',
+                        });
 
-                    setCriteriaFilters(newCriteriaFilters);
-                }}
-            />
+                        setCriteriaFilters(newCriteriaFilters);
+                    }}
+                />
             </div>
         </div>
     );

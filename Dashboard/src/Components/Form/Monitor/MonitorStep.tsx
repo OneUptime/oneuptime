@@ -30,15 +30,17 @@ export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
     initialValue?: undefined | MonitorStep;
     onChange?: undefined | ((value: MonitorStep) => void);
-    onDelete?: undefined | (() => void);
+    // onDelete?: undefined | (() => void);
     monitorType: MonitorType;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [showAdvancedOptionsRequestBodyAndHeaders, setShowAdvancedOptionsRequestBodyAndHeaders] = useState<boolean>(false);
+    const [
+        showAdvancedOptionsRequestBodyAndHeaders,
+        setShowAdvancedOptionsRequestBodyAndHeaders,
+    ] = useState<boolean>(false);
 
     const [monitorStep, setMonitorStep] = useState<MonitorStep>(
         props.initialValue || new MonitorStep()
@@ -82,9 +84,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }, [props.monitorType]);
 
     return (
-        <div className='mt-5'>
-            
-            <div className='mt-5'>
+        <div className="mt-5">
+            <div className="mt-5">
                 <FieldLabelElement
                     title={destinationFieldTitle}
                     description={destinationFieldDescription}
@@ -121,7 +122,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
             {props.monitorType === MonitorType.API && (
-                <div className='mt-5'>
+                <div className="mt-5">
                     <FieldLabelElement
                         title={'API Request Type'}
                         description={'Whats the type of the API request?'}
@@ -143,7 +144,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         ) => {
                             monitorStep.setRequestType(
                                 (value?.toString() as HTTPMethod) ||
-                                HTTPMethod.GET
+                                    HTTPMethod.GET
                             );
                             setMonitorStep(MonitorStep.clone(monitorStep));
                         }}
@@ -151,54 +152,75 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
+            {!showAdvancedOptionsRequestBodyAndHeaders &&
+                props.monitorType === MonitorType.API && (
+                    <div className="mt-1 -ml-3">
+                        <Button
+                            title="Advanced: Add Request Headers and Body"
+                            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                            onClick={() => {
+                                setShowAdvancedOptionsRequestBodyAndHeaders(
+                                    true
+                                );
+                            }}
+                        />
+                    </div>
+                )}
+            {showAdvancedOptionsRequestBodyAndHeaders &&
+                props.monitorType === MonitorType.API && (
+                    <div className="mt-5">
+                        <FieldLabelElement
+                            title={'Request Headers'}
+                            description={'Request Headers to send, if any.'}
+                            required={false}
+                        />
+                        <DictionaryOfStrings
+                            addButtonSuffix="Request Header"
+                            keyPlaceholder={'Header Name'}
+                            valuePlaceholder={'Header Value'}
+                            initialValue={
+                                monitorStep.data?.requestHeaders || {}
+                            }
+                            onChange={(value: Dictionary<string>) => {
+                                monitorStep.setRequestHeaders(value);
+                                setMonitorStep(MonitorStep.clone(monitorStep));
+                            }}
+                        />
+                    </div>
+                )}
 
-            {!showAdvancedOptionsRequestBodyAndHeaders && props.monitorType === MonitorType.API && <div className='mt-1 -ml-3'>
-                <Button title="Advanced: Add Request Headers and Body" buttonStyle={ButtonStyleType.SECONDARY_LINK} onClick={() => {
-                    setShowAdvancedOptionsRequestBodyAndHeaders(true);
-                }} /> 
-            </div>}
-            {showAdvancedOptionsRequestBodyAndHeaders && props.monitorType === MonitorType.API && (
-                <div className='mt-5'>
-                    <FieldLabelElement
-                        title={'Request Headers'}
-                        description={'Request Headers to send, if any.'}
-                        required={false}
-                    />
-                    <DictionaryOfStrings
-                    addButtonSuffix='Request Header'
-                        keyPlaceholder={'Header Name'}
-                        valuePlaceholder={'Header Value'}
-                        initialValue={monitorStep.data?.requestHeaders || {}}
-                        onChange={(value: Dictionary<string>) => {
-                            monitorStep.setRequestHeaders(value);
-                            setMonitorStep(MonitorStep.clone(monitorStep));
-                        }}
-                    />
-                </div>
-            )}
-
-            {showAdvancedOptionsRequestBodyAndHeaders && props.monitorType === MonitorType.API && (
-                <div className='mt-5'>
-                    <FieldLabelElement
-                        title={'Request Body (in JSON)'}
-                        description={'Request Body to send in JSON, if any.'}
-                        required={false}
-                    />
-                    <CodeEditor
-                        type={CodeType.JSON}
-                        initialValue={monitorStep.data?.requestBody}
-                        onChange={(value: string) => {
-                            monitorStep.setRequestBody(value);
-                            setMonitorStep(MonitorStep.clone(monitorStep));
-                        }}
-                    />
-                </div>
-            )}
+            {showAdvancedOptionsRequestBodyAndHeaders &&
+                props.monitorType === MonitorType.API && (
+                    <div className="mt-5">
+                        <FieldLabelElement
+                            title={'Request Body (in JSON)'}
+                            description={
+                                'Request Body to send in JSON, if any.'
+                            }
+                            required={false}
+                        />
+                        <CodeEditor
+                            type={CodeType.JSON}
+                            initialValue={monitorStep.data?.requestBody}
+                            onChange={(value: string) => {
+                                monitorStep.setRequestBody(value);
+                                setMonitorStep(MonitorStep.clone(monitorStep));
+                            }}
+                        />
+                    </div>
+                )}
 
             <HorizontalRule />
 
-            <div className='mt-5'>
-                <FieldLabelElement title="Monitor Criteria" isHeading={true} description={'Add Monitoiring Criteria for this monitor. Monitor different properties.'} required={true} />
+            <div className="mt-5">
+                <FieldLabelElement
+                    title="Monitor Criteria"
+                    isHeading={true}
+                    description={
+                        'Add Monitoiring Criteria for this monitor. Monitor different properties.'
+                    }
+                    required={true}
+                />
                 <MonitorCriteriaElement
                     monitorStatusDropdownOptions={
                         props.monitorStatusDropdownOptions

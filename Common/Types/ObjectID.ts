@@ -37,10 +37,10 @@ export default class ObjectID extends DatabaseProperty {
     }
 
     public toJSON(): JSONObject {
-         return {
+        return {
             _type: 'ObjectID',
             id: this.id.toString(),
-         }
+        };
     }
 
     public fromJSON(json: JSONObject): ObjectID {
@@ -52,7 +52,6 @@ export default class ObjectID extends DatabaseProperty {
 
         return this;
     }
-    
 
     protected static override fromDatabase(_value: string): ObjectID | null {
         if (_value) {

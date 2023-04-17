@@ -93,7 +93,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
-            <div className='mt-1'>
+            <div className="mt-1">
                 <Button
                     title="Delete"
                     buttonStyle={ButtonStyleType.ICON}

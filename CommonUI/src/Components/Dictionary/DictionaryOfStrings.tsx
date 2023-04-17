@@ -15,7 +15,6 @@ export interface ComponentProps {
     keyPlaceholder?: string;
     valuePlaceholder?: string;
     addButtonSuffix?: string;
-
 }
 
 interface Item {
@@ -27,17 +26,21 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [data, setData] = useState<Array<Item>>(
-        Object.keys(props.initialValue || {
-            '': ''
-        }).map((key: string) => {
+        Object.keys(
+            props.initialValue || {
+                '': '',
+            }
+        ).map((key: string) => {
             return {
                 key: key!,
                 value: props.initialValue![key] || '',
             };
-        }) || [{
-            key: '',
-            value: '',
-        }]
+        }) || [
+            {
+                key: '',
+                value: '',
+            },
+        ]
     );
 
     useEffect(() => {
@@ -56,7 +59,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                 {data.map((item: Item, index: number) => {
                     return (
                         <div key={index} className="flex">
-                            <div className='mr-1'>
+                            <div className="mr-1">
                                 <Input
                                     value={item.key}
                                     placeholder={props.keyPlaceholder}
@@ -67,7 +70,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                                     }}
                                 />
                             </div>
-                            <div className='ml-1'>
+                            <div className="ml-1">
                                 <Input
                                     value={item.value}
                                     placeholder={props.valuePlaceholder}
@@ -78,7 +81,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                                     }}
                                 />
                             </div>
-                            <div className='ml-1 mt-1'>
+                            <div className="ml-1 mt-1">
                                 <Button
                                     title="Delete"
                                     buttonStyle={ButtonStyleType.ICON}
@@ -93,7 +96,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                         </div>
                     );
                 })}
-                <div className='-ml-3 mt-4'>
+                <div className="-ml-3 mt-4">
                     <Button
                         title={`Add ${props.addButtonSuffix || 'Item'}`}
                         icon={IconProp.Add}

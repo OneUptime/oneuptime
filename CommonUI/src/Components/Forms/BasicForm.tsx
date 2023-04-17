@@ -359,7 +359,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         description={field.description}
                         sideLink={field.sideLink}
                         required={field.required}
-                        isHeading={field.styleType === FormFieldStyleType.Heading}
+                        isHeading={
+                            field.styleType === FormFieldStyleType.Heading
+                        }
                     />
 
                     <div className="mt-2">

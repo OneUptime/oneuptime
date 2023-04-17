@@ -14,7 +14,7 @@ export interface MonitorCriteriaInstanceType {
     name: string;
     description: string;
     changeMonitorStatus?: boolean | undefined;
-    createIncidents?:boolean | undefined;
+    createIncidents?: boolean | undefined;
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
@@ -29,7 +29,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             incidents: [],
             name: '',
             description: '',
-
         };
     }
 
@@ -41,7 +40,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             incidents: [],
             name: '',
             description: '',
-
         };
     }
 
@@ -55,7 +53,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     public setDescription(description: string): MonitorCriteriaInstance {
         if (this.data) {
-
             this.data.description = description;
         }
 
@@ -69,7 +66,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             monitorCriteriaInstance.toJSON()
         );
     }
-        
 
     public setMonitorStatusId(
         monitorStatusId: ObjectID | undefined
@@ -85,7 +81,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition
     ): MonitorCriteriaInstance {
         if (this.data) {
-            this.data.filterCondition = filterCondition;    
+            this.data.filterCondition = filterCondition;
         }
 
         return this;
@@ -99,11 +95,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return this;
     }
 
-    public setIncidents(      
+    public setIncidents(
         incidents: Array<CriteriaIncident>
     ): MonitorCriteriaInstance {
         if (this.data) {
-
             this.data.incidents = incidents;
         }
 
@@ -129,8 +124,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
         return this;
     }
-    
-
 
     public toJSON(): JSONObject {
         if (!this.data) {
@@ -171,9 +164,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         }
 
         if (!Array.isArray(json['incidents'])) {
-            throw new BadDataException(
-                'json.incidents should be an array'
-            );
+            throw new BadDataException('json.incidents should be an array');
         }
 
         let monitorStatusId: ObjectID | undefined = undefined;
@@ -208,8 +199,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterCondition,
             filters,
             incidents,
-            name: json['name'] as string || '',
-            description: json['description'] as string || '',
+            name: (json['name'] as string) || '',
+            description: (json['description'] as string) || '',
         };
 
         return this;

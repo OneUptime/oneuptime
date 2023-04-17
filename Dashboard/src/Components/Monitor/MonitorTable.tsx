@@ -19,7 +19,10 @@ import DashboardNavigation from '../../Utils/Navigation';
 import MonitorTypeUtil from '../../Utils/MonitorType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import MonitorSteps from '../Form/Monitor/MonitorSteps';
-import { CustomElementProps, FormFieldStyleType } from 'CommonUI/src/Components/Forms/Types/Field';
+import {
+    CustomElementProps,
+    FormFieldStyleType,
+} from 'CommonUI/src/Components/Forms/Types/Field';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 
 export interface ComponentProps {

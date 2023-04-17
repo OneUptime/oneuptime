@@ -121,7 +121,6 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     }
 
-
     if (buttonStyle === ButtonStyleType.SECONDARY_LINK) {
         buttonStyleCssClass = `text-sm text-gray-400 hover:text-gray-500 space-x-2`;
 
