@@ -5,7 +5,6 @@ import ModelForm from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Incident from 'Model/Models/Incident';
-import Button from 'CommonUI/src/Components/Button/Button';
 
 export interface ComponentProps {
     initialValue?: undefined | CriteriaIncident;
@@ -66,7 +65,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 ]}
             />
 
-            <div className='mt-4'>
+            {/* <div className='mt-4'>
                 <Button
                     onClick={() => {
                         if (props.onDelete) {
@@ -75,7 +74,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                     }}
                     title="Delete"
                 />
-            </div>
+            </div> */}
         </div>
     );
 };

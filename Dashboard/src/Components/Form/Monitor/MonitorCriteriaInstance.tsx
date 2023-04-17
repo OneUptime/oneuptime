@@ -181,6 +181,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 <Toggle initialValue={(monitorCriteriaInstance?.data?.incidents?.length || 0) > 0} title='When filters match, Create an incident.' onChange={(value: boolean) => {
                     setShowIncidentControl(value);
                     monitorCriteriaInstance.setCreateIncidents(value);
+
+                    if(!monitorCriteriaInstance.data?.incidents || monitorCriteriaInstance.data?.incidents?.length === 0){
+                        monitorCriteriaInstance.setIncidents([{
+                            title: '',
+                            description: '',
+                            incidentSeverityId: undefined,
+                        }]);
+                    }
+
                     setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
                 }} />
             </div>
