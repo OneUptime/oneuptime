@@ -70,7 +70,7 @@ To update:
 bash install.sh
 ```
 
-OneUptime should run at: http[s]://localhost
+OneUptime should run at: https://localhost. You need to register a new account for your instance to start using it.
 
 Provisioning your SSL Certificate from LetsEncrypt: 
 
