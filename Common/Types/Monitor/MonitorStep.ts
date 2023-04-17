@@ -157,9 +157,7 @@ export default class MonitorStep extends DatabaseProperty {
             throw new BadDataException('Invalid monitor criteria');
         }
 
-        if(!json['defaultMonitorStatusId'] || !(json['defaultMonitorStatusId'] as JSONObject)['_type'] || (json['defaultMonitorStatusId'] as JSONObject)['_type'] !== 'ObjectID') {
-            throw new BadDataException('Invalid default monitor status id');
-        }
+       
 
         this.data = {
             monitorDestination: monitorDestination || undefined,
@@ -171,7 +169,7 @@ export default class MonitorStep extends DatabaseProperty {
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
             defaultMonitorStatusId:
-                new ObjectID((json['defaultMonitorStatusId'] as JSONObject)['value'] as string) || undefined,
+            json['defaultMonitorStatusId'] ? new ObjectID((json['defaultMonitorStatusId'] as JSONObject)['value'] as string) : undefined,
 
         };
 

@@ -31,9 +31,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
                 (i: MonitorCriteriaInstance, index: number) => {
                     return (
-                        <div className='mt-10 mb-10'>
+                        <div className='mt-10 mb-10' key={index}>
                             <MonitorCriteriaInstanceElement
-                                key={index}
                                 monitorStatusDropdownOptions={
                                     props.monitorStatusDropdownOptions
                                 }

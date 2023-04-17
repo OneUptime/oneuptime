@@ -195,10 +195,10 @@ export default class URL extends DatabaseProperty {
         }
 
         if (json && json['value'] && typeof json['value'] === Typeof.String) {
-            throw new BadDataException('Invalid JSON for URL');
+            return URL.fromString(json['value'] as string);
         }
 
-        return URL.fromString(json['value'] as string);
+        throw new BadDataException('Invalid JSON for URL');
     }
 
     public addRoute(route: Route | string): URL {

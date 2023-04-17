@@ -1,9 +1,10 @@
+import IconProp from 'Common/Types/Icon/IconProp';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import Button from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Dropdown, {
     DropdownOption,
     DropdownValue,
@@ -38,7 +39,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
     return (
         <div className="flex">
-            <div className="w-1/3">
+            <div className="w-1/3 mr-1">
                 <Dropdown
                     initialValue={checkOnOptions.find((i: DropdownOption) => {
                         return i.value === criteriaFilter?.checkOn;
@@ -57,7 +58,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
-            <div className="w-1/3">
+            <div className="w-1/3 mr-1 ml-1">
                 <Dropdown
                     initialValue={filterTypeOptions.find(
                         (i: DropdownOption) => {
@@ -77,7 +78,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
-            <div className="w-1/3">
+            <div className="w-1/3 mr-1 ml-1">
                 <Input
                     initialValue={criteriaFilter?.value.toString()}
                     onChange={(value: string) => {
@@ -92,12 +93,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
-            <div>
+            <div className='mt-1'>
                 <Button
+                    title="Delete"
+                    buttonStyle={ButtonStyleType.ICON}
+                    icon={IconProp.Trash}
                     onClick={() => {
                         props.onDelete?.();
                     }}
-                    title="Delete"
                 />
             </div>
         </div>

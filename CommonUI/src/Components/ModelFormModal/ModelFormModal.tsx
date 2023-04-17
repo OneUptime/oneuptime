@@ -46,7 +46,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
 
     if (props.formProps.steps && props.formProps.steps.length > 0) {
-        modalWidth = ModalWidth.Medium;
+        modalWidth = props.modalWidth || ModalWidth.Medium;
     }
 
     return (
