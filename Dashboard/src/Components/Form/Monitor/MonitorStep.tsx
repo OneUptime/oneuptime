@@ -25,6 +25,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import ObjectID from 'Common/Types/ObjectID';
 
 
 export interface ComponentProps {
@@ -84,6 +85,33 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
     return (
         <div className='mt-5'>
+            <div className='mt-5'>
+                <FieldLabelElement
+                    title={'Default Monitor Status'}
+                    description={destinationFieldDescription}
+                    required={true}
+                />
+                
+                <Dropdown
+                    initialValue={props.monitorStatusDropdownOptions.find(
+                        (i: DropdownOption) => {
+                            return (
+                                i.value ===
+                                monitorStep?.data
+                                    ?.defaultMonitorStatusId?.id || undefined
+                            );
+                        }
+                    )}
+                    options={props.monitorStatusDropdownOptions}
+                    onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null
+                    ) => {
+                        monitorStep.setDefaultMonitorStatusId(value ? new ObjectID(value.toString()) : undefined);
+                        setMonitorStep(MonitorStep.clone(monitorStep));
+                    }}
+                />
+
+            </div>
             <div className='mt-5'>
                 <FieldLabelElement
                     title={destinationFieldTitle}

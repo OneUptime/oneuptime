@@ -10,9 +10,11 @@ export interface MonitorCriteriaInstanceType {
     monitorStatusId: ObjectID | undefined;
     filterCondition: FilterCondition;
     filters: Array<CriteriaFilter>;
-    createIncidents: Array<CriteriaIncident>;
+    incidents: Array<CriteriaIncident>;
     name: string;
     description: string;
+    changeMonitorStatus?: boolean | undefined;
+    createIncidents?:boolean | undefined;
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
@@ -24,7 +26,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             monitorStatusId: undefined,
             filterCondition: FilterCondition.All,
             filters: [],
-            createIncidents: [],
+            incidents: [],
             name: '',
             description: '',
 
@@ -36,7 +38,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             monitorStatusId: undefined,
             filterCondition: FilterCondition.All,
             filters: [],
-            createIncidents: [],
+            incidents: [],
             name: '',
             description: '',
 
@@ -97,16 +99,37 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return this;
     }
 
-    public setCreateIncidents(      
-        createIncidents: Array<CriteriaIncident>
+    public setIncidents(      
+        incidents: Array<CriteriaIncident>
     ): MonitorCriteriaInstance {
         if (this.data) {
 
+            this.data.incidents = incidents;
+        }
+
+        return this;
+    }
+
+    public setChangeMonitorStatus(
+        changeMonitorStatus: boolean | undefined
+    ): MonitorCriteriaInstance {
+        if (this.data) {
+            this.data.changeMonitorStatus = changeMonitorStatus;
+        }
+
+        return this;
+    }
+
+    public setCreateIncidents(
+        createIncidents: boolean | undefined
+    ): MonitorCriteriaInstance {
+        if (this.data) {
             this.data.createIncidents = createIncidents;
         }
 
         return this;
     }
+    
 
 
     public toJSON(): JSONObject {
@@ -118,7 +141,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             monitorStatusId: this.data.monitorStatusId,
             filterCondition: this.data.filterCondition,
             filters: this.data.filters,
-            createIncidents: this.data.createIncidents,
+            incidents: this.data.incidents,
         };
     }
 
@@ -143,13 +166,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             throw new BadDataException('json.filters should be an array');
         }
 
-        if (!json['createIncidents']) {
-            throw new BadDataException('json.createIncidents is null');
+        if (!json['incidents']) {
+            throw new BadDataException('json.incidents is null');
         }
 
-        if (!Array.isArray(json['createIncidents'])) {
+        if (!Array.isArray(json['incidents'])) {
             throw new BadDataException(
-                'json.createIncidents should be an array'
+                'json.incidents should be an array'
             );
         }
 
@@ -170,21 +193,21 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
         const filters: Array<CriteriaFilter> = [];
 
-        const createIncidents: Array<CriteriaIncident> = [];
+        const incidents: Array<CriteriaIncident> = [];
 
         for (const filter of json['filters']) {
             filters.push({ ...filter });
         }
 
-        for (const incident of json['createIncidents']) {
-            createIncidents.push({ ...incident });
+        for (const incident of json['incidents']) {
+            incidents.push({ ...incident });
         }
 
         this.data = {
             monitorStatusId,
             filterCondition,
             filters,
-            createIncidents,
+            incidents,
             name: json['name'] as string || '',
             description: json['description'] as string || '',
         };

@@ -67,6 +67,8 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                         filterType: FilterType.EqualTo,
                         value: '',
                     });
+
+                    setCriteriaFilters(newCriteriaFilters);
                 }}
             />
             </div>

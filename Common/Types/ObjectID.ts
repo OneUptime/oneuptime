@@ -2,6 +2,7 @@
 import { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
 import DatabaseProperty from './Database/DatabaseProperty';
+import { JSONObject } from './JSON';
 
 export default class ObjectID extends DatabaseProperty {
     private _id: string = '';
@@ -34,6 +35,24 @@ export default class ObjectID extends DatabaseProperty {
 
         return null;
     }
+
+    public toJSON(): JSONObject {
+         return {
+            _type: 'ObjectID',
+            id: this.id.toString(),
+         }
+    }
+
+    public fromJSON(json: JSONObject): ObjectID {
+        if (json['_type'] !== 'ObjectID') {
+            throw new Error('Invalid JSON');
+        }
+
+        this.id = json['id'] as string;
+
+        return this;
+    }
+    
 
     protected static override fromDatabase(_value: string): ObjectID | null {
         if (_value) {

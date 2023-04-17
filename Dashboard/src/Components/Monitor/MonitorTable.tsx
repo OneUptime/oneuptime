@@ -20,6 +20,7 @@ import MonitorTypeUtil from '../../Utils/MonitorType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import MonitorSteps from '../Form/Monitor/MonitorSteps';
 import { CustomElementProps, FormFieldStyleType } from 'CommonUI/src/Components/Forms/Types/Field';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -46,6 +47,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 item.monitorType = MonitorType.Manual;
                 return item;
             }}
+            createEditModalWidth={ModalWidth.Large}
             formSteps={[
                 {
                     title: 'Monitor Info',

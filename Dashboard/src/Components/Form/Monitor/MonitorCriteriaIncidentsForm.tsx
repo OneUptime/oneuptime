@@ -11,7 +11,11 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [incidents, setIncidents] = React.useState<Array<CriteriaIncident>>(
-        props.initialValue || []
+        props.initialValue || [{
+            title: '',
+            description: '',
+            incidentSeverityId: undefined,
+        }]
     );
 
     useEffect(() => {

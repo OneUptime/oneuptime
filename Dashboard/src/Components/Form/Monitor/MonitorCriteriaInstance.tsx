@@ -25,6 +25,7 @@ import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Input from 'CommonUI/src/Components/Input/Input';
 import TextArea from 'CommonUI/src/Components/TextArea/TextArea';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -88,7 +89,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     }
                     placeholder='Online Criteria'
                     onChange={(value: string) => {
-                        
+
 
                         monitorCriteriaInstance.setName(value);
                         setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
@@ -147,20 +148,22 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
 
             <div className='mt-4'>
-                <Toggle initialValue={!!monitorCriteriaInstance?.data?.monitorStatusId?.id} title='When filters match, Change monitor status' onChange={(value: boolean)=>{
+                <Toggle initialValue={!!monitorCriteriaInstance?.data?.monitorStatusId?.id} title='When filters match, Change monitor status' onChange={(value: boolean) => {
                     setShowMonitorStatusChangeControl(value);
-                }}/>
+                    monitorCriteriaInstance.setChangeMonitorStatus(value);
+                    setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                }} />
             </div>
 
-            { showMonitorStatusChangeControl && <div className='mt-4'>
-                <FieldLabelElement title='Change monitor status to' description="What would like the monitor status to be when the criteria is met?" required={true}  />
+            {showMonitorStatusChangeControl && <div className='mt-4'>
+                <FieldLabelElement title='Change monitor status to' description="What would like the monitor status to be when the criteria is met?" />
                 <Dropdown
                     initialValue={props.monitorStatusDropdownOptions.find(
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                    monitorCriteriaInstance?.data
-                                        ?.monitorStatusId?.id || undefined
+                                monitorCriteriaInstance?.data
+                                    ?.monitorStatusId?.id || undefined
                             );
                         }
                     )}
@@ -175,9 +178,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             </div>}
 
             <div className='mt-4'>
-                <Toggle initialValue={(monitorCriteriaInstance?.data?.createIncidents?.length || 0) > 0} title='When filters match, Create an incident.' onChange={(value: boolean)=>{
+                <Toggle initialValue={(monitorCriteriaInstance?.data?.incidents?.length || 0) > 0} title='When filters match, Create an incident.' onChange={(value: boolean) => {
                     setShowIncidentControl(value);
-                }}/>
+                    monitorCriteriaInstance.setCreateIncidents(value);
+                    setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+                }} />
             </div>
 
             {showIncidentControl && <div className='mt-4'>
@@ -185,10 +190,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
                 <MonitorCriteriaIncidentsForm
                     initialValue={
-                        monitorCriteriaInstance?.data?.createIncidents || []
+                        monitorCriteriaInstance?.data?.incidents || []
                     }
                     onChange={(value: Array<CriteriaIncident>) => {
-                        monitorCriteriaInstance.setCreateIncidents(value);
+                        monitorCriteriaInstance.setIncidents(value);
                         setMonitorCriteriaInstance(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
                     }}
                 />
@@ -207,7 +212,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     title="Delete Criteria"
                 />
             </div>
+        
+                    <HorizontalRule/>
         </div>
+
+
     );
 };
 
