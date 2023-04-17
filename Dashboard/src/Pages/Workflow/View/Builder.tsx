@@ -300,7 +300,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             </div>
                             <div>
                                 <Button
-                                    title="Run Wrokflow Manually"
+                                    title="Run Workflow Manually"
                                     icon={IconProp.Play}
                                     onClick={() => {
                                         setShowRunModal(true);
