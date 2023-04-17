@@ -24,7 +24,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
     editButtonText?: undefined | string;
-    formSteps?: undefined | Array<FormStep>;
+    formSteps?: undefined | Array<FormStep<TBaseModel>>;
     formFields?: undefined | Fields<TBaseModel>;
     className?: string | undefined;
     name: string;

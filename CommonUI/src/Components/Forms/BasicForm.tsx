@@ -62,7 +62,7 @@ export interface ComponentProps<T extends Object> {
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
     fields: Fields<T>;
-    steps?: undefined | Array<FormStep>;
+    steps?: undefined | Array<FormStep<T>>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
     description?: undefined | string;
@@ -138,9 +138,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 props.steps &&
                 props.steps.length > 0 &&
                 (
-                    (props.steps as Array<FormStep>)[
+                    (props.steps as Array<FormStep<T>>)[
                         props.steps.length - 1
-                    ] as FormStep
+                    ] as FormStep<T>
                 ).id === currentFormStepId
             ) {
                 setSubmitButtonText(props.submitButtonText || 'Submit');
@@ -266,9 +266,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 (props.steps &&
                     props.steps.length > 0 &&
                     (
-                        (props.steps as Array<FormStep>)[
+                        (props.steps as Array<FormStep<T>>)[
                             props.steps.length - 1
-                        ] as FormStep
+                        ] as FormStep<T>
                     ).id === currentFormStepId) ||
                 currentFormStepId === null
             ) {
@@ -301,13 +301,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 props.onSubmit(values);
             } else if (props.steps && props.steps.length > 0) {
                 const currentStepIndex: number = props.steps.findIndex(
-                    (step: FormStep) => {
+                    (step: FormStep<T>) => {
                         return step.id === currentFormStepId;
                     }
                 );
                 if (currentStepIndex > -1) {
                     setCurrentFormStepId(
-                        (props.steps[currentStepIndex + 1] as FormStep).id
+                        (props.steps[currentStepIndex + 1] as FormStep<T>).id
                     );
                 }
             }
@@ -1129,7 +1129,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     <Steps
                                         currentFormStepId={currentFormStepId}
                                         steps={props.steps}
-                                        onClick={(step: FormStep) => {
+                                        formValues={refCurrentValue.current}
+                                        onClick={(step: FormStep<T>) => {
                                             setCurrentFormStepId(step.id);
                                         }}
                                     />

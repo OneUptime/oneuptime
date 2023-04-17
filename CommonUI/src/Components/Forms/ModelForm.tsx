@@ -55,7 +55,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
           ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     onFormStepChange?: undefined | ((stepId: string) => void);
-    steps?: undefined | Array<FormStep>;
+    steps?: undefined | Array<FormStep<TBaseModel>>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
     description?: undefined | string;

@@ -25,7 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
     name: string;
-    steps?: undefined | Array<FormStep>;
+    steps?: undefined | Array<FormStep<TBaseModel>>;
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormStepChange?: undefined | ((stepId: string) => void);
     title?: undefined | string;

@@ -86,7 +86,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isCreateable: boolean;
     disablePagination?: undefined | boolean;
     formFields?: undefined | Fields<TBaseModel>;
-    formSteps?: undefined | Array<FormStep>;
+    formSteps?: undefined | Array<FormStep<TBaseModel>>;
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
