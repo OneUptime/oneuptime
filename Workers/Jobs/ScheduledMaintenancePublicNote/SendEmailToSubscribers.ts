@@ -19,112 +19,81 @@ import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import ScheduledmaiontenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
+import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
+import Markdown from 'CommonServer/Types/Markdown';
 
 RunCron(
-    'ScheduledMaintenance:SendEmailToSubscribers',
+    'ScheduledMaintenancePublicNote:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        // get all scheduled events of all the projects.
-        const scheduledEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
-                query: {
-                    isStatusPageSubscribersNotifiedOnEventScheduled: false,
-                    createdAt: QueryHelper.lessThan(
-                        OneUptimeDate.getCurrentDate()
-                    ),
-                },
-                props: {
-                    isRoot: true,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                    startsAt: true,
-                },
-                populate: {
-                    monitors: {
-                        _id: true,
-                    },
-                },
-            });
 
-        const ongoingEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
-                query: {
-                    isStatusPageSubscribersNotifiedOnEventOngoing: false,
-                    startsAt: QueryHelper.lessThan(
-                        OneUptimeDate.getCurrentDate()
-                    ),
-                },
-                props: {
-                    isRoot: true,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                    startsAt: true,
-                },
-                populate: {
-                    monitors: {
-                        _id: true,
-                    },
-                },
-            });
 
-        const scheduledEventsIds: Array<string | undefined> =
-            scheduledEvents.map((i: ScheduledMaintenance) => {
-                return i._id?.toString();
-            });
-        const ongoingEventIds: Array<string | undefined> = ongoingEvents.map(
-            (i: ScheduledMaintenance) => {
-                return i._id?.toString();
+        // get all incident notes of all the projects
+
+        const publicNotes: Array<ScheduledMaintenancePublicNote> = await ScheduledmaiontenancePublicNoteService.findBy({
+            query: {
+                isStatusPageSubscribersNotifiedOnNoteCreated: false,
+                createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
+            },
+            props: {
+                isRoot: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+                _id: true,
+                note: true,
+                scheduledMaintenanceId: true,
             }
-        );
+        });
 
-        const totalEvents: Array<ScheduledMaintenance> = [
-            ...ongoingEvents,
-            ...scheduledEvents,
-        ];
 
-        for (const event of totalEvents) {
+        for (const publicNote of publicNotes) {
+            // get all scheduled events of all the projects.
+            const event: ScheduledMaintenance | null =
+                await ScheduledMaintenanceService.findOneById({
+                    id: publicNote.scheduledMaintenanceId!,
+                    props: {
+                        isRoot: true,
+                    },
+                    select: {
+                        _id: true,
+                        title: true,
+                        description: true,
+                        startsAt: true,
+                    },
+                    populate: {
+                        monitors: {
+                            _id: true,
+                        },
+                    },
+                });
+
+
+
+            if (!event) {
+                continue;
+            }
+
+
             if (!event.monitors || event.monitors.length === 0) {
                 continue;
             }
 
-            let isOngoing: boolean = false;
 
-            if (ongoingEventIds.includes(event._id?.toString())) {
-                isOngoing = true;
-                await ScheduledMaintenanceService.updateOneById({
-                    id: event.id!,
-                    data: {
-                        isStatusPageSubscribersNotifiedOnEventOngoing: true,
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
-            }
+            await ScheduledMaintenancePublicNoteService.updateOneById({
+                id: publicNote.id!,
+                data: {
+                    isStatusPageSubscribersNotifiedOnNoteCreated: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
 
-            if (scheduledEventsIds.includes(event._id?.toString())) {
-                await ScheduledMaintenanceService.updateOneById({
-                    id: event.id!,
-                    data: {
-                        isStatusPageSubscribersNotifiedOnEventScheduled: true,
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
-            }
 
             // get status page resources from monitors.
 
@@ -231,17 +200,18 @@ RunCron(
                         MailService.sendMail({
                             toEmail: subscriber.subscriberEmail,
                             templateType:
-                                EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                                EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
                             vars: {
+                                note: Markdown.convertToHTMML(publicNote.note!),
                                 statusPageName: statusPageName,
                                 statusPageUrl: statusPageURL,
                                 logoUrl: statuspage.logoFileId
                                     ? new URL(HttpProtocol, Domain)
-                                          .addRoute(FileRoute)
-                                          .addRoute(
-                                              '/image/' + statuspage.logoFileId
-                                          )
-                                          .toString()
+                                        .addRoute(FileRoute)
+                                        .addRoute(
+                                            '/image/' + statuspage.logoFileId
+                                        )
+                                        .toString()
                                     : '',
                                 isPublicStatusPage:
                                     statuspage.isPublicStatusPage
@@ -253,9 +223,7 @@ RunCron(
                                             return r.displayName;
                                         })
                                         .join(', ') || 'None',
-                                eventStatus: isOngoing
-                                    ? 'Ongoing'
-                                    : 'Scheduled',
+    
                                 scheduledAt:
                                     OneUptimeDate.getDateAsFormattedString(
                                         event.startsAt!
@@ -265,21 +233,24 @@ RunCron(
                                 unsubscribeUrl: new URL(HttpProtocol, Domain)
                                     .addRoute(
                                         '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                                        subscriber._id.toString()
                                     )
                                     .toString(),
                             },
                             subject:
                                 statusPageName +
-                                ` - ${
-                                    isOngoing ? 'Ongoing' : 'Scheduled'
-                                } Maintenance Event`,
+                                ` - New note has been posted to maintenance event`,
                         }).catch((err: Error) => {
                             logger.error(err);
                         });
                     }
                 }
+
             }
+
         }
+
+
+
     }
 );
