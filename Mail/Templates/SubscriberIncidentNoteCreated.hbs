@@ -348,7 +348,7 @@
                         <td class="st-Font st-Font--body"
                           style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-                          <h3>Scheduled Maintenance Event: {{eventTitle}}</h3>
+                          <h3>Incident: {{incidentTitle}}</h3>
 
                         </td>
                         <td class="st-Spacer st-Spacer--gutter"
@@ -400,7 +400,7 @@
                         </td>
                         <td class="st-Font st-Font--body"
                           style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-                          Here are more details on this scheduled event: 
+                          A new note has been added to the incident. Here are the details: 
                         </td>
                         <td class="st-Spacer st-Spacer--gutter"
                           style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
@@ -439,22 +439,27 @@
                                         <td align="left" style="padding:0;Margin:0;padding-top:30px">
                                           <p
                                             style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                                            <span><strong>{{eventTitle}}</strong></span><br>
+                                            <span><strong>{{incidentTitle}}</strong></span><br>
                                           <p
                                             style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                                             <span><strong>Event Description: </strong>{{eventDescription}} </span></p>
+                                             <span><strong>Description: </strong>{{incidentDescription}} </span></p>
 
                                              <p
                                             style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                                             <span><strong>Event Status: </strong>{{eventStatus}} </span></p>
+                                             <span><strong>Severity: </strong>{{incidentSeverity}} </span></p>
 
                                               <p
                                             style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                                              <span><strong>Resources Affected: </strong>{{resourcesAffected}} </span></p>
 
-                                              <p
+
+                                               <p
                                             style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                                             <span><strong>Event Scheduled At: </strong>{{scheduledAt}} </span></p>
+                                             <span><strong>Note:</strong> </span> </p>
+
+                                             <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                                              {{{note}}} 
+                                             </p>
                                           
                                         </td>
                                       </tr>

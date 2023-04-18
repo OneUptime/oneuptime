@@ -4,6 +4,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
 import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
+
 // Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
@@ -13,9 +14,15 @@ import './Jobs/Announcement/SendEmailToSubscribers';
 // Incidents
 import './Jobs/Incident/SendEmailToSubscribers';
 
+// Incident Notes
+import './Jobs/IncidentPublicNote/SendEmailToSubscribers';
+
 // Scheduled Event
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
+
+// Scheduled Event Notes
+import './Jobs/ScheduledMaintenancePublicNote/SendEmailToSubscribers';
 
 // Certs Routers
 import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
@@ -53,7 +60,9 @@ const init: Function = async (): Promise<void> => {
 
                 const funcToRun: Function = JobDictonary.getJobFunction(name);
 
-                await funcToRun();
+                if (funcToRun) {
+                    await funcToRun();
+                }
             },
             { concurrency: 10 }
         );

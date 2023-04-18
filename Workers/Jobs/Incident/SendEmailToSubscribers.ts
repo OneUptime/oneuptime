@@ -68,7 +68,7 @@ RunCron(
 
             // get status page resources from monitors.
 
-            const sattusPageResources: Array<StatusPageResource> =
+            const statusPageResources: Array<StatusPageResource> =
                 await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
@@ -97,7 +97,7 @@ RunCron(
             const statusPageToResources: Dictionary<Array<StatusPageResource>> =
                 {};
 
-            for (const resource of sattusPageResources) {
+            for (const resource of statusPageResources) {
                 if (!resource.statusPageId) {
                     continue;
                 }

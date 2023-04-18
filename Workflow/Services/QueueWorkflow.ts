@@ -13,7 +13,6 @@ import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import { Job } from 'bullmq';
 
 export default class QueueWorkflow {
     public static async removeWorkflow(workflowId: ObjectID): Promise<void> {
@@ -173,7 +172,7 @@ export default class QueueWorkflow {
             });
         }
 
-        const job: Job = await Queue.addJob(
+        const job: any = await Queue.addJob(
             QueueName.Workflow,
             workflowLog
                 ? workflowLog._id?.toString()!
