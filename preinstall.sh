@@ -61,13 +61,20 @@ if [[ ! $(which git) ]]; then
     fi
 fi
 
-GIT_REPO_URL=$(git config --get remote.origin.url)
 
-if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
-then
-  git clone https://github.com/OneUptime/oneuptime.git || true
-  cd oneuptime
+if[[ $IS_DOCKER == "true" ]]; then
+    echo "This script should run in the docker container."
+else
+    GIT_REPO_URL=$(git config --get remote.origin.url)
+
+    if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
+    then
+        git clone https://github.com/OneUptime/oneuptime.git || true
+        cd oneuptime
+    fi
 fi
+
+
 
 # if this script is not running in CI/CD
 if [ -z "$CI_PIPELINE_ID" ]

@@ -9,6 +9,8 @@ WORKDIR /usr/src/app
 
 COPY . /usr/src/app/
 
+ENV IS_DOCKER=true
+
 RUN bash install.sh
 
 # Expose ports.
