@@ -48,7 +48,11 @@ const init: Function = async (): Promise<void> => {
             QueueName.Worker,
             async (job: QueueJob) => {
                 const name: string = job.name;
+
+                logger.info('Running Job: ' + name);
+
                 const funcToRun: Function = JobDictonary.getJobFunction(name);
+
                 await funcToRun();
             },
             { concurrency: 10 }
