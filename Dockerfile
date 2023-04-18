@@ -1,7 +1,7 @@
 FROM ubuntu:lunar
 
 # Install bash and curl and git. 
-RUN apt-get update && apt-get install -y bash && apt-get install -y curl && apt-get install -y git
+RUN apt-get update && apt-get install -y bash && apt-get install -y curl && apt-get install -y git && apt-get -y install sudo
 
 RUN mkdir /usr/src/app
 

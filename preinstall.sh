@@ -62,7 +62,8 @@ if [[ ! $(which git) ]]; then
 fi
 
 
-if[[ $IS_DOCKER == "true" ]]; then
+if [[ $IS_DOCKER == "true" ]]
+then
     echo "This script should run in the docker container."
 else
     GIT_REPO_URL=$(git config --get remote.origin.url)
