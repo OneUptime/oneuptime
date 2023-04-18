@@ -20,7 +20,6 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import ScheduledmaiontenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 import Markdown from 'CommonServer/Types/Markdown';
 
@@ -28,27 +27,27 @@ RunCron(
     'ScheduledMaintenancePublicNote:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-
-
         // get all incident notes of all the projects
 
-        const publicNotes: Array<ScheduledMaintenancePublicNote> = await ScheduledmaiontenancePublicNoteService.findBy({
-            query: {
-                isStatusPageSubscribersNotifiedOnNoteCreated: false,
-                createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
-            },
-            props: {
-                isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                note: true,
-                scheduledMaintenanceId: true,
-            }
-        });
-
+        const publicNotes: Array<ScheduledMaintenancePublicNote> =
+            await ScheduledMaintenancePublicNoteService.findBy({
+                query: {
+                    isStatusPageSubscribersNotifiedOnNoteCreated: false,
+                    createdAt: QueryHelper.lessThan(
+                        OneUptimeDate.getCurrentDate()
+                    ),
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    note: true,
+                    scheduledMaintenanceId: true,
+                },
+            });
 
         for (const publicNote of publicNotes) {
             // get all scheduled events of all the projects.
@@ -71,17 +70,13 @@ RunCron(
                     },
                 });
 
-
-
             if (!event) {
                 continue;
             }
 
-
             if (!event.monitors || event.monitors.length === 0) {
                 continue;
             }
-
 
             await ScheduledMaintenancePublicNoteService.updateOneById({
                 id: publicNote.id!,
@@ -93,7 +88,6 @@ RunCron(
                     ignoreHooks: true,
                 },
             });
-
 
             // get status page resources from monitors.
 
@@ -207,11 +201,11 @@ RunCron(
                                 statusPageUrl: statusPageURL,
                                 logoUrl: statuspage.logoFileId
                                     ? new URL(HttpProtocol, Domain)
-                                        .addRoute(FileRoute)
-                                        .addRoute(
-                                            '/image/' + statuspage.logoFileId
-                                        )
-                                        .toString()
+                                          .addRoute(FileRoute)
+                                          .addRoute(
+                                              '/image/' + statuspage.logoFileId
+                                          )
+                                          .toString()
                                     : '',
                                 isPublicStatusPage:
                                     statuspage.isPublicStatusPage
@@ -223,7 +217,7 @@ RunCron(
                                             return r.displayName;
                                         })
                                         .join(', ') || 'None',
-    
+
                                 scheduledAt:
                                     OneUptimeDate.getDateAsFormattedString(
                                         event.startsAt!
@@ -233,7 +227,7 @@ RunCron(
                                 unsubscribeUrl: new URL(HttpProtocol, Domain)
                                     .addRoute(
                                         '/api/status-page-subscriber/unsubscribe/' +
-                                        subscriber._id.toString()
+                                            subscriber._id.toString()
                                     )
                                     .toString(),
                             },
@@ -245,12 +239,7 @@ RunCron(
                         });
                     }
                 }
-
             }
-
         }
-
-
-
     }
 );
