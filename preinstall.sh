@@ -80,8 +80,12 @@ fi
 # if this script is not running in CI/CD
 if [ -z "$CI_PIPELINE_ID" ]
 then
-# try to clone - if folder is already there pull latest for that branch
-git pull
+    if [[ $IS_DOCKER == "true" ]]
+    then
+        echo "Running in docker container. Skipping git pull."
+    else
+        git pull
+    fi
 fi
 
 cd ..
