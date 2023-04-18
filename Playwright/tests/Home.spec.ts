@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('http://localhost:1444/');
+  await page.goto('https://test.oneuptime.com/');
 });
 test.describe('check if pages loades with its title', () => {
 test('has title', async ({ page }) => {
@@ -75,13 +75,13 @@ test('sign in button ', async ({ page }) => {
     await expect(page).toHaveURL(/.*accounts/);
 })
   
-// test('sign up button', async ({ page }) => {
-//   const signUpButton = await page.$("[data-testid='Sign-up']");
-//   if (signUpButton) {
-//     await signUpButton.click();
-//     await expect(page).toHaveURL(/.*accounts\/register/);
-//   }
-// });
+test('sign up button', async ({ page }) => {
+  const signUpButton = await page.$("[data-testid='Sign-up']");
+  if (signUpButton) {
+    await signUpButton.click();
+    await expect(page).toHaveURL(/.*accounts\/register/);
+  }
+});
 
 })
 
