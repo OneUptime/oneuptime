@@ -19,19 +19,19 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                 components={{
                     // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled
                     h1: ({ ...props }: any) => {
-                        return <h1 className="text-4xl " {...props} />;
+                        return <h1 className="text-4xl mt-5" {...props} />;
                     },
                     h2: ({ ...props }: any) => {
-                        return <h1 className="text-3xl " {...props} />;
+                        return <h1 className="text-3xl mt-4" {...props} />;
                     },
                     h3: ({ ...props }: any) => {
-                        return <h1 className="text-2xl " {...props} />;
+                        return <h1 className="text-2xl mt-3" {...props} />;
                     },
                     h4: ({ ...props }: any) => {
-                        return <h1 className="text-xl " {...props} />;
+                        return <h1 className="text-xl mt-2" {...props} />;
                     },
                     h5: ({ ...props }: any) => {
-                        return <h1 className="text-lg " {...props} />;
+                        return <h1 className="text-lg mt-1" {...props} />;
                     },
                     h6: ({ ...props }: any) => {
                         return <h1 className="text-base " {...props} />;

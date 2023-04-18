@@ -16,6 +16,7 @@
   "dependencies": {
     "@greenlock/manager": "^3.1.0",
     "@root/greenlock": "^4.0.5",
+    "@types/markdown-it": "^12.2.3",
     "@types/node-cron": "^3.0.4",
     "acme-http-01-standalone": "^3.0.5",
     "axios": "^1.2.1",
@@ -23,6 +24,7 @@
     "CommonServer": "file:../CommonServer",
     "greenlock": "^4.0.4",
     "greenlock-store-fs": "^3.2.2",
+    "markdown-it": "^13.0.1",
     "Model": "file:../Model",
     "node-cron": "^3.0.2"
   },
