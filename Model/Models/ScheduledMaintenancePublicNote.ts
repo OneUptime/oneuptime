@@ -342,7 +342,6 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     })
     public note?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
