@@ -12,6 +12,8 @@ const RunCron: Function = (
 ): void => {
     JobDictonary.setJobFunction(jobName, runFunction);
 
+    logger.info('Adding job to the queue: ' + jobName);
+
     Queue.addJob(
         QueueName.Worker,
         jobName,

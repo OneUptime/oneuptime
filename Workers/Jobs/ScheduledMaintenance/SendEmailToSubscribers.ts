@@ -21,7 +21,7 @@ import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintena
 import Monitor from 'Model/Models/Monitor';
 
 RunCron(
-    'Incident:SendEmailToSubscribers',
+    'ScheduledMaintenance:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all scheduled events of all the projects.
