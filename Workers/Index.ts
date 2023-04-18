@@ -5,7 +5,6 @@ import App from 'CommonServer/Utils/StartServer';
 import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
 import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 
-
 // Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
@@ -61,7 +60,9 @@ const init: Function = async (): Promise<void> => {
 
                 const funcToRun: Function = JobDictonary.getJobFunction(name);
 
-                await funcToRun();
+                if (funcToRun) {
+                    await funcToRun();
+                }
             },
             { concurrency: 10 }
         );

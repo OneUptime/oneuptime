@@ -19,62 +19,63 @@ import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
-import IncidentPublicNoteService from "CommonServer/Services/IncidentPublicNoteService";
+import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteService';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import Markdown from "CommonServer/Types/Markdown";
+import Markdown from 'CommonServer/Types/Markdown';
 
 RunCron(
     'IncidentPublicNote:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-
         // get all incident notes of all the projects
 
-        const incidentPublicNoteNotes: Array<IncidentPublicNote> = await IncidentPublicNoteService.findBy({
-            query: {
-                isStatusPageSubscribersNotifiedOnNoteCreated: false,
-                createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
-            },
-            props: {
-                isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                note: true,
-                incidentId: true,
-            }
-        });
-
+        const incidentPublicNoteNotes: Array<IncidentPublicNote> =
+            await IncidentPublicNoteService.findBy({
+                query: {
+                    isStatusPageSubscribersNotifiedOnNoteCreated: false,
+                    createdAt: QueryHelper.lessThan(
+                        OneUptimeDate.getCurrentDate()
+                    ),
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    note: true,
+                    incidentId: true,
+                },
+            });
 
         for (const incidentPublicNote of incidentPublicNoteNotes) {
-
-
             if (!incidentPublicNote.incidentId) {
                 continue; // skip if incidentId is not set
             }
 
             // get all scheduled events of all the projects.
-            const incident: Incident | null = await IncidentService.findOneById({
-                id: incidentPublicNote.incidentId!,
-                props: {
-                    isRoot: true,
-                },
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                },
-                populate: {
-                    monitors: {
+            const incident: Incident | null = await IncidentService.findOneById(
+                {
+                    id: incidentPublicNote.incidentId!,
+                    props: {
+                        isRoot: true,
+                    },
+                    select: {
                         _id: true,
+                        title: true,
+                        description: true,
                     },
-                    incidentSeverity: {
-                        name: true,
+                    populate: {
+                        monitors: {
+                            _id: true,
+                        },
+                        incidentSeverity: {
+                            name: true,
+                        },
                     },
-                },
-            });
+                }
+            );
 
             if (!incident) {
                 continue;
@@ -201,16 +202,18 @@ RunCron(
                             templateType:
                                 EmailTemplateType.SubscriberIncidentNoteCreated,
                             vars: {
-                                note: Markdown.convertToHTMML(incidentPublicNote.note!),
+                                note: Markdown.convertToHTMML(
+                                    incidentPublicNote.note!
+                                ),
                                 statusPageName: statusPageName,
                                 statusPageUrl: statusPageURL,
                                 logoUrl: statuspage.logoFileId
                                     ? new URL(HttpProtocol, Domain)
-                                        .addRoute(FileRoute)
-                                        .addRoute(
-                                            '/image/' + statuspage.logoFileId
-                                        )
-                                        .toString()
+                                          .addRoute(FileRoute)
+                                          .addRoute(
+                                              '/image/' + statuspage.logoFileId
+                                          )
+                                          .toString()
                                     : '',
                                 isPublicStatusPage:
                                     statuspage.isPublicStatusPage
@@ -229,7 +232,7 @@ RunCron(
                                 unsubscribeUrl: new URL(HttpProtocol, Domain)
                                     .addRoute(
                                         '/api/status-page-subscriber/unsubscribe/' +
-                                        subscriber._id.toString()
+                                            subscriber._id.toString()
                                     )
                                     .toString(),
                             },
@@ -239,11 +242,7 @@ RunCron(
                         });
                     }
                 }
-
             }
         }
-
-
-
     }
 );
