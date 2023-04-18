@@ -341,4 +341,22 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
         unique: false,
     })
     public note?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Are subscribers notified?',
+        description: 'Are subscribers notified about this note?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isStatusPageSubscribersNotifiedOnNoteCreated?: boolean = undefined;
 }

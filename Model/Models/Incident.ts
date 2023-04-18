@@ -682,8 +682,8 @@ export default class Incident extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
-        title: 'Should subscribers be notified?',
-        description: 'Should we notify the subscribers about this incident?',
+        title: 'Are subscribers notified?',
+        description: 'Are subscribers notified about this incident?',
     })
     @Column({
         type: ColumnType.Boolean,
