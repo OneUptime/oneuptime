@@ -75,13 +75,13 @@ test('sign in button ', async ({ page }) => {
     await expect(page).toHaveURL(/.*accounts/);
 })
   
-// test('sign up button', async ({ page }) => {
-//   const signUpButton = await page.$("[data-testid='Sign-up']");
-//   if (signUpButton) {
-//     await signUpButton.click();
-//     await expect(page).toHaveURL(/.*accounts\/register/);
-//   }
-// });
+test('sign up button', async ({ page }) => {
+  const signUpButton = await page.$("[data-testid='Sign-up']");
+  if (signUpButton) {
+    await signUpButton.click();
+    await expect(page).toHaveURL(/.*accounts\/register/);
+  }
+});
 
 })
 
