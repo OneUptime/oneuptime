@@ -341,7 +341,6 @@ export default class IncidentPublicNote extends BaseModel {
     })
     public note?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
