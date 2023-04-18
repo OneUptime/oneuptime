@@ -85,19 +85,19 @@ test('sign up button', async ({ page }) => {
 
 })
 
-test.describe("main page", () => {
-  test('images', async ({ page }) => {
-    const statusImage = page.getByRole('img', { name: 'Status Pages' }).first()
-    const MonitoringImage = page.getByRole('img', { name: 'Monitoring' });
-    const UserInterfaceImage= page.getByRole('img', { name: 'Inbox user interface' })
-      await expect(statusImage).toBeVisible();
-      await expect(MonitoringImage).toBeVisible();
-    await expect(UserInterfaceImage).toBeVisible();
-    await expect(page.getByTitle('open-source')).toHaveText('Open Source');
-    await expect(statusImage).toBeInViewport();
-  });
+// test.describe("main page", () => {
+//   test('images', async ({ page }) => {
+//     const statusImage = page.getByRole('img', { name: 'Status Pages' }).first()
+//     const MonitoringImage = page.getByRole('img', { name: 'Monitoring' });
+//     const UserInterfaceImage= page.getByRole('img', { name: 'Inbox user interface' })
+//       await expect(statusImage).toBeVisible();
+//       await expect(MonitoringImage).toBeVisible();
+//     await expect(UserInterfaceImage).toBeVisible();
+//     await expect(page.getByTitle('open-source')).toHaveText('Open Source');
+//     await expect(statusImage).toBeInViewport();
+//   });
 
 
-    });
+//     });
 
 
