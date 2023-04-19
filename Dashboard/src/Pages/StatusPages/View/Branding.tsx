@@ -57,7 +57,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Title and Description"
+                name="Status Page > Branding > Title and Description"
                 cardProps={{
                     title: 'Title and Description',
                     description: 'This will also be used for SEO.',
@@ -112,7 +112,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Favicon"
+                name="Status Page > Branding > Favicon"
                 cardProps={{
                     title: 'Favicon',
                     description: 'Favicon will be used for SEO.',

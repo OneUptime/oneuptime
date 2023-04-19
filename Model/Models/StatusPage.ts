@@ -31,6 +31,7 @@ import File from './File';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import { JSONObject } from 'Common/Types/JSON';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import ProjectSmtpConfig from './ProjectSmtpConfig';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -985,4 +986,82 @@ export default class StatusPage extends BaseModel {
         default: false,
     })
     public requireSsoForLogin?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'smtpConfigId',
+        type: TableColumnType.Entity,
+        modelType: ProjectSmtpConfig,
+        title: 'SMTP Config',
+        description:
+            'Relation to SMTP Config Resource which is used to send email to subscribers.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return ProjectSmtpConfig;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'smtpConfigId' })
+    public smtpConfig?: ProjectSmtpConfig = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnPopulate: true,
+        title: 'SMTP Config ID',
+        description:
+            'ID of your SMTP Config Resource which is used to send email to subscribers.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public smtpConfigId?: ObjectID = undefined;
 }

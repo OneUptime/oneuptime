@@ -165,6 +165,17 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.Team}
                 />
             </SideMenuSection>
+            <SideMenuSection title="Email">
+                <SideMenuItem
+                    link={{
+                        title: 'Custom SMTP',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                        ),
+                    }}
+                    icon={IconProp.Email}
+                />
+            </SideMenuSection>
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
@@ -184,22 +195,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Terminal}
                 />
-                {/* <SideMenuItem
-                    link={{
-                        title: 'SSO',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Lock}
-                />
-                <SideMenuItem
-                    link={{
-                        title: 'Custom SMTP',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
-                        ),
-                    }}
-                    icon={IconProp.Email}
-                /> */}
+
                 {/* <SideMenuItem
                     link={{
                         title: 'SMS & Call Provider',

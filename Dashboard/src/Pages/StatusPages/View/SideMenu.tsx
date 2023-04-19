@@ -135,19 +135,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Image}
                 />
 
-                {/* <SideMenuItem
-                    link={{
-                        title: 'Embedded Status Page',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
-                            ] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.Circle}
-                /> */}
-
                 <SideMenuItem
                     link={{
                         title: 'HTML, CSS & JavaScript',
@@ -238,6 +225,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
+            <SideMenuSection title="Emails">
+                <SideMenuItem
+                    link={{
+                        title: 'Custom SMTP',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Email}
+                />
+            </SideMenuSection>
+
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
@@ -251,19 +253,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.TableCells}
                 />
-
-                {/* <SideMenuItem
-                    link={{
-                        title: 'Advanced Settings',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
-                            ] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.Settings}
-                /> */}
 
                 <SideMenuItem
                     link={{
