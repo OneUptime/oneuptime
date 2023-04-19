@@ -1,6 +1,11 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -23,26 +28,20 @@ import EmptyResponseData from 'Common/Types/API/EmptyResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-
 const CustomSMTP: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
-    const [showSMTPTestModal, setShowSMTPTestModal] =
-        useState<boolean>(false);
+    const [showSMTPTestModal, setShowSMTPTestModal] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentSMTPTestConfig, setCurrentSMTPTestConfig] =
         useState<JSONObject | null>(null);
-    const [isSMTPTestLoading, setIsSMTPTestLoading] =
-        useState<boolean>(false);
+    const [isSMTPTestLoading, setIsSMTPTestLoading] = useState<boolean>(false);
 
     const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
     useEffect(() => {
         setError('');
     }, [showSMTPTestModal]);
-
 
     return (
         <Page
@@ -120,7 +119,6 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Email',
                         id: 'email-info',
                     },
-
                 ]}
                 name="Settings > Custom SMTP Config"
                 noItemsMessage={'No SMTP Server Configs found.'}
@@ -257,7 +255,6 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-
             {showSMTPTestModal && currentSMTPTestConfig ? (
                 <BasicFormModal
                     title={`Send Test Email`}
@@ -270,12 +267,13 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                                     toEmail: true,
                                 },
                                 title: 'Email',
-                                description: 'Email address to send test email to.',
+                                description:
+                                    'Email address to send test email to.',
                                 fieldType: FormFieldSchemaType.Email,
                                 required: true,
-                                placeholder: 'test@company.com'
-                            }
-                        ]
+                                placeholder: 'test@company.com',
+                            },
+                        ],
                     }}
                     submitButtonText={'Send Test Email'}
                     onClose={() => {
@@ -289,19 +287,23 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             setError('');
 
                             // test SMTP config
-                            const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse = await API.post(
-
-                                URL.fromString(MAIL_URL.toString()).addRoute(`/smtp-config/test`),
+                            const response:
+                                | HTTPResponse<EmptyResponseData>
+                                | HTTPErrorResponse = await API.post(
+                                URL.fromString(MAIL_URL.toString()).addRoute(
+                                    `/smtp-config/test`
+                                ),
 
                                 {
-                                    'toEmail': values['toEmail'],
-                                    'smtpConfigId': (new ObjectID(
+                                    toEmail: values['toEmail'],
+                                    smtpConfigId: new ObjectID(
                                         currentSMTPTestConfig['_id']
                                             ? currentSMTPTestConfig[
-                                                '_id'
-                                            ].toString()
-                                            : '').toString())
-                                },
+                                                  '_id'
+                                              ].toString()
+                                            : ''
+                                    ).toString(),
+                                }
                             );
                             if (response.isSuccess()) {
                                 setIsSMTPTestLoading(false);
@@ -312,7 +314,6 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             if (response instanceof HTTPErrorResponse) {
                                 throw response;
                             }
-
                         } catch (err) {
                             setError(API.getFriendlyMessage(err));
                             setIsSMTPTestLoading(false);
@@ -323,13 +324,12 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 <></>
             )}
 
-
             {showSuccessModal ? (
                 <ConfirmModal
                     title={`Email Sent`}
                     error={error}
                     description={
-                        "Email sent successfully. Please check your inbox. Please dont forget to check spam. It should take couple of minutes to arrive."
+                        'Email sent successfully. Please check your inbox. Please dont forget to check spam. It should take couple of minutes to arrive.'
                     }
                     submitButtonType={ButtonStyleType.NORMAL}
                     submitButtonText={'Close'}

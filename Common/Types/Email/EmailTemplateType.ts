@@ -14,7 +14,7 @@ enum EmailTemplateType {
     StatusPagePasswordChanged = 'StatusPagePasswordChanged.hbs',
     StatusPageWelcomeEmail = 'StatusPageWelcomeEmail.hbs',
     SubscriberScheduledMaintenanceEventNoteCreated = 'SubscriberScheduledMaintenanceEventNoteCreated.hbs',
-    SMTPTest = 'SMTPTest.hbs'
+    SMTPTest = 'SMTPTest.hbs',
 }
 
 export default EmailTemplateType;

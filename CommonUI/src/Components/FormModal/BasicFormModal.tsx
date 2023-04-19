@@ -21,12 +21,14 @@ export interface ComponentProps<T extends Object> {
 const BasicFormModal: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const [isLoading, setIsLoading] = useState<boolean>(!!props.isLoading);
+    const [isLoading, setIsLoading] = useState<boolean>(
+        Boolean(props.isLoading)
+    );
     const formRef: any = useRef<any>(null);
 
-    useEffect(()=>{
-        setIsLoading(!!props.isLoading);
-    }, [props.isLoading])
+    useEffect(() => {
+        setIsLoading(Boolean(props.isLoading));
+    }, [props.isLoading]);
 
     return (
         <Modal
@@ -40,17 +42,19 @@ const BasicFormModal: Function = <T extends Object>(
             <>
                 {isLoading && <ComponentLoader />}
 
-                {!isLoading && <BasicForm
-                    {...props.formProps}
-                    hideSubmitButton={true}
-                    ref={formRef}
-                    onLoadingChange={(isFormLoading: boolean) => {
-                        setIsLoading(isFormLoading);
-                    }}
-                    onSubmit={(data: T) => {
-                        props.onSubmit && props.onSubmit(data);
-                    }}
-                />}
+                {!isLoading && (
+                    <BasicForm
+                        {...props.formProps}
+                        hideSubmitButton={true}
+                        ref={formRef}
+                        onLoadingChange={(isFormLoading: boolean) => {
+                            setIsLoading(isFormLoading);
+                        }}
+                        onSubmit={(data: T) => {
+                            props.onSubmit && props.onSubmit(data);
+                        }}
+                    />
+                )}
             </>
         </Modal>
     );

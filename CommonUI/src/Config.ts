@@ -94,11 +94,7 @@ export const IDENTITY_URL: URL = new URL(
     IDENTITY_ROUTE
 );
 
-export const MAIL_URL: URL = new URL(
-    HTTP_PROTOCOL,
-    MAIL_HOSTNAME,
-    MAIL_ROUTE
-);
+export const MAIL_URL: URL = new URL(HTTP_PROTOCOL, MAIL_HOSTNAME, MAIL_ROUTE);
 
 export const WORKFLOW_URL: URL = new URL(
     HTTP_PROTOCOL,

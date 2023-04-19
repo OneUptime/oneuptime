@@ -18,16 +18,13 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import logger from 'CommonServer/Utils/Logger';
 
+router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
+    const body: JSONObject = req.body;
 
-router.post(
-    '/test',
-    async (req: ExpressRequest, res: ExpressResponse) => {
+    const smtpConfigId: ObjectID = new ObjectID(body['smtpConfigId'] as string);
 
-        const body: JSONObject = req.body;
-
-        const smtpConfigId = new ObjectID(body['smtpConfigId'] as string);
-
-        const config: ProjectSmtpConfig | null = await ProjectSMTPConfigService.findOneById({
+    const config: ProjectSmtpConfig | null =
+        await ProjectSMTPConfigService.findOneById({
             id: smtpConfigId,
             props: {
                 isRoot: true,
@@ -41,47 +38,61 @@ router.post(
                 fromEmail: true,
                 fromName: true,
                 secure: true,
-            }
-        })
+            },
+        });
 
-
-        if (!config) {
-            return Response.sendErrorResponse(req, res, new BadDataException('smtp-config not found for id' + smtpConfigId.toString()));
-        }
-
-        const toEmail: Email = new Email(body['toEmail'] as string);
-
-        if (!toEmail) {
-            return Response.sendErrorResponse(req, res, new BadDataException('toEmail is required'));
-        }
-
-        const mail: EmailMessage = {
-            templateType: EmailTemplateType.SMTPTest,
-            toEmail: new Email(body['toEmail'] as string),
-            subject: 'Test Email',
-            vars: {},
-            body: '',
-        };
-
-        let mailServer: EmailServer = {
-            host: config.hostname!,
-            port: config.port!,
-            username: config.username!,
-            password: config.password!,
-            fromEmail: config.fromEmail!,
-            fromName: config.fromName!,
-            secure: !!config.secure,
-        };
-
-        try {
-            await MailService.send(mail, mailServer);
-        } catch (err) {
-            logger.error(err);
-            return Response.sendErrorResponse(req, res, new BadDataException('Cannot send email. Please check your SMTP config.'));
-        }
-
-        return Response.sendEmptyResponse(req, res);
+    if (!config) {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(
+                'smtp-config not found for id' + smtpConfigId.toString()
+            )
+        );
     }
-);
+
+    const toEmail: Email = new Email(body['toEmail'] as string);
+
+    if (!toEmail) {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('toEmail is required')
+        );
+    }
+
+    const mail: EmailMessage = {
+        templateType: EmailTemplateType.SMTPTest,
+        toEmail: new Email(body['toEmail'] as string),
+        subject: 'Test Email',
+        vars: {},
+        body: '',
+    };
+
+    const mailServer: EmailServer = {
+        host: config.hostname!,
+        port: config.port!,
+        username: config.username!,
+        password: config.password!,
+        fromEmail: config.fromEmail!,
+        fromName: config.fromName!,
+        secure: Boolean(config.secure),
+    };
+
+    try {
+        await MailService.send(mail, mailServer);
+    } catch (err) {
+        logger.error(err);
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(
+                'Cannot send email. Please check your SMTP config.'
+            )
+        );
+    }
+
+    return Response.sendEmptyResponse(req, res);
+});
 
 export default router;
