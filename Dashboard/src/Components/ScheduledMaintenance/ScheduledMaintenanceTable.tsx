@@ -52,12 +52,35 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             noItemsMessage={
                 props.noItemsMessage || 'No scheduled Maintenance Event found.'
             }
+            formSteps={[
+                {
+                    title: 'Event Info',
+                    id: 'event-info',
+                },
+                {
+                    title: 'Event Time',
+                    id: 'event-time',
+                },
+                {
+                    title: 'Resources Affected',
+                    id: 'resources-affected',
+                },
+                {
+                    title: 'Status Pages',
+                    id: 'status-pages',
+                },
+                {
+                    title: 'Labels',
+                    id: 'labels',
+                },
+            ]}
             formFields={[
                 {
                     field: {
                         title: true,
                     },
                     title: 'Title',
+                    stepId: 'event-info',
                     fieldType: FormFieldSchemaType.Text,
                     required: true,
                     placeholder: 'Event Title',
@@ -70,6 +93,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         description: true,
                     },
                     title: 'Description',
+                    stepId: 'event-info',
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder: 'Description',
@@ -79,6 +103,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         startsAt: true,
                     },
                     title: 'Event Starts At',
+                    stepId: 'event-time',
                     description:
                         'This is in your local timezone - ' +
                         OneUptimeDate.getCurrentTimezoneString(),
@@ -91,6 +116,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         endsAt: true,
                     },
                     title: 'Ends At',
+                    stepId: 'event-time',
                     description:
                         'This is in your local timezone - ' +
                         OneUptimeDate.getCurrentTimezoneString(),
@@ -103,6 +129,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         monitors: true,
                     },
                     title: 'Monitors affected ',
+                    stepId: 'resources-affected',
                     description:
                         'Select monitors affected by this scheduled maintenance.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -119,6 +146,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         changeMonitorStatusTo: true,
                     },
                     title: 'Change Monitor Status to ',
+                    stepId: 'resources-affected',
                     description:
                         'This will change the status of all the monitors attached when the event starts.',
                     fieldType: FormFieldSchemaType.Dropdown,
@@ -135,6 +163,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         statusPages: true,
                     },
                     title: 'Show event on these status pages ',
+                    stepId: 'status-pages',
                     description: 'Select status pages to show this event on',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
@@ -150,6 +179,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         labels: true,
                     },
                     title: 'Labels ',
+                    stepId: 'labels',
                     description:
                         'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,

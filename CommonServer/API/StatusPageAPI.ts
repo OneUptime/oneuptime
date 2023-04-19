@@ -60,6 +60,7 @@ import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService from '../Services/StatusPageSubscriberService';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPageSsoService from '../Services/StatusPageSsoService';
+import StatusPageSSO from 'Model/Models/StatusPageSso';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -217,25 +218,8 @@ export default class StatusPageAPI extends BaseAPI<
                         slug: true,
                         coverImageFileId: true,
                         logoFileId: true,
-                        showAnouncementsPage: true,
-                        showFooter: true,
-                        showHeader: true,
-                        showIncidentsPage: true,
-                        showNavbar: true,
-                        showOverviewPage: true,
-                        showRssPage: true,
-                        showScheduledMaintenancePage: true,
-                        pageTextColor: true,
-                        footerTextColor: true,
-                        headerTextColor: true,
-                        navBarTextColor: true,
                         pageTitle: true,
                         pageDescription: true,
-                        pageBackgroundColor: true,
-                        bannerBackgroundColor: true,
-                        footerBackgroundColor: true,
-                        headerBackgroundColor: true,
-                        navBarBackgroundColor: true,
                         copyrightText: true,
                         customCSS: true,
                         customJavaScript: true,
@@ -350,6 +334,53 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
+                ?.toString()}/sso/:statusPageId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['statusPageId'] as string
+                    );
+
+                    const sso: Array<StatusPageSSO> =
+                        await StatusPageSsoService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                                isEnabled: true,
+                            },
+                            select: {
+                                signOnURL: true,
+                                name: true,
+                                description: true,
+                                _id: true,
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    return Response.sendEntityArrayResponse(
+                        req,
+                        res,
+                        sso,
+                        new PositiveNumber(sso.length),
+                        StatusPageSSO
+                    );
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+        this.router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
                 ?.toString()}/overview/:statusPageId`,
             UserMiddleware.getUserMiddleware,
             async (
@@ -453,12 +484,16 @@ export default class StatusPageAPI extends BaseAPI<
                                 displayName: true,
                                 showStatusHistoryChart: true,
                                 showCurrentStatus: true,
+                                order: true,
                             },
                             populate: {
                                 monitor: {
                                     _id: true,
                                     currentMonitorStatusId: true,
                                 },
+                            },
+                            sort: {
+                                order: SortOrder.Ascending,
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,

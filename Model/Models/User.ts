@@ -46,6 +46,7 @@ import ObjectID from 'Common/Types/ObjectID';
     singularName: 'User',
     pluralName: 'Users',
     icon: IconProp.User,
+    tableDescription: 'A signed up or invited OneUptime user.',
 })
 @CurrentUserCanAccessRecordBy('_id')
 class User extends UserModel {
@@ -116,7 +117,13 @@ class User extends UserModel {
         read: [],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,

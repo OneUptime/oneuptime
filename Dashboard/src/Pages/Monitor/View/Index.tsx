@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -84,8 +84,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-        <Page
-            title={'Monitors'}
+        <ModelPage
+            title="Monitor"
+            modelType={Monitor}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -114,6 +117,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             {/* Monitor View  */}
             <CardModelDetail
                 name="Monitor Details"
+                formSteps={[
+                    {
+                        title: 'Monitor Info',
+                        id: 'monitor-info',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 cardProps={{
                     title: 'Monitor Details',
                     description: "Here's more details for this monitor.",
@@ -125,6 +138,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
+                        stepId: 'monitor-info',
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
@@ -137,6 +151,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'monitor-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -146,6 +161,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
+                        stepId: 'labels',
                         title: 'Labels ',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
@@ -264,7 +280,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     isLoading={isLoading}
                 />
             </Card>
-        </Page>
+        </ModelPage>
     );
 };
 

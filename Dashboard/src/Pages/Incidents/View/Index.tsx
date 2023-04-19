@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -37,8 +37,11 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-        <Page
-            title={'Incidents'}
+        <ModelPage
+            title="Incident"
+            modelType={Incident}
+            modelId={modelId}
+            modelNameField="title"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -73,12 +76,23 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}
+                formSteps={[
+                    {
+                        title: 'Incident Details',
+                        id: 'incident-details',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
                             title: true,
                         },
                         title: 'Incident Title',
+                        stepId: 'incident-details',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Incident Title',
@@ -91,6 +105,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
+                        stepId: 'incident-details',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
@@ -103,6 +118,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         title: 'Incident Severity',
                         description: 'What type of incident is this?',
                         fieldType: FormFieldSchemaType.Dropdown,
+                        stepId: 'incident-details',
                         dropdownModal: {
                             type: IncidentSeverity,
                             labelField: 'name',
@@ -116,6 +132,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels ',
+                        stepId: 'labels',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -368,7 +385,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

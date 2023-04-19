@@ -21,7 +21,7 @@ import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintena
 import Monitor from 'Model/Models/Monitor';
 
 RunCron(
-    'Incident:SendEmailToSubscribers',
+    'ScheduledMaintenance:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all scheduled events of all the projects.
@@ -128,7 +128,7 @@ RunCron(
 
             // get status page resources from monitors.
 
-            const sattusPageResources: Array<StatusPageResource> =
+            const statusPageResources: Array<StatusPageResource> =
                 await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
@@ -157,7 +157,7 @@ RunCron(
             const statusPageToResources: Dictionary<Array<StatusPageResource>> =
                 {};
 
-            for (const resource of sattusPageResources) {
+            for (const resource of statusPageResources) {
                 if (!resource.statusPageId) {
                     continue;
                 }

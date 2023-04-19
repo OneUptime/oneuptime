@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -17,14 +17,18 @@ import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Status Page'}
+        <ModelPage
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -193,139 +197,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Header Colors"
-                cardProps={{
-                    title: 'Header Colors',
-                    description:
-                        'Header background color and text colors for your status page',
-                    icon: IconProp.Layers,
-                }}
-                editButtonText={'Edit Colors'}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            headerBackgroundColor: true,
-                        },
-                        title: 'Header Background Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#ffffff',
-                    },
-                    {
-                        field: {
-                            headerTextColor: true,
-                        },
-                        title: 'Header Text Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#000000',
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                headerBackgroundColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Header Background Color',
-                            placeholder: '#ffffff',
-                        },
-                        {
-                            field: {
-                                headerTextColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Header Text Color',
-                            placeholder: '#000000',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
-
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Cover Image Colors"
-                cardProps={{
-                    title: 'Cover Image Colors',
-                    description:
-                        'Banner background color color for your status page',
-                    icon: IconProp.Layers,
-                }}
-                editButtonText={'Edit Colors'}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            bannerBackgroundColor: true,
-                        },
-                        title: 'Cover Image Background Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#ffffff',
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                bannerBackgroundColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Cover Image Background Color',
-                            placeholder: '#ffffff',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
-
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Advanced Header Settings"
-                cardProps={{
-                    title: 'Advanced Header Settings',
-                    description:
-                        'Advanced settings for your status page header',
-                    icon: IconProp.Settings,
-                }}
-                editButtonText={'Edit Settings'}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            showHeader: true,
-                        },
-                        title: 'Show Header on Status Page',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                showHeader: true,
-                            },
-                            fieldType: FieldType.Boolean,
-                            title: 'Show Header on Status Page',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
-        </Page>
+        </ModelPage>
     );
 };
 

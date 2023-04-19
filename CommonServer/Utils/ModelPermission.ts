@@ -32,8 +32,11 @@ import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { getAllEnvVars, IsBillingEnabled } from '../Config';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
+import UserType from 'Common/Types/UserType';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -952,6 +955,11 @@ export default class ModelPermission {
         // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
 
         if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
+            if (props.userType === UserType.API) {
+                // if its an API request then continue.
+                return;
+            }
+
             // this means the record is not publicly createable and the user is not logged in.
             throw new NotAuthenticatedException(
                 `A user should be logged in to ${type} record of ${
@@ -1000,7 +1008,8 @@ export default class ModelPermission {
 
             if (
                 props.isSubscriptionUnpaid &&
-                !model.allowAccessIfSubscriptionIsUnpaid
+                !model.allowAccessIfSubscriptionIsUnpaid &&
+                props.currentPlan !== PlanSelect.Free
             ) {
                 throw new PaymentRequiredException(
                     'Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.'

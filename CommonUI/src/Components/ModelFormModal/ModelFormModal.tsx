@@ -35,13 +35,25 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
 ): ReactElement => {
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
 
+    const [submitButtonText, setSubmitButtonText] = useState<string>(
+        props.submitButtonText || 'Save'
+    );
+
     const [error, setError] = useState<string>('');
 
     const formRef: any = useRef<any>(null);
+
+    let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
+
+    if (props.formProps.steps && props.formProps.steps.length > 0) {
+        modalWidth = ModalWidth.Medium;
+    }
+
     return (
         <Modal
             {...props}
-            modalWidth={props.modalWidth}
+            submitButtonText={submitButtonText}
+            modalWidth={modalWidth}
             submitButtonType={ButtonType.Submit}
             isLoading={isFormLoading}
             description={props.description}
@@ -57,6 +69,15 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                         {...props.formProps}
                         name={props.name}
                         modelType={props.modelType}
+                        onIsLastFormStep={(isLastFormStep: boolean) => {
+                            if (isLastFormStep) {
+                                setSubmitButtonText(
+                                    props.submitButtonText || 'Save'
+                                );
+                            } else {
+                                setSubmitButtonText('Next');
+                            }
+                        }}
                         modelIdToEdit={props.modelIdToEdit}
                         hideSubmitButton={true}
                         formRef={formRef}

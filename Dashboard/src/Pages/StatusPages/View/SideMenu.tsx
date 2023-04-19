@@ -197,19 +197,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.ArrowCircleDown}
                 />
-
-                <SideMenuItem
-                    link={{
-                        title: 'Navigation',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
-                            ] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.AltGlobe}
-                />
             </SideMenuSection>
 
             <SideMenuSection title="Authentication Security">

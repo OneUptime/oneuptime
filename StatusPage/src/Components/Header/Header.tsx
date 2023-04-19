@@ -22,6 +22,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
         <div>
             {(props.logo || props.links?.length > 0) && (
                 <Header
+                    className="bg-transparent flex justify-between"
                     leftComponents={
                         <>
                             {props.logo && (
@@ -49,9 +50,12 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                                             props.links.map(
                                                 (link: Link, i: number) => {
                                                     return (
-                                                        <div key={i}>
+                                                        <div
+                                                            key={i}
+                                                            className="flex items-center"
+                                                        >
                                                             <UILink
-                                                                className="text-gray-400 hover:text-gray-600 text-sm mr-1"
+                                                                className="flex w-full flex-col items-center text-gray-400 hover:text-gray-600 font-medium font-mono"
                                                                 to={link.to}
                                                                 openInNewTab={
                                                                     link.openInNewTab
@@ -59,6 +63,21 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                                                             >
                                                                 {link.title}
                                                             </UILink>
+                                                            {i + 1 !==
+                                                                props.links
+                                                                    .length && (
+                                                                <svg
+                                                                    viewBox="0 0 2 2"
+                                                                    className="ml-2 inline h-1.5 w-1.5 fill-gray-400"
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    <circle
+                                                                        cx="1"
+                                                                        cy="1"
+                                                                        r="1"
+                                                                    />
+                                                                </svg>
+                                                            )}
                                                         </div>
                                                     );
                                                 }

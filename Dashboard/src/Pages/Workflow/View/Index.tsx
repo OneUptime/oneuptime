@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -23,8 +23,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
     return (
-        <Page
-            title={'Workflow'}
+        <ModelPage
+            title="Workflow"
+            modelType={Workflow}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -66,11 +69,22 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Workflow,
                 }}
                 isEditable={true}
+                formSteps={[
+                    {
+                        title: 'Workflow Info',
+                        id: 'workflow-info',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
                             name: true,
                         },
+                        stepId: 'workflow-info',
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
@@ -83,6 +97,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'workflow-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -99,6 +114,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
+                        stepId: 'labels',
                         title: 'Labels ',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
@@ -169,7 +185,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

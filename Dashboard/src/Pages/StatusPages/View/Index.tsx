@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -24,8 +24,11 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-        <Page
-            title={'Status Page'}
+        <ModelPage
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -61,6 +64,16 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     description: "Here's more details for this status page.",
                     icon: IconProp.CheckCircle,
                 }}
+                formSteps={[
+                    {
+                        title: 'Status Page Info',
+                        id: 'status-page-info',
+                    },
+                    {
+                        title: 'Labels',
+                        id: 'labels',
+                    },
+                ]}
                 isEditable={true}
                 formFields={[
                     {
@@ -68,6 +81,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
+                        stepId: 'status-page-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Status Page Name',
@@ -79,6 +93,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+                        stepId: 'status-page-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -89,6 +104,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels ',
+                        stepId: 'labels',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -151,7 +167,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

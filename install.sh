@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
 
+
+# If its not environment IS_DOCKER then exit
+
+if [[ $IS_DOCKER == "true" ]]
+then
+    echo "This script should run in the docker container."
+else
+    # Pull latest changes
+    git pull
+fi
+
 set -e
 
 bash preinstall.sh
 
-# Pull latest changes
-git pull
+# Load env values from config.env
+export $(grep -v '^#' config.env | xargs)
 
 sudo docker compose pull
 
-
 # Create database if it does not exists
-sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database created" 
+sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database already created" 
 
 # Start all containers.
 npm run start
@@ -61,7 +71,7 @@ bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/workflow
 echo "Workflow Server is up ✔️"
 
 echo "Checking API Docs Server Status..."
-bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/docs/status)" != "200" ]]; do sleep 5; done'
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/reference/status)" != "200" ]]; do sleep 5; done'
 echo "API Docs Server is up ✔️"
 
 

@@ -22,7 +22,9 @@ import Email from 'Common/Types/Email';
 import Phone from 'Common/Types/Phone';
 import URL from 'Common/Types/API/URL';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @EnableWorkflow({
     create: true,
     delete: true,
@@ -65,6 +67,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     singularName: 'Status Page Subscriber',
     pluralName: 'Status Page Subscribers',
     icon: IconProp.Team,
+    tableDescription: 'Subscriber that subscribed to your status page',
 })
 @Entity({
     name: 'StatusPageSubscriber',
@@ -89,6 +92,9 @@ export default class StatusPageSubscriber extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -124,6 +130,9 @@ export default class StatusPageSubscriber extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -151,6 +160,9 @@ export default class StatusPageSubscriber extends BaseModel {
         manyToOneRelationColumn: 'statusPageId',
         type: TableColumnType.Entity,
         modelType: StatusPage,
+        title: 'Status Page',
+        description:
+            'Relation to Status Page Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -182,7 +194,13 @@ export default class StatusPageSubscriber extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Status Page ID',
+        description:
+            'ID of your Status Page resource where this object belongs',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -211,7 +229,12 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.CanEditStatusPageSubscriber,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.Email })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Email,
+        title: 'Email',
+        description: 'Email address of subscriber',
+    })
     @Column({
         nullable: true,
         type: ColumnType.Email,
@@ -241,7 +264,12 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.CanEditStatusPageSubscriber,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.Phone })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Phone,
+        title: 'Phone',
+        description: 'Phone number of subscriber',
+    })
     @Column({
         nullable: true,
         type: ColumnType.Phone,
@@ -271,7 +299,12 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.CanEditStatusPageSubscriber,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.ShortURL })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortURL,
+        title: 'Webhook',
+        description: 'Webhook to ping when events happen on Status Page',
+    })
     @Column({
         nullable: true,
         type: ColumnType.ShortURL,
@@ -298,6 +331,9 @@ export default class StatusPageSubscriber extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -328,7 +364,12 @@ export default class StatusPageSubscriber extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -348,7 +389,10 @@ export default class StatusPageSubscriber extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -370,7 +414,12 @@ export default class StatusPageSubscriber extends BaseModel {
         read: [Permission.CurrentUser],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Is Unsubscribed',
+        description: 'Is Subscriber Unsubscribed?',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,

@@ -257,7 +257,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     });
 
     return (
-        <div className="max-w-5xl m-auto">
+        <div className="max-w-5xl m-auto px-5">
             {
                 <div>
                     <Banner
@@ -271,14 +271,39 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 </div>
             }
             <MasterPage
-                className=" m-auto"
                 makeTopSectionUnstick={true}
-                topSectionClassName="shadow p-1 bg-white rounded mb-5 flex justify-center"
-                hideHeader={!headerHtml && !logo && links.length === 0}
-                footer={
-                    !footerHtml ? (
+                isLoading={props.isLoading || false}
+                error={props.error || ''}
+            >
+                <>
+                    {!headerHtml ? (
+                        <Header
+                            logo={logo}
+                            links={links}
+                            onLogoClicked={() => {
+                                Navigation.navigate(
+                                    props.isPreview
+                                        ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                                        : RouteMap[PageMap.OVERVIEW]!
+                                );
+                            }}
+                        />
+                    ) : (
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: headerHtml as string,
+                            }}
+                        />
+                    )}
+                    <NavBar
+                        isPrivateStatusPage={props.isPrivateStatusPage}
+                        show={true}
+                        isPreview={true}
+                    />
+                    {props.children}
+                    {!footerHtml ? (
                         <Footer
-                            className="inset-x-0 bottom-0 max-w-4xl flex m-auto inset-x-0 bottom-0"
+                            className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8"
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(
                                     masterPageData || {},
@@ -304,40 +329,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                                 __html: footerHtml as string,
                             }}
                         />
-                    )
-                }
-                header={
-                    !headerHtml ? (
-                        <Header
-                            logo={logo}
-                            links={links}
-                            onLogoClicked={() => {
-                                Navigation.navigate(
-                                    props.isPreview
-                                        ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
-                                        : RouteMap[PageMap.OVERVIEW]!
-                                );
-                            }}
-                        />
-                    ) : (
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: headerHtml as string,
-                            }}
-                        />
-                    )
-                }
-                navBar={
-                    <NavBar
-                        isPrivateStatusPage={props.isPrivateStatusPage}
-                        show={true}
-                        isPreview={true}
-                    />
-                }
-                isLoading={props.isLoading || false}
-                error={props.error || ''}
-            >
-                {props.children}
+                    )}
+                </>
             </MasterPage>
         </div>
     );

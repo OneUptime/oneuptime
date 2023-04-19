@@ -18,7 +18,9 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @CanAccessIfCanReadOn('scheduledMaintenance')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -62,6 +64,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     icon: IconProp.List,
     singularName: 'Scheduled Maintenance State Tiemline',
     pluralName: 'Scheduled Maintenance State Timelines',
+    tableDescription: 'Change state of your scheduled maintenance event.',
 })
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
@@ -83,6 +86,9 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -118,6 +124,9 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -145,6 +154,9 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'scheduledMaintenanceId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenance,
+        title: 'Scheduled Maintenance',
+        description:
+            'Relation to Scheduled Maintenance Event this resource belongs to',
     })
     @ManyToOne(
         (_type: string) => {
@@ -176,7 +188,12 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Scheduled Maintenance ID',
+        description: 'ID of Scheduled Maintenance this resource belongs to',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -203,6 +220,9 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -233,7 +253,12 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -248,7 +273,10 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -270,7 +298,12 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -302,6 +335,9 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         manyToOneRelationColumn: 'scheduledMaintenanceStateId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenanceState,
+        title: 'Scheduled Maintenance State',
+        description:
+            'Which state does this event belongs to?. Relation to Scheduled Maintenance State',
     })
     @ManyToOne(
         (_type: string) => {
@@ -337,7 +373,13 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Scheduled Maintenance State ID',
+        description:
+            ' Scheduled Maintenance State ID. Which state does this event belongs to?',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

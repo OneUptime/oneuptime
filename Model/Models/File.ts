@@ -12,6 +12,7 @@ import Permission from 'Common/Types/Permission';
     singularName: 'File',
     pluralName: 'Files',
     icon: IconProp.File,
+    tableDescription: 'BLOB or File storage',
 })
 @Entity({
     name: 'File',

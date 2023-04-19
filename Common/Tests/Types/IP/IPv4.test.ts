@@ -14,6 +14,6 @@ describe('IPv4()', () => {
     test('Is not a valid address', () => {
         expect(() => {
             new IP('Invalid IP');
-        }).toThrow('IP is not a valid IPv4 address');
+        }).toThrow('IP is not a valid address');
     });
 });

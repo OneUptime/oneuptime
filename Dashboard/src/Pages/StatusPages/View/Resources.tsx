@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -30,6 +30,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import API from 'CommonUI/src/Utils/API/API';
+import StatusPage from 'Model/Models/StatusPage';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -259,8 +260,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-        <Page
-            title={'Status Page'}
+        <ModelPage
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -308,7 +312,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     <></>
                 )}
             </>
-        </Page>
+        </ModelPage>
     );
 };
 

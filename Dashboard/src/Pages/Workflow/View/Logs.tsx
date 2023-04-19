@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -18,6 +18,7 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import WorkflowStatusElement from 'CommonUI/src/Components/Workflow/WorkflowStatus';
+import Workflow from 'Model/Models/Workflow';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,8 +29,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [logs, setLogs] = useState<string>('');
 
     return (
-        <Page
-            title={'Workflow'}
+        <ModelPage
+            title="Workflow"
+            modelType={Workflow}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -189,7 +193,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     </Modal>
                 )}
             </>
-        </Page>
+        </ModelPage>
     );
 };
 

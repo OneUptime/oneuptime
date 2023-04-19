@@ -12,4 +12,18 @@ export default class ArrayUtil {
         // Compare the sorted arrays
         return sortedArr1 === sortedArr2;
     }
+
+    public static sortByFieldName(
+        fieldName: string
+    ): (a: any, b: any) => number {
+        return (a: any, b: any): number => {
+            if (a[fieldName] < b[fieldName]) {
+                return -1;
+            }
+            if (a[fieldName] > b[fieldName]) {
+                return 1;
+            }
+            return 0;
+        };
+    }
 }

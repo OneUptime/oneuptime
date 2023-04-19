@@ -1,208 +1,98 @@
-export default class MonitorCriteriaInstance {}
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from '../Database/DatabaseProperty';
+import { JSONObject } from '../JSON';
+import ObjectID from '../ObjectID';
 
-/*
- * @Column()
- * const criterionEventSchema!: Schema = new Schema({
- */
+export enum CheckOn {
+    ResponseTime = 'Response Time',
+    ResponseCode = 'Response Code',
+    ResponseHeader = 'Response Header',
+    ResponseBody = 'Response Body',
+    IsOnline = 'Is Online',
+}
 
-/*
- *  @Column()
- * schedules!: [String];
- */
+export interface CriteriaFilter {
+    checkOn: CheckOn;
+    filterType: FilterType;
+    value: string | number;
+}
 
-/*
- * @Column()
- * createAlert!: boolean;
- */
+export interface CriteriaIncident {
+    title: string;
+    description: string;
+    incidentSeverityId: ObjectID;
+}
 
-/*
- * @Column()
- * autoAcknowledge!: boolean;
- */
+export enum FilterType {
+    EqualTo = 'Equal To',
+    NotEqualTo = 'Not Equal To',
+    GreaterThan = 'Greater Than',
+    LessThan = 'Less Than',
+    GreaterThanOrEqualTo = 'Greater Than Or Equal To',
+    LessThanOrEqualTo = 'Less Than Or Equal To',
+    Contains = 'Contains',
+    NotContains = 'Not Contains',
+    StartsWith = 'Starts With',
+    EndsWith = 'Ends With',
+    IsEmpty = 'Is Empty',
+    IsNotEmpty = 'Is Not Empty',
+}
 
-/*
- * @Column()
- * autoResolve!: boolean;
- */
+export enum FilterCondtion {
+    All = 'All',
+    Any = 'Any',
+}
 
-/*
- * @Column()
- * title: { type: string, default !: '' };
- */
+export interface MonitorCriteriaInstanceType {
+    monitorStateId: ObjectID;
+    filter: {
+        filterCondition: FilterCondtion;
+        filters: Array<CriteriaFilter>;
+    };
+    createIncidents: Array<CriteriaIncident>;
+}
 
-/*
- * @Column()
- * description: { type: string, default !: '' };
- */
+export default class MonitorCriteriaInstance extends DatabaseProperty {
+    public monitorCriteriaInstance: JSONObject = {};
 
-/*
- * @Column()
- *     default !: boolean;
- */
+    public constructor() {
+        super();
+    }
 
-/*
- * @Column()
- * name!: string;
- */
+    public toJSON(): JSONObject {
+        return this.monitorCriteriaInstance;
+    }
 
-/*
- * @Column()
- * criteria!: {
- */
+    public fromJSON(json: JSONObject): MonitorCriteriaInstance {
+        this.monitorCriteriaInstance = json;
+        return this;
+    }
 
-/*
- *    @Column()
- *    condition!: string;
- */
+    public static isValid(_json: JSONObject): boolean {
+        return true;
+    }
 
-/*
- *    @Column()
- *    criteria!: [Schema.Types.Mixed];
- * };
- */
+    protected static override toDatabase(
+        _value: MonitorCriteriaInstance | FindOperator<MonitorCriteriaInstance>
+    ): JSONObject | null {
+        if (_value) {
+            return (_value as MonitorCriteriaInstance).toJSON();
+        }
 
-/*
- * @Column()
- * scripts!: [
- *    {
- */
+        return null;
+    }
 
-/*
- *  @Column()
- * script!: {
- */
+    protected static override fromDatabase(
+        value: JSONObject
+    ): MonitorCriteriaInstance | null {
+        if (value) {
+            return new MonitorCriteriaInstance().fromJSON(value);
+        }
 
-/*
- *    @Column()
- *       type!: Schema.Types.Object;
- */
+        return null;
+    }
 
-/*
- *    @Column()
- *    ref!: 'AutomationSript';
- */
-
-/*
- *    @Column()
- *    index!: true;
- * };
- *         };
- *     ];
- * }
- */
-
-/**
- * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
- * Depending of on the level, criteria will house all the conditions;
- * in addition to nested condition if present (the nested condition will follow the same structural pattern)
- *
- *
- * /*
- *  @Column()
- *  * criteria!: {
- */
-
-/*
- *  @Column()
- *  *  condition!: 'and';
- */
-
-/*
- *  @Column()
- *  *  criteria!: [
- *  *      {
- */
-
-/*
- *  @Column()
- *  *         condition!: 'or';
- */
-
-/*
- *  @Column()
- *  *         criteria!: [
- *  *            {
- */
-
-/*
- *  @Column()
- *  *               "responseType"!: "requestBody";
- */
-
-/*
- *  @Column()
- *  *               "filter"!: "equalTo";
- */
-
-/*
- *  @Column()
- *  *                "field1"!: "ok"
- *  *            };
- *  *            {
- */
-
-/*
- *  @Column()
- *  *               "responseType"!: "requestBody";
- */
-
-/*
- *  @Column()
- *  *               "filter"!: "equalTo";
- */
-
-/*
- *  @Column()
- *  *                "field1"!: "healthy"
- *  *            };
- *  *            {
- */
-
-/*
- *  @Column()
- *  *               condition!: 'and';
- */
-
-/*
- *  @Column()
- *  *               criteria!: [{}, {}; ...]
- *  *            }
- *  *         ]
- *  *      };
- *  *      {
- */
-
-/*
- *  @Column()
- *  *          "responseType"!: "statusCode";
- */
-
-/*
- *  @Column()
- *  *           "filter"!: "equalTo";
- */
-
-/*
- *  @Column()
- *  *           "field1"!: "200"
- *  *      };
- *  *      {
- */
-
-/*
- *  @Column()
- *  *           "responseType"!: "requestTime";
- */
-
-/*
- *  @Column()
- *  *           "filter"!: "lessthan";
- */
-
-//  @Column()
-//  *           "field1"!: "1000"
-//  *      };
-//  *      ...
-//  *   ]
-//  * }
-//  */
+    public override toString(): string {
+        return JSON.stringify(this.toJSON());
+    }
+}

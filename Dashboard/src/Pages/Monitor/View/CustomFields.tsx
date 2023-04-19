@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -18,8 +18,11 @@ const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Monitors'}
+        <ModelPage
+            title="Monitor"
+            modelType={Monitor}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -61,7 +64,7 @@ const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
                 projectId={ProjectUtil.getCurrentProject()!.id!}
                 modelId={modelId}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

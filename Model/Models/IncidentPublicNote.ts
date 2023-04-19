@@ -17,7 +17,9 @@ import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @CanAccessIfCanReadOn('incident')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -61,6 +63,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     singularName: 'Incident Public Note',
     pluralName: 'Incident Public Notes',
     icon: IconProp.Team,
+    tableDescription: 'Manage public notes for your incident',
 })
 export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
@@ -82,6 +85,9 @@ export default class IncidentPublicNote extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -117,6 +123,9 @@ export default class IncidentPublicNote extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -144,6 +153,8 @@ export default class IncidentPublicNote extends BaseModel {
         manyToOneRelationColumn: 'incidentId',
         type: TableColumnType.Entity,
         modelType: Incident,
+        title: 'Incident',
+        description: 'Relation to Incident in which this resource belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -175,7 +186,12 @@ export default class IncidentPublicNote extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Incident ID',
+        description: 'Relation to Incident ID in which this resource belongs',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -202,6 +218,9 @@ export default class IncidentPublicNote extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -232,7 +251,12 @@ export default class IncidentPublicNote extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -247,7 +271,10 @@ export default class IncidentPublicNote extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -269,7 +296,12 @@ export default class IncidentPublicNote extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -297,11 +329,32 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.CanEditIncidentPublicNote,
         ],
     })
-    @TableColumn({ type: TableColumnType.Markdown })
+    @TableColumn({
+        type: TableColumnType.Markdown,
+        title: 'Note',
+        description: 'Notes in markdown',
+    })
     @Column({
         type: ColumnType.Markdown,
         nullable: false,
         unique: false,
     })
     public note?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Are subscribers notified?',
+        description: 'Are subscribers notified about this note?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isStatusPageSubscribersNotifiedOnNoteCreated?: boolean = undefined;
 }

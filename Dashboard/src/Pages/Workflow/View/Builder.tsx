@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -243,8 +243,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
     }, []);
 
     return (
-        <Page
-            title={'Workflow'}
+        <ModelPage
+            title="Workflow"
+            modelType={WorkflowModel}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -297,7 +300,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             </div>
                             <div>
                                 <Button
-                                    title="Run Wrokflow Manually"
+                                    title="Run Workflow Manually"
                                     icon={IconProp.Play}
                                     onClick={() => {
                                         setShowRunModal(true);
@@ -377,7 +380,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     />
                 )}
             </>
-        </Page>
+        </ModelPage>
     );
 };
 

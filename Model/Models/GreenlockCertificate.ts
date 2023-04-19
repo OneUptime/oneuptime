@@ -19,6 +19,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
     singularName: 'Greenlock Certificate',
     pluralName: 'Greenlock Certificate',
     icon: IconProp.Lock,
+    tableDescription: 'Lets Encrypt Certificates',
 })
 @Entity({
     name: 'GreenlockCertificate',

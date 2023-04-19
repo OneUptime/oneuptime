@@ -23,6 +23,6 @@ LICENSE
 marketing/*/*
 licenses/*
 certifications/*
-ApiDocs/public/assets/*
+ApiReference/public/assets/*
 JavaScriptSDK/src/cli/server-monitor/out/scripts/prettify/*
 _test/*

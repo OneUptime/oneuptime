@@ -10,6 +10,7 @@ import { VeryLightGrey } from 'Common/Types/BrandColors';
 
 export enum ModalWidth {
     Normal,
+    Medium,
     Large,
 }
 
@@ -63,8 +64,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                             props.modalWidth &&
                             props.modalWidth === ModalWidth.Large
                                 ? 'sm:max-w-7xl'
-                                : 'sm:max-w-lg'
-                        } `}
+                                : ''
+                        } ${
+                            props.modalWidth &&
+                            props.modalWidth === ModalWidth.Medium
+                                ? 'sm:max-w-3xl'
+                                : ''
+                        } ${!props.modalWidth ? 'sm:max-w-lg' : ''} `}
                     >
                         {props.onClose && (
                             <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">

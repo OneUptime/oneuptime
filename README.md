@@ -8,7 +8,7 @@
   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oneuptime/app"/>
 </p>
 
-OneUptime is an open-source complete SRE and DevOps platform.
+**OneUptime is an open-source complete SRE and DevOps platform.**
 
 OneUptime monitors your website, dashboards, API's, and more and alerts your team when downtime happens. We also give you a Status Page which keeps your customers looped in and improves transparency.
 
@@ -38,6 +38,7 @@ Deploy a single-server instance in one line on Debian / Ubuntu with Docker (reco
 
  ```bash 
   git clone https://github.com/OneUptime/oneuptime
+  cd oneuptime
   bash preinstall.sh
  ``` 
 
@@ -68,6 +69,8 @@ To update:
 ```
 bash install.sh
 ```
+
+OneUptime should run at: https://localhost. You need to register a new account for your instance to start using it.
 
 Provisioning your SSL Certificate from LetsEncrypt: 
 

@@ -16,6 +16,7 @@ export default interface Field<TEntity> {
     placeholder?: string;
     forceShow?: boolean; // show this field even if user does not have permissions to view.
     disabled?: boolean;
+    stepId?: string | undefined;
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
     dropdownModal?: {

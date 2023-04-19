@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -17,14 +17,18 @@ import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Status Page'}
+        <ModelPage
+            title="Status Page"
+            modelType={StatusPage}
+            modelId={modelId}
+            modelNameField="name"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -170,100 +174,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Footer Colors"
-                cardProps={{
-                    title: 'Footer Colors',
-                    description:
-                        'Footer background color and text colors for your status page',
-                    icon: IconProp.Layers,
-                }}
-                editButtonText={'Edit Colors'}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            footerBackgroundColor: true,
-                        },
-                        title: 'Footer Background Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#ffffff',
-                    },
-                    {
-                        field: {
-                            footerTextColor: true,
-                        },
-                        title: 'Footer Text Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: false,
-                        placeholder: '#000000',
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                footerBackgroundColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Footer Background Color',
-                            placeholder: '#ffffff',
-                        },
-                        {
-                            field: {
-                                footerTextColor: true,
-                            },
-                            fieldType: FieldType.Color,
-                            title: 'Footer Text Color',
-                            placeholder: '#000000',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
-
-            <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Advanced Footer Settings"
-                cardProps={{
-                    title: 'Advanced Footer Settings',
-                    description:
-                        'Advanced settings for your status page footer',
-                    icon: IconProp.Settings,
-                }}
-                editButtonText={'Edit Settings'}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            showFooter: true,
-                        },
-                        title: 'Show Footer on Status Page',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
-                    fields: [
-                        {
-                            field: {
-                                showFooter: true,
-                            },
-                            fieldType: FieldType.Boolean,
-                            title: 'Show Footer on Status Page',
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
-        </Page>
+        </ModelPage>
     );
 };
 

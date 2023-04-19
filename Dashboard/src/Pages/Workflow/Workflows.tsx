@@ -86,11 +86,22 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             'Here is a list of workflows for this project.',
                     }}
                     noItemsMessage={'No workflows found.'}
+                    formSteps={[
+                        {
+                            title: 'Workflow Info',
+                            id: 'workflow-info',
+                        },
+                        {
+                            title: 'Labels',
+                            id: 'labels',
+                        },
+                    ]}
                     formFields={[
                         {
                             field: {
                                 name: true,
                             },
+                            stepId: 'workflow-info',
                             title: 'Name',
                             fieldType: FormFieldSchemaType.Text,
                             required: true,
@@ -103,6 +114,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             field: {
                                 description: true,
                             },
+                            stepId: 'workflow-info',
                             title: 'Description',
                             fieldType: FormFieldSchemaType.LongText,
                             required: true,
@@ -112,6 +124,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             field: {
                                 isEnabled: true,
                             },
+                            stepId: 'workflow-info',
                             title: 'Enabled',
                             fieldType: FormFieldSchemaType.Toggle,
                         },
@@ -119,6 +132,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             field: {
                                 labels: true,
                             },
+                            stepId: 'labels',
                             title: 'Labels ',
                             description:
                                 'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',

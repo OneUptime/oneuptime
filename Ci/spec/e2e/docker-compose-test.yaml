@@ -21,7 +21,7 @@ e2e_docker_compose_test:
         - export DASHBOARD_URL=http://localhost:3000
         - export BACKEND_URL=http://localhost:3002
         - export STATUSPAGE_URL=http://localhost:3006
-        - export APIDOCS_URL=http://localhost:1445
+        - export ApiReference_URL=http://localhost:1445
         - cd tests
         - npm install
         - npm run test

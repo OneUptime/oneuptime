@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
@@ -22,14 +22,18 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <Page
-            title={'Scheduled Maintenance Event'}
+        <ModelPage
+            title="Scheduled Event"
+            modelType={ScheduledMaintenance}
+            modelId={modelId}
+            modelNameField="title"
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -159,7 +163,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: '',
                         type: FieldType.DateTime,
                         contentClassName:
-                            'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3',
+                            'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3 text-right',
                     },
                     {
                         field: {
@@ -174,7 +178,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </ModelPage>
     );
 };
 

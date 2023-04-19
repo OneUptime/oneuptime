@@ -33,7 +33,9 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
 import Label from './Label';
 import StatusPage from './StatusPage';
 import { JSONObject } from 'Common/Types/JSON';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
@@ -79,6 +81,7 @@ import { JSONObject } from 'Common/Types/JSON';
     pluralName: 'Scheduled Maintenance Events',
     icon: IconProp.Clock,
     tableName: 'ScheduledMaintenance',
+    tableDescription: 'Manage scheduled maintenance event for your project',
 })
 export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
@@ -100,6 +103,9 @@ export default class ScheduledMaintenance extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -135,6 +141,9 @@ export default class ScheduledMaintenance extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -168,6 +177,8 @@ export default class ScheduledMaintenance extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         canReadOnPopulate: true,
+        title: 'Title',
+        description: 'Title of this scheduled event.',
     })
     @Column({
         nullable: false,
@@ -196,7 +207,12 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Any friendly description of this object',
+    })
     @Column({
         nullable: true,
         type: ColumnType.LongText,
@@ -220,7 +236,13 @@ export default class ScheduledMaintenance extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        title: 'Slug',
+        description: 'Friendly globally unique name for your object',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -248,6 +270,9 @@ export default class ScheduledMaintenance extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -278,7 +303,12 @@ export default class ScheduledMaintenance extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -293,7 +323,10 @@ export default class ScheduledMaintenance extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -315,7 +348,12 @@ export default class ScheduledMaintenance extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -347,6 +385,8 @@ export default class ScheduledMaintenance extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Monitor,
+        title: 'Monitors',
+        description: 'List of monitors attached to this event',
     })
     @ManyToMany(
         () => {
@@ -391,6 +431,8 @@ export default class ScheduledMaintenance extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: StatusPage,
+        title: 'Status Pages',
+        description: 'List of status pages to show this event on',
     })
     @ManyToMany(
         () => {
@@ -435,6 +477,9 @@ export default class ScheduledMaintenance extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this object is categorized in.',
     })
     @ManyToMany(
         () => {
@@ -479,6 +524,9 @@ export default class ScheduledMaintenance extends BaseModel {
         manyToOneRelationColumn: 'currentScheduledMaintenanceStateId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenanceState,
+        title: 'Current Scheduled Maintenance State',
+        description:
+            'Relation to Scheduled Maintenance State. The state the event currently is in.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -514,7 +562,13 @@ export default class ScheduledMaintenance extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Current Scheduled Maintenance State ID',
+        description:
+            'Scheduled Maintenance State ID. The state the event currently is in.',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -541,6 +595,9 @@ export default class ScheduledMaintenance extends BaseModel {
         manyToOneRelationColumn: 'changeMonitorStatusToId',
         type: TableColumnType.Entity,
         modelType: ScheduledMaintenanceState,
+        title: 'Change Monitor Status To',
+        description:
+            'Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -576,7 +633,13 @@ export default class ScheduledMaintenance extends BaseModel {
         ],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: false })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        title: 'Change Monitor Status To ID',
+        description:
+            'Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the event is ongoing.',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -588,6 +651,7 @@ export default class ScheduledMaintenance extends BaseModel {
         title: 'Start At',
         type: TableColumnType.Date,
         required: true,
+        description: 'When does this event start?',
     })
     @ColumnAccessControl({
         create: [
@@ -619,6 +683,7 @@ export default class ScheduledMaintenance extends BaseModel {
         title: 'End At',
         type: TableColumnType.Date,
         required: true,
+        description: 'When does this event end?',
     })
     @ColumnAccessControl({
         create: [
@@ -651,7 +716,12 @@ export default class ScheduledMaintenance extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Status Page Subscribers Notified On Event Scheduled',
+        description: 'Status Page Subscribers Notified On Event Scheduled',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -663,7 +733,12 @@ export default class ScheduledMaintenance extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Status Page Subscribers Notified On Ongoing Event',
+        description: 'Status Page Subscribers Notified On Ongoing Event',
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -694,6 +769,8 @@ export default class ScheduledMaintenance extends BaseModel {
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.JSON,
+        title: 'Custom Fields',
+        description: 'Custom Fields on this resource.',
     })
     @Column({
         type: ColumnType.JSON,

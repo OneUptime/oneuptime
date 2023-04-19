@@ -6,6 +6,8 @@ import { FindOperator } from 'typeorm';
 import Dictionary from '../Dictionary';
 import Typeof from '../Typeof';
 import Email from '../Email';
+import { JSONObject } from '../JSON';
+import BadDataException from '../Exception/BadDataException';
 
 export default class URL extends DatabaseProperty {
     private _route: Route = new Route();
@@ -178,6 +180,25 @@ export default class URL extends DatabaseProperty {
 
     public removeQueryString(): URL {
         return URL.fromString(this.toString().split('?')[0] || '');
+    }
+
+    public toJSON(): JSONObject {
+        return {
+            value: this.toString(),
+            _type: 'URL',
+        };
+    }
+
+    public static fromJSON(json: JSONObject): URL {
+        if (json && json['_type'] !== 'URL') {
+            throw new BadDataException('Invalid JSON for URL');
+        }
+
+        if (json && json['value'] && typeof json['value'] === Typeof.String) {
+            throw new BadDataException('Invalid JSON for URL');
+        }
+
+        return URL.fromString(json['value'] as string);
     }
 
     public addRoute(route: Route | string): URL {

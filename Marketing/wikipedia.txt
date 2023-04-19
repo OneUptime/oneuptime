@@ -32,7 +32,7 @@ In 2017, OneUptime launched an update with let's customers build beautiful and c
 * {{Official Website|https://www.oneuptime.com}}
 * [https://oneuptime.com HackerBay]
 * [https://blog.oneuptime.com Official Blog]
-* [https://oneuptime.com/docs API Reference]
+* [https://oneuptime.com/reference API Reference]
 * [https://oneuptime.com/customers Customers]
 
 {{authority control}}

@@ -6,7 +6,10 @@ ONEUPTIME_SECRET=$(openssl rand -hex 12)
 export ONEUPTIME_SECRET=$ONEUPTIME_SECRET
 
 DATABASE_PASSWORD=$(openssl rand -hex 12)
-export DATABASE_PASSWORD=$DATABASE_PASSWORD.
+export DATABASE_PASSWORD=$DATABASE_PASSWORD
+
+CLICKHOUSE_PASSWORD=$(openssl rand -hex 12)
+export CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
 
 REDIS_PASSWORD=$(openssl rand -hex 12)
 export REDIS_PASSWORD=$REDIS_PASSWORD
@@ -58,19 +61,31 @@ if [[ ! $(which git) ]]; then
     fi
 fi
 
-GIT_REPO_URL=$(git config --get remote.origin.url)
 
-if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
+if [[ $IS_DOCKER == "true" ]]
 then
-  git clone https://github.com/OneUptime/oneuptime.git || true
-  cd oneuptime
+    echo "This script should run in the docker container."
+else
+    GIT_REPO_URL=$(git config --get remote.origin.url)
+
+    if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
+    then
+        git clone https://github.com/OneUptime/oneuptime.git || true
+        cd oneuptime
+    fi
 fi
+
+
 
 # if this script is not running in CI/CD
 if [ -z "$CI_PIPELINE_ID" ]
 then
-# try to clone - if folder is already there pull latest for that branch
-git pull
+    if [[ $IS_DOCKER == "true" ]]
+    then
+        echo "Running in docker container. Skipping git pull."
+    else
+        git pull
+    fi
 fi
 
 cd ..
@@ -172,7 +187,7 @@ export $(grep -v '^#' config.env | xargs)
 # Write env vars in config files. 
 
 
-for directory_name in $(find . -type d -maxdepth 1) ; do
+for directory_name in $(find . -maxdepth 1 -type d) ; do
     if [ -f "$directory_name/.env.tpl" ]; then
         cat $directory_name/.env.tpl | gomplate > $directory_name/.env
     fi

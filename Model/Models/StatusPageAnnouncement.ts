@@ -27,7 +27,9 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from './StatusPage';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @TenantColumn('projectId')
 @CanAccessIfCanReadOn('statusPages')
 @TableAccessControl({
@@ -69,6 +71,7 @@ import StatusPage from './StatusPage';
     singularName: 'Status Page Announcement',
     pluralName: 'Status Page Announcements',
     icon: IconProp.Anouncement,
+    tableDescription: 'Manage announcements on your status page',
 })
 @Entity({
     name: 'StatusPageAnnouncement',
@@ -93,6 +96,9 @@ export default class StatusPageAnnouncement extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -128,6 +134,9 @@ export default class StatusPageAnnouncement extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -155,6 +164,8 @@ export default class StatusPageAnnouncement extends BaseModel {
         required: false,
         type: TableColumnType.EntityArray,
         modelType: StatusPage,
+        title: 'Status Pages',
+        description: 'Status Pages to show show this announcement on.',
     })
     @ManyToMany(
         () => {
@@ -195,7 +206,12 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Title',
+        description: 'Title of this resource',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -207,6 +223,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         title: 'Show At',
         type: TableColumnType.Date,
         required: true,
+        description: 'When should this announcement be shown?',
     })
     @ColumnAccessControl({
         create: [
@@ -238,6 +255,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         title: 'End At',
         type: TableColumnType.Date,
         required: true,
+        description: 'When should this announcement hidden?',
     })
     @ColumnAccessControl({
         create: [
@@ -285,7 +303,12 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.Markdown })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Markdown,
+        title: 'Announcement Description',
+        description: 'Text of the announcement. This is in Markdown.',
+    })
     @Column({
         nullable: false,
         type: ColumnType.Markdown,
@@ -311,6 +334,9 @@ export default class StatusPageAnnouncement extends BaseModel {
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
+        title: 'Created by User',
+        description:
+            'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
         (_type: string) => {
@@ -341,7 +367,12 @@ export default class StatusPageAnnouncement extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Created by User ID',
+        description:
+            'User ID who created this object (if this object was created by a User)',
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -361,7 +392,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
         (_type: string) => {

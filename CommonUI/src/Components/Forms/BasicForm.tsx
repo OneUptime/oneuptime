@@ -1,10 +1,12 @@
 import React, {
     forwardRef,
     ForwardRefExoticComponent,
+    MutableRefObject,
     ReactElement,
     Ref,
     useEffect,
     useImperativeHandle,
+    useRef,
     useState,
 } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
@@ -42,6 +44,8 @@ import RadioButtons from '../RadioButtons/RadioButtons';
 import UiAnalytics from '../../Utils/Analytics';
 import Dictionary from 'Common/Types/Dictionary';
 import Field from './Types/Field';
+import { FormStep } from './Types/FormStep';
+import Steps from './Steps/Steps';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -58,6 +62,7 @@ export interface ComponentProps<T extends Object> {
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
     fields: Fields<T>;
+    steps?: undefined | Array<FormStep>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
     description?: undefined | string;
@@ -69,6 +74,8 @@ export interface ComponentProps<T extends Object> {
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
     hideSubmitButton?: undefined | boolean;
+    onFormStepChange?: undefined | ((stepId: string) => void);
+    onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
@@ -102,9 +109,66 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         props: ComponentProps<T>,
         ref: Ref<any>
     ): ReactElement => {
+        const isSubmitting: MutableRefObject<boolean> = useRef(false);
+
+        const [submitButtonText, setSubmitButtonText] = useState<string>(
+            props.submitButtonText || 'Submit'
+        );
+
+        const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
+
+        const refCurrentValue: MutableRefObject<FormValues<T>> = useRef(
+            props.initialValues
+        );
+
+        const [currentFormStepId, setCurrentFormStepId] = useState<
+            string | null
+        >(null);
+
+        useEffect(() => {
+            if (props.steps && props.steps.length > 0 && props.steps[0]) {
+                setCurrentFormStepId(props.steps[0].id);
+            }
+        }, []);
+
+        useEffect(() => {
+            // if last step,
+
+            if (
+                props.steps &&
+                props.steps.length > 0 &&
+                (
+                    (props.steps as Array<FormStep>)[
+                        props.steps.length - 1
+                    ] as FormStep
+                ).id === currentFormStepId
+            ) {
+                setSubmitButtonText(props.submitButtonText || 'Submit');
+                if (props.onIsLastFormStep) {
+                    props.onIsLastFormStep(true);
+                }
+            } else {
+                setSubmitButtonText('Next');
+                if (props.onIsLastFormStep) {
+                    props.onIsLastFormStep(false);
+                }
+            }
+
+            if (props.onFormStepChange && currentFormStepId) {
+                props.onFormStepChange(currentFormStepId);
+            }
+
+            if (!currentFormStepId) {
+                if (props.onIsLastFormStep) {
+                    props.onIsLastFormStep(true);
+                }
+            }
+        }, [currentFormStepId]);
+
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
             props.initialValues
         );
+
         const [errors, setErrors] = useState<Dictionary<string>>({});
         const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
@@ -117,11 +181,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setTouched({ ...touched, [fieldName]: value });
         };
 
-        const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
-            useState<boolean>(false);
-
         useEffect(() => {
             validate(currentValue);
+            if (props.onChange) {
+                props.onChange(currentValue);
+            }
         }, [currentValue]);
 
         useImperativeHandle(
@@ -152,10 +216,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             const touchedObj: Dictionary<boolean> = {};
 
             for (const field of formFields) {
+                if (
+                    currentFormStepId &&
+                    field.stepId &&
+                    field.stepId !== currentFormStepId
+                ) {
+                    continue;
+                }
+
                 touchedObj[getFieldName(field)] = true;
             }
 
-            setTouched(touchedObj);
+            setTouched({ ...touched, ...touchedObj });
         };
 
         const setFieldValue: Function = (
@@ -163,56 +235,87 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             value: JSONValue
         ): void => {
             const updatedValue: FormValues<T> = {
-                ...currentValue,
+                ...refCurrentValue.current,
                 [fieldName]: value as any,
             };
-            setCurrentValue(updatedValue);
-            if (props.onChange) {
-                props.onChange(updatedValue);
-            }
+
+            refCurrentValue.current = updatedValue;
+
+            setCurrentValue(refCurrentValue.current);
         };
 
         const submitForm: Function = (): void => {
             // check for any boolean values and if they dont exist in values - mark them as false.
+
             setAllTouched();
-            const validationErrors: Dictionary<string> = validate(currentValue);
+
+            const validationErrors: Dictionary<string> = validate(
+                refCurrentValue.current
+            );
+
+            isSubmitting.current = true;
 
             if (Object.keys(validationErrors).length > 0) {
                 // errors on form, do not submit.
                 return;
             }
 
-            const values: FormValues<T> = currentValue;
+            // if last step then submit.
 
-            for (const field of formFields) {
-                if (field.fieldType === FormFieldSchemaType.Toggle) {
-                    const fieldName: string = getFieldName(field);
-                    if (!(values as any)[fieldName]) {
-                        (values as any)[fieldName] = false;
+            if (
+                (props.steps &&
+                    props.steps.length > 0 &&
+                    (
+                        (props.steps as Array<FormStep>)[
+                            props.steps.length - 1
+                        ] as FormStep
+                    ).id === currentFormStepId) ||
+                currentFormStepId === null
+            ) {
+                const values: FormValues<T> = refCurrentValue.current;
+
+                for (const field of formFields) {
+                    if (field.fieldType === FormFieldSchemaType.Toggle) {
+                        const fieldName: string = getFieldName(field);
+                        if (!(values as any)[fieldName]) {
+                            (values as any)[fieldName] = false;
+                        }
+                    }
+
+                    if (field.fieldType === FormFieldSchemaType.Password) {
+                        const fieldName: string = getFieldName(field);
+                        if (
+                            (values as any)[fieldName] &&
+                            typeof (values as any)[fieldName] === Typeof.String
+                        ) {
+                            (values as any)[fieldName] = new HashedString(
+                                (values as any)[fieldName],
+                                false
+                            );
+                        }
                     }
                 }
 
-                if (field.fieldType === FormFieldSchemaType.Password) {
-                    const fieldName: string = getFieldName(field);
-                    if (
-                        (values as any)[fieldName] &&
-                        typeof (values as any)[fieldName] === Typeof.String
-                    ) {
-                        (values as any)[fieldName] = new HashedString(
-                            (values as any)[fieldName],
-                            false
-                        );
+                UiAnalytics.capture('FORM SUBMIT: ' + props.name);
+
+                props.onSubmit(values);
+            } else if (props.steps && props.steps.length > 0) {
+                const currentStepIndex: number = props.steps.findIndex(
+                    (step: FormStep) => {
+                        return step.id === currentFormStepId;
                     }
+                );
+                if (currentStepIndex > -1) {
+                    setCurrentFormStepId(
+                        (props.steps[currentStepIndex + 1] as FormStep).id
+                    );
                 }
             }
-
-            UiAnalytics.capture('FORM SUBMIT: ' + props.name);
-
-            props.onSubmit(values);
         };
 
         const getFormField: Function = (
             field: Field<T>,
+            fieldName: string,
             index: number,
             isDisabled: boolean,
             errors: Dictionary<string>,
@@ -235,8 +338,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 );
             }
 
-            const fieldName: string = getFieldName(field);
-
             if (field.showIf && !field.showIf(currentValue)) {
                 return <></>;
             }
@@ -252,7 +353,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             }
 
             return (
-                <div className="sm:col-span-4 mt-0 mb-2" key={index}>
+                <div className="sm:col-span-4 mt-0 mb-2" key={fieldName}>
                     <label className="block text-sm font-medium text-gray-700 flex justify-between">
                         <span>
                             {field.title}{' '}
@@ -320,11 +421,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         | Array<DropdownValue>
                                         | null
                                 ) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
-
                                     field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
@@ -355,10 +451,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         : undefined
                                 }
                                 onChange={async (value: string) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
                                     field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
@@ -468,10 +560,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 }
                                 tabIndex={index}
                                 onChange={async (value: string) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
                                     field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
@@ -524,10 +612,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                             fileResult = null;
                                         }
                                     }
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        fieldName: fileResult,
-                                    });
+
                                     field.onChange &&
                                         field.onChange(fileResult);
                                     setFieldValue(fieldName, fileResult);
@@ -577,7 +662,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                         (currentValue as any)[fieldName] ===
                                             false)
                                         ? (currentValue as any)[fieldName]
-                                        : field.defaultValue || false
+                                        : false
                                 }
                             />
                         )}
@@ -612,10 +697,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 dataTestId={fieldType}
                                 type={fieldType as InputType}
                                 onChange={(value: string) => {
-                                    setCurrentValue({
-                                        ...currentValue,
-                                        [fieldName]: value,
-                                    });
+                                    field.onChange && field.onChange(value);
                                     setFieldValue(fieldName, value);
                                 }}
                                 onEnterPress={() => {
@@ -854,6 +936,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             const entries: JSONObject = { ...values } as JSONObject;
 
             for (const field of formFields) {
+                if (currentFormStepId && field.stepId !== currentFormStepId) {
+                    continue;
+                }
+
                 const name: string = getFieldName(field);
 
                 if (name in entries) {
@@ -941,7 +1027,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
-            if (!props.initialValues || isInitialValuesInitialized) {
+            if (isSubmitting.current) {
+                return;
+            }
+
+            if (isInitialValuesSet.current) {
                 return;
             }
 
@@ -983,10 +1073,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         }
                     );
                 }
+
+                // if the field is still null but has a default value then... have the default inital value
+                if (
+                    field.defaultValue &&
+                    (values as any)[fieldName] === undefined
+                ) {
+                    (values as any)[fieldName] = field.defaultValue;
+                }
+
+                isInitialValuesSet.current = true;
             }
-            setCurrentValue(values);
-            setIsInitialValuesInitialized(true);
-        }, [props.initialValues]);
+
+            refCurrentValue.current = values;
+            setCurrentValue(refCurrentValue.current);
+        }, [props.initialValues, formFields]);
 
         const primaryButtonStyle: React.CSSProperties = {};
 
@@ -1011,85 +1112,139 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             </p>
                         )}
 
-                        {props.error && (
-                            <div className="mb-3">
-                                <Alert
-                                    title={props.error}
-                                    type={AlertType.DANGER}
-                                />
-                            </div>
-                        )}
+                        <div className="flex">
+                            {props.steps && currentFormStepId && (
+                                <div className="w-1/3">
+                                    {/* Form Steps */}
 
-                        <div>
+                                    <Steps
+                                        currentFormStepId={currentFormStepId}
+                                        steps={props.steps}
+                                        onClick={(step: FormStep) => {
+                                            setCurrentFormStepId(step.id);
+                                        }}
+                                    />
+                                </div>
+                            )}
                             <div
-                                className={`grid md:grid-cols-${
-                                    props.showAsColumns || 1
-                                } grid-cols-1 gap-4`}
+                                className={`pt-6 ${
+                                    props.steps && currentFormStepId
+                                        ? 'w-2/3'
+                                        : 'w-full'
+                                }`}
                             >
-                                {formFields &&
-                                    formFields.map(
-                                        (field: Field<T>, i: number) => {
-                                            return (
-                                                <div key={i}>
-                                                    {getFormField(
-                                                        field,
-                                                        i,
-                                                        props.isLoading,
-                                                        errors,
-                                                        touched
-                                                    )}
-                                                    {field.footerElement}
-                                                </div>
-                                            );
-                                        }
-                                    )}
-                            </div>
-                        </div>
+                                {props.error && (
+                                    <div className="mb-3">
+                                        <Alert
+                                            title={props.error}
+                                            type={AlertType.DANGER}
+                                        />
+                                    </div>
+                                )}
 
-                        <div className="flex w-full justify-end">
-                            {!props.hideSubmitButton && (
-                                <div
-                                    className="mt-3"
-                                    style={{
-                                        width: props.maxPrimaryButtonWidth
-                                            ? '100%'
-                                            : ' auto',
-                                    }}
-                                >
-                                    <Button
-                                        title={
-                                            props.submitButtonText || 'Submit'
-                                        }
-                                        dataTestId={props.submitButtonText!}
-                                        onClick={() => {
-                                            submitForm();
-                                        }}
-                                        id={`${props.id}-submit-button`}
-                                        isLoading={props.isLoading || false}
-                                        buttonStyle={
-                                            props.submitButtonStyleType ||
-                                            ButtonStyleType.PRIMARY
-                                        }
-                                        style={primaryButtonStyle}
-                                    />
-                                </div>
-                            )}
-                            {props.onCancel && (
                                 <div>
-                                    <Button
-                                        title={
-                                            props.cancelButtonText || 'Cancel'
-                                        }
-                                        type={ButtonTypes.Button}
-                                        id={`${props.id}-cancel-button`}
-                                        disabled={props.isLoading || false}
-                                        buttonStyle={ButtonStyleType.NORMAL}
-                                        onClick={() => {
-                                            props.onCancel && props.onCancel();
-                                        }}
-                                    />
+                                    <div
+                                        className={`grid md:grid-cols-${
+                                            props.showAsColumns || 1
+                                        } grid-cols-1 gap-4`}
+                                    >
+                                        {formFields &&
+                                            formFields
+                                                .filter((field: Field<T>) => {
+                                                    if (currentFormStepId) {
+                                                        return (
+                                                            field.stepId ===
+                                                            currentFormStepId
+                                                        );
+                                                    }
+
+                                                    return true;
+                                                })
+                                                .map(
+                                                    (
+                                                        field: Field<T>,
+                                                        i: number
+                                                    ) => {
+                                                        return (
+                                                            <div
+                                                                key={getFieldName(
+                                                                    field
+                                                                )}
+                                                            >
+                                                                {getFormField(
+                                                                    field,
+                                                                    getFieldName(
+                                                                        field
+                                                                    ),
+                                                                    i,
+                                                                    props.isLoading,
+                                                                    errors,
+                                                                    touched
+                                                                )}
+                                                                {
+                                                                    field.footerElement
+                                                                }
+                                                            </div>
+                                                        );
+                                                    }
+                                                )}
+                                    </div>
                                 </div>
-                            )}
+
+                                <div className="flex w-full justify-end">
+                                    {!props.hideSubmitButton && (
+                                        <div
+                                            className="mt-3"
+                                            style={{
+                                                width: props.maxPrimaryButtonWidth
+                                                    ? '100%'
+                                                    : ' auto',
+                                            }}
+                                        >
+                                            <Button
+                                                title={submitButtonText}
+                                                dataTestId={
+                                                    props.submitButtonText!
+                                                }
+                                                onClick={() => {
+                                                    submitForm();
+                                                }}
+                                                id={`${props.id}-submit-button`}
+                                                isLoading={
+                                                    props.isLoading || false
+                                                }
+                                                buttonStyle={
+                                                    props.submitButtonStyleType ||
+                                                    ButtonStyleType.PRIMARY
+                                                }
+                                                style={primaryButtonStyle}
+                                            />
+                                        </div>
+                                    )}
+                                    {props.onCancel && (
+                                        <div>
+                                            <Button
+                                                title={
+                                                    props.cancelButtonText ||
+                                                    'Cancel'
+                                                }
+                                                type={ButtonTypes.Button}
+                                                id={`${props.id}-cancel-button`}
+                                                disabled={
+                                                    props.isLoading || false
+                                                }
+                                                buttonStyle={
+                                                    ButtonStyleType.NORMAL
+                                                }
+                                                onClick={() => {
+                                                    props.onCancel &&
+                                                        props.onCancel();
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         {props.footer}
                     </div>

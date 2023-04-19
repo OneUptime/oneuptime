@@ -15,7 +15,9 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Workflow from './Workflow';
 import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+@EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -49,6 +51,7 @@ import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
     singularName: 'Workflow Log',
     pluralName: 'Workflow Logs',
     icon: IconProp.Logs,
+    tableDescription: 'Logs of the workflows executed',
 })
 export default class WorkflowLog extends BaseModel {
     @ColumnAccessControl({
@@ -65,6 +68,9 @@ export default class WorkflowLog extends BaseModel {
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
         modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -95,6 +101,9 @@ export default class WorkflowLog extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Project ID',
+        description:
+            'ID of your OneUptime Project in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -117,6 +126,8 @@ export default class WorkflowLog extends BaseModel {
         manyToOneRelationColumn: 'workflowId',
         type: TableColumnType.Entity,
         modelType: Workflow,
+        title: 'Workflow',
+        description: 'Workflow this logs belong to',
     })
     @ManyToOne(
         (_type: string) => {
@@ -147,6 +158,8 @@ export default class WorkflowLog extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnPopulate: true,
+        title: 'Workflow ID',
+        description: 'ID of Workflow this logs belong to',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -165,7 +178,12 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Logs',
+        description: 'Logs',
+    })
     @Column({
         nullable: false,
         type: ColumnType.VeryLongText,
@@ -182,7 +200,12 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.WorkflowStatus,
+        title: 'Workflow Status',
+        description: 'Status of this workflow',
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -199,7 +222,11 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Date })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Started At',
+        description: 'When did this workflow start',
+    })
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -217,7 +244,11 @@ export default class WorkflowLog extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Date })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Completed At',
+        description: 'When did this workflow complete',
+    })
     @Column({
         type: ColumnType.Date,
         nullable: true,

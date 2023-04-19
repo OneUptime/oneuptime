@@ -190,10 +190,19 @@ router.post(
 
             try {
                 SSOUtil.isPayloadValid(response);
-                SSOUtil.isSignatureValid(
-                    response,
-                    projectSSO.publicCertificate
-                );
+
+                if (
+                    !SSOUtil.isSignatureValid(
+                        samlResponse,
+                        projectSSO.publicCertificate
+                    )
+                ) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadRequestException('Signature is not valid')
+                    );
+                }
 
                 issuerUrl = SSOUtil.getIssuer(response);
                 email = SSOUtil.getEmail(response);

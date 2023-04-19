@@ -28,6 +28,19 @@ services:
         env_file:
             - ./Redis/.env
 
+    clickhouse:
+        image: clickhouse/clickhouse-server:23.2
+        restart: always
+        env_file:
+            - ./Clickhouse/.env
+        ports:
+            - '8123:8123'
+            - '9000:9000'
+            - '9440:9440'
+            - '9009:9009'
+        volumes:
+            - clickhouse:/var/lib/clickhouse/
+
     postgres:
         image: postgres:latest
         restart: always
@@ -409,6 +422,8 @@ services:
         {{ end }}
     
 
+    
+
     file:
         ports:
             - '3125:3125'
@@ -485,7 +500,7 @@ services:
             - /usr/src/Model/node_modules/
         {{ end }}
     
-    api-docs:
+    api-reference:
         ports:
             - '1445:1445'
             {{ if eq .Env.ENVIRONMENT "development" }}
@@ -495,18 +510,18 @@ services:
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
-            - ./ApiDocs/.env
+            - ./ApiReference/.env
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
-            dockerfile: ./ApiDocs/Dockerfile
+            dockerfile: ./ApiReference/Dockerfile
         {{ else }}
-        image:  oneuptime/api-docs:{{ .Env.APP_TAG }}
+        image:  oneuptime/api-reference:{{ .Env.APP_TAG }}
         {{ end }}
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
-            - ./ApiDocs:/usr/src/app
+            - ./ApiReference:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -544,6 +559,7 @@ services:
             - ./Certs:/etc/nginx/certs
 volumes:
     postgres:
+    clickhouse:
     {{ if eq .Env.ENVIRONMENT "development" }}
     # Add volumes to skip node_modules.
     dashboardApiNodeModules:

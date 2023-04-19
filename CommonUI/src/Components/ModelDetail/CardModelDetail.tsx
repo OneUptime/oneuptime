@@ -17,12 +17,14 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
+import { FormStep } from '../Forms/Types/FormStep';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
     editButtonText?: undefined | string;
+    formSteps?: undefined | Array<FormStep>;
     formFields?: undefined | Fields<TBaseModel>;
     className?: string | undefined;
     name: string;
@@ -101,6 +103,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
                         name: props.name,
                         formType: FormType.Update,
                         modelType: props.modelDetailProps.modelType,
+                        steps: props.formSteps || [],
                     }}
                     modelIdToEdit={item?._id}
                 />
