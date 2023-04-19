@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-
+ const environment= process.env['ENVIRONMENT']='development'? 'http://localhost:1444/' : 'https://test.oneuptime.com/'
 test.beforeEach(async ({ page }) => {
-    await page.goto('https://test.oneuptime.com/');
+    await page.goto(`${environment}`);
 });
 test.describe('check if pages loades with its title', () => {
     test('has title', async ({ page }) => {
