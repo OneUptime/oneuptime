@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+const BASE_URL = process.env['BASE_URL'] || 'https://test.oneuptime.com/';
 test.beforeEach(async ({ page }) => {
-    await page.goto('https://test.oneuptime.com/');
+    await page.goto(BASE_URL);
 });
 test.describe('check if pages loades with its title', () => {
     test('has title', async ({ page }) => {
