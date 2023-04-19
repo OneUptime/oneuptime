@@ -58,7 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Subscriber"
+                name="Status Page > Branding > Subscriber"
                 cardProps={{
                     title: 'Subscriber Settings',
                     description: 'Subscriber settings for this status page.',

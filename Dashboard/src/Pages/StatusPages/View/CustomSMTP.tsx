@@ -5,13 +5,17 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import { JSONObject } from 'Common/Types/JSON';
+import ProjectSMTPConfig from '../../../Components/ProjectSMTPConfig/ProjectSMTPConfig';
+import PlaceholderText from 'CommonUI/src/Components/Detail/PlaceholderText';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -47,11 +51,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Authentication Settings',
+                    title: 'Custom SMTP',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
-                        ] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP] as Route,
                         modelId
                     ),
                 },
@@ -59,24 +61,31 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <CardModelDetail<StatusPage>
-                name="Status Page > Authentication Settings"
+                name="Status Page > Email > Subscriber"
                 cardProps={{
-                    title: 'Authentication Settings',
+                    title: 'Custom SMTP',
                     description:
-                        'Authentication settings for this status page.',
-                    icon: IconProp.Settings,
+                        'Custom SMTP settings for this status page. This will be used to send emails to subscribers.',
+                    icon: IconProp.Email,
                 }}
-                editButtonText="Edit Settings"
+                editButtonText={'Edit SMTP'}
                 isEditable={true}
                 formFields={[
                     {
                         field: {
-                            isPublicStatusPage: true,
+                            smtpConfig: true,
                         },
-                        title: 'Is Visible to Public',
-                        fieldType: FormFieldSchemaType.Toggle,
+                        title: 'Custom SMTP Config',
+                        description:
+                            'Select SMTP Config to use for this status page to send email to subscribers. You can add SMTP Config in Project Settings > Custom SMTP.',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: ProjectSmtpConfig,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
                         required: false,
-                        placeholder: 'Is this status page visible to public',
+                        placeholder: 'SMTP Config',
                     },
                 ]}
                 modelDetailProps={{
@@ -86,10 +95,31 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                isPublicStatusPage: true,
+                                smtpConfig: {
+                                    name: true,
+                                },
                             },
-                            fieldType: FieldType.Boolean,
-                            title: 'Is Visible to Public',
+                            title: 'Custom SMTP Config',
+                            type: FieldType.Entity,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (item['smtpConfig']) {
+                                    return (
+                                        <ProjectSMTPConfig
+                                            smtpConfig={
+                                                item[
+                                                    'smtpConfig'
+                                                ] as ProjectSmtpConfig
+                                            }
+                                        />
+                                    );
+                                }
+                                return (
+                                    <PlaceholderText
+                                        text="No Custom SMTP Config selected so far
+                                    for this status page."
+                                    />
+                                );
+                            },
                         },
                     ],
                     modelId: modelId,

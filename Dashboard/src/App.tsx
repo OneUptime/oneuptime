@@ -48,6 +48,7 @@ import StatusPageViewCustomFields from './Pages/StatusPages/View/CustomFields';
 import StatusPageViewSSO from './Pages/StatusPages/View/SSO';
 import StatusPageViewPrivateUser from './Pages/StatusPages/View/PrivateUser';
 import StatusPageViewAuthenticationSettings from './Pages/StatusPages/View/AuthenticationSettings';
+import StatusPageViewCustomSMTP from './Pages/StatusPages/View/CustomSMTP';
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -697,6 +698,24 @@ const App: FunctionComponent = () => {
                                 RouteMap[
                                     PageMap
                                         .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <StatusPageViewCustomSMTP
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
                                 ] as Route
                             }
                             currentProject={selectedProject}

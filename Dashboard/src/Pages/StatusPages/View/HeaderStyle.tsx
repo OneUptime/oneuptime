@@ -64,7 +64,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Header Style"
+                name="Status Page > Branding > Header Style"
                 cardProps={{
                     title: 'Logo, Cover and Favicon',
                     description: 'These will show up on your status page.',

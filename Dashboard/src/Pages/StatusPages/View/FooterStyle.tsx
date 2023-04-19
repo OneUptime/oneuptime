@@ -64,7 +64,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Copyright"
+                name="Status Page > Branding > Copyright"
                 cardProps={{
                     title: 'Copyright Info',
                     description: 'Copyright info for your status page',
