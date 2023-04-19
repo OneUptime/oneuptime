@@ -22,7 +22,7 @@ export default class MailService {
 
         if (mailServer) {
             body['SMTP_USERNAME'] = mailServer.username;
-            body['SMTP_EMAIL'] = mailServer.fromEmail;
+            body['SMTP_EMAIL'] = mailServer.fromEmail.toString();
             body['SMTP_FROM_NAME'] = mailServer.fromName;
             body['SMTP_IS_SECURE'] = mailServer.secure;
             body['SMTP_PORT'] = mailServer.port.toNumber();

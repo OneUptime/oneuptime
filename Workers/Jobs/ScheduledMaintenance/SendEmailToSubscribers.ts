@@ -19,6 +19,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
+import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 
 RunCron(
     'ScheduledMaintenance:SendEmailToSubscribers',
@@ -196,6 +197,18 @@ RunCron(
                         isPublicStatusPage: true,
                         logoFileId: true,
                     },
+                    populate: {
+                        smtpConfig: {
+                            _id: true,
+                            hostname: true,
+                            port: true,
+                            username: true,
+                            password: true,
+                            fromEmail: true,
+                            fromName: true,
+                            secure: true,
+                        },
+                    },
                 });
 
             for (const statuspage of statusPages) {
@@ -228,53 +241,62 @@ RunCron(
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
-                        MailService.sendMail({
-                            toEmail: subscriber.subscriberEmail,
-                            templateType:
-                                EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
-                            vars: {
-                                statusPageName: statusPageName,
-                                statusPageUrl: statusPageURL,
-                                logoUrl: statuspage.logoFileId
-                                    ? new URL(HttpProtocol, Domain)
-                                          .addRoute(FileRoute)
-                                          .addRoute(
-                                              '/image/' + statuspage.logoFileId
-                                          )
-                                          .toString()
-                                    : '',
-                                isPublicStatusPage:
-                                    statuspage.isPublicStatusPage
-                                        ? 'true'
-                                        : 'false',
-                                resourcesAffected:
-                                    statusPageToResources[statuspage._id!]
-                                        ?.map((r: StatusPageResource) => {
-                                            return r.displayName;
-                                        })
-                                        .join(', ') || 'None',
-                                eventStatus: isOngoing
-                                    ? 'Ongoing'
-                                    : 'Scheduled',
-                                scheduledAt:
-                                    OneUptimeDate.getDateAsFormattedString(
-                                        event.startsAt!
-                                    ),
-                                eventTitle: event.title || '',
-                                eventDescription: event.description || '',
-                                unsubscribeUrl: new URL(HttpProtocol, Domain)
-                                    .addRoute(
-                                        '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                        MailService.sendMail(
+                            {
+                                toEmail: subscriber.subscriberEmail,
+                                templateType:
+                                    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                                vars: {
+                                    statusPageName: statusPageName,
+                                    statusPageUrl: statusPageURL,
+                                    logoUrl: statuspage.logoFileId
+                                        ? new URL(HttpProtocol, Domain)
+                                              .addRoute(FileRoute)
+                                              .addRoute(
+                                                  '/image/' +
+                                                      statuspage.logoFileId
+                                              )
+                                              .toString()
+                                        : '',
+                                    isPublicStatusPage:
+                                        statuspage.isPublicStatusPage
+                                            ? 'true'
+                                            : 'false',
+                                    resourcesAffected:
+                                        statusPageToResources[statuspage._id!]
+                                            ?.map((r: StatusPageResource) => {
+                                                return r.displayName;
+                                            })
+                                            .join(', ') || 'None',
+                                    eventStatus: isOngoing
+                                        ? 'Ongoing'
+                                        : 'Scheduled',
+                                    scheduledAt:
+                                        OneUptimeDate.getDateAsFormattedString(
+                                            event.startsAt!
+                                        ),
+                                    eventTitle: event.title || '',
+                                    eventDescription: event.description || '',
+                                    unsubscribeUrl: new URL(
+                                        HttpProtocol,
+                                        Domain
                                     )
-                                    .toString(),
+                                        .addRoute(
+                                            '/api/status-page-subscriber/unsubscribe/' +
+                                                subscriber._id.toString()
+                                        )
+                                        .toString(),
+                                },
+                                subject:
+                                    statusPageName +
+                                    ` - ${
+                                        isOngoing ? 'Ongoing' : 'Scheduled'
+                                    } Maintenance Event`,
                             },
-                            subject:
-                                statusPageName +
-                                ` - ${
-                                    isOngoing ? 'Ongoing' : 'Scheduled'
-                                } Maintenance Event`,
-                        }).catch((err: Error) => {
+                            ProjectSmtpConfigService.toEmailServer(
+                                statuspage.smtpConfig
+                            )
+                        ).catch((err: Error) => {
                             logger.error(err);
                         });
                     }

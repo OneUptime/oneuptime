@@ -109,7 +109,9 @@ export default class MailService {
             port: new Port(obj['SMTP_PORT']?.toString()!),
             fromEmail: new Email(obj['SMTP_EMAIL']?.toString()!),
             fromName: obj['SMTP_FROM_NAME']?.toString()!,
-            secure: obj['SMTP_IS_SECURE'] === 'true',
+            secure:
+                obj['SMTP_IS_SECURE'] === 'true' ||
+                obj['SMTP_IS_SECURE'] === true,
         };
     }
 

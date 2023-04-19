@@ -22,6 +22,7 @@ import Monitor from 'Model/Models/Monitor';
 import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteService';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import Markdown from 'CommonServer/Types/Markdown';
+import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 
 RunCron(
     'IncidentPublicNote:SendEmailToSubscribers',
@@ -166,6 +167,18 @@ RunCron(
                         isPublicStatusPage: true,
                         logoFileId: true,
                     },
+                    populate: {
+                        smtpConfig: {
+                            _id: true,
+                            hostname: true,
+                            port: true,
+                            username: true,
+                            password: true,
+                            fromEmail: true,
+                            fromName: true,
+                            secure: true,
+                        },
+                    },
                 });
 
             for (const statuspage of statusPages) {
@@ -197,47 +210,58 @@ RunCron(
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
-                        MailService.sendMail({
-                            toEmail: subscriber.subscriberEmail,
-                            templateType:
-                                EmailTemplateType.SubscriberIncidentNoteCreated,
-                            vars: {
-                                note: Markdown.convertToHTMML(
-                                    incidentPublicNote.note!
-                                ),
-                                statusPageName: statusPageName,
-                                statusPageUrl: statusPageURL,
-                                logoUrl: statuspage.logoFileId
-                                    ? new URL(HttpProtocol, Domain)
-                                          .addRoute(FileRoute)
-                                          .addRoute(
-                                              '/image/' + statuspage.logoFileId
-                                          )
-                                          .toString()
-                                    : '',
-                                isPublicStatusPage:
-                                    statuspage.isPublicStatusPage
-                                        ? 'true'
-                                        : 'false',
-                                resourcesAffected:
-                                    statusPageToResources[statuspage._id!]
-                                        ?.map((r: StatusPageResource) => {
-                                            return r.displayName;
-                                        })
-                                        .join(', ') || 'None',
-                                incidentSeverity:
-                                    incident.incidentSeverity?.name || ' - ',
-                                incidentTitle: incident.title || '',
-                                incidentDescription: incident.description || '',
-                                unsubscribeUrl: new URL(HttpProtocol, Domain)
-                                    .addRoute(
-                                        '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                        MailService.sendMail(
+                            {
+                                toEmail: subscriber.subscriberEmail,
+                                templateType:
+                                    EmailTemplateType.SubscriberIncidentNoteCreated,
+                                vars: {
+                                    note: Markdown.convertToHTMML(
+                                        incidentPublicNote.note!
+                                    ),
+                                    statusPageName: statusPageName,
+                                    statusPageUrl: statusPageURL,
+                                    logoUrl: statuspage.logoFileId
+                                        ? new URL(HttpProtocol, Domain)
+                                              .addRoute(FileRoute)
+                                              .addRoute(
+                                                  '/image/' +
+                                                      statuspage.logoFileId
+                                              )
+                                              .toString()
+                                        : '',
+                                    isPublicStatusPage:
+                                        statuspage.isPublicStatusPage
+                                            ? 'true'
+                                            : 'false',
+                                    resourcesAffected:
+                                        statusPageToResources[statuspage._id!]
+                                            ?.map((r: StatusPageResource) => {
+                                                return r.displayName;
+                                            })
+                                            .join(', ') || 'None',
+                                    incidentSeverity:
+                                        incident.incidentSeverity?.name ||
+                                        ' - ',
+                                    incidentTitle: incident.title || '',
+                                    incidentDescription:
+                                        incident.description || '',
+                                    unsubscribeUrl: new URL(
+                                        HttpProtocol,
+                                        Domain
                                     )
-                                    .toString(),
+                                        .addRoute(
+                                            '/api/status-page-subscriber/unsubscribe/' +
+                                                subscriber._id.toString()
+                                        )
+                                        .toString(),
+                                },
+                                subject: statusPageName + ' - New Incident',
                             },
-                            subject: statusPageName + ' - New Incident',
-                        }).catch((err: Error) => {
+                            ProjectSmtpConfigService.toEmailServer(
+                                statuspage.smtpConfig
+                            )
+                        ).catch((err: Error) => {
                             logger.error(err);
                         });
                     }
