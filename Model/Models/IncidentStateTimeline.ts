@@ -386,4 +386,22 @@ export default class IncidentStateTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public incidentStateId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Are subscribers notified?',
+        description:
+            'Are subscribers notified about this incident state change?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isStatusPageSubscribersNotified?: boolean = undefined;
 }
