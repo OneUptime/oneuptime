@@ -20,16 +20,17 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
 
 RunCron(
-    'ScheduledMaintenance:SendEmailToSubscribers',
+    'ScheduledMaintenanceStateTimeline:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        // get all scheduled events of all the projects.
-        const scheduledEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
+        const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+            await ScheduledMaintenanceStateTimelineService.findBy({
                 query: {
-                    isStatusPageSubscribersNotifiedOnEventScheduled: false,
+                    isStatusPageSubscribersNotified: false,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),
@@ -41,49 +42,53 @@ RunCron(
                 skip: 0,
                 select: {
                     _id: true,
-                    title: true,
-                    description: true,
-                    startsAt: true,
+                    scheduledMaintenanceId: true,
+                    scheduledMaintenanceStateId: true,
                 },
                 populate: {
-                    monitors: {
-                        _id: true,
+                    scheduledMaintenanceState: {
+                        name: true,
                     },
                 },
             });
 
-        const ongoingEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
-                query: {
-                    isStatusPageSubscribersNotifiedOnEventOngoing: false,
-                    startsAt: QueryHelper.lessThan(
-                        OneUptimeDate.getCurrentDate()
-                    ),
-                },
-                props: {
-                    isRoot: true,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                    startsAt: true,
-                },
-                populate: {
-                    monitors: {
-                        _id: true,
+        for (const scheduledEventStateTimeline of scheduledEventStateTimelines) {
+            if (
+                !scheduledEventStateTimeline.scheduledMaintenanceId ||
+                !scheduledEventStateTimeline.scheduledMaintenanceStateId
+            ) {
+                continue;
+            }
+
+            if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
+                continue;
+            }
+
+            // get all scheduled events of all the projects.
+            const event: ScheduledMaintenance | null =
+                await ScheduledMaintenanceService.findOneById({
+                    id: scheduledEventStateTimeline.scheduledMaintenanceId!,
+                    props: {
+                        isRoot: true,
                     },
-                },
-            });
 
-        const totalEvents: Array<ScheduledMaintenance> = [
-            ...ongoingEvents,
-            ...scheduledEvents,
-        ];
+                    select: {
+                        _id: true,
+                        title: true,
+                        description: true,
+                        startsAt: true,
+                    },
+                    populate: {
+                        monitors: {
+                            _id: true,
+                        },
+                    },
+                });
 
-        for (const event of totalEvents) {
+            if (!event) {
+                continue;
+            }
+
             if (!event.monitors || event.monitors.length === 0) {
                 continue;
             }
@@ -206,7 +211,7 @@ RunCron(
                             {
                                 toEmail: subscriber.subscriberEmail,
                                 templateType:
-                                    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                                    EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
                                 vars: {
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
@@ -229,6 +234,12 @@ RunCron(
                                                 return r.displayName;
                                             })
                                             .join(', ') || 'None',
+
+                                    eventState:
+                                        scheduledEventStateTimeline
+                                            .scheduledMaintenanceState?.name ||
+                                        '',
+
                                     scheduledAt:
                                         OneUptimeDate.getDateAsFormattedString(
                                             event.startsAt!
@@ -247,8 +258,7 @@ RunCron(
                                 },
                                 subject:
                                     statusPageName +
-                                    ` - 'New Scheduled'
-                                    } Maintenance`,
+                                    ` - Scheduled maintenance state changed to ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}`,
                             },
                             ProjectSmtpConfigService.toEmailServer(
                                 statuspage.smtpConfig
