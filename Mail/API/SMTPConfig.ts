@@ -13,7 +13,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Email from 'Common/Types/Email';
 import EmailServer from 'Common/Types/Email/EmailServer';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSMTPConfigService';
+import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import logger from 'CommonServer/Utils/Logger';

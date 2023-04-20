@@ -19,7 +19,7 @@ import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
-import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSMTPConfigService';
+import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 
 RunCron(
     'Incident:SendEmailToSubscribers',
