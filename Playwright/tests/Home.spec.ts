@@ -1,18 +1,23 @@
-import { test, expect, ElementHandle } from '@playwright/test';
+import { test, expect, ElementHandle, Page } from '@playwright/test';
 
 const BASE_URL: string =
-    process.env['BASE_URL'] || 'https://test.oneuptime.com/';
+    process.env['BASE_URL' as keyof typeof process.env] ||
+    'https://test.oneuptime.com/';
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(BASE_URL);
 });
 test.describe('check if pages loades with its title', () => {
-    test('has title', async ({ page }) => {
+    test('has title', async ({ page }: { page: Page }) => {
         await expect(page).toHaveTitle(
             /OneUptime | One Complete SRE and DevOps platform./
         );
     });
-    test('oneUptime link navigate to homepage', async ({ page }) => {
+    test('oneUptime link navigate to homepage', async ({
+        page,
+    }: {
+        page: Page;
+    }) => {
         await page
             .getByRole('link', { name: 'OneUptime', exact: true })
             .click();
@@ -21,7 +26,7 @@ test.describe('check if pages loades with its title', () => {
     });
 });
 test.describe('navigation bar', () => {
-    test('product page', async ({ page }) => {
+    test('product page', async ({ page }: { page: Page }) => {
         await page.getByRole('button', { name: 'Products' }).click();
         await page.getByRole('button', { name: 'Products' }).hover();
         await expect(page.getByRole('button', { name: 'Products' })).toHaveText(
@@ -34,7 +39,7 @@ test.describe('navigation bar', () => {
             page.getByRole('button', { name: 'Products' })
         ).toBeInViewport();
     });
-    test('pricing page', async ({ page }) => {
+    test('pricing page', async ({ page }: { page: Page }) => {
         await page.getByRole('link', { name: 'Pricing' }).click();
         await page.getByRole('link', { name: 'Pricing' }).hover();
         await expect(page.getByRole('link', { name: 'Pricing' })).toHaveText(
@@ -46,7 +51,7 @@ test.describe('navigation bar', () => {
         ).toBeInViewport();
         await expect(page).toHaveURL(/.*pricing/);
     });
-    test('Enterprise', async ({ page }) => {
+    test('Enterprise', async ({ page }: { page: Page }) => {
         await page.getByRole('link', { name: 'Enterprise' }).click();
         await page.getByRole('link', { name: 'Enterprise' }).hover();
         await expect(
@@ -60,7 +65,7 @@ test.describe('navigation bar', () => {
         );
         await expect(page).toHaveURL(/.*enterprise\/overview/);
     });
-    test('Request Demo', async ({ page }) => {
+    test('Request Demo', async ({ page }: { page: Page }) => {
         const requestDemo: ElementHandle<Element> | null = await page.$(
             "[data-testid='Request-demo']"
         );
@@ -71,12 +76,12 @@ test.describe('navigation bar', () => {
             await expect(page).toHaveURL(/.*enterprise\/demo/);
         }
     });
-    test('sign in button ', async ({ page }) => {
+    test('sign in button ', async ({ page }: { page: Page }) => {
         await page.getByRole('link', { name: 'Sign in' }).click();
         await expect(page).toHaveURL(/.*accounts/);
     });
 
-    test('sign up button', async ({ page }) => {
+    test('sign up button', async ({ page }: { page: Page }) => {
         const signUpButton: ElementHandle<Element> | null = await page.$(
             "[data-testid='Sign-up']"
         );
