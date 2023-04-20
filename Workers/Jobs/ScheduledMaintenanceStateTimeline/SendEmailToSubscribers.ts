@@ -53,6 +53,17 @@ RunCron(
             });
 
         for (const scheduledEventStateTimeline of scheduledEventStateTimelines) {
+            await ScheduledMaintenanceStateTimelineService.updateOneById({
+                id: scheduledEventStateTimeline.id!,
+                data: {
+                    isStatusPageSubscribersNotified: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+
             if (
                 !scheduledEventStateTimeline.scheduledMaintenanceId ||
                 !scheduledEventStateTimeline.scheduledMaintenanceStateId

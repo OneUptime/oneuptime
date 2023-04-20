@@ -13,6 +13,7 @@ import './Jobs/Announcement/SendEmailToSubscribers';
 
 // Incidents
 import './Jobs/Incident/SendEmailToSubscribers';
+import './Jobs/IncidentStateTimeline/SendEmailToSubscribers';
 
 // Incident Notes
 import './Jobs/IncidentPublicNote/SendEmailToSubscribers';
@@ -20,6 +21,7 @@ import './Jobs/IncidentPublicNote/SendEmailToSubscribers';
 // Scheduled Event
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
+import './Jobs/ScheduledMaintenanceStateTimeline/SendEmailToSubscribers';
 
 // Scheduled Event Notes
 import './Jobs/ScheduledMaintenancePublicNote/SendEmailToSubscribers';

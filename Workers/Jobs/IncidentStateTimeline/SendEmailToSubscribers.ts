@@ -53,6 +53,17 @@ RunCron(
             });
 
         for (const incidentStateTimeline of incidentStateTimelines) {
+            await IncidentStateTimelineService.updateOneById({
+                id: incidentStateTimeline.id!,
+                data: {
+                    isStatusPageSubscribersNotified: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+
             if (
                 !incidentStateTimeline.incidentId ||
                 !incidentStateTimeline.incidentStateId
@@ -95,17 +106,6 @@ RunCron(
             if (!incident.monitors || incident.monitors.length === 0) {
                 continue;
             }
-
-            await IncidentService.updateOneById({
-                id: incident.id!,
-                data: {
-                    isStatusPageSubscribersNotifiedOnIncidentCreated: true,
-                },
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
 
             // get status page resources from monitors.
 
