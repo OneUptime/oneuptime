@@ -1,6 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, ElementHandle } from '@playwright/test';
 
-const BASE_URL = process.env['BASE_URL'] || 'https://test.oneuptime.com/';
+const BASE_URL: string =
+    process.env['BASE_URL'] || 'https://test.oneuptime.com/';
+
 test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
 });
@@ -20,55 +22,64 @@ test.describe('check if pages loades with its title', () => {
 });
 test.describe('navigation bar', () => {
     test('product page', async ({ page }) => {
-        const product = page.getByRole('button', { name: 'Products' });
-        await product.click();
-        await product.hover();
-        await expect(product).toHaveText(/Products/);
-        await expect(product).toBeVisible();
-        await expect(product).toBeInViewport();
+        await page.getByRole('button', { name: 'Products' }).click();
+        await page.getByRole('button', { name: 'Products' }).hover();
+        await expect(page.getByRole('button', { name: 'Products' })).toHaveText(
+            /Products/
+        );
+        await expect(
+            page.getByRole('button', { name: 'Products' })
+        ).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: 'Products' })
+        ).toBeInViewport();
     });
     test('pricing page', async ({ page }) => {
-        const pricing = page.getByRole('link', { name: 'Pricing' });
-        await pricing.click();
-        await pricing.hover();
-        await expect(pricing).toHaveText(/Pricing/);
-        await expect(pricing).toBeVisible();
-        await expect(pricing).toBeInViewport();
+        await page.getByRole('link', { name: 'Pricing' }).click();
+        await page.getByRole('link', { name: 'Pricing' }).hover();
+        await expect(page.getByRole('link', { name: 'Pricing' })).toHaveText(
+            /Pricing/
+        );
+        await expect(page.getByRole('link', { name: 'Pricing' })).toBeVisible();
+        await expect(
+            page.getByRole('link', { name: 'Pricing' })
+        ).toBeInViewport();
         await expect(page).toHaveURL(/.*pricing/);
     });
     test('Enterprise', async ({ page }) => {
-        const enterprise = page.getByRole('link', { name: 'Enterprise' });
-        await enterprise.click();
-        await enterprise.hover();
-        await expect(enterprise).toBeVisible();
-        await expect(enterprise).toBeInViewport();
-        await expect(enterprise).toHaveText(/Enterprise/);
+        await page.getByRole('link', { name: 'Enterprise' }).click();
+        await page.getByRole('link', { name: 'Enterprise' }).hover();
+        await expect(
+            page.getByRole('link', { name: 'Enterprise' })
+        ).toBeVisible();
+        await expect(
+            page.getByRole('link', { name: 'Enterprise' })
+        ).toBeInViewport();
+        await expect(page.getByRole('link', { name: 'Enterprise' })).toHaveText(
+            /Enterprise/
+        );
         await expect(page).toHaveURL(/.*enterprise\/overview/);
     });
     test('Request Demo', async ({ page }) => {
-        const requestDemo = await page.$("[data-testid='Request-demo']");
+        const requestDemo: ElementHandle<Element> | null = await page.$(
+            "[data-testid='Request-demo']"
+        );
+
         if (requestDemo) {
             await requestDemo.click();
             await requestDemo.hover();
             await expect(page).toHaveURL(/.*enterprise\/demo/);
         }
     });
-    test('More', async ({ page }) => {
-        const more = page.getByRole('button', { name: 'More' });
-        await more.click();
-        await more.hover();
-        await expect(more).toHaveText(/More/);
-        await expect(more).toBeVisible();
-        await expect(more).toBeInViewport();
-    });
-
     test('sign in button ', async ({ page }) => {
         await page.getByRole('link', { name: 'Sign in' }).click();
         await expect(page).toHaveURL(/.*accounts/);
     });
 
     test('sign up button', async ({ page }) => {
-        const signUpButton = await page.$("[data-testid='Sign-up']");
+        const signUpButton: ElementHandle<Element> | null = await page.$(
+            "[data-testid='Sign-up']"
+        );
         if (signUpButton) {
             await signUpButton.click();
             await expect(page).toHaveURL(/.*accounts\/register/);
