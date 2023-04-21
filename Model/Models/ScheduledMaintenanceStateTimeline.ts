@@ -62,7 +62,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 @TableMetadata({
     tableName: 'ScheduledMaintenanceStateTimeline',
     icon: IconProp.List,
-    singularName: 'Scheduled Maintenance State Tiemline',
+    singularName: 'Scheduled Maintenance State Timeline',
     pluralName: 'Scheduled Maintenance State Timelines',
     tableDescription: 'Change state of your scheduled maintenance event.',
 })

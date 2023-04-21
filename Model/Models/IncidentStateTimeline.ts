@@ -61,7 +61,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 })
 @TableMetadata({
     tableName: 'IncidentStateTimeline',
-    singularName: 'Incident State Tiemline',
+    singularName: 'Incident State Timeline',
     pluralName: 'Incident State Timelines',
     icon: IconProp.List,
     tableDescription:
