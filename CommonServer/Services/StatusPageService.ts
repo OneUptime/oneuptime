@@ -24,10 +24,7 @@ export class Service extends DatabaseService<StatusPage> {
         props: DatabaseCommonInteractionProps,
         req: ExpressRequest
     ): Promise<boolean> {
-
-
         try {
-
             // token decode.
             const token: string | Array<string> | undefined =
                 req.headers['status-page-token'];
@@ -37,11 +34,12 @@ export class Service extends DatabaseService<StatusPage> {
                     token as string
                 );
 
-                if (decoded.statusPageId?.toString() === statusPageId.toString()) {
+                if (
+                    decoded.statusPageId?.toString() === statusPageId.toString()
+                ) {
                     return true;
                 }
             }
-
 
             const count: PositiveNumber = await this.countBy({
                 query: {
