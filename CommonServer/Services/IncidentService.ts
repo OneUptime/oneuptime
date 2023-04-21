@@ -84,7 +84,9 @@ export class Service extends DatabaseService<Model> {
             createdItem.id,
             createdItem.currentIncidentStateId,
             false,
-            onCreate.createBy.props
+            {
+                isRoot: true
+            }
         );
 
         return createdItem;
