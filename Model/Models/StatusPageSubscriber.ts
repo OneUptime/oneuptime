@@ -233,7 +233,7 @@ export default class StatusPageSubscriber extends BaseModel {
         required: false,
         type: TableColumnType.Email,
         title: 'Email',
-        description: 'Email address of subscriber',
+        description: 'Email address of the subscriber.',
     })
     @Column({
         nullable: true,
