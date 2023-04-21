@@ -85,7 +85,7 @@ export class Service extends DatabaseService<Model> {
             createdItem.currentIncidentStateId,
             false,
             {
-                isRoot: true
+                isRoot: true,
             }
         );
 
