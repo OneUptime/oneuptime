@@ -5,6 +5,7 @@ import URL from 'Common/Types/API/URL';
 const DashboardFooter: FunctionComponent = () => {
     return (
         <Footer
+            className="bg-white h-16 inset-x-0 bottom-0 px-8"
             copyright="OneUptime Limited."
             links={[
                 {
