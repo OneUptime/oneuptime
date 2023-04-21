@@ -30,15 +30,14 @@ export class Service extends DatabaseService<StatusPage> {
                 req.headers['status-page-token'];
 
             if (token) {
-
                 try {
-
                     const decoded: JSONWebTokenData = JSONWebToken.decode(
                         token as string
                     );
 
                     if (
-                        decoded.statusPageId?.toString() === statusPageId.toString()
+                        decoded.statusPageId?.toString() ===
+                        statusPageId.toString()
                     ) {
                         return true;
                     }
