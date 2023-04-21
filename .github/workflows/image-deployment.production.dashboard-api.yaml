@@ -23,6 +23,6 @@ jobs:
         # Build and deploy dashboard-api.
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard-api:5.0.$CI_PIPELINE_ID --push -f ./DashboardAPI/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard-api:release --push -f ./DashboardAPI/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard-api:5.0.$CI_PIPELINE_ID --tag oneuptime/dashboard-api:release --push -f ./DashboardAPI/Dockerfile .
+      
       
