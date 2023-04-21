@@ -1130,8 +1130,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             <div
                                 className={`${
                                     props.steps && currentFormStepId
-                                        ? 'w-2/3 pt-5'
-                                        : 'w-full'
+                                        ? 'w-2/3 pt-6'
+                                        : 'w-full pt-1'
                                 }`}
                             >
                                 {props.error && (
