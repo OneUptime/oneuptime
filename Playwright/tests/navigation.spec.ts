@@ -56,5 +56,5 @@ test.describe('navigation bar', () => {
             await requestDemo.hover();
             await expect(page).toHaveURL(/.*enterprise\/demo/);
         }
-    })
-})
+    });
+});

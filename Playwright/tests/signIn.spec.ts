@@ -1,4 +1,4 @@
-import { test, expect,  Page } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 const BASE_URL: string =
     process.env['BASE_URL' as keyof typeof process.env] ||
