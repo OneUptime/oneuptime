@@ -30,12 +30,13 @@ export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
 
 export interface RequestOptions {
     isMultiTenantRequest?: boolean | undefined;
+    requestHeaders?: Dictionary<string> | undefined;
 }
 
 export default class ModelAPI {
     public static async create<TBaseModel extends BaseModel>(
         model: TBaseModel,
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         apiUrlOverride?: URL,
         requestOptions?: RequestOptions | undefined
     ): Promise<
@@ -53,7 +54,7 @@ export default class ModelAPI {
 
     public static async update<TBaseModel extends BaseModel>(
         model: TBaseModel,
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         apiUrlOverride?: URL
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
@@ -67,7 +68,7 @@ export default class ModelAPI {
     }
 
     public static async updateById<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         id: ObjectID,
         data: JSONObject,
         apiUrlOverride?: URL,
@@ -115,11 +116,11 @@ export default class ModelAPI {
 
     public static async createOrUpdate<TBaseModel extends BaseModel>(
         model: TBaseModel,
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         formType: FormType,
         apiUrlOverride?: URL,
         miscDataProps?: JSONObject,
-        requestOptions?: RequestOptions | undefined
+        requestOptions?: RequestOptions | undefined,
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -156,7 +157,10 @@ export default class ModelAPI {
                 ),
                 miscDataProps: miscDataProps || {},
             },
-            this.getCommonHeaders(requestOptions)
+            {
+                ...this.getCommonHeaders(requestOptions),
+                ...requestOptions?.requestHeaders || {}
+            }
         );
 
         if (result.isSuccess()) {
@@ -169,7 +173,7 @@ export default class ModelAPI {
     }
 
     public static async getList<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         query: Query<TBaseModel>,
         limit: number,
         skip: number,
@@ -241,7 +245,7 @@ export default class ModelAPI {
     }
 
     public static async count<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         query: Query<TBaseModel>,
         requestOptions?: RequestOptions | undefined
     ): Promise<number> {
@@ -318,7 +322,7 @@ export default class ModelAPI {
     }
 
     public static async getItem<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         id: ObjectID,
         select: Select<TBaseModel>,
         populate?: Populate<TBaseModel>,
@@ -365,7 +369,7 @@ export default class ModelAPI {
     }
 
     public static async deleteItem<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         id: ObjectID,
         requestOptions?: RequestOptions | undefined
     ): Promise<void> {
@@ -406,8 +410,8 @@ export default class ModelAPI {
     private static checkStatusCode<TBaseModel extends BaseModel>(
         result:
             | HTTPResponse<
-                  TBaseModel | JSONObject | JSONArray | Array<TBaseModel>
-              >
+                TBaseModel | JSONObject | JSONArray | Array<TBaseModel>
+            >
             | HTTPErrorResponse
     ): void {
         if (result.statusCode === 406) {

@@ -46,17 +46,18 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onValidate?:
-        | undefined
-        | ((
-              values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     onFormStepChange?: undefined | ((stepId: string) => void);
     steps?: undefined | Array<FormStep>;
     submitButtonText?: undefined | string;
+    requestHeaders?: undefined | Dictionary<string>;
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
@@ -64,8 +65,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCancel?: undefined | (() => void);
     name: string;
     onSuccess?:
-        | undefined
-        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+    | undefined
+    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -79,8 +80,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?:
-        | ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>)
-        | undefined;
+    | ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>)
+    | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
 }
@@ -252,7 +253,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                                 isModelArray = true;
                                 idArray.push(
                                     (itemInArray as any as JSONObject)[
-                                        '_id'
+                                    '_id'
                                     ] as string
                                 );
                             }
@@ -424,7 +425,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     Array.isArray(valuesToSend[key]) &&
                     (valuesToSend[key] as Array<any>).length > 0 &&
                     typeof (valuesToSend[key] as Array<any>)[0] ===
-                        Typeof.String
+                    Typeof.String
                 ) {
                     const arr: Array<BaseModel> = [];
                     for (const id of valuesToSend[key] as Array<string>) {
@@ -452,7 +453,10 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 props.formType,
                 props.apiUrl,
                 miscDataProps,
-                props.saveRequestOptions
+                {
+                    ...props.saveRequestOptions,
+                    requestHeaders: props.requestHeaders
+                }
             );
 
             if (props.onSuccess) {
