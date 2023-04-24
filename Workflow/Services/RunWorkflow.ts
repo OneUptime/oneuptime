@@ -432,22 +432,12 @@ export default class RunWorkflow {
                         variable as any
                     );
 
-                    let shouldHaveQuotes: boolean = false;
-
-                    if (
-                        typeof value === 'string' &&
-                        value !== 'null' &&
-                        value !== 'undefined'
-                    ) {
-                        shouldHaveQuotes = true;
-                    }
-
                     if (argumentContentCopy.trim() === '{{' + variable + '}}') {
                         argumentContentCopy = value;
                     } else {
                         argumentContentCopy = argumentContentCopy.replace(
                             '{{' + variable + '}}',
-                            shouldHaveQuotes ? `"${value}"` : value
+                            value
                         );
                     }
                 }

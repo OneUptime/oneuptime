@@ -29,9 +29,11 @@ import ApiPost from './API/Post';
 import ApiPut from './API/Put';
 import Email from './Email';
 import IfElse from './Conditions/IfElse';
+import SlackSendMessageToChannel from './Slack/SendMessageToChannel';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
+    [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
     [ComponentID.Log]: new Log(),
     [ComponentID.Schedule]: new Schedule(),
     [ComponentID.JavaScriptCode]: new JavaScirptCode(),

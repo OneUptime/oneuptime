@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,7 +7,7 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'schedule',
+        id: ComponentID.Schedule,
         title: 'Schedule',
         category: 'Schedule',
         description: 'Run this workflow on particular schedule',
