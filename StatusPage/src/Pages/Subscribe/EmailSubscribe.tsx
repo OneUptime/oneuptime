@@ -111,7 +111,9 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                     ).addRoute(
                                         `/status-page/subscribe/${id.toString()}`
                                     )}
-                                    requestHeaders={API.getDefaultHeaders(props.statusPageId!)}
+                                    requestHeaders={API.getDefaultHeaders(
+                                        props.statusPageId!
+                                    )}
                                     formType={FormType.Create}
                                     submitButtonText={'Subscribe'}
                                     onBeforeCreate={async (
