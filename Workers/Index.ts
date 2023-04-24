@@ -18,6 +18,9 @@ import './Jobs/IncidentStateTimeline/SendEmailToSubscribers';
 // Incident Notes
 import './Jobs/IncidentPublicNote/SendEmailToSubscribers';
 
+// Hard Delete
+import './Jobs/HardDelete/HardDeleteItemsInDatabase';
+
 // Scheduled Event
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
