@@ -401,7 +401,7 @@ export default class StatusPageAPI extends BaseAPI<
                         ))
                     ) {
                         throw new NotAuthorizedException(
-                            'You are not authorize to access this status page'
+                            'You are not authorized to access this status page'
                         );
                     }
 
@@ -931,7 +931,7 @@ export default class StatusPageAPI extends BaseAPI<
                         ))
                     ) {
                         throw new NotAuthorizedException(
-                            'You are not authorize to access this status page'
+                            'You are not authorized to access this status page'
                         );
                     }
 
@@ -1181,7 +1181,7 @@ export default class StatusPageAPI extends BaseAPI<
     ): Promise<JSONObject> {
         if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
             throw new NotAuthorizedException(
-                'You are not authorize to access this status page'
+                'You are not authorized to access this status page'
             );
         }
 
@@ -1425,7 +1425,7 @@ export default class StatusPageAPI extends BaseAPI<
     ): Promise<JSONObject> {
         if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
             throw new NotAuthorizedException(
-                'You are not authorize to access this status page'
+                'You are not authorized to access this status page'
             );
         }
 
@@ -1533,7 +1533,7 @@ export default class StatusPageAPI extends BaseAPI<
     ): Promise<JSONObject> {
         if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
             throw new NotAuthorizedException(
-                'You are not authorize to access this status page'
+                'You are not authorized to access this status page'
             );
         }
 

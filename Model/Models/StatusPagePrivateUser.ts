@@ -238,7 +238,6 @@ export default class StatusPagePrivateUser extends BaseModel {
         required: false,
         type: TableColumnType.Email,
         title: 'Email',
-        description: 'Email of the user',
     })
     @Column({
         nullable: true,
@@ -272,7 +271,6 @@ export default class StatusPagePrivateUser extends BaseModel {
         title: 'Password',
         hashed: true,
         type: TableColumnType.HashedString,
-        description: 'Hashed password of the user',
     })
     @Column({
         type: ColumnType.HashedString,

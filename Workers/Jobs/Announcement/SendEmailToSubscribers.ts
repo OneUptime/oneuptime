@@ -2,7 +2,7 @@ import { EVERY_MINUTE } from '../../Utils/CronTime';
 import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscriberService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnouncementService';
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
@@ -13,6 +13,9 @@ import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
+import StatusPage from 'Model/Models/StatusPage';
+import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import Markdown from 'CommonServer/Types/Markdown';
 
 RunCron(
     'Announcement:SendEmailToSubscribers',
@@ -40,10 +43,6 @@ RunCron(
                 populate: {
                     statusPages: {
                         _id: true,
-                        name: true,
-                        pageTitle: true,
-                        isPublicStatusPage: true,
-                        logoFileId: true,
                     },
                 },
             });
@@ -54,6 +53,42 @@ RunCron(
             if (!announcement.statusPages) {
                 continue;
             }
+
+            const statusPages: Array<StatusPage> =
+                await StatusPageService.findBy({
+                    query: {
+                        _id: QueryHelper.in(
+                            announcement.statusPages.map((sp: StatusPage) => {
+                                return sp.id!;
+                            })
+                        ),
+                    },
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    select: {
+                        _id: true,
+                        name: true,
+                        pageTitle: true,
+                        isPublicStatusPage: true,
+                        logoFileId: true,
+                    },
+                    populate: {
+                        smtpConfig: {
+                            _id: true,
+                            hostname: true,
+                            port: true,
+                            username: true,
+                            password: true,
+                            fromEmail: true,
+                            fromName: true,
+                            secure: true,
+                        },
+                    },
+                });
 
             await StatusPageAnnouncementService.updateOneById({
                 id: announcement.id!,
@@ -66,7 +101,7 @@ RunCron(
                 },
             });
 
-            for (const statuspage of announcement.statusPages) {
+            for (const statuspage of statusPages) {
                 if (!statuspage.id) {
                     continue;
                 }
@@ -95,37 +130,48 @@ RunCron(
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
-                        MailService.sendMail({
-                            toEmail: subscriber.subscriberEmail,
-                            templateType:
-                                EmailTemplateType.SubscriberAnnouncementCreated,
-                            vars: {
-                                statusPageName: statusPageName,
-                                statusPageUrl: statusPageURL,
-                                logoUrl: statuspage.logoFileId
-                                    ? new URL(HttpProtocol, Domain)
-                                          .addRoute(FileRoute)
-                                          .addRoute(
-                                              '/image/' + statuspage.logoFileId
-                                          )
-                                          .toString()
-                                    : '',
-                                isPublicStatusPage:
-                                    statuspage.isPublicStatusPage
-                                        ? 'true'
-                                        : 'false',
-                                announcementTitle: announcement.title || '',
-                                announcementDescription:
-                                    announcement.description || '',
-                                unsubscribeUrl: new URL(HttpProtocol, Domain)
-                                    .addRoute(
-                                        '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                        MailService.sendMail(
+                            {
+                                toEmail: subscriber.subscriberEmail,
+                                templateType:
+                                    EmailTemplateType.SubscriberAnnouncementCreated,
+                                vars: {
+                                    statusPageName: statusPageName,
+                                    statusPageUrl: statusPageURL,
+                                    logoUrl: statuspage.logoFileId
+                                        ? new URL(HttpProtocol, Domain)
+                                              .addRoute(FileRoute)
+                                              .addRoute(
+                                                  '/image/' +
+                                                      statuspage.logoFileId
+                                              )
+                                              .toString()
+                                        : '',
+                                    isPublicStatusPage:
+                                        statuspage.isPublicStatusPage
+                                            ? 'true'
+                                            : 'false',
+                                    announcementTitle: announcement.title || '',
+                                    announcementDescription:
+                                        Markdown.convertToHTMML(
+                                            announcement.description || ''
+                                        ),
+                                    unsubscribeUrl: new URL(
+                                        HttpProtocol,
+                                        Domain
                                     )
-                                    .toString(),
+                                        .addRoute(
+                                            '/api/status-page-subscriber/unsubscribe/' +
+                                                subscriber._id.toString()
+                                        )
+                                        .toString(),
+                                },
+                                subject: statusPageName + ' - New Announcement',
                             },
-                            subject: statusPageName + ' - New Announcement',
-                        }).catch((err: Error) => {
+                            ProjectSMTPConfigService.toEmailServer(
+                                statuspage.smtpConfig
+                            )
+                        ).catch((err: Error) => {
                             logger.error(err);
                         });
                     }

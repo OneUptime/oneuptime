@@ -20,7 +20,7 @@ const Footer: FunctionComponent<ComponentProps> = (
                 }
                 style={props.style}
             >
-                <div className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8">
+                <div className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-0">
                     <div className="flex justify-center space-x-6 md:order-2">
                         {props.links &&
                             props.links.length > 0 &&

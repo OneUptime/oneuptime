@@ -303,7 +303,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     {props.children}
                     {!footerHtml ? (
                         <Footer
-                            className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8"
+                            className="mx-auto w-full py-5 px-0 md:flex md:items-center md:justify-between lg:px-0"
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(
                                     masterPageData || {},

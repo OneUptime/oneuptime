@@ -14,6 +14,7 @@ import FileModel from 'Common/Models/FileModel';
 import ColorViewer from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
 import AlignItem from '../../Types/AlignItem';
+import PlaceholderText from './PlaceholderText';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -206,10 +207,8 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                             {data}
                         </span>
                     )}
-                    {!data && (
-                        <span className="text-gray-500">
-                            {field.placeholder}
-                        </span>
+                    {!data && field.placeholder && (
+                        <PlaceholderText text={field.placeholder} />
                     )}
                 </div>
             </div>

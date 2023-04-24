@@ -133,6 +133,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/domains`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-smtp`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/email-subscribers`
     ),

@@ -83,7 +83,10 @@ export class Service extends DatabaseService<Model> {
             createdItem.projectId,
             createdItem.id,
             createdItem.currentIncidentStateId,
-            onCreate.createBy.props
+            false,
+            {
+                isRoot: true,
+            }
         );
 
         return createdItem;
@@ -93,6 +96,7 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID,
         incidentId: ObjectID,
         incidentStateId: ObjectID,
+        notifyStatusPageSubscribers: boolean,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         const statusTimeline: IncidentStateTimeline =
@@ -101,6 +105,8 @@ export class Service extends DatabaseService<Model> {
         statusTimeline.incidentId = incidentId;
         statusTimeline.incidentStateId = incidentStateId;
         statusTimeline.projectId = projectId;
+        statusTimeline.isStatusPageSubscribersNotified =
+            !notifyStatusPageSubscribers;
 
         await IncidentStateTimelineService.create({
             data: statusTimeline,

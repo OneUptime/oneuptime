@@ -30,6 +30,7 @@ export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
 
 export interface RequestOptions {
     isMultiTenantRequest?: boolean | undefined;
+    requestHeaders?: Dictionary<string> | undefined;
 }
 
 export default class ModelAPI {
@@ -156,7 +157,10 @@ export default class ModelAPI {
                 ),
                 miscDataProps: miscDataProps || {},
             },
-            this.getCommonHeaders(requestOptions)
+            {
+                ...this.getCommonHeaders(requestOptions),
+                ...(requestOptions?.requestHeaders || {}),
+            }
         );
 
         if (result.isSuccess()) {

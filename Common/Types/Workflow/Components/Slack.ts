@@ -1,4 +1,5 @@
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
@@ -6,13 +7,32 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
     {
-        id: 'slack-send-message-to-channel',
+        id: ComponentID.SlackSendMessageToChannel,
         title: 'Send Message to Channel',
         category: 'Slack',
         description: 'Send message to slack channel',
         iconProp: IconProp.SendMessage,
         componentType: ComponentType.Component,
-        arguments: [],
+        arguments: [
+            {
+                id: 'webhook-url',
+                name: 'Slack Incoming Webhook URL',
+                description:
+                    'Need help creating a webhook? Check docs here: https://api.slack.com/messaging/webhooks',
+                type: ComponentInputType.URL,
+                required: true,
+                placeholder:
+                    'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
+            },
+            {
+                id: 'text',
+                name: 'Message Text',
+                description: 'Message to send to Slack.',
+                type: ComponentInputType.LongText,
+                required: true,
+                placeholder: 'Test slack message from OneUptime',
+            },
+        ],
         returnValues: [
             {
                 id: 'error',

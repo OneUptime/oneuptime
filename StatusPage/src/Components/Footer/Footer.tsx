@@ -19,7 +19,7 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
             links={[
                 ...props.links,
                 {
-                    title: 'Powered by OneUptime.',
+                    title: 'Powered by OneUptime',
                     to: URL.fromString('https://oneuptime.com'),
                     openInNewTab: true,
                 },

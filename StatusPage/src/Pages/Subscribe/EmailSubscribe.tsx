@@ -17,6 +17,7 @@ import PageMap from '../../Utils/PageMap';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
+import API from '../../Utils/API';
 
 const SubscribePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -109,6 +110,9 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                         DASHBOARD_API_URL.toString()
                                     ).addRoute(
                                         `/status-page/subscribe/${id.toString()}`
+                                    )}
+                                    requestHeaders={API.getDefaultHeaders(
+                                        props.statusPageId!
                                     )}
                                     formType={FormType.Create}
                                     submitButtonText={'Subscribe'}

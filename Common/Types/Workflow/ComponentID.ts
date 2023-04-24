@@ -1,6 +1,8 @@
 enum ComponentID {
     Webhook = 'webhook',
     Log = 'log',
+    SlackSendMessageToChannel = 'slack-send-message-to-channel',
+    MicrosoftTeamsSendMessageToChannel = 'microsoft-teams-send-message-to-channel',
     Schedule = 'schedule',
     JavaScriptCode = 'javascript',
     Manual = 'manual',

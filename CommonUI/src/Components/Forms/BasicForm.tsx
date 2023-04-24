@@ -159,6 +159,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             }
 
             if (!currentFormStepId) {
+                setSubmitButtonText(props.submitButtonText || 'Submit');
                 if (props.onIsLastFormStep) {
                     props.onIsLastFormStep(true);
                 }
@@ -1144,10 +1145,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 </div>
                             )}
                             <div
-                                className={`pt-6 ${
+                                className={`${
                                     props.steps && currentFormStepId
-                                        ? 'w-2/3'
-                                        : 'w-full'
+                                        ? 'w-2/3 pt-6'
+                                        : 'w-full pt-1'
                                 }`}
                             >
                                 {props.error && (

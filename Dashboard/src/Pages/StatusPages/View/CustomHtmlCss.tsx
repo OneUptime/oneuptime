@@ -58,7 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         >
             {/* StatusPage View  */}
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Header HTML"
+                name="Status Page > Branding > Header HTML"
                 cardProps={{
                     title: 'Header HTML',
                     description:
@@ -98,7 +98,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             {/* StatusPage View  */}
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Footer HTML"
+                name="Status Page > Branding > Footer HTML"
                 cardProps={{
                     title: 'Footer HTML',
                     description:
@@ -138,7 +138,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             {/* StatusPage View  */}
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Custom CSS"
+                name="Status Page > Branding > Custom CSS"
                 cardProps={{
                     title: 'Custom CSS',
                     description:
@@ -178,7 +178,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             {/* StatusPage View  */}
             <CardModelDetail<StatusPage>
-                name="Statusn Page > Branding > Custom JavaScript"
+                name="Status Page > Branding > Custom JavaScript"
                 cardProps={{
                     title: 'Custom JavaScript',
                     description:

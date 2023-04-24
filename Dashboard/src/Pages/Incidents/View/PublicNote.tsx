@@ -141,10 +141,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         }
                                         suffix={'wrote'}
                                         usernameClassName={
-                                            'text-base font-medium text-gray-900'
+                                            'text-base text-gray-900'
                                         }
                                         suffixClassName={
-                                            'text-base font-medium text-gray-500 mt-1'
+                                            'text-base text-gray-500 mt-1'
                                         }
                                     />
                                 );

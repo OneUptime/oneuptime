@@ -22,7 +22,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
         <div>
             {(props.logo || props.links?.length > 0) && (
                 <Header
-                    className="bg-transparent flex justify-between"
+                    className="bg-transparent flex justify-between mt-5"
                     leftComponents={
                         <>
                             {props.logo && (
@@ -45,14 +45,14 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                         <>
                             {props.links && props.links.length > 0 && (
                                 <div key={'links'}>
-                                    <div className="flex space-x-2 ">
+                                    <div className="flex space-x-4 ">
                                         {props.links &&
                                             props.links.map(
                                                 (link: Link, i: number) => {
                                                     return (
                                                         <div
                                                             key={i}
-                                                            className="flex items-center"
+                                                            className="flex items-center "
                                                         >
                                                             <UILink
                                                                 className="flex w-full flex-col items-center text-gray-400 hover:text-gray-600 font-medium font-mono"
@@ -63,21 +63,6 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                                                             >
                                                                 {link.title}
                                                             </UILink>
-                                                            {i + 1 !==
-                                                                props.links
-                                                                    .length && (
-                                                                <svg
-                                                                    viewBox="0 0 2 2"
-                                                                    className="ml-2 inline h-1.5 w-1.5 fill-gray-400"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    <circle
-                                                                        cx="1"
-                                                                        cy="1"
-                                                                        r="1"
-                                                                    />
-                                                                </svg>
-                                                            )}
                                                         </div>
                                                     );
                                                 }

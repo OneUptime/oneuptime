@@ -57,6 +57,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onFormStepChange?: undefined | ((stepId: string) => void);
     steps?: undefined | Array<FormStep<TBaseModel>>;
     submitButtonText?: undefined | string;
+    requestHeaders?: undefined | Dictionary<string>;
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
@@ -453,7 +454,10 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 props.formType,
                 props.apiUrl,
                 miscDataProps,
-                props.saveRequestOptions
+                {
+                    ...props.saveRequestOptions,
+                    requestHeaders: props.requestHeaders,
+                }
             );
 
             if (props.onSuccess) {

@@ -65,6 +65,7 @@ RunCron(
                 event.projectId!,
                 event.id!,
                 scheduledMaintenanceState.id,
+                true,
                 {
                     isRoot: true,
                 }

@@ -763,6 +763,66 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return await this._deleteBy(deleteBy);
     }
 
+    public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
+        try {
+            const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
+                ? { deleteBy, carryForward: [] }
+                : await this.onBeforeDelete(deleteBy);
+            const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+
+            beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
+                this.entityType,
+                beforeDeleteBy.query,
+                deleteBy.props
+            );
+
+            if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
+                beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
+            }
+
+            if (!(beforeDeleteBy.limit instanceof PositiveNumber)) {
+                beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
+            }
+
+            const items: Array<TBaseModel> = await this._findBy(
+                {
+                    query: beforeDeleteBy.query,
+                    skip: beforeDeleteBy.skip.toNumber(),
+                    limit: beforeDeleteBy.limit.toNumber(),
+                    populate: {},
+                    select: {},
+                    props: { ...beforeDeleteBy.props, ignoreHooks: true },
+                },
+                true
+            );
+
+            let numberOfDocsAffected: number = 0;
+
+            if (items.length > 0) {
+                beforeDeleteBy.query = {
+                    ...beforeDeleteBy.query,
+                    _id: QueryHelper.in(
+                        items.map((i: TBaseModel) => {
+                            return i.id!;
+                        })
+                    ),
+                };
+
+                numberOfDocsAffected =
+                    (
+                        await this.getRepository().delete(
+                            beforeDeleteBy.query as any
+                        )
+                    ).affected || 0;
+            }
+
+            return numberOfDocsAffected;
+        } catch (error) {
+            await this.onDeleteError(error as Exception);
+            throw this.getException(error as Exception);
+        }
+    }
+
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
             const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
@@ -865,7 +925,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private async _findBy(
-        findBy: FindBy<TBaseModel>
+        findBy: FindBy<TBaseModel>,
+        withDeleted?: boolean | undefined
     ): Promise<Array<TBaseModel>> {
         try {
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
@@ -925,6 +986,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 order: onBeforeFind.sort as any,
                 relations: onBeforeFind.populate as any,
                 select: onBeforeFind.select as any,
+                withDeleted: withDeleted || false,
             });
 
             let decryptedItems: Array<TBaseModel> = [];

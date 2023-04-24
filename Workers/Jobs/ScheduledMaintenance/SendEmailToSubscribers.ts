@@ -19,9 +19,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
+import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 
 RunCron(
-    'Incident:SendEmailToSubscribers',
+    'ScheduledMaintenance:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all scheduled events of all the projects.
@@ -77,16 +78,6 @@ RunCron(
                 },
             });
 
-        const scheduledEventsIds: Array<string | undefined> =
-            scheduledEvents.map((i: ScheduledMaintenance) => {
-                return i._id?.toString();
-            });
-        const ongoingEventIds: Array<string | undefined> = ongoingEvents.map(
-            (i: ScheduledMaintenance) => {
-                return i._id?.toString();
-            }
-        );
-
         const totalEvents: Array<ScheduledMaintenance> = [
             ...ongoingEvents,
             ...scheduledEvents,
@@ -97,38 +88,9 @@ RunCron(
                 continue;
             }
 
-            let isOngoing: boolean = false;
-
-            if (ongoingEventIds.includes(event._id?.toString())) {
-                isOngoing = true;
-                await ScheduledMaintenanceService.updateOneById({
-                    id: event.id!,
-                    data: {
-                        isStatusPageSubscribersNotifiedOnEventOngoing: true,
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
-            }
-
-            if (scheduledEventsIds.includes(event._id?.toString())) {
-                await ScheduledMaintenanceService.updateOneById({
-                    id: event.id!,
-                    data: {
-                        isStatusPageSubscribersNotifiedOnEventScheduled: true,
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
-            }
-
             // get status page resources from monitors.
 
-            const sattusPageResources: Array<StatusPageResource> =
+            const statusPageResources: Array<StatusPageResource> =
                 await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
@@ -157,7 +119,7 @@ RunCron(
             const statusPageToResources: Dictionary<Array<StatusPageResource>> =
                 {};
 
-            for (const resource of sattusPageResources) {
+            for (const resource of statusPageResources) {
                 if (!resource.statusPageId) {
                     continue;
                 }
@@ -196,6 +158,18 @@ RunCron(
                         isPublicStatusPage: true,
                         logoFileId: true,
                     },
+                    populate: {
+                        smtpConfig: {
+                            _id: true,
+                            hostname: true,
+                            port: true,
+                            username: true,
+                            password: true,
+                            fromEmail: true,
+                            fromName: true,
+                            secure: true,
+                        },
+                    },
                 });
 
             for (const statuspage of statusPages) {
@@ -228,53 +202,58 @@ RunCron(
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
-                        MailService.sendMail({
-                            toEmail: subscriber.subscriberEmail,
-                            templateType:
-                                EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
-                            vars: {
-                                statusPageName: statusPageName,
-                                statusPageUrl: statusPageURL,
-                                logoUrl: statuspage.logoFileId
-                                    ? new URL(HttpProtocol, Domain)
-                                          .addRoute(FileRoute)
-                                          .addRoute(
-                                              '/image/' + statuspage.logoFileId
-                                          )
-                                          .toString()
-                                    : '',
-                                isPublicStatusPage:
-                                    statuspage.isPublicStatusPage
-                                        ? 'true'
-                                        : 'false',
-                                resourcesAffected:
-                                    statusPageToResources[statuspage._id!]
-                                        ?.map((r: StatusPageResource) => {
-                                            return r.displayName;
-                                        })
-                                        .join(', ') || 'None',
-                                eventStatus: isOngoing
-                                    ? 'Ongoing'
-                                    : 'Scheduled',
-                                scheduledAt:
-                                    OneUptimeDate.getDateAsFormattedString(
-                                        event.startsAt!
-                                    ),
-                                eventTitle: event.title || '',
-                                eventDescription: event.description || '',
-                                unsubscribeUrl: new URL(HttpProtocol, Domain)
-                                    .addRoute(
-                                        '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                        MailService.sendMail(
+                            {
+                                toEmail: subscriber.subscriberEmail,
+                                templateType:
+                                    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                                vars: {
+                                    statusPageName: statusPageName,
+                                    statusPageUrl: statusPageURL,
+                                    logoUrl: statuspage.logoFileId
+                                        ? new URL(HttpProtocol, Domain)
+                                              .addRoute(FileRoute)
+                                              .addRoute(
+                                                  '/image/' +
+                                                      statuspage.logoFileId
+                                              )
+                                              .toString()
+                                        : '',
+                                    isPublicStatusPage:
+                                        statuspage.isPublicStatusPage
+                                            ? 'true'
+                                            : 'false',
+                                    resourcesAffected:
+                                        statusPageToResources[statuspage._id!]
+                                            ?.map((r: StatusPageResource) => {
+                                                return r.displayName;
+                                            })
+                                            .join(', ') || 'None',
+                                    scheduledAt:
+                                        OneUptimeDate.getDateAsFormattedString(
+                                            event.startsAt!
+                                        ),
+                                    eventTitle: event.title || '',
+                                    eventDescription: event.description || '',
+                                    unsubscribeUrl: new URL(
+                                        HttpProtocol,
+                                        Domain
                                     )
-                                    .toString(),
+                                        .addRoute(
+                                            '/api/status-page-subscriber/unsubscribe/' +
+                                                subscriber._id.toString()
+                                        )
+                                        .toString(),
+                                },
+                                subject:
+                                    statusPageName +
+                                    ` - 'New Scheduled'
+                                    } Maintenance`,
                             },
-                            subject:
-                                statusPageName +
-                                ` - ${
-                                    isOngoing ? 'Ongoing' : 'Scheduled'
-                                } Maintenance Event`,
-                        }).catch((err: Error) => {
+                            ProjectSmtpConfigService.toEmailServer(
+                                statuspage.smtpConfig
+                            )
+                        ).catch((err: Error) => {
                             logger.error(err);
                         });
                     }

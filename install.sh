@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 
-# Pull latest changes
-git pull
+
+# If its not environment IS_DOCKER then exit
+
+if [[ $IS_DOCKER == "true" ]]
+then
+    echo "This script should run in the docker container."
+else
+    # Pull latest changes
+    git pull
+fi
 
 set -e
 

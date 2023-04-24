@@ -31,7 +31,7 @@ export default class Port extends DatabaseProperty {
             port = port.toNumber();
         }
 
-        if (port >= 0 && port <= 65535) {
+        if ((port as number) >= 0 && (port as number) <= 65535) {
             return true;
         }
         return false;

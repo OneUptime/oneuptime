@@ -25,6 +25,27 @@ export class Service extends DatabaseService<StatusPage> {
         req: ExpressRequest
     ): Promise<boolean> {
         try {
+            // token decode.
+            const token: string | Array<string> | undefined =
+                req.headers['status-page-token'];
+
+            if (token) {
+                try {
+                    const decoded: JSONWebTokenData = JSONWebToken.decode(
+                        token as string
+                    );
+
+                    if (
+                        decoded.statusPageId?.toString() ===
+                        statusPageId.toString()
+                    ) {
+                        return true;
+                    }
+                } catch (err) {
+                    logger.error(err);
+                }
+            }
+
             const count: PositiveNumber = await this.countBy({
                 query: {
                     _id: statusPageId.toString(),
@@ -60,20 +81,6 @@ export class Service extends DatabaseService<StatusPage> {
             }
         } catch (err) {
             logger.error(err);
-        }
-
-        // token decode.
-        const token: string | Array<string> | undefined =
-            req.headers['status-page-token'];
-
-        if (!token) {
-            return false;
-        }
-
-        const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);
-
-        if (decoded.statusPageId?.toString() === statusPageId.toString()) {
-            return true;
         }
 
         return false;
