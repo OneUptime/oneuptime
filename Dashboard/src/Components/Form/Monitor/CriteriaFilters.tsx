@@ -5,8 +5,9 @@ import {
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import CriteriaFilterElement from './CriteriaFilter';
-import Button, { ButtonSize } from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 export interface ComponentProps {
     initialValue: Array<CriteriaFilter> | undefined;
@@ -19,6 +20,8 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
     const [criteriaFilters, setCriteriaFilters] = React.useState<
         Array<CriteriaFilter>
     >(props.initialValue || []);
+
+    const [showCantDeleteModal, setShowCantDeleteModal] = React.useState<boolean>(false);
 
     useEffect(() => {
         if (criteriaFilters && props.onChange) {
@@ -33,7 +36,14 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     <CriteriaFilterElement
                         key={index}
                         initialValue={i}
+                        
                         onDelete={() => {
+                            
+                            if(criteriaFilters.length === 1){
+                                setShowCantDeleteModal(true);
+                                return;
+                            }
+
                             // remove the criteria filter
                             const index: number = criteriaFilters.indexOf(i);
                             const newCriteriaFilters: Array<CriteriaFilter> = [
@@ -72,6 +82,20 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
+            {showCantDeleteModal ? (
+                <ConfirmModal
+                    description={`We need at least one filter for this criteria. We cant delete one remaining filter. If you dont need filters, please feel free to delete criteria instead.`}
+                    title={`Cannot delete last remaining filter.`}
+                    onSubmit={() => {
+                        setShowCantDeleteModal(false);
+                       
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                    submitButtonText='Close'
+                />
+            ) : (
+                <></>
+            )}
         </div>
     );
 };

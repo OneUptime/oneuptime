@@ -8,8 +8,8 @@ export enum CheckOn {
 
 export interface CriteriaFilter {
     checkOn: CheckOn;
-    filterType: FilterType;
-    value: string | number;
+    filterType: FilterType | undefined;
+    value: string | number | undefined;
 }
 
 export enum FilterType {

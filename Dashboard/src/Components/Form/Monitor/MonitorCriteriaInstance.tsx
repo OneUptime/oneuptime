@@ -29,6 +29,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Input from 'CommonUI/src/Components/Input/Input';
 import TextArea from 'CommonUI/src/Components/TextArea/TextArea';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -57,6 +58,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
     const filterConditionOptions: Array<DropdownOption> =
         DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);
+
+    const [errors, setErrors] = useState<Dictionary<string>>({});
+    const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
     useEffect(() => {
         // set first value as default
@@ -93,8 +97,40 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     initialValue={
                         monitorCriteriaInstance?.data?.name?.toString() || ''
                     }
+                    onBlur={()=>{
+                        setTouched({
+                            ...touched,
+                            name: true,
+                        })
+
+                        if(!monitorCriteriaInstance?.data?.name){
+                            setErrors({
+                                ...errors,
+                                name: 'Name is required',
+                            })
+                        }else{
+                            setErrors({
+                                ...errors,
+                                name: '',
+                            })
+                        }
+                    }}
+                    error={touched['name'] && errors['name'] ? errors['name'] : undefined}
                     placeholder="Online Criteria"
                     onChange={(value: string) => {
+
+                        if(!value){
+                            setErrors({
+                                ...errors,
+                                name: 'Name is required',
+                            })
+                        }else{
+                            setErrors({
+                                ...errors,
+                                name: '',
+                            })
+                        }
+
                         monitorCriteriaInstance.setName(value);
                         setMonitorCriteriaInstance(
                             MonitorCriteriaInstance.clone(
@@ -114,9 +150,39 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
                 <TextArea
                     initialValue={
-                        monitorCriteriaInstance?.data?.name?.toString() || ''
+                        monitorCriteriaInstance?.data?.description?.toString() || ''
                     }
+                    onBlur={()=>{
+                        setTouched({
+                            ...touched,
+                            description: true,
+                        })
+
+                        if(!monitorCriteriaInstance?.data?.description){
+                            setErrors({
+                                ...errors,
+                                description: 'Description is required',
+                            })
+                        }else{
+                            setErrors({
+                                ...errors,
+                                description: '',
+                            })
+                        }
+                    }}
+                    error={touched['description'] && errors['description'] ? errors['description'] : undefined}
                     onChange={(value: string) => {
+                        if(!value){
+                            setErrors({
+                                ...errors,
+                                description: 'Description is required',
+                            })
+                        }else{
+                            setErrors({
+                                ...errors,
+                                description: '',
+                            })
+                        }
                         monitorCriteriaInstance.setName(value);
                         setMonitorCriteriaInstance(
                             MonitorCriteriaInstance.clone(
@@ -207,8 +273,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                             (i: DropdownOption) => {
                                 return (
                                     i.value ===
-                                        monitorCriteriaInstance?.data
-                                            ?.monitorStatusId?.id || undefined
+                                    monitorCriteriaInstance?.data
+                                        ?.monitorStatusId?.id || undefined
                                 );
                             }
                         )}
@@ -245,7 +311,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         if (
                             !monitorCriteriaInstance.data?.incidents ||
                             monitorCriteriaInstance.data?.incidents?.length ===
-                                0
+                            0
                         ) {
                             monitorCriteriaInstance.setIncidents([
                                 {

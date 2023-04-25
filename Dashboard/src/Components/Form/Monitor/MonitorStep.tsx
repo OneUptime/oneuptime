@@ -19,12 +19,12 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import IP from 'Common/Types/IP/IP';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import DictionaryOfStrings from 'CommonUI/src/Components/Dictionary/DictionaryOfStrings';
 import Dictionary from 'Common/Types/Dictionary';
 import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import Exception from 'Common/Types/Exception/Exception';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -51,6 +51,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             props.onChange(monitorStep);
         }
     }, [monitorStep]);
+
+    const [errors, setErrors] = useState<Dictionary<string>>({});
+    const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
     const [destinationFieldTitle, setDestinationFieldTitle] =
         useState<string>('URL');
@@ -97,31 +100,72 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     initialValue={
                         destinationInputValue
                     }
-                    onChange={(value: string) => {
+                    onBlur={()=>{
+                        setTouched({
+                            ...touched,
+                            destination: true,
+                        })
 
-                        
+                        if(!monitorStep?.data?.monitorDestination?.toString()){
+                            setErrors({
+                                ...errors,
+                                destination: 'Destination is required',
+                            })
+                        }else{
+                            setErrors({
+                                ...errors,
+                                destination: '',
+                            })
+                        }
+                    }}
+                    error={touched['destination'] && errors['destination'] ? errors['destination'] : undefined}
+                    onChange={(value: string) => {
 
                         let destination: IP | URL | undefined = undefined;
 
-                        if (props.monitorType === MonitorType.IP) {
-                            destination = IP.fromString(value);
-                        } else if (props.monitorType === MonitorType.Ping) {
-                            if (IP.isIP(value)) {
+                        try {
+
+                            if (props.monitorType === MonitorType.IP) {
                                 destination = IP.fromString(value);
-                            } else {
+                            } else if (props.monitorType === MonitorType.Ping) {
+                                if (IP.isIP(value)) {
+                                    destination = IP.fromString(value);
+                                } else {
+                                    destination = URL.fromString(value);
+                                }
+                            } else if (props.monitorType === MonitorType.Website) {
+                                destination = URL.fromString(value);
+                            } else if (props.monitorType === MonitorType.API) {
                                 destination = URL.fromString(value);
                             }
-                        } else if (props.monitorType === MonitorType.Website) {
-                            destination = URL.fromString(value);
-                        } else if (props.monitorType === MonitorType.API) {
-                            destination = URL.fromString(value);
+
+                            setErrors({
+                                ...errors,
+                                destination: '',
+                            })
+                           
+                        } catch (err) {
+
+                            if (err instanceof Exception) {
+                                setErrors({
+                                    ...errors,
+                                    destination: err.message,
+                                })
+                            } else {
+                                setErrors({
+                                    ...errors,
+                                    destination: "Invalid Destination",
+                                })
+                            }
+
+
                         }
 
-                        if (!destination) {
-                            throw new BadDataException('Invalid destination');
+                        if (destination) {
+                            monitorStep.setMonitorDestination(destination);
                         }
 
-                        monitorStep.setMonitorDestination(destination);
+                        
                         setDestinationInputValue(value);
                         setMonitorStep(MonitorStep.clone(monitorStep));
                     }}
@@ -150,7 +194,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         ) => {
                             monitorStep.setRequestType(
                                 (value?.toString() as HTTPMethod) ||
-                                    HTTPMethod.GET
+                                HTTPMethod.GET
                             );
                             setMonitorStep(MonitorStep.clone(monitorStep));
                         }}
@@ -207,8 +251,29 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         />
                         <CodeEditor
                             type={CodeType.JSON}
+                            onBlur={()=>{
+                                setTouched({
+                                    ...touched,
+                                    requestBody: true,
+                                })
+                            }}
+                            error={touched['requestBody'] && errors['requestBody'] ? errors['requestBody'] : undefined}
                             initialValue={monitorStep.data?.requestBody}
                             onChange={(value: string) => {
+
+                                try{
+                                    JSON.parse(value);
+                                    setErrors({
+                                        ...errors,
+                                        requestBody: '',
+                                    })
+                                }catch(err){
+                                    setErrors({
+                                        ...errors,
+                                        requestBody: "Invalid JSON",
+                                    })
+                                }
+
                                 monitorStep.setRequestBody(value);
                                 setMonitorStep(MonitorStep.clone(monitorStep));
                             }}

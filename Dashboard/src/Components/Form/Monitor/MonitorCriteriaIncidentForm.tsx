@@ -28,7 +28,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         field: {
                             title: true,
                         },
-                        title: 'Title',
+                        title: 'Incident Title',
                         fieldType: FormFieldSchemaType.Text,
                         stepId: 'incident-details',
                         required: true,
@@ -41,7 +41,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         field: {
                             description: true,
                         },
-                        title: 'Description',
+                        title: 'Incident Description',
                         stepId: 'incident-details',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,

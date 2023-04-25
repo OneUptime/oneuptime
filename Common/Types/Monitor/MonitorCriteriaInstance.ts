@@ -3,7 +3,7 @@ import DatabaseProperty from '../Database/DatabaseProperty';
 import { JSONObject } from '../JSON';
 import ObjectID from '../ObjectID';
 import { CriteriaIncident } from './CriteriaIncident';
-import { CriteriaFilter, FilterCondition } from './CriteriaFilter';
+import { CheckOn, CriteriaFilter, FilterCondition } from './CriteriaFilter';
 import BadDataException from '../Exception/BadDataException';
 
 export interface MonitorCriteriaInstanceType {
@@ -25,7 +25,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         this.data = {
             monitorStatusId: undefined,
             filterCondition: FilterCondition.All,
-            filters: [],
+            filters: [
+                {
+                    checkOn: CheckOn.IsOnline,
+                    filterType: undefined,
+                    value: undefined,
+                }
+            ],
             incidents: [],
             name: '',
             description: '',
@@ -36,7 +42,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return {
             monitorStatusId: undefined,
             filterCondition: FilterCondition.All,
-            filters: [],
+            filters: [
+                {
+                    checkOn: CheckOn.IsOnline,
+                    filterType: undefined,
+                    value: undefined,
+                }
+            ],
             incidents: [],
             name: '',
             description: '',

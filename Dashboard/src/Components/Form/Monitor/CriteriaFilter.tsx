@@ -80,7 +80,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             </div>
             <div className="w-1/3 mr-1 ml-1">
             {!criteriaFilter?.checkOn || (criteriaFilter?.checkOn && criteriaFilter?.checkOn !== CheckOn.IsOnline) &&<Input
-                    initialValue={criteriaFilter?.value.toString()}
+                    initialValue={criteriaFilter?.value?.toString()}
                     onChange={(value: string) => {
                         setCriteriaFilter({
                             checkOn:
