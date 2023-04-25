@@ -1,0 +1,392 @@
+name: Release Image Deploy to DockerHub
+
+on:
+  push:
+    branches:
+      - "release"
+
+jobs:
+
+  workflow-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workflow:5.0.$CI_PIPELINE_ID --tag oneuptime/workflow:release --push -f ./Workflow/Dockerfile .
+
+  workers-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy workers.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workers:5.0.$CI_PIPELINE_ID --tag oneuptime/workers:release --push -f ./Workers/Dockerfile .
+
+  staus-page-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy status-page.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:5.0.$CI_PIPELINE_ID --tag oneuptime/status-page:release --push -f ./StatusPage/Dockerfile .
+
+  realtime-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy realtime.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:5.0.$CI_PIPELINE_ID --tag oneuptime/realtime:release --push -f ./Realtime/Dockerfile .
+      
+
+  probe-api-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy probe-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:5.0.$CI_PIPELINE_ID --tag oneuptime/probe-api:release --push -f ./ProbeAPI/Dockerfile .
+
+  nginx-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:5.0.$CI_PIPELINE_ID --tag oneuptime/nginx:release --push -f ./Nginx/Dockerfile .
+      
+
+  mail-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:5.0.$CI_PIPELINE_ID --tag oneuptime/mail:release --push -f ./Mail/Dockerfile .
+      
+
+  licensing-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:5.0.$CI_PIPELINE_ID --tag oneuptime/licensing:release --push -f ./Licensing/Dockerfile .
+
+  integrations-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/integrations:5.0.$CI_PIPELINE_ID --tag oneuptime/integrations:release --push -f ./Integration/Dockerfile .
+      
+      
+
+
+  identity-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/identity:5.0.$CI_PIPELINE_ID --tag oneuptime/identity:release --push -f ./Identity/Dockerfile .
+      
+
+  home-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/home:5.0.$CI_PIPELINE_ID --tag oneuptime/home:release --push -f ./Home/Dockerfile .
+      
+
+  helm-chart-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:5.0.$CI_PIPELINE_ID --tag oneuptime/helm-chart:release --push -f ./HelmChart/Dockerfile .
+      
+
+  haraka-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:5.0.$CI_PIPELINE_ID --tag oneuptime/haraka:release --push -f ./Haraka/Dockerfile .
+
+  file-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy file.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/file:5.0.$CI_PIPELINE_ID --tag oneuptime/file:release --push -f ./File/Dockerfile .
+      
+      
+
+  dashboard-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy dashboard-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard:5.0.$CI_PIPELINE_ID --tag oneuptime/dashboard:release --push -f ./Dashboard/Dockerfile .
+      
+      
+
+
+  dashboard-api-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy dashboard-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard-api:5.0.$CI_PIPELINE_ID --tag oneuptime/dashboard-api:release --push -f ./DashboardAPI/Dockerfile .
+      
+      
+
+
+  api-reference-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy api-reference.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:5.0.$CI_PIPELINE_ID --tag oneuptime/api-reference:release --push -f ./ApiReference/Dockerfile .
+      
+      
+
+
+  alert-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/alert:5.0.$CI_PIPELINE_ID --tag oneuptime/alert:release --push -f ./Alert/Dockerfile .
+      
+      
+
+
+  accounts-release:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:5.0.$CI_PIPELINE_ID --tag oneuptime/accounts:release --push -f ./Accounts/Dockerfile .
+      
+      
