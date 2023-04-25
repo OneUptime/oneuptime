@@ -22,6 +22,6 @@ jobs:
         # Build and deploy accounts.
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:5.0.$CI_PIPELINE_ID-test --tag oneuptime/mail:test --push -f ./Mail/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:6.0.$CI_PIPELINE_ID-test --tag oneuptime/mail:test --push -f ./Mail/Dockerfile .
       
       
