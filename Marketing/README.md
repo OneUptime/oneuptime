@@ -25,11 +25,11 @@ OneUptime is a Status Page, Monitoring and On-call software all combined into on
 
 ### 500 characters
 
-OneUptime an open source complete SRE and DevOps platform. It's is a Status Page, Monitoring and On-call software all combined into one. Today, Enterprises and Startups use a services like StatusPage.io, Status.io, etc. for a hosted status page, PagerDuty for On-call alerts during downtime, and Pingdom for website monitoring. OneUptime replaces all of these and combines them into one. You have everything you need to monitor your apps, website and API's and more, and alert your team instantly when downtime happens.
+OneUptime an open source complete Observability platform. It's is a Status Page, Monitoring and On-call software all combined into one. Today, Enterprises and Startups use a services like StatusPage.io, Status.io, etc. for a hosted status page, PagerDuty for On-call alerts during downtime, and Pingdom for website monitoring. OneUptime replaces all of these and combines them into one. You have everything you need to monitor your apps, website and API's and more, and alert your team instantly when downtime happens.
 
 ### More detailed description
 
-OneUptime is one complete SRE and DevOps platform.
+OneUptime is one complete Observability platform.
 
 OneUptime lets you do:
 

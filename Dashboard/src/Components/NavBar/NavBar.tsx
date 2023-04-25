@@ -180,7 +180,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
                         <NavBarMenuItem
                             title="Reports"
-                            description='Get insights into your SRE and DevOps process.'
+                            description='Get insights into your Observability process.'
                             route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.REPORTS] as Route
                             )}

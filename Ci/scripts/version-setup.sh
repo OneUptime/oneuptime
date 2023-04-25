@@ -4,7 +4,7 @@ This script changes version of every project
 "
 function version {
   cd $1
-  npm version "5.0.$CI_PIPELINE_ID"
+  npm version "6.0.$CI_PIPELINE_ID"
   cd ..
 }
 

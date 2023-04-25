@@ -1,7 +1,7 @@
 {
     "name": "app",
     "version": "3.0.2",
-    "description": "One Complete SRE and DevOps platform.",
+    "description": "One Complete Observability platform.",
     "main": "ts",
     "type": "module",
     "dependencies": {
@@ -29,7 +29,7 @@
         "eslint-plugin-react-hooks": "^4.3.0",
         "eslint-plugin-unused-imports": "^2.0.0",
         "husky": "^7.0.0",
-        "lint-staged": "^12.3.7",
+        "lint-staged": "^13.2.1",
         "nodemon": "^2.0.20",
         "prettier": "^2.6.0"
     },

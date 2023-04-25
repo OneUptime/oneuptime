@@ -1,6 +1,6 @@
 # Introduction
 
-OneUptime is one complete SRE and DevOps platform.
+OneUptime is one complete Observability platform.
 
 OneUptime lets you do:
 
