@@ -8,7 +8,7 @@
   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oneuptime/app"/>
 </p>
 
-**OneUptime is an open-source complete SRE and DevOps platform.**
+**OneUptime is an open-source complete Observability platform.**
 
 OneUptime monitors your website, dashboards, API's, and more and alerts your team when downtime happens. We also give you a Status Page which keeps your customers looped in and improves transparency.
 
