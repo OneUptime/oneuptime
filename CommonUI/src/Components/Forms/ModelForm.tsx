@@ -61,6 +61,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
+    disableAutofocus?: undefined | boolean;
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     name: string;
@@ -491,6 +492,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             <BasicModelForm<TBaseModel>
                 title={props.title}
                 description={props.description}
+                disableAutofocus={props.disableAutofocus}
                 model={model}
                 id={props.id}
                 name={props.name}

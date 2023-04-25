@@ -73,6 +73,7 @@ export interface ComponentProps<T extends Object> {
     cancelButtonText?: undefined | string | null;
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
+    disableAutofocus?: undefined | boolean;
     hideSubmitButton?: undefined | boolean;
     onFormStepChange?: undefined | ((stepId: string) => void);
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
@@ -457,7 +458,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                         {field.fieldType === FormFieldSchemaType.LongText && (
                             <TextArea
-                                autoFocus={index === 1}
+                                autoFocus={!props.disableAutofocus && index === 1}
                                 error={
                                     touched[fieldName] && errors[fieldName]
                                         ? errors[fieldName]
@@ -703,7 +704,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             field.fieldType ===
                                 FormFieldSchemaType.PositveNumber) && (
                             <Input
-                                autoFocus={index === 1}
+                               autoFocus={!props.disableAutofocus && index === 1}
                                 tabIndex={index}
                                 disabled={isDisabled || field.disabled}
                                 error={

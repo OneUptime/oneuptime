@@ -31,6 +31,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
+    disableAutofocus?: undefined | boolean;
     footer: ReactElement;
     isLoading?: undefined | boolean;
     onCancel?: undefined | (() => void);
@@ -96,6 +97,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
             }
+            disableAutofocus={props.disableAutofocus}
             steps={props.steps}
             name={props.name}
             onFormStepChange={props.onFormStepChange}
