@@ -1,10 +1,11 @@
 import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaInstanceElement from './MonitorCriteriaInstance';
-import Button, { ButtonSize } from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import IconProp from 'Common/Types/Icon/IconProp';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 export interface ComponentProps {
     initialValue: MonitorCriteria | undefined;
@@ -15,6 +16,10 @@ export interface ComponentProps {
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [showCantDeleteModal, setShowCantDeleteModal] = React.useState<boolean>(false);
+
+
     const [monitorCriteria, setMonitorCriteria] =
         React.useState<MonitorCriteria>(
             props.initialValue || new MonitorCriteria()
@@ -38,6 +43,12 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 }
                                 initialValue={i}
                                 onDelete={() => {
+
+                                    if(monitorCriteria.data?.monitorCriteriaInstanceArray.length === 1){
+                                        setShowCantDeleteModal(true);
+                                        return;
+                                    }
+
                                     // remove the criteria filter
                                     const index: number =
                                         monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
@@ -111,6 +122,20 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
+            {showCantDeleteModal ? (
+                <ConfirmModal
+                    description={`We need at least one criteria for this monitor. We cant delete one remaining criteria.`}
+                    title={`Cannot delete last remaining criteria.`}
+                    onSubmit={() => {
+                        setShowCantDeleteModal(false);
+                       
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                    submitButtonText='Close'
+                />
+            ) : (
+                <></>
+            )}
         </div>
     );
 };
