@@ -1,4 +1,4 @@
-name: Release Image Deploy to DockerHub
+name: Test Image Deploy to DockerHub
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  workflow-release:
+  workflow-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -26,7 +26,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workflow:6.0.$CI_PIPELINE_ID-test --tag oneuptime/workflow:test --push -f ./Workflow/Dockerfile .
 
-  workers-release:
+  workers-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -45,7 +45,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workers:6.0.$CI_PIPELINE_ID-test --tag oneuptime/workers:test --push -f ./Workers/Dockerfile .
 
-  staus-page-release:
+  staus-page-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -64,7 +64,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:6.0.$CI_PIPELINE_ID-test --tag oneuptime/status-page:test --push -f ./StatusPage/Dockerfile .
 
-  realtime-release:
+  realtime-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -84,7 +84,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:6.0.$CI_PIPELINE_ID-test --tag oneuptime/realtime:test --push -f ./Realtime/Dockerfile .
       
 
-  probe-api-release:
+  probe-api-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -103,7 +103,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:6.0.$CI_PIPELINE_ID-test --tag oneuptime/probe-api:test --push -f ./ProbeAPI/Dockerfile .
 
-  nginx-release:
+  nginx-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -123,7 +123,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:6.0.$CI_PIPELINE_ID-test --tag oneuptime/nginx:test --push -f ./Nginx/Dockerfile .
       
 
-  mail-release:
+  mail-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -142,7 +142,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:6.0.$CI_PIPELINE_ID-test --tag oneuptime/mail:test --push -f ./Mail/Dockerfile .
       
 
-  licensing-release:
+  licensing-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -161,7 +161,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:6.0.$CI_PIPELINE_ID-test --tag oneuptime/licensing:test --push -f ./Licensing/Dockerfile .
 
-  integrations-release:
+  integrations-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -183,7 +183,7 @@ jobs:
       
 
 
-  identity-release:
+  identity-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -203,7 +203,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/identity:6.0.$CI_PIPELINE_ID-test --tag oneuptime/identity:test --push -f ./Identity/Dockerfile .
       
 
-  home-release:
+  home-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -223,7 +223,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/home:6.0.$CI_PIPELINE_ID-test --tag oneuptime/home:test --push -f ./Home/Dockerfile .
       
 
-  helm-chart-release:
+  helm-chart-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -243,7 +243,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:6.0.$CI_PIPELINE_ID-test --tag oneuptime/helm-chart:test --push -f ./HelmChart/Dockerfile .
       
 
-  haraka-release:
+  haraka-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -262,7 +262,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:6.0.$CI_PIPELINE_ID-test --tag oneuptime/haraka:test --push -f ./Haraka/Dockerfile .
 
-  file-release:
+  file-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -282,7 +282,7 @@ jobs:
       
       
 
-  dashboard-release:
+  dashboard-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -304,7 +304,7 @@ jobs:
       
 
 
-  dashboard-api-release:
+  dashboard-api-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -326,7 +326,7 @@ jobs:
       
 
 
-  api-reference-release:
+  api-reference-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -348,7 +348,7 @@ jobs:
       
 
 
-  alert-release:
+  alert-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
@@ -370,7 +370,7 @@ jobs:
       
 
 
-  accounts-release:
+  accounts-test:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
