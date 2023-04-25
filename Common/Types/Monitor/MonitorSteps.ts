@@ -54,6 +54,11 @@ export default class MonitorSteps extends DatabaseProperty {
             throw new BadDataException('Invalid monitor steps');
         }
 
+        if (json['_type'] !== 'MonitorSteps') {
+            throw new BadDataException('Invalid monitor steps');
+        }
+        
+
         if (!json['value']) {
             throw new BadDataException('Invalid monitor steps');
         }

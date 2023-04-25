@@ -143,11 +143,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         }
 
         return {
-            monitorStatusId: this.data.monitorStatusId,
-            filterCondition: this.data.filterCondition,
-            filters: this.data.filters,
-            incidents: this.data.incidents,
-        };
+            _type: 'MonitorCriteriaInstance',
+            value: {
+                monitorStatusId: this.data.monitorStatusId,
+                filterCondition: this.data.filterCondition,
+                filters: this.data.filters,
+                incidents: this.data.incidents,
+            }
+        }
     }
 
     public fromJSON(json: JSONObject): MonitorCriteriaInstance {
@@ -155,9 +158,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return json;
         }
 
+
+
         if (!json) {
             throw new BadDataException('json is null');
         }
+
+        if(!json['_type']) {
+            throw new BadDataException('json._type is null');
+        }
+
+        if (json['_type'] !== 'MonitorCriteriaInstance') {
+            throw new BadDataException(
+                'json._type should be MonitorCriteriaInstance'
+            );
+        }
+
+        if (!json['value']) {
+            throw new BadDataException('json.value is null');
+        }
+        
+
+        json = json['value'] as JSONObject;
 
         if (!json['filterCondition']) {
             throw new BadDataException('json.filterCondition is null');
