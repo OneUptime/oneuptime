@@ -66,11 +66,21 @@ const Toggle: FunctionComponent<ComponentProps> = (
                         handleChange(!isChecked);
                         props.onChange(!isChecked);
                     }}
+                    onFocus={() => {
+                        if (props.onFocus) {
+                            props.onFocus();
+                        }
+                    }}
+                    onBlur={() => {
+                        if (props.onBlur) {
+                            props.onBlur();
+                        }
+                    }}
                     tabIndex={props.tabIndex}
                     type="button"
                     className={buttonClassName}
                     role="switch"
-                    aria-checked="false"
+                    aria-checked={isChecked ? 'true' : 'false'}
                     aria-labelledby="annual-billing-label"
                 >
                     <span aria-hidden="true" className={toggleClassName}></span>
