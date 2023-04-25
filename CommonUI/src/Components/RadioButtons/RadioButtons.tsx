@@ -43,7 +43,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <fieldset>
+            <fieldset role="radiogroup">
                 <div className="space-y-2 mt-2">
                     {props.options &&
                         props.options.map(
@@ -67,19 +67,23 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
                                         <input
                                             type="radio"
                                             className="sr-only"
-                                            aria-labelledby="server-size-0-label"
-                                            aria-describedby="server-size-0-description-0 server-size-0-description-1"
+                                            aria-labelledby={`server-size-${i}-label`}
+                                            aria-describedby={`server-size-${i}-description-0 server-size-${i}-description-1`}
+                                            defaultChecked={
+                                                props.initialValue ===
+                                                radioButton.value
+                                            }
                                         />
                                         <span className="flex items-center">
                                             <span className="flex flex-col text-sm">
                                                 <span
-                                                    id="server-size-0-label"
+                                                    id={`server-size-${i}-label`}
                                                     className="font-medium text-gray-900"
                                                 >
                                                     {radioButton.title}
                                                 </span>
                                                 <span
-                                                    id="server-size-0-description-0"
+                                                    id={`server-size-${i}-description-0`}
                                                     className="text-gray-500"
                                                 >
                                                     <span className="block sm:inline">
@@ -92,7 +96,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
                                             </span>
                                         </span>
                                         <span
-                                            id="server-size-0-description-1"
+                                            id={`server-size-${i}-description-1`}
                                             className="mt-2 flex text-sm sm:mt-0 sm:ml-4 sm:flex-col sm:text-right"
                                         >
                                             <span className="font-medium text-gray-900">
