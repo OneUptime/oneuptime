@@ -59,6 +59,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     const requestTypeDropdownOptions: Array<DropdownOption> =
         DropdownUtil.getDropdownOptionsFromEnum(HTTPMethod);
 
+    const [destinationInputValue, setDestinationInputValue] = useState<string>(props.initialValue?.data?.monitorDestination?.toString() || '');
+
     useEffect(() => {
         if (props.monitorType === MonitorType.API) {
             setDestinationFieldTitle('API URL');
@@ -93,9 +95,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
                 <Input
                     initialValue={
-                        monitorStep?.data?.monitorDestination?.toString() || ''
+                        destinationInputValue
                     }
                     onChange={(value: string) => {
+
+                        
+
                         let destination: IP | URL | undefined = undefined;
 
                         if (props.monitorType === MonitorType.IP) {
@@ -117,6 +122,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         }
 
                         monitorStep.setMonitorDestination(destination);
+                        setDestinationInputValue(value);
                         setMonitorStep(MonitorStep.clone(monitorStep));
                     }}
                 />
