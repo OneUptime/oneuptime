@@ -48,10 +48,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             isCreateable={true}
             isViewable={true}
             query={props.query}
-            onBeforeCreate={async (item: Monitor) => {
-                item.monitorType = MonitorType.Manual;
-                return item;
-            }}
             createEditModalWidth={ModalWidth.Large}
             formSteps={[
                 {
@@ -199,6 +195,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitor Type',
                     type: FieldType.Text,
                     isFilterable: true,
+                    filterDropdownField: MonitorTypeUtil.monitorTypesAsDropdownOptions(),
                 },
                 {
                     field: {
