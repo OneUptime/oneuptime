@@ -260,18 +260,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
         let monitorStatusId: ObjectID | undefined = undefined;
 
-        if (
+        if(json['monitorStatusId'] && typeof json['monitorStatusId'] === Typeof.String){
+            monitorStatusId = new ObjectID(
+                (json['monitorStatusId'] as string)
+            );
+        } else if (
             json['monitorStatusId'] &&
             (json['monitorStatusId'] as JSONObject)['value'] !== null
         ) {
             monitorStatusId = new ObjectID(
                 (json['monitorStatusId'] as JSONObject)['value'] as string
             );
-        }else if(json['monitorStatusId'] && typeof json['monitorStatusId'] === Typeof.String){
-            monitorStatusId = new ObjectID(
-                (json['monitorStatusId'] as string)
-            );
-        }
+        } 
 
         const filterCondition: FilterCondition = json[
             'filterCondition'
