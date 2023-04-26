@@ -30,7 +30,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                     checkOn: CheckOn.IsOnline,
                     filterType: undefined,
                     value: undefined,
-                }
+                },
             ],
             incidents: [],
             name: '',
@@ -47,7 +47,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                     checkOn: CheckOn.IsOnline,
                     filterType: undefined,
                     value: undefined,
-                }
+                },
             ],
             incidents: [],
             name: '',
@@ -151,8 +151,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 incidents: this.data.incidents,
                 name: this.data.name,
                 description: this.data.description,
-            }
-        }
+            },
+        };
     }
 
     public fromJSON(json: JSONObject): MonitorCriteriaInstance {
@@ -160,13 +160,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return json;
         }
 
-
-
         if (!json) {
             throw new BadDataException('json is null');
         }
 
-        if(!json['_type']) {
+        if (!json['_type']) {
             throw new BadDataException('json._type is null');
         }
 
@@ -179,7 +177,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         if (!json['value']) {
             throw new BadDataException('json.value is null');
         }
-        
 
         json = json['value'] as JSONObject;
 

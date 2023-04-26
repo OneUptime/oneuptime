@@ -59,39 +59,56 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
             <div className="w-1/3 mr-1 ml-1">
-                {!criteriaFilter?.checkOn || (criteriaFilter?.checkOn && criteriaFilter?.checkOn !== CheckOn.IsOnline) && <Dropdown
-                    initialValue={filterTypeOptions.find(
-                        (i: DropdownOption) => {
-                            return i.value === criteriaFilter?.filterType;
-                        }
-                    )}
-                    options={filterTypeOptions}
-                    onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null
-                    ) => {
-                        setCriteriaFilter({
-                            checkOn:
-                                criteriaFilter?.checkOn || CheckOn.IsOnline,
-                            filterType: value?.toString() as FilterType,
-                            value: criteriaFilter?.value || '',
-                        });
-                    }}
-                />}
+                {!criteriaFilter?.checkOn ||
+                    (criteriaFilter?.checkOn &&
+                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                            <Dropdown
+                                initialValue={filterTypeOptions.find(
+                                    (i: DropdownOption) => {
+                                        return (
+                                            i.value ===
+                                            criteriaFilter?.filterType
+                                        );
+                                    }
+                                )}
+                                options={filterTypeOptions}
+                                onChange={(
+                                    value:
+                                        | DropdownValue
+                                        | Array<DropdownValue>
+                                        | null
+                                ) => {
+                                    setCriteriaFilter({
+                                        checkOn:
+                                            criteriaFilter?.checkOn ||
+                                            CheckOn.IsOnline,
+                                        filterType:
+                                            value?.toString() as FilterType,
+                                        value: criteriaFilter?.value || '',
+                                    });
+                                }}
+                            />
+                        ))}
             </div>
             <div className="w-1/3 mr-1 ml-1">
-            {!criteriaFilter?.checkOn || (criteriaFilter?.checkOn && criteriaFilter?.checkOn !== CheckOn.IsOnline) &&<Input
-                    initialValue={criteriaFilter?.value?.toString()}
-                    onChange={(value: string) => {
-                        setCriteriaFilter({
-                            checkOn:
-                                criteriaFilter?.checkOn || CheckOn.IsOnline,
-                            filterType:
-                                criteriaFilter?.filterType ||
-                                FilterType.EqualTo,
-                            value: value || '',
-                        });
-                    }}
-                />}
+                {!criteriaFilter?.checkOn ||
+                    (criteriaFilter?.checkOn &&
+                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                            <Input
+                                initialValue={criteriaFilter?.value?.toString()}
+                                onChange={(value: string) => {
+                                    setCriteriaFilter({
+                                        checkOn:
+                                            criteriaFilter?.checkOn ||
+                                            CheckOn.IsOnline,
+                                        filterType:
+                                            criteriaFilter?.filterType ||
+                                            FilterType.EqualTo,
+                                        value: value || '',
+                                    });
+                                }}
+                            />
+                        ))}
             </div>
             <div className="mt-1">
                 <Button

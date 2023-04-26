@@ -500,9 +500,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 onIsLastFormStep={props.onIsLastFormStep}
                 fields={fields}
                 steps={props.steps}
-                onChange={(values: FormValues<TBaseModel>)=>{
-                    if(!isLoading){
-                        props.onChange && props.onChange(values)
+                onChange={(values: FormValues<TBaseModel>) => {
+                    if (!isLoading) {
+                        props.onChange && props.onChange(values);
                     }
                 }}
                 showAsColumns={props.showAsColumns}

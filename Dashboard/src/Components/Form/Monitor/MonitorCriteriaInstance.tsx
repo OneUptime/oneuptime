@@ -98,38 +98,41 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     initialValue={
                         monitorCriteriaInstance?.data?.name?.toString() || ''
                     }
-                    onBlur={()=>{
+                    onBlur={() => {
                         setTouched({
                             ...touched,
                             name: true,
-                        })
+                        });
 
-                        if(!monitorCriteriaInstance?.data?.name){
+                        if (!monitorCriteriaInstance?.data?.name) {
                             setErrors({
                                 ...errors,
                                 name: 'Name is required',
-                            })
-                        }else{
+                            });
+                        } else {
                             setErrors({
                                 ...errors,
                                 name: '',
-                            })
+                            });
                         }
                     }}
-                    error={touched['name'] && errors['name'] ? errors['name'] : undefined}
+                    error={
+                        touched['name'] && errors['name']
+                            ? errors['name']
+                            : undefined
+                    }
                     placeholder="Online Criteria"
                     onChange={(value: string) => {
-
-                        if(!value){
+                        if (!value) {
                             setErrors({
                                 ...errors,
                                 name: 'Name is required',
-                            })
-                        }else{
+                            });
+                        } else {
                             setErrors({
                                 ...errors,
                                 name: '',
-                            })
+                            });
                         }
 
                         monitorCriteriaInstance.setName(value);
@@ -151,38 +154,43 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
                 <TextArea
                     initialValue={
-                        monitorCriteriaInstance?.data?.description?.toString() || ''
+                        monitorCriteriaInstance?.data?.description?.toString() ||
+                        ''
                     }
-                    onBlur={()=>{
+                    onBlur={() => {
                         setTouched({
                             ...touched,
                             description: true,
-                        })
+                        });
 
-                        if(!monitorCriteriaInstance?.data?.description){
+                        if (!monitorCriteriaInstance?.data?.description) {
                             setErrors({
                                 ...errors,
                                 description: 'Description is required',
-                            })
-                        }else{
+                            });
+                        } else {
                             setErrors({
                                 ...errors,
                                 description: '',
-                            })
+                            });
                         }
                     }}
-                    error={touched['description'] && errors['description'] ? errors['description'] : undefined}
+                    error={
+                        touched['description'] && errors['description']
+                            ? errors['description']
+                            : undefined
+                    }
                     onChange={(value: string) => {
-                        if(!value){
+                        if (!value) {
                             setErrors({
                                 ...errors,
                                 description: 'Description is required',
-                            })
-                        }else{
+                            });
+                        } else {
                             setErrors({
                                 ...errors,
                                 description: '',
-                            })
+                            });
                         }
                         monitorCriteriaInstance.setDescription(value);
                         setMonitorCriteriaInstance(
@@ -274,8 +282,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                             (i: DropdownOption) => {
                                 return (
                                     i.value ===
-                                    monitorCriteriaInstance?.data
-                                        ?.monitorStatusId?.id || undefined
+                                        monitorCriteriaInstance?.data
+                                            ?.monitorStatusId?.id || undefined
                                 );
                             }
                         )}
@@ -312,7 +320,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         if (
                             !monitorCriteriaInstance.data?.incidents ||
                             monitorCriteriaInstance.data?.incidents?.length ===
-                            0
+                                0
                         ) {
                             monitorCriteriaInstance.setIncidents([
                                 {
@@ -340,7 +348,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         initialValue={
                             monitorCriteriaInstance?.data?.incidents || []
                         }
-                        incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
+                        incidentSeverityDropdownOptions={
+                            props.incidentSeverityDropdownOptions
+                        }
                         onChange={(value: Array<CriteriaIncident>) => {
                             monitorCriteriaInstance.setIncidents(value);
                             setMonitorCriteriaInstance(

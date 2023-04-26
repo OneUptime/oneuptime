@@ -34,7 +34,9 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                 return (
                     <MonitorCriteriaIncidentForm
                         key={index}
-                        incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
+                        incidentSeverityDropdownOptions={
+                            props.incidentSeverityDropdownOptions
+                        }
                         initialValue={i}
                         // onDelete={() => {
                         //     // remove the criteria filter

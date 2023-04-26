@@ -61,19 +61,15 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Criteria',
                     id: 'criteria',
                     showIf: (values: FormValues<Monitor>) => {
-                        return (
-                            values.monitorType !== MonitorType.Manual
-                        );
-                    }
+                        return values.monitorType !== MonitorType.Manual;
+                    },
                 },
                 {
                     title: 'Interval',
                     id: 'monitoring-interval',
                     showIf: (values: FormValues<Monitor>) => {
-                        return (
-                            values.monitorType !== MonitorType.Manual
-                        );
-                    }
+                        return values.monitorType !== MonitorType.Manual;
+                    },
                 },
                 {
                     title: 'Labels',

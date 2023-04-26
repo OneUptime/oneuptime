@@ -5,7 +5,10 @@ import {
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import CriteriaFilterElement from './CriteriaFilter';
-import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Button, {
+    ButtonSize,
+    ButtonStyleType,
+} from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
@@ -21,7 +24,8 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
         Array<CriteriaFilter>
     >(props.initialValue || []);
 
-    const [showCantDeleteModal, setShowCantDeleteModal] = React.useState<boolean>(false);
+    const [showCantDeleteModal, setShowCantDeleteModal] =
+        React.useState<boolean>(false);
 
     useEffect(() => {
         if (criteriaFilters && props.onChange) {
@@ -36,10 +40,8 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     <CriteriaFilterElement
                         key={index}
                         initialValue={i}
-                        
                         onDelete={() => {
-                            
-                            if(criteriaFilters.length === 1){
+                            if (criteriaFilters.length === 1) {
                                 setShowCantDeleteModal(true);
                                 return;
                             }
@@ -88,10 +90,9 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     title={`Cannot delete last remaining filter.`}
                     onSubmit={() => {
                         setShowCantDeleteModal(false);
-                       
                     }}
                     submitButtonType={ButtonStyleType.NORMAL}
-                    submitButtonText='Close'
+                    submitButtonText="Close"
                 />
             ) : (
                 <></>

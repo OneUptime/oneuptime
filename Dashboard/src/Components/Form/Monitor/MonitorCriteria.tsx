@@ -1,7 +1,10 @@
 import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaInstanceElement from './MonitorCriteriaInstance';
-import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Button, {
+    ButtonSize,
+    ButtonStyleType,
+} from 'CommonUI/src/Components/Button/Button';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -17,9 +20,8 @@ export interface ComponentProps {
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [showCantDeleteModal, setShowCantDeleteModal] = React.useState<boolean>(false);
-
+    const [showCantDeleteModal, setShowCantDeleteModal] =
+        React.useState<boolean>(false);
 
     const [monitorCriteria, setMonitorCriteria] =
         React.useState<MonitorCriteria>(
@@ -42,11 +44,16 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 monitorStatusDropdownOptions={
                                     props.monitorStatusDropdownOptions
                                 }
-                                incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
+                                incidentSeverityDropdownOptions={
+                                    props.incidentSeverityDropdownOptions
+                                }
                                 initialValue={i}
                                 onDelete={() => {
-
-                                    if(monitorCriteria.data?.monitorCriteriaInstanceArray.length === 1){
+                                    if (
+                                        monitorCriteria.data
+                                            ?.monitorCriteriaInstanceArray
+                                            .length === 1
+                                    ) {
                                         setShowCantDeleteModal(true);
                                         return;
                                     }
@@ -130,10 +137,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     title={`Cannot delete last remaining criteria.`}
                     onSubmit={() => {
                         setShowCantDeleteModal(false);
-                       
                     }}
                     submitButtonType={ButtonStyleType.NORMAL}
-                    submitButtonText='Close'
+                    submitButtonText="Close"
                 />
             ) : (
                 <></>

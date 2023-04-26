@@ -185,9 +185,6 @@ export default class Monitor extends BaseModel {
     })
     public name?: string = undefined;
 
-
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -544,7 +541,6 @@ export default class Monitor extends BaseModel {
     })
     public monitorSteps?: MonitorSteps = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -570,7 +566,8 @@ export default class Monitor extends BaseModel {
         required: false,
         type: TableColumnType.ShortText,
         title: 'Monitoring Interval',
-        description: 'How often would you like OneUptime to monitor this resource?',
+        description:
+            'How often would you like OneUptime to monitor this resource?',
     })
     @Column({
         nullable: true,

@@ -309,14 +309,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 );
                 if (currentStepIndex > -1) {
                     setCurrentFormStepId(
-                        (props.steps.filter((step:FormStep<T>)=>{
-                            if(!step.showIf){
-                                return true;
-                            }
-    
-                            return step.showIf(refCurrentValue.current);
-     
-                        })[currentStepIndex + 1] as FormStep<T>).id
+                        (
+                            props.steps.filter((step: FormStep<T>) => {
+                                if (!step.showIf) {
+                                    return true;
+                                }
+
+                                return step.showIf(refCurrentValue.current);
+                            })[currentStepIndex + 1] as FormStep<T>
+                        ).id
                     );
                 }
             }
@@ -458,7 +459,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                         {field.fieldType === FormFieldSchemaType.LongText && (
                             <TextArea
-                                autoFocus={!props.disableAutofocus && index === 1}
+                                autoFocus={
+                                    !props.disableAutofocus && index === 1
+                                }
                                 error={
                                     touched[fieldName] && errors[fieldName]
                                         ? errors[fieldName]
@@ -704,7 +707,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             field.fieldType ===
                                 FormFieldSchemaType.PositveNumber) && (
                             <Input
-                               autoFocus={!props.disableAutofocus && index === 1}
+                                autoFocus={
+                                    !props.disableAutofocus && index === 1
+                                }
                                 tabIndex={index}
                                 disabled={isDisabled || field.disabled}
                                 error={

@@ -27,7 +27,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
         React.useState<Array<DropdownOption>>([]);
 
-    const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =   React.useState<Array<DropdownOption>>([]);
+    const [
+        incidentSeverityDropdownOptions,
+        setIncidentSeverityDropdownOptions,
+    ] = React.useState<Array<DropdownOption>>([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>();
@@ -40,17 +43,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setIsLoading(true);
 
         try {
-            const monitorStatusList: ListResult<MonitorStatus> = await ModelAPI.getList(
-                MonitorStatus,
-                {},
-                LIMIT_PER_PROJECT,
-                0,
-                {
-                    name: true,
-                },
-                {},
-                {}
-            );
+            const monitorStatusList: ListResult<MonitorStatus> =
+                await ModelAPI.getList(
+                    MonitorStatus,
+                    {},
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        name: true,
+                    },
+                    {},
+                    {}
+                );
 
             if (monitorStatusList.data) {
                 setMonitorStatusDropdownOptions(
@@ -63,17 +67,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 );
             }
 
-            const incidentSeverityList: ListResult<IncidentSeverity> = await ModelAPI.getList(
-                IncidentSeverity,
-                {},
-                LIMIT_PER_PROJECT,
-                0,
-                {
-                    name: true,
-                },
-                {},
-                {}
-            );
+            const incidentSeverityList: ListResult<IncidentSeverity> =
+                await ModelAPI.getList(
+                    IncidentSeverity,
+                    {},
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        name: true,
+                    },
+                    {},
+                    {}
+                );
 
             if (incidentSeverityList.data) {
                 setIncidentSeverityDropdownOptions(
@@ -85,7 +90,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     })
                 );
             }
-
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -129,7 +133,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             monitorStatusDropdownOptions={
                                 monitorStatusDropdownOptions
                             }
-                            incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
+                            incidentSeverityDropdownOptions={
+                                incidentSeverityDropdownOptions
+                            }
                             initialValue={i}
                             // onDelete={() => {
                             //     // remove the criteria filter

@@ -1,4 +1,4 @@
-import FormValues from "./FormValues";
+import FormValues from './FormValues';
 
 export enum FormStepState {
     ACTIVE,
