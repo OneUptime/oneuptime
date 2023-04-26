@@ -20,6 +20,7 @@ import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import LessThan from 'Common/Types/Database/LessThan';
+import IsNull from 'Common/Types/Database/IsNull';
 import GreaterThan from 'Common/Types/Database/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
 import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
@@ -377,6 +378,12 @@ export default class ModelPermission {
                 query[key] = QueryHelper.lessThan(
                     (query[key] as LessThan).toString() as any
                 ) as any;
+            } else if (
+                query[key] &&
+                query[key] instanceof IsNull &&
+                tableColumnMetadata
+            ) {
+                query[key] = QueryHelper.isNull() as any;
             } else if (
                 query[key] &&
                 query[key] instanceof InBetween &&
