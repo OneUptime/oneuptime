@@ -104,7 +104,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 return "Monitor Criteria filter check on is required";
             }
 
-            if (monitorType === MonitorType.Ping && (filter.checkOn !== CheckOn.IsOnline && filter.checkOn !== CheckOn.IsOffline && filter.checkOn !== CheckOn.ResponseTime)) {
+            if (monitorType === MonitorType.Ping && (filter.checkOn !== CheckOn.IsOnline && filter.checkOn !== CheckOn.ResponseTime)) {
                 return "Ping  Monitor cannot have filter criteria: " + filter.checkOn;
             }
         }

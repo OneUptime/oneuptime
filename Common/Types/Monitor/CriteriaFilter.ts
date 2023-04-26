@@ -4,7 +4,6 @@ export enum CheckOn {
     ResponseHeader = 'Response Header',
     ResponseBody = 'Response Body',
     IsOnline = 'Is Online',
-    IsOffline = 'Is Offline',
 }
 
 export interface CriteriaFilter {
@@ -26,6 +25,8 @@ export enum FilterType {
     EndsWith = 'Ends With',
     IsEmpty = 'Is Empty',
     IsNotEmpty = 'Is Not Empty',
+    True = 'True',
+    False = 'False',
 }
 
 export enum FilterCondition {

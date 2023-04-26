@@ -119,7 +119,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 ...errors,
                                 destination: '',
                             });
+                            setDestinationInputValue(monitorStep?.data?.monitorDestination?.toString());
                         }
+
                     }}
                     error={
                         touched['destination'] && errors['destination']

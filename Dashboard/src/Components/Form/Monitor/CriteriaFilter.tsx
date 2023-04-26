@@ -28,12 +28,65 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         CriteriaFilter | undefined
     >(props.initialValue);
 
-    const checkOnOptions: Array<DropdownOption> =
-        DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
+    const [checkOnOptions, setCheckOnOptions] = React.useState<Array<DropdownOption>>([]);
+
+    useEffect(() => {
+        let options: Array<DropdownOption> =
+            DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
+
+        if(props.monitorType === MonitorType.Ping) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === CheckOn.IsOnline || i.value === CheckOn.ResponseTime;
+            });
+        }
+
+        setCheckOnOptions(options);
+
+    }, [props.monitorType]);
 
 
-    const filterTypeOptions: Array<DropdownOption> =
-        DropdownUtil.getDropdownOptionsFromEnum(FilterType);
+    const [filterTypeOptions, setFilterTypeOptions] = React.useState<Array<DropdownOption>>([]);
+
+    useEffect(() => {
+        let options: Array<DropdownOption> =
+            DropdownUtil.getDropdownOptionsFromEnum(FilterType);
+
+        if(!criteriaFilter?.checkOn){
+            setFilterTypeOptions([]);
+        }
+
+        if(criteriaFilter?.checkOn === CheckOn.ResponseTime) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === FilterType.GreaterThan || i.value === FilterType.LessThan || i.value === FilterType.LessThanOrEqualTo ||   i.value === FilterType.GreaterThanOrEqualTo;
+            });
+        }
+
+        if(criteriaFilter?.checkOn === CheckOn.IsOnline) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === FilterType.True || i.value === FilterType.False
+            });
+        }
+
+        if(criteriaFilter?.checkOn === CheckOn.ResponseBody || criteriaFilter?.checkOn === CheckOn.ResponseHeader) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === FilterType.Contains || i.value === FilterType.NotContains
+            });
+        }
+
+        if(criteriaFilter?.checkOn === CheckOn.ResponseCode) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === FilterType.GreaterThan || i.value === FilterType.LessThan || i.value === FilterType.LessThanOrEqualTo ||   i.value === FilterType.GreaterThanOrEqualTo || i.value === FilterType.EqualTo || i.value === FilterType.NotEqualTo;
+            });
+        }
+
+        setFilterTypeOptions(options);
+
+    }, [criteriaFilter]);
+
+
+
+
+   
 
     useEffect(() => {
         if (props.onChange && criteriaFilter) {
@@ -65,7 +118,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="w-1/3 mr-1 ml-1">
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn &&
-                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                        (
                             <Dropdown
                                 initialValue={filterTypeOptions.find(
                                     (i: DropdownOption) => {
@@ -97,7 +150,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="w-1/3 mr-1 ml-1">
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn &&
-                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                        (criteriaFilter?.checkOn !== CheckOn.IsOnline)  && (
                             <Input
                                 initialValue={criteriaFilter?.value?.toString()}
                                 onChange={(value: string) => {
