@@ -140,10 +140,13 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     ) => {
                         return (
                             <MonitorSteps
+                                
+                                {...props}
                                 monitorType={
                                     value.monitorType || MonitorType.Manual
                                 }
-                                {...props}
+                                
+                                error={''}
                             />
                         );
                     },

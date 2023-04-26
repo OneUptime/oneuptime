@@ -8,7 +8,6 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import API from 'CommonUI/src/Utils/API/API';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
@@ -114,16 +113,20 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         }
     }, [monitorSteps]);
 
-    if (error) {
-        <ErrorMessage error={error}></ErrorMessage>;
-    }
-
     if (isLoading) {
         return <ComponentLoader></ComponentLoader>;
     }
 
     return (
         <div>
+            {error ? (
+                <p
+                    data-testid="error-message"
+                    className="mt-1 text-sm text-red-400"
+                >
+                    {props.error}
+                </p>
+            ) : <></>}
             {monitorSteps.data?.monitorStepsInstanceArray.map(
                 (i: MonitorStep, index: number) => {
                     return (
