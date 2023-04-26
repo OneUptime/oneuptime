@@ -195,7 +195,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitor Type',
                     type: FieldType.Text,
                     isFilterable: true,
-                    filterDropdownField: MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+                    filterDropdownField:
+                        MonitorTypeUtil.monitorTypesAsDropdownOptions(),
                 },
                 {
                     field: {
