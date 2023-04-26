@@ -58,6 +58,7 @@ export default interface Field<TEntity> {
         maxValue?: number;
         dateShouldBeInTheFuture?: boolean;
     };
+    customValidation?: ((values: FormValues<TEntity>) => string | null) | undefined;
     styleType?: FormFieldStyleType | undefined;
     showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
     onChange?: ((value: any) => void) | undefined;
