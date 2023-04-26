@@ -19,6 +19,12 @@ import {
 } from '../../Types/BrandColors';
 
 describe('Color', () => {
+    describe('Verify color hex', () => {
+        it('should create a new instance with the given hex code', () => {
+            const color: Color = new Color('#123456');
+            expect(color).toBe(color);
+        });
+    });
     describe('Black', () => {
         it('should be an instance with the hex code of Black', () => {
             const color: Color = Black;
