@@ -307,7 +307,6 @@ export default class JSONFunctions {
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
-            (val as JSONObject)['value'] &&
             SerializableObjectDictionary[(val as JSONObject)['_type'] as string]
         ) {
             return SerializableObjectDictionary[
