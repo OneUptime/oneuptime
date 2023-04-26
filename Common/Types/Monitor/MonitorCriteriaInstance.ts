@@ -1,6 +1,6 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONObject } from '../JSON';
+import { JSONObject, ObjectType } from '../JSON';
 import ObjectID from '../ObjectID';
 import { CriteriaIncident } from './CriteriaIncident';
 import { CheckOn, CriteriaFilter, FilterCondition } from './CriteriaFilter';
@@ -74,7 +74,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     public static clone(
         monitorCriteriaInstance: MonitorCriteriaInstance
     ): MonitorCriteriaInstance {
-        return new MonitorCriteriaInstance().fromJSON(
+        return MonitorCriteriaInstance.fromJSON(
             monitorCriteriaInstance.toJSON()
         );
     }
@@ -137,13 +137,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return this;
     }
 
-    public toJSON(): JSONObject {
+    public override toJSON(): JSONObject {
         if (!this.data) {
             return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
         }
 
         return {
-            _type: 'MonitorCriteriaInstance',
+            _type: ObjectType.MonitorCriteriaInstance,
             value: {
                 monitorStatusId: this.data.monitorStatusId,
                 filterCondition: this.data.filterCondition,
@@ -151,11 +151,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 incidents: this.data.incidents,
                 name: this.data.name,
                 description: this.data.description,
-            },
+            } as any,
         };
     }
 
-    public fromJSON(json: JSONObject): MonitorCriteriaInstance {
+    public static override fromJSON(json: JSONObject): MonitorCriteriaInstance {
         if (json instanceof MonitorCriteriaInstance) {
             return json;
         }
@@ -168,7 +168,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             throw new BadDataException('json._type is null');
         }
 
-        if (json['_type'] !== 'MonitorCriteriaInstance') {
+        if (json['_type'] !== ObjectType.MonitorCriteriaInstance) {
             throw new BadDataException(
                 'json._type should be MonitorCriteriaInstance'
             );
@@ -220,14 +220,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         const incidents: Array<CriteriaIncident> = [];
 
         for (const filter of json['filters']) {
-            filters.push({ ...filter });
+            filters.push({ ...filter as any });
         }
 
         for (const incident of json['incidents']) {
-            incidents.push({ ...incident });
+            incidents.push({ ...incident as any });
         }
 
-        this.data = {
+        const monitorCriteriaInstance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+        monitorCriteriaInstance.data = {
             monitorStatusId,
             filterCondition,
             filters,
@@ -236,7 +238,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             description: (json['description'] as string) || '',
         };
 
-        return this;
+        return monitorCriteriaInstance;
     }
 
     public static isValid(_json: JSONObject): boolean {
@@ -257,7 +259,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         value: JSONObject
     ): MonitorCriteriaInstance | null {
         if (value) {
-            return new MonitorCriteriaInstance().fromJSON(value);
+            return MonitorCriteriaInstance.fromJSON(value);
         }
 
         return null;

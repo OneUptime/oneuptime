@@ -26,7 +26,6 @@ import { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 import EqualToOrNull from './Database/EqualToOrNull';
 import NotEqual from './Database/NotEqual';
-import MonitorSteps from './Monitor/MonitorSteps';
 import SerializableObject from './SerializableObject';
 
 export default class JSONFunctions {
@@ -388,6 +387,15 @@ export default class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Email
         ) {
             return new Email((val as JSONObject)['value'] as string);
+        }else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Version
+        ) {
+            return new Version((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&

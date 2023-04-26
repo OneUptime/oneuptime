@@ -1,6 +1,6 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONArray, JSONObject } from '../JSON';
+import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorStep from './MonitorStep';
 import BadDataException from '../Exception/BadDataException';
 
@@ -20,20 +20,20 @@ export default class MonitorSteps extends DatabaseProperty {
 
     public static getNewMonitorStepsAsJSON(): JSONObject {
         return {
-            _type: 'MonitorSteps',
+            _type: ObjectType.MonitorSteps,
             value: {
                 monitorStepsInstanceArray: [new MonitorStep().toJSON()],
             },
         };
     }
 
-    public toJSON(): JSONObject {
+    public override toJSON(): JSONObject {
         if (!this.data) {
             return MonitorSteps.getNewMonitorStepsAsJSON();
         }
 
         return {
-            _type: 'MonitorSteps',
+            _type: ObjectType.MonitorSteps,
             value: {
                 monitorStepsInstanceArray:
                     this.data.monitorStepsInstanceArray.map(
@@ -45,7 +45,7 @@ export default class MonitorSteps extends DatabaseProperty {
         };
     }
 
-    public fromJSON(json: JSONObject): MonitorSteps {
+    public static override fromJSON(json: JSONObject): MonitorSteps {
         if (json instanceof MonitorSteps) {
             return json;
         }
@@ -70,15 +70,18 @@ export default class MonitorSteps extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorStepsInstanceArray'] as JSONArray;
 
-        this.data = {
+        const monitorSteps = new MonitorSteps();
+
+
+        monitorSteps.data = {
             monitorStepsInstanceArray: monitorStepsInstanceArray.map(
                 (json: JSONObject) => {
-                    return new MonitorStep().fromJSON(json);
+                    return MonitorStep.fromJSON(json);
                 }
             ),
         };
 
-        return this;
+        return monitorSteps;
     }
 
     public static isValid(_json: JSONObject): boolean {
@@ -99,7 +102,7 @@ export default class MonitorSteps extends DatabaseProperty {
         value: JSONObject
     ): MonitorSteps | null {
         if (value) {
-            return new MonitorSteps().fromJSON(value);
+            return MonitorSteps.fromJSON(value);
         }
 
         return null;

@@ -1,6 +1,6 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONArray, JSONObject } from '../JSON';
+import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorCriteriaInstance from './MonitorCriteriaInstance';
 import BadDataException from '../Exception/BadDataException';
 
@@ -29,13 +29,13 @@ export default class MonitorCriteria extends DatabaseProperty {
         };
     }
 
-    public toJSON(): JSONObject {
+    public override toJSON(): JSONObject {
         if (!this.data) {
             return MonitorCriteria.getNewMonitorCriteriaAsJSON();
         }
 
         return {
-            _type: 'MonitorCriteria',
+            _type: ObjectType.MonitorCriteria,
             value: {
                 monitorCriteriaInstanceArray:
                     this.data.monitorCriteriaInstanceArray.map(
@@ -47,12 +47,12 @@ export default class MonitorCriteria extends DatabaseProperty {
         };
     }
 
-    public fromJSON(json: JSONObject): MonitorCriteria {
+    public static override fromJSON(json: JSONObject): MonitorCriteria {
         if (json instanceof MonitorCriteria) {
             return json;
         }
 
-        if (!json || json['_type'] !== 'MonitorCriteria') {
+        if (!json || json['_type'] !== ObjectType.MonitorCriteria) {
             throw new BadDataException('Invalid monitor criteria');
         }
 
@@ -72,15 +72,18 @@ export default class MonitorCriteria extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorCriteriaInstanceArray'] as JSONArray;
 
-        this.data = {
+        const monitorCriteria = new MonitorCriteria();
+
+
+        monitorCriteria.data = {
             monitorCriteriaInstanceArray: monitorCriteriaInstanceArray.map(
                 (json: JSONObject) => {
-                    return new MonitorCriteriaInstance().fromJSON(json);
+                    return MonitorCriteriaInstance.fromJSON(json);
                 }
             ),
         };
 
-        return this;
+        return monitorCriteria;
     }
 
     public static isValid(_json: JSONObject): boolean {
@@ -101,7 +104,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         value: JSONObject
     ): MonitorCriteria | null {
         if (value) {
-            return new MonitorCriteria().fromJSON(value);
+            return MonitorCriteria.fromJSON(value);
         }
 
         return null;

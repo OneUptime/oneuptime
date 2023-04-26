@@ -1,6 +1,6 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONObject } from '../JSON';
+import { JSONObject, ObjectType } from '../JSON';
 import URL from '../API/URL';
 import IP from '../IP/IP';
 import MonitorCriteria from './MonitorCriteria';
@@ -52,7 +52,7 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     public static clone(monitorStep: MonitorStep): MonitorStep {
-        return new MonitorStep().fromJSON(monitorStep.toJSON());
+        return MonitorStep.fromJSON(monitorStep.toJSON());
     }
 
     public setRequestBody(requestBody: string): MonitorStep {
@@ -72,7 +72,7 @@ export default class MonitorStep extends DatabaseProperty {
 
     public static getNewMonitorStepAsJSON(): JSONObject {
         return {
-            _type: 'MonitorStep',
+            _type: ObjectType.MonitorStep,
             value: {
                 monitorDestination: undefined,
                 monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
@@ -88,10 +88,10 @@ export default class MonitorStep extends DatabaseProperty {
         return true;
     }
 
-    public toJSON(): JSONObject {
+    public override toJSON(): JSONObject {
         if (this.data) {
             return {
-                _type: 'MonitorStep',
+                _type: ObjectType.MonitorStep,
                 value: {
                     monitorDestination:
                         this.data?.monitorDestination?.toJSON() || undefined,
@@ -108,7 +108,7 @@ export default class MonitorStep extends DatabaseProperty {
         return MonitorStep.getNewMonitorStepAsJSON();
     }
 
-    public fromJSON(json: JSONObject): MonitorStep {
+    public static override fromJSON(json: JSONObject): MonitorStep {
         if (json instanceof MonitorStep) {
             return json;
         }
@@ -156,9 +156,11 @@ export default class MonitorStep extends DatabaseProperty {
             throw new BadDataException('Invalid monitor criteria');
         }
 
-        this.data = {
+        const monitorStep = new MonitorStep();
+
+        monitorStep.data = {
             monitorDestination: monitorDestination || undefined,
-            monitorCriteria: new MonitorCriteria().fromJSON(
+            monitorCriteria: MonitorCriteria.fromJSON(
                 json['monitorCriteria'] as JSONObject
             ),
             requestType: (json['requestType'] as HTTPMethod) || HTTPMethod.GET,
@@ -167,14 +169,14 @@ export default class MonitorStep extends DatabaseProperty {
             requestBody: (json['requestBody'] as string) || undefined,
             defaultMonitorStatusId: json['defaultMonitorStatusId']
                 ? new ObjectID(
-                      (json['defaultMonitorStatusId'] as JSONObject)[
-                          'value'
-                      ] as string
-                  )
+                    (json['defaultMonitorStatusId'] as JSONObject)[
+                    'value'
+                    ] as string
+                )
                 : undefined,
         };
 
-        return this;
+        return monitorStep;
     }
 
     public isValid(): boolean {
@@ -195,7 +197,7 @@ export default class MonitorStep extends DatabaseProperty {
         value: JSONObject
     ): MonitorStep | null {
         if (value) {
-            return new MonitorStep().fromJSON(value);
+            return MonitorStep.fromJSON(value);
         }
 
         return null;
