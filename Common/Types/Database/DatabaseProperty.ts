@@ -2,9 +2,12 @@ import { FindOperator } from 'typeorm';
 import { ValueTransformer } from 'typeorm/decorator/options/ValueTransformer';
 import NotImplementedException from '../Exception/NotImplementedException';
 import { JSONArray, JSONObject } from '../JSON';
+import SerializableObject from '../SerializableObject';
 
-export default class DatabaseProperty {
-    public constructor() {}
+export default class DatabaseProperty extends SerializableObject {
+    public constructor() { 
+        super();
+    }
 
     protected static fromDatabase(
         _value: string | number | JSONObject | JSONArray

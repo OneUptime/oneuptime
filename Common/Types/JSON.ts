@@ -26,6 +26,7 @@ export enum ObjectType {
     ObjectID = 'ObjectID',
     Name = 'Name',
     EqualToOrNull = 'EqualToOrNull',
+    MonitorSteps = 'MonitorSteps',
     NotEqual = 'NotEqual',
     Email = 'Email',
     Phone = 'Phone',

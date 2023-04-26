@@ -26,11 +26,13 @@ import { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 import EqualToOrNull from './Database/EqualToOrNull';
 import NotEqual from './Database/NotEqual';
+import MonitorSteps from './Monitor/MonitorSteps';
+import SerializableObject from './SerializableObject';
 
 export default class JSONFunctions {
     public static toJSON(
         model: BaseModel,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel }
     ): JSONObject {
         const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
@@ -38,7 +40,7 @@ export default class JSONFunctions {
 
     public static toJSONObject(
         model: BaseModel,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel }
     ): JSONObject {
         const json: JSONObject = {};
 
@@ -85,7 +87,7 @@ export default class JSONFunctions {
 
     public static toJSONObjectArray(
         list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel }
     ): JSONArray {
         const array: JSONArray = [];
 
@@ -98,7 +100,7 @@ export default class JSONFunctions {
 
     public static toJSONArray(
         list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel }
     ): JSONArray {
         const array: JSONArray = [];
 
@@ -111,7 +113,7 @@ export default class JSONFunctions {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         json = JSONFunctions.deserialize(json);
         const baseModel: T = new type();
@@ -161,7 +163,7 @@ export default class JSONFunctions {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new (): T }
+        type: { new(): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -178,14 +180,14 @@ export default class JSONFunctions {
 
     public static fromJSONObject<T extends BaseModel>(
         json: JSONObject,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         return this.fromJSON<T>(json, type) as T;
     }
 
     public static fromJSONArray<T extends BaseModel>(
         json: Array<JSONObject>,
-        type: { new (): T }
+        type: { new(): T }
     ): Array<T> {
         const arr: Array<T> = [];
 
@@ -270,112 +272,8 @@ export default class JSONFunctions {
                 _type: ObjectType.Buffer,
                 value: val as Uint8Array,
             };
-        } else if (val && val instanceof Name) {
-            return {
-                _type: ObjectType.Name,
-                value: (val as Name).toString(),
-            };
-        } else if (val && val instanceof Domain) {
-            return {
-                _type: ObjectType.Domain,
-                value: (val as Domain).toString(),
-            };
-        } else if (val && val instanceof ObjectID) {
-            return {
-                _type: ObjectType.ObjectID,
-                value: (val as ObjectID).toString(),
-            };
-        } else if (val && val instanceof Phone) {
-            return {
-                _type: ObjectType.Phone,
-                value: (val as Phone).toString(),
-            };
-        } else if (val && val instanceof Email) {
-            return {
-                _type: ObjectType.Email,
-                value: (val as Email).toString(),
-            };
-        } else if (val && val instanceof Port) {
-            return {
-                _type: ObjectType.Port,
-                value: (val as Port).toString(),
-            };
-        } else if (val && val instanceof HashedString) {
-            return {
-                _type: ObjectType.HashedString,
-                value: (val as HashedString).toString(),
-            };
-        } else if (val && val instanceof Hostname) {
-            return {
-                _type: ObjectType.Hostname,
-                value: (val as Hostname).toString(),
-            };
-        } else if (val && val instanceof Version) {
-            return {
-                _type: ObjectType.Version,
-                value: (val as Version).toString(),
-            };
-        } else if (val && val instanceof Route) {
-            return {
-                _type: ObjectType.Route,
-                value: (val as Route).toString(),
-            };
-        } else if (val && val instanceof URL) {
-            return {
-                _type: ObjectType.URL,
-                value: (val as URL).toString(),
-            };
-        } else if (val && val instanceof Color) {
-            return {
-                _type: ObjectType.Color,
-                value: (val as Color).toString(),
-            };
-        } else if (val && val instanceof Search) {
-            return {
-                _type: ObjectType.Search,
-                value: (val as Search).toString(),
-            };
-        } else if (val && val instanceof LessThan) {
-            return {
-                _type: ObjectType.LessThan,
-                value: (val as LessThan).value,
-            };
-        } else if (val && val instanceof InBetween) {
-            return {
-                _type: ObjectType.InBetween,
-                startValue: (val as InBetween).startValue,
-                endValue: (val as InBetween).endValue,
-            };
-        } else if (val && val instanceof NotNull) {
-            return {
-                _type: ObjectType.NotNull,
-                value: null,
-            };
-        } else if (val && val instanceof GreaterThan) {
-            return {
-                _type: ObjectType.GreaterThan,
-                value: (val as GreaterThan).value,
-            };
-        } else if (val && val instanceof EqualToOrNull) {
-            return {
-                _type: ObjectType.EqualToOrNull,
-                value: (val as EqualToOrNull).value.toString(),
-            };
-        } else if (val && val instanceof NotEqual) {
-            return {
-                _type: ObjectType.NotEqual,
-                value: (val as NotEqual).value.toString(),
-            };
-        } else if (val && val instanceof LessThanOrEqual) {
-            return {
-                _type: ObjectType.LessThanOrEqual,
-                value: (val as LessThanOrEqual).value,
-            };
-        } else if (val && val instanceof GreaterThanOrEqual) {
-            return {
-                _type: ObjectType.GreaterThanOrEqual,
-                value: (val as GreaterThanOrEqual).value,
-            };
+        } else if (val && val instanceof SerializableObject) {
+            return val.toJSON();
         } else if (val && val instanceof Date) {
             return {
                 _type: ObjectType.DateTime,
@@ -412,12 +310,12 @@ export default class JSONFunctions {
             ((val as JSONObject)['value'] as JSONObject)['data'] &&
             ((val as JSONObject)['value'] as JSONObject)['type'] &&
             ((val as JSONObject)['value'] as JSONObject)['type'] ===
-                ObjectType.Buffer &&
+            ObjectType.Buffer &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Buffer
         ) {
             return Buffer.from(
                 ((val as JSONObject)['value'] as JSONObject)[
-                    'data'
+                'data'
                 ] as Uint8Array
             );
         } else if (val && ArrayBuffer.isView(val)) {
@@ -451,7 +349,7 @@ export default class JSONFunctions {
             (val as JSONObject)['value'] &&
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) ===
-                ObjectType.EqualToOrNull
+            ObjectType.EqualToOrNull
         ) {
             return new EqualToOrNull((val as JSONObject)['value'] as string);
         } else if (
@@ -605,7 +503,7 @@ export default class JSONFunctions {
                 (val as JSONObject)['value'] instanceof Date ||
                 typeof (val as JSONObject)['value'] === Typeof.String) &&
             ((val as JSONObject)['_type'] as string) ===
-                ObjectType.LessThanOrEqual
+            ObjectType.LessThanOrEqual
         ) {
             return new LessThanOrEqual(
                 (val as JSONObject)['value'] as number | Date
@@ -627,7 +525,7 @@ export default class JSONFunctions {
                 (val as JSONObject)['value'] instanceof Date ||
                 typeof (val as JSONObject)['value'] === Typeof.String) &&
             ((val as JSONObject)['_type'] as string) ===
-                ObjectType.GreaterThanOrEqual
+            ObjectType.GreaterThanOrEqual
         ) {
             return new GreaterThanOrEqual(
                 (val as JSONObject)['value'] as number | Date

@@ -1,6 +1,7 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
 
 export default class Version extends DatabaseProperty {
     private _version: string = '';
@@ -24,6 +25,21 @@ export default class Version extends DatabaseProperty {
 
     public override toString(): string {
         return this.version;
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Version,
+            value: (this as Version).toString(),
+        }
+    }
+
+    public static override fromJSON(json: JSONObject): Version {
+        if(json['_type'] === ObjectType.Version){
+            return new Version(json['value'] as string || '');
+        }
+
+        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
     }
 
     protected static override toDatabase(

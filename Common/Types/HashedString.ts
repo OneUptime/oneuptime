@@ -4,6 +4,8 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
 import ObjectID from './ObjectID';
 import CryptoJS from 'crypto-js';
+import { JSONObject, ObjectType } from './JSON';
+import BadDataException from './Exception/BadDataException';
 
 export default class HashedString extends DatabaseProperty {
     private isHashed: boolean = false;
@@ -20,6 +22,21 @@ export default class HashedString extends DatabaseProperty {
         super();
         this.value = value;
         this.isHashed = isValueHashed;
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.HashedString,
+            value: (this as HashedString).toString(),
+        }
+    }
+
+    public static override fromJSON(json: JSONObject): HashedString {
+        if(json['_type'] === ObjectType.HashedString){
+            return new HashedString(json['value'] as string || '');
+        }
+
+        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
     }
 
     public override toString(): string {
