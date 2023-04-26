@@ -4,6 +4,7 @@ import {
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Dropdown, {
     DropdownOption,
@@ -17,6 +18,7 @@ export interface ComponentProps {
     initialValue: CriteriaFilter | undefined;
     onChange?: undefined | ((value: CriteriaFilter) => void);
     onDelete?: undefined | (() => void);
+    monitorType: MonitorType;
 }
 
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
@@ -28,6 +30,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
     const checkOnOptions: Array<DropdownOption> =
         DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
+
+
     const filterTypeOptions: Array<DropdownOption> =
         DropdownUtil.getDropdownOptionsFromEnum(FilterType);
 

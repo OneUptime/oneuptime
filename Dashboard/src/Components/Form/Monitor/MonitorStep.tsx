@@ -298,6 +298,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     required={true}
                 />
                 <MonitorCriteriaElement
+                    monitorType={props.monitorType}
                     monitorStatusDropdownOptions={
                         props.monitorStatusDropdownOptions
                     }

@@ -11,10 +11,12 @@ import Button, {
 } from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     initialValue: Array<CriteriaFilter> | undefined;
     onChange?: undefined | ((value: Array<CriteriaFilter>) => void);
+    monitorType: MonitorType;
 }
 
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
@@ -38,6 +40,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             {criteriaFilters.map((i: CriteriaFilter, index: number) => {
                 return (
                     <CriteriaFilterElement
+                        monitorType={props.monitorType}
                         key={index}
                         initialValue={i}
                         onDelete={() => {

@@ -9,12 +9,14 @@ import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstanc
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     initialValue: MonitorCriteria | undefined;
     onChange?: undefined | ((value: MonitorCriteria) => void);
     monitorStatusDropdownOptions: Array<DropdownOption>;
     incidentSeverityDropdownOptions: Array<DropdownOption>;
+    monitorType: MonitorType;
 }
 
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
@@ -41,6 +43,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     return (
                         <div className="mt-10 mb-10" key={index}>
                             <MonitorCriteriaInstanceElement
+                                monitorType={props.monitorType}
                                 monitorStatusDropdownOptions={
                                     props.monitorStatusDropdownOptions
                                 }

@@ -30,10 +30,12 @@ import Input from 'CommonUI/src/Components/Input/Input';
 import TextArea from 'CommonUI/src/Components/TextArea/TextArea';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Dictionary from 'Common/Types/Dictionary';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
     incidentSeverityDropdownOptions: Array<DropdownOption>;
+    monitorType: MonitorType;
     initialValue?: undefined | MonitorCriteriaInstance;
     onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
     onDelete?: undefined | (() => void);
@@ -241,6 +243,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
 
                 <CriteriaFilters
+                    monitorType={props.monitorType}
                     initialValue={monitorCriteriaInstance?.data?.filters || []}
                     onChange={(value: Array<CriteriaFilter>) => {
                         monitorCriteriaInstance.setFilters(value);
