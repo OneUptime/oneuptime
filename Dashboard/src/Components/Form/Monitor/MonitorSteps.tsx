@@ -142,10 +142,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             initialValue={i}
                             // onDelete={() => {
                             //     // remove the criteria filter
-                            //     const index: number =
-                            //         monitorSteps.data?.monitorStepsInstanceArray.indexOf(
-                            //             i
-                            //         ) || -1;
+                            // const index: number | undefined =
+                            // monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
+                            //     return item.data?.id === value.data?.id;
+                            // })
+
+                            // if (index === undefined) {
+                            //     return;
+                            // }
                             //     const newMonitorStepss: Array<MonitorStep> = [
                             //         ...(monitorSteps.data
                             //             ?.monitorStepsInstanceArray || []),
@@ -162,10 +166,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             //     );
                             // }}
                             onChange={(value: MonitorStep) => {
-                                const index: number =
-                                    monitorSteps.data?.monitorStepsInstanceArray.indexOf(
-                                        i
-                                    ) || -1;
+
+                                const index: number | undefined =
+                                monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
+                                    return item.data?.id === value.data?.id;
+                                })
+
+                                if (index === undefined) {
+                                    return;
+                                }
+                                
+                                
                                 const newMonitorStepss: Array<MonitorStep> = [
                                     ...(monitorSteps.data
                                         ?.monitorStepsInstanceArray || []),

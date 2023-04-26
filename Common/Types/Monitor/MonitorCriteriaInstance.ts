@@ -16,6 +16,7 @@ export interface MonitorCriteriaInstanceType {
     description: string;
     changeMonitorStatus?: boolean | undefined;
     createIncidents?: boolean | undefined;
+    id: string; 
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
@@ -24,6 +25,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     public constructor() {
         super();
         this.data = {
+            id: ObjectID.generate().toString(),
             monitorStatusId: undefined,
             filterCondition: FilterCondition.All,
             filters: [
@@ -41,6 +43,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
         return {
+            id: ObjectID.generate().toString(),
             monitorStatusId: undefined,
             filterCondition: FilterCondition.All,
             filters: [
@@ -76,6 +79,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         }
 
         for (const incident of value.data.incidents) {
+
+            if(!incident){
+                continue; 
+            }
+
             if (!incident.title) {
                 return "Monitor Criteria incident title is required";
             }
@@ -193,6 +201,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return {
             _type: ObjectType.MonitorCriteriaInstance,
             value: {
+                id: this.data.id,
                 monitorStatusId: this.data.monitorStatusId,
                 filterCondition: this.data.filterCondition,
                 filters: this.data.filters,
@@ -279,6 +288,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             new MonitorCriteriaInstance();
 
         monitorCriteriaInstance.data = {
+            id: json['id'] as string || ObjectID.generate().toString(),
             monitorStatusId,
             filterCondition,
             filters,

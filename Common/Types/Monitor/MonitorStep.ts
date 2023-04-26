@@ -11,6 +11,7 @@ import ObjectID from '../ObjectID';
 import MonitorType from './MonitorType';
 
 export interface MonitorStepType {
+    id: string; 
     monitorDestination?: URL | IP | undefined;
     monitorCriteria: MonitorCriteria;
     requestType: HTTPMethod;
@@ -26,6 +27,7 @@ export default class MonitorStep extends DatabaseProperty {
         super();
 
         this.data = {
+            id: ObjectID.generate().toString(),
             monitorDestination: undefined,
             monitorCriteria: new MonitorCriteria(),
             requestType: HTTPMethod.GET,
@@ -75,6 +77,7 @@ export default class MonitorStep extends DatabaseProperty {
         return {
             _type: ObjectType.MonitorStep,
             value: {
+                id: ObjectID.generate().toString(),
                 monitorDestination: undefined,
                 monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
                 requestType: HTTPMethod.GET,
@@ -118,6 +121,7 @@ export default class MonitorStep extends DatabaseProperty {
             return {
                 _type: ObjectType.MonitorStep,
                 value: {
+                    id: this.data.id,
                     monitorDestination:
                         this.data?.monitorDestination?.toJSON() || undefined,
                     monitorCriteria: this.data.monitorCriteria.toJSON(),
@@ -184,6 +188,7 @@ export default class MonitorStep extends DatabaseProperty {
         const monitorStep: MonitorStep = new MonitorStep();
 
         monitorStep.data = {
+            id: json['id'] as string,
             monitorDestination: monitorDestination || undefined,
             monitorCriteria: MonitorCriteria.fromJSON(
                 json['monitorCriteria'] as JSONObject

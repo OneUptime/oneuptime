@@ -59,10 +59,15 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     }
 
                                     // remove the criteria filter
-                                    const index: number =
-                                        monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
-                                            i
-                                        ) || -1;
+                                    const index: number | undefined =
+                                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex((item: MonitorCriteriaInstance) => {
+                                            return item.data?.id === i.data?.id;
+                                        })
+
+                                    if (index === undefined) {
+                                        return;
+                                    }
+                                    
                                     const newMonitorCriterias: Array<MonitorCriteriaInstance> =
                                         [
                                             ...(monitorCriteria.data
@@ -81,10 +86,14 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     );
                                 }}
                                 onChange={(value: MonitorCriteriaInstance) => {
-                                    const index: number =
-                                        monitorCriteria.data?.monitorCriteriaInstanceArray.indexOf(
-                                            i
-                                        ) || -1;
+                                    const index: number | undefined =
+                                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex((item: MonitorCriteriaInstance) => {
+                                            return item.data?.id === value.data?.id;
+                                        })
+
+                                        if (index === undefined) {
+                                            return;
+                                        }
                                     const newMonitorCriterias: Array<MonitorCriteriaInstance> =
                                         [
                                             ...(monitorCriteria.data
