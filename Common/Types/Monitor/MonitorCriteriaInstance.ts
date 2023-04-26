@@ -5,6 +5,7 @@ import ObjectID from '../ObjectID';
 import { CriteriaIncident } from './CriteriaIncident';
 import { CheckOn, CriteriaFilter, FilterCondition } from './CriteriaFilter';
 import BadDataException from '../Exception/BadDataException';
+import MonitorType from './MonitorType';
 
 export interface MonitorCriteriaInstanceType {
     monitorStatusId: ObjectID | undefined;
@@ -53,6 +54,53 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             name: '',
             description: '',
         };
+    }
+
+    public static getValidationError(value: MonitorCriteriaInstance, monitorType: MonitorType): string | null {
+
+        if (!value.data) {
+            return "Monitor Step is required";
+        }
+
+        if (value.data.filters.length === 0) {
+            return "Monitor Criteria filter is required";
+        }
+
+
+        if (!value.data.name) {
+            return "Monitor Criteria name is required";
+        }
+
+        if (!value.data.description) {
+            return "Monitor Criteria description is required";
+        }
+
+        for (const incident of value.data.incidents) {
+            if (!incident.title) {
+                return "Monitor Criteria incident title is required";
+            }
+
+            if (!incident.description) {
+                return "Monitor Criteria incident description is required";
+            }
+
+            if (!incident.incidentSeverityId) {
+                return "Monitor Criteria incident severity is required";
+            }
+
+        }
+
+        for (const filter of value.data.filters) {
+            if (!filter.checkOn) {
+                return "Monitor Criteria filter check on is required";
+            }
+
+            if (monitorType === MonitorType.Ping && (filter.checkOn !== CheckOn.IsOnline && filter.checkOn !== CheckOn.IsOffline && filter.checkOn !== CheckOn.ResponseTime)) {
+                return "Ping  Monitor cannot have filter criteria: " + filter.checkOn;
+            }
+        }
+
+        return null;
     }
 
     public setName(name: string): MonitorCriteriaInstance {

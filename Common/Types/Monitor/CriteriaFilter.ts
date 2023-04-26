@@ -4,6 +4,7 @@ export enum CheckOn {
     ResponseHeader = 'Response Header',
     ResponseBody = 'Response Body',
     IsOnline = 'Is Online',
+    IsOffline = 'Is Offline',
 }
 
 export interface CriteriaFilter {

@@ -25,6 +25,8 @@ import {
 } from 'CommonUI/src/Components/Forms/Types/Field';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringIntrerval from '../Form/Monitor/MonitorInterval';
+import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
+
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -129,6 +131,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitor Details',
                     fieldType: FormFieldSchemaType.CustomComponent,
                     required: true,
+                    customValidation: (values: FormValues<Monitor>) => {
+                        return MonitorStepsType.getValidationError(values.monitorSteps as MonitorStepsType, values.monitorType as MonitorType);
+                    },
                     getCustomElement: (
                         value: FormValues<Monitor>,
                         props: CustomElementProps

@@ -3,6 +3,7 @@ import DatabaseProperty from '../Database/DatabaseProperty';
 import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorCriteriaInstance from './MonitorCriteriaInstance';
 import BadDataException from '../Exception/BadDataException';
+import MonitorType from './MonitorType';
 
 export interface MonitorCriteriaType {
     monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
@@ -16,6 +17,26 @@ export default class MonitorCriteria extends DatabaseProperty {
         this.data = {
             monitorCriteriaInstanceArray: [new MonitorCriteriaInstance()],
         };
+    }
+
+    public static getValidationError(value: MonitorCriteria, monitorType: MonitorType): string | null {
+
+        if (!value.data) {
+            return "Monitor Criteria is required";
+        }
+
+        if(value.data.monitorCriteriaInstanceArray.length === 0) { 
+            return "Monitor Criteria is required";
+        }
+
+        for(const criteria of value.data.monitorCriteriaInstanceArray){
+            if(MonitorCriteriaInstance.getValidationError(criteria, monitorType)){
+                return MonitorCriteriaInstance.getValidationError(criteria, monitorType);
+            }
+        }
+
+        return null;
+
     }
 
     public static getNewMonitorCriteriaAsJSON(): JSONObject {

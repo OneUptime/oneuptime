@@ -8,6 +8,7 @@ import BadDataException from '../Exception/BadDataException';
 import HTTPMethod from '../API/HTTPMethod';
 import Dictionary from '../Dictionary';
 import ObjectID from '../ObjectID';
+import MonitorType from './MonitorType';
 
 export interface MonitorStepType {
     monitorDestination?: URL | IP | undefined;
@@ -84,8 +85,32 @@ export default class MonitorStep extends DatabaseProperty {
         };
     }
 
-    public static isValid(_json: JSONObject): boolean {
-        return true;
+    public static getValidationError(value: MonitorStep, monitorType: MonitorType): string | null {
+
+        if (!value.data) {
+            return "Monitor Step is required";
+        }
+
+        if (!value.data.monitorDestination) {
+            return "Monitor Destination is required";
+        }
+
+
+        if (!value.data.monitorCriteria) {
+            return "Monitor Criteria is required";
+        }
+
+        if (!MonitorCriteria.getValidationError(value.data.monitorCriteria, monitorType)) {
+            return MonitorCriteria.getValidationError(value.data.monitorCriteria, monitorType);
+        }
+
+
+        if(!value.data.requestType && monitorType === MonitorType.API){
+            return "Request Type is required";
+        }
+
+
+        return null;
     }
 
     public override toJSON(): JSONObject {
@@ -169,10 +194,10 @@ export default class MonitorStep extends DatabaseProperty {
             requestBody: (json['requestBody'] as string) || undefined,
             defaultMonitorStatusId: json['defaultMonitorStatusId']
                 ? new ObjectID(
-                      (json['defaultMonitorStatusId'] as JSONObject)[
-                          'value'
-                      ] as string
-                  )
+                    (json['defaultMonitorStatusId'] as JSONObject)[
+                    'value'
+                    ] as string
+                )
                 : undefined,
         };
 
