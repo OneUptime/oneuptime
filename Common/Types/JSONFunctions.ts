@@ -309,9 +309,10 @@ export default class JSONFunctions {
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
             SerializableObjectDictionary[(val as JSONObject)['_type'] as string]
-            
         ) {
-            return SerializableObjectDictionary[(val as JSONObject)['_type'] as string].fromJSON(val)
+            return SerializableObjectDictionary[
+                (val as JSONObject)['_type'] as string
+            ].fromJSON(val);
         } else if (val instanceof Date) {
             return val;
         } else if (typeof val === Typeof.Object) {

@@ -1,4 +1,3 @@
-
 import NotImplementedException from './Exception/NotImplementedException';
 import { JSONObject } from './JSON';
 
