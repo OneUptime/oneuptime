@@ -84,18 +84,20 @@ export default class MonitorSteps extends DatabaseProperty {
         return monitorSteps;
     }
 
-    public static getValidationError(value: MonitorSteps, monitorType: MonitorType): string | null {
-
-        if(!value.data){
-            return "Monitor Steps is required";
+    public static getValidationError(
+        value: MonitorSteps,
+        monitorType: MonitorType
+    ): string | null {
+        if (!value.data) {
+            return 'Monitor Steps is required';
         }
 
-        if(value.data.monitorStepsInstanceArray.length === 0) { 
-            return "Monitor Steps is required";
+        if (value.data.monitorStepsInstanceArray.length === 0) {
+            return 'Monitor Steps is required';
         }
 
-        for(const step of value.data.monitorStepsInstanceArray){
-            if(MonitorStep.getValidationError(step, monitorType)){
+        for (const step of value.data.monitorStepsInstanceArray) {
+            if (MonitorStep.getValidationError(step, monitorType)) {
                 return MonitorStep.getValidationError(step, monitorType);
             }
         }

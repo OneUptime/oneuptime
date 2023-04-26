@@ -122,7 +122,9 @@ export default class FindOneBaseModel<
                 ) as Query<TBaseModel>;
             }
 
-            let select: Select<TBaseModel> = args['select'] as Select<TBaseModel>;
+            let select: Select<TBaseModel> = args[
+                'select'
+            ] as Select<TBaseModel>;
 
             if (select) {
                 select = JSONFunctions.deserialize(
@@ -131,7 +133,7 @@ export default class FindOneBaseModel<
             }
 
             const model: TBaseModel | null = await this.modelService.findOneBy({
-                query: (query) || {},
+                query: query || {},
                 select: select,
                 props: {
                     isRoot: true,

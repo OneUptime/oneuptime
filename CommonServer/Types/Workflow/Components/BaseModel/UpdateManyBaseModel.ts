@@ -154,7 +154,7 @@ export default class UpdateManyBaseModel<
             }
 
             await this.modelService.updateBy({
-                query: (query) || {},
+                query: query || {},
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 limit: new PositiveNumber(args['limit'] as number),
                 skip: new PositiveNumber(args['skip'] as number),

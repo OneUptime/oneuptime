@@ -5,8 +5,9 @@ import { FindOptionsSelectProperty } from 'typeorm';
 
 export type SelectPropertyOptions<Property> = Property extends DatabaseProperty
     ? boolean
-    : (Property extends JSONObject
-    ? boolean : FindOptionsSelectProperty<Property>);
+    : Property extends JSONObject
+    ? boolean
+    : FindOptionsSelectProperty<Property>;
 
 /**
  * Select find options.

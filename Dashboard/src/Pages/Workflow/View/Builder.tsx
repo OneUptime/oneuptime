@@ -83,9 +83,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         // add a placeholder trigger node.
                         setNodes([getPlaceholderTriggerNode()]);
                     } else {
-                        const nodes: Array<Node> = (
-                            workflow.graph as any
-                        )['nodes'] as Array<Node>;
+                        const nodes: Array<Node> = (workflow.graph as any)[
+                            'nodes'
+                        ] as Array<Node>;
 
                         // Fill nodes.
 

@@ -28,7 +28,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         CriteriaFilter | undefined
     >(props.initialValue);
 
-    const [checkOnOptions, setCheckOnOptions] = React.useState<Array<DropdownOption>>([]);
+    const [checkOnOptions, setCheckOnOptions] = React.useState<
+        Array<DropdownOption>
+    >([]);
 
     useEffect(() => {
         let options: Array<DropdownOption> =
@@ -36,16 +38,19 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         if (props.monitorType === MonitorType.Ping) {
             options = options.filter((i: DropdownOption) => {
-                return i.value === CheckOn.IsOnline || i.value === CheckOn.ResponseTime;
+                return (
+                    i.value === CheckOn.IsOnline ||
+                    i.value === CheckOn.ResponseTime
+                );
             });
         }
 
         setCheckOnOptions(options);
-
     }, [props.monitorType]);
 
-
-    const [filterTypeOptions, setFilterTypeOptions] = React.useState<Array<DropdownOption>>([]);
+    const [filterTypeOptions, setFilterTypeOptions] = React.useState<
+        Array<DropdownOption>
+    >([]);
 
     useEffect(() => {
         let options: Array<DropdownOption> =
@@ -57,36 +62,50 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         if (criteriaFilter?.checkOn === CheckOn.ResponseTime) {
             options = options.filter((i: DropdownOption) => {
-                return i.value === FilterType.GreaterThan || i.value === FilterType.LessThan || i.value === FilterType.LessThanOrEqualTo || i.value === FilterType.GreaterThanOrEqualTo;
+                return (
+                    i.value === FilterType.GreaterThan ||
+                    i.value === FilterType.LessThan ||
+                    i.value === FilterType.LessThanOrEqualTo ||
+                    i.value === FilterType.GreaterThanOrEqualTo
+                );
             });
         }
 
         if (criteriaFilter?.checkOn === CheckOn.IsOnline) {
             options = options.filter((i: DropdownOption) => {
-                return i.value === FilterType.True || i.value === FilterType.False
+                return (
+                    i.value === FilterType.True || i.value === FilterType.False
+                );
             });
         }
 
-        if (criteriaFilter?.checkOn === CheckOn.ResponseBody || criteriaFilter?.checkOn === CheckOn.ResponseHeader) {
+        if (
+            criteriaFilter?.checkOn === CheckOn.ResponseBody ||
+            criteriaFilter?.checkOn === CheckOn.ResponseHeader
+        ) {
             options = options.filter((i: DropdownOption) => {
-                return i.value === FilterType.Contains || i.value === FilterType.NotContains
+                return (
+                    i.value === FilterType.Contains ||
+                    i.value === FilterType.NotContains
+                );
             });
         }
 
         if (criteriaFilter?.checkOn === CheckOn.ResponseCode) {
             options = options.filter((i: DropdownOption) => {
-                return i.value === FilterType.GreaterThan || i.value === FilterType.LessThan || i.value === FilterType.LessThanOrEqualTo || i.value === FilterType.GreaterThanOrEqualTo || i.value === FilterType.EqualTo || i.value === FilterType.NotEqualTo;
+                return (
+                    i.value === FilterType.GreaterThan ||
+                    i.value === FilterType.LessThan ||
+                    i.value === FilterType.LessThanOrEqualTo ||
+                    i.value === FilterType.GreaterThanOrEqualTo ||
+                    i.value === FilterType.EqualTo ||
+                    i.value === FilterType.NotEqualTo
+                );
             });
         }
 
         setFilterTypeOptions(options);
-
     }, [criteriaFilter]);
-
-
-
-
-
 
     useEffect(() => {
         if (props.onChange && criteriaFilter) {
@@ -107,8 +126,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     ) => {
                         setCriteriaFilter({
                             checkOn: value?.toString() as CheckOn,
-                            filterType:
-                                undefined,
+                            filterType: undefined,
                             value: undefined,
                         });
                     }}
@@ -116,40 +134,37 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             </div>
             <div className="w-1/3 mr-1 ml-1">
                 {!criteriaFilter?.checkOn ||
-                    (criteriaFilter?.checkOn &&
-                        (
-                            <Dropdown
-                                initialValue={filterTypeOptions.find(
-                                    (i: DropdownOption) => {
-                                        return (
-                                            i.value ===
-                                            criteriaFilter?.filterType
-                                        );
-                                    }
-                                )}
-                                options={filterTypeOptions}
-                                onChange={(
-                                    value:
-                                        | DropdownValue
-                                        | Array<DropdownValue>
-                                        | null
-                                ) => {
-                                    setCriteriaFilter({
-                                        checkOn:
-                                            criteriaFilter?.checkOn ||
-                                            CheckOn.IsOnline,
-                                        filterType:
-                                            value?.toString() as FilterType,
-                                        value: criteriaFilter?.value || '',
-                                    });
-                                }}
-                            />
-                        ))}
+                    (criteriaFilter?.checkOn && (
+                        <Dropdown
+                            initialValue={filterTypeOptions.find(
+                                (i: DropdownOption) => {
+                                    return (
+                                        i.value === criteriaFilter?.filterType
+                                    );
+                                }
+                            )}
+                            options={filterTypeOptions}
+                            onChange={(
+                                value:
+                                    | DropdownValue
+                                    | Array<DropdownValue>
+                                    | null
+                            ) => {
+                                setCriteriaFilter({
+                                    checkOn:
+                                        criteriaFilter?.checkOn ||
+                                        CheckOn.IsOnline,
+                                    filterType: value?.toString() as FilterType,
+                                    value: criteriaFilter?.value || '',
+                                });
+                            }}
+                        />
+                    ))}
             </div>
             <div className="w-1/3 mr-1 ml-1">
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn &&
-                        (criteriaFilter?.checkOn !== CheckOn.IsOnline) && (
+                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
                             <Input
                                 initialValue={criteriaFilter?.value?.toString()}
                                 onChange={(value: string) => {

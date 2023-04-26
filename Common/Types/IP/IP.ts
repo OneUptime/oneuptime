@@ -101,7 +101,6 @@ export default class IP extends DatabaseProperty {
         return null;
     }
 
-
     public static override fromDatabase(value: string): IP | null {
         if (value) {
             return new IP(value);

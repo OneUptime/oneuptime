@@ -17,7 +17,7 @@ export interface MonitorCriteriaInstanceType {
     description: string;
     changeMonitorStatus?: boolean | undefined;
     createIncidents?: boolean | undefined;
-    id: string; 
+    id: string;
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
@@ -60,52 +60,58 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         };
     }
 
-    public static getValidationError(value: MonitorCriteriaInstance, monitorType: MonitorType): string | null {
-
+    public static getValidationError(
+        value: MonitorCriteriaInstance,
+        monitorType: MonitorType
+    ): string | null {
         if (!value.data) {
-            return "Monitor Step is required";
+            return 'Monitor Step is required';
         }
 
         if (value.data.filters.length === 0) {
-            return "Monitor Criteria filter is required";
+            return 'Monitor Criteria filter is required';
         }
 
-
         if (!value.data.name) {
-            return "Monitor Criteria name is required";
+            return 'Monitor Criteria name is required';
         }
 
         if (!value.data.description) {
-            return "Monitor Criteria description is required";
+            return 'Monitor Criteria description is required';
         }
 
         for (const incident of value.data.incidents) {
-
-            if(!incident){
-                continue; 
+            if (!incident) {
+                continue;
             }
 
             if (!incident.title) {
-                return "Monitor Criteria incident title is required";
+                return 'Monitor Criteria incident title is required';
             }
 
             if (!incident.description) {
-                return "Monitor Criteria incident description is required";
+                return 'Monitor Criteria incident description is required';
             }
 
             if (!incident.incidentSeverityId) {
-                return "Monitor Criteria incident severity is required";
+                return 'Monitor Criteria incident severity is required';
             }
-
         }
 
         for (const filter of value.data.filters) {
             if (!filter.checkOn) {
-                return "Monitor Criteria filter check on is required";
+                return 'Monitor Criteria filter check on is required';
             }
 
-            if (monitorType === MonitorType.Ping && (filter.checkOn !== CheckOn.IsOnline && filter.checkOn !== CheckOn.ResponseTime)) {
-                return "Ping  Monitor cannot have filter criteria: " + filter.checkOn;
+            if (
+                monitorType === MonitorType.Ping &&
+                filter.checkOn !== CheckOn.IsOnline &&
+                filter.checkOn !== CheckOn.ResponseTime
+            ) {
+                return (
+                    'Ping  Monitor cannot have filter criteria: ' +
+                    filter.checkOn
+                );
             }
         }
 
@@ -260,10 +266,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
         let monitorStatusId: ObjectID | undefined = undefined;
 
-        if(json['monitorStatusId'] && typeof json['monitorStatusId'] === Typeof.String){
-            monitorStatusId = new ObjectID(
-                (json['monitorStatusId'] as string)
-            );
+        if (
+            json['monitorStatusId'] &&
+            typeof json['monitorStatusId'] === Typeof.String
+        ) {
+            monitorStatusId = new ObjectID(json['monitorStatusId'] as string);
         } else if (
             json['monitorStatusId'] &&
             (json['monitorStatusId'] as JSONObject)['value'] !== null
@@ -271,7 +278,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             monitorStatusId = new ObjectID(
                 (json['monitorStatusId'] as JSONObject)['value'] as string
             );
-        } 
+        }
 
         const filterCondition: FilterCondition = json[
             'filterCondition'
@@ -293,7 +300,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             new MonitorCriteriaInstance();
 
         monitorCriteriaInstance.data = {
-            id: json['id'] as string || ObjectID.generate().toString(),
+            id: (json['id'] as string) || ObjectID.generate().toString(),
             monitorStatusId,
             filterCondition,
             filters,

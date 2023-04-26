@@ -149,7 +149,9 @@ export default class FindManyBaseModel<
                 ) as Query<TBaseModel>;
             }
 
-            let select: Select<TBaseModel> = args['select'] as Select<TBaseModel>;
+            let select: Select<TBaseModel> = args[
+                'select'
+            ] as Select<TBaseModel>;
 
             if (select) {
                 select = JSONFunctions.deserialize(
@@ -158,7 +160,7 @@ export default class FindManyBaseModel<
             }
 
             const models: Array<TBaseModel> = await this.modelService.findBy({
-                query: (query) || {},
+                query: query || {},
                 select: select,
                 limit: new PositiveNumber(args['limit'] as number),
                 skip: new PositiveNumber(args['skip'] as number),

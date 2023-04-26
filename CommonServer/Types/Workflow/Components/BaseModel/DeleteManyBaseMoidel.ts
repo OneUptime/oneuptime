@@ -131,7 +131,7 @@ export default class DeleteManyBaseModel<
             }
 
             await this.modelService.deleteBy({
-                query: (query) || {},
+                query: query || {},
                 limit: new PositiveNumber(args['limit'] as number),
                 skip: new PositiveNumber(args['skip'] as number),
                 props: {

@@ -11,7 +11,7 @@ import ObjectID from '../ObjectID';
 import MonitorType from './MonitorType';
 
 export interface MonitorStepType {
-    id: string; 
+    id: string;
     monitorDestination?: URL | IP | undefined;
     monitorCriteria: MonitorCriteria;
     requestType: HTTPMethod;
@@ -88,30 +88,37 @@ export default class MonitorStep extends DatabaseProperty {
         };
     }
 
-    public static getValidationError(value: MonitorStep, monitorType: MonitorType): string | null {
-
+    public static getValidationError(
+        value: MonitorStep,
+        monitorType: MonitorType
+    ): string | null {
         if (!value.data) {
-            return "Monitor Step is required";
+            return 'Monitor Step is required';
         }
 
         if (!value.data.monitorDestination) {
-            return "Monitor Destination is required";
+            return 'Monitor Destination is required';
         }
-
 
         if (!value.data.monitorCriteria) {
-            return "Monitor Criteria is required";
+            return 'Monitor Criteria is required';
         }
 
-        if (!MonitorCriteria.getValidationError(value.data.monitorCriteria, monitorType)) {
-            return MonitorCriteria.getValidationError(value.data.monitorCriteria, monitorType);
+        if (
+            !MonitorCriteria.getValidationError(
+                value.data.monitorCriteria,
+                monitorType
+            )
+        ) {
+            return MonitorCriteria.getValidationError(
+                value.data.monitorCriteria,
+                monitorType
+            );
         }
 
-
-        if(!value.data.requestType && monitorType === MonitorType.API){
-            return "Request Type is required";
+        if (!value.data.requestType && monitorType === MonitorType.API) {
+            return 'Request Type is required';
         }
-
 
         return null;
     }
@@ -199,10 +206,10 @@ export default class MonitorStep extends DatabaseProperty {
             requestBody: (json['requestBody'] as string) || undefined,
             defaultMonitorStatusId: json['defaultMonitorStatusId']
                 ? new ObjectID(
-                    (json['defaultMonitorStatusId'] as JSONObject)[
-                    'value'
-                    ] as string
-                )
+                      (json['defaultMonitorStatusId'] as JSONObject)[
+                          'value'
+                      ] as string
+                  )
                 : undefined,
         };
 

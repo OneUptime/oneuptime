@@ -127,7 +127,7 @@ export default class UpdateOneBaseModel<
             }
 
             await this.modelService.updateOneBy({
-                query: (query) || {},
+                query: query || {},
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 props: {
                     isRoot: true,

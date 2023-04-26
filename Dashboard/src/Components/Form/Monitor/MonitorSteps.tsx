@@ -126,7 +126,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 >
                     {props.error}
                 </p>
-            ) : <></>}
+            ) : (
+                <></>
+            )}
             {monitorSteps.data?.monitorStepsInstanceArray.map(
                 (i: MonitorStep, index: number) => {
                     return (
@@ -166,17 +168,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             //     );
                             // }}
                             onChange={(value: MonitorStep) => {
-
                                 const index: number | undefined =
-                                monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
-                                    return item.data?.id === value.data?.id;
-                                })
+                                    monitorSteps.data?.monitorStepsInstanceArray.findIndex(
+                                        (item: MonitorStep) => {
+                                            return (
+                                                item.data?.id === value.data?.id
+                                            );
+                                        }
+                                    );
 
                                 if (index === undefined) {
                                     return;
                                 }
-                                
-                                
+
                                 const newMonitorStepss: Array<MonitorStep> = [
                                     ...(monitorSteps.data
                                         ?.monitorStepsInstanceArray || []),

@@ -19,24 +19,33 @@ export default class MonitorCriteria extends DatabaseProperty {
         };
     }
 
-    public static getValidationError(value: MonitorCriteria, monitorType: MonitorType): string | null {
-
+    public static getValidationError(
+        value: MonitorCriteria,
+        monitorType: MonitorType
+    ): string | null {
         if (!value.data) {
-            return "Monitor Criteria is required";
+            return 'Monitor Criteria is required';
         }
 
-        if(value.data.monitorCriteriaInstanceArray.length === 0) { 
-            return "Monitor Criteria is required";
+        if (value.data.monitorCriteriaInstanceArray.length === 0) {
+            return 'Monitor Criteria is required';
         }
 
-        for(const criteria of value.data.monitorCriteriaInstanceArray){
-            if(MonitorCriteriaInstance.getValidationError(criteria, monitorType)){
-                return MonitorCriteriaInstance.getValidationError(criteria, monitorType);
+        for (const criteria of value.data.monitorCriteriaInstanceArray) {
+            if (
+                MonitorCriteriaInstance.getValidationError(
+                    criteria,
+                    monitorType
+                )
+            ) {
+                return MonitorCriteriaInstance.getValidationError(
+                    criteria,
+                    monitorType
+                );
             }
         }
 
         return null;
-
     }
 
     public static getNewMonitorCriteriaAsJSON(): JSONObject {
