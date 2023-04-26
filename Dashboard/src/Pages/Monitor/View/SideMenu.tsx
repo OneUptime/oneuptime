@@ -28,6 +28,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Info}
                 />
+                 <SideMenuItem
+                    link={{
+                        title: 'Criteria',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Criteria}
+                />
                 <SideMenuItem
                     link={{
                         title: 'Status Timeline',

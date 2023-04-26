@@ -8,6 +8,7 @@ enum IconProp {
     User = 'User',
     Disc = 'Disc',
     Settings = 'Settings',
+    Criteria = 'Criteria',
     Notification = 'Notification',
     Help = 'Help',
     JSON = 'JSON',
