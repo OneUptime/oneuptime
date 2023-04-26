@@ -77,14 +77,14 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
                     if (
-                        ((workflow.graph as JSONObject)['nodes'] as Array<Node>)
+                        ((workflow.graph as any)['nodes'] as Array<Node>)
                             .length === 0
                     ) {
                         // add a placeholder trigger node.
                         setNodes([getPlaceholderTriggerNode()]);
                     } else {
                         const nodes: Array<Node> = (
-                            workflow.graph as JSONObject
+                            workflow.graph as any
                         )['nodes'] as Array<Node>;
 
                         // Fill nodes.
@@ -136,7 +136,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 }
 
                 if (workflow.graph && (workflow.graph as JSONObject)['edges']) {
-                    const edges: Array<Edge> = (workflow.graph as JSONObject)[
+                    const edges: Array<Edge> = (workflow.graph as any)[
                         'edges'
                     ] as Array<Edge>;
 
@@ -179,7 +179,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setSaveTimeout(
             setTimeout(async () => {
                 try {
-                    const graph: JSONObject = JSON.parse(
+                    const graph: any = JSON.parse(
                         JSON.stringify({ nodes, edges })
                     ); // deep copy
 
