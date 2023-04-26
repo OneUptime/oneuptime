@@ -6,6 +6,7 @@ import { CriteriaIncident } from './CriteriaIncident';
 import { CheckOn, CriteriaFilter, FilterCondition } from './CriteriaFilter';
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
+import Typeof from '../Typeof';
 
 export interface MonitorCriteriaInstanceType {
     monitorStatusId: ObjectID | undefined;
@@ -202,7 +203,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             _type: ObjectType.MonitorCriteriaInstance,
             value: {
                 id: this.data.id,
-                monitorStatusId: this.data.monitorStatusId,
+                monitorStatusId: this.data.monitorStatusId?.toString(),
                 filterCondition: this.data.filterCondition,
                 filters: this.data.filters,
                 incidents: this.data.incidents,
@@ -265,6 +266,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ) {
             monitorStatusId = new ObjectID(
                 (json['monitorStatusId'] as JSONObject)['value'] as string
+            );
+        }else if(json['monitorStatusId'] && typeof json['monitorStatusId'] === Typeof.String){
+            monitorStatusId = new ObjectID(
+                (json['monitorStatusId'] as string)
             );
         }
 
