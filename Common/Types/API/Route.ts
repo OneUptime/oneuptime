@@ -32,15 +32,15 @@ export default class Route extends DatabaseProperty {
         return {
             _type: ObjectType.Route,
             value: (this as Route).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Route {
-        if(json['_type'] === ObjectType.Route){
-            return new Route(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Route) {
+            return new Route((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public addRoute(route: Route | string): Route {

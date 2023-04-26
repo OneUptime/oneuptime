@@ -11,14 +11,14 @@ export default class LessThanOrEqual extends CompareBase {
         return {
             _type: ObjectType.LessThanOrEqual,
             value: (this as LessThanOrEqual).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): LessThanOrEqual {
-        if(json['_type'] === ObjectType.LessThanOrEqual){
+        if (json['_type'] === ObjectType.LessThanOrEqual) {
             return new LessThanOrEqual(json['value'] as number | Date);
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 }

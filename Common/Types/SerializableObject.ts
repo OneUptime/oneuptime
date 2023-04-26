@@ -1,10 +1,8 @@
-import NotImplementedException from "./Exception/NotImplementedException";
-import { JSONObject } from "./JSON";
-
+import NotImplementedException from './Exception/NotImplementedException';
+import { JSONObject } from './JSON';
 
 export default class SerializableObject {
-    public constructor() { }
-
+    public constructor() {}
 
     public toJSON(): JSONObject {
         throw new NotImplementedException();

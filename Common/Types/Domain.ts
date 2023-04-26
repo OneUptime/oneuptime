@@ -69,15 +69,15 @@ export default class Domain extends DatabaseProperty {
         return {
             _type: ObjectType.Domain,
             value: (this as Domain).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Domain {
-        if(json['_type'] === ObjectType.Domain){
-            return new Domain(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Domain) {
+            return new Domain((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     protected static override fromDatabase(_value: string): Domain | null {

@@ -11,14 +11,14 @@ export default class GreaterThan extends CompareBase {
         return {
             _type: ObjectType.GreaterThan,
             value: (this as GreaterThan).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): GreaterThan {
-        if(json['_type'] === ObjectType.GreaterThan){
+        if (json['_type'] === ObjectType.GreaterThan) {
             return new GreaterThan(json['value'] as number | Date);
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 }

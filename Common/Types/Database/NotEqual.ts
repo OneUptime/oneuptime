@@ -1,6 +1,6 @@
-import BadDataException from "../Exception/BadDataException";
-import { JSONObject, ObjectType } from "../JSON";
-import SerializableObject from "../SerializableObject";
+import BadDataException from '../Exception/BadDataException';
+import { JSONObject, ObjectType } from '../JSON';
+import SerializableObject from '../SerializableObject';
 
 export default class NotEqual extends SerializableObject {
     private _value!: string;
@@ -24,14 +24,14 @@ export default class NotEqual extends SerializableObject {
         return {
             _type: ObjectType.NotEqual,
             value: (this as NotEqual).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): NotEqual {
-        if(json['_type'] === ObjectType.NotEqual){
+        if (json['_type'] === ObjectType.NotEqual) {
             return new NotEqual(json['value'] as string);
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 }

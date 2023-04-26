@@ -40,15 +40,15 @@ export default class Phone extends DatabaseProperty {
         return {
             _type: ObjectType.Phone,
             value: (this as Phone).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Phone {
-        if(json['_type'] === ObjectType.Phone){
-            return new Phone(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Phone) {
+            return new Phone((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     protected static override toDatabase(

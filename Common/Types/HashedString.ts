@@ -28,15 +28,15 @@ export default class HashedString extends DatabaseProperty {
         return {
             _type: ObjectType.HashedString,
             value: (this as HashedString).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): HashedString {
-        if(json['_type'] === ObjectType.HashedString){
-            return new HashedString(json['value'] as string || '');
+        if (json['_type'] === ObjectType.HashedString) {
+            return new HashedString((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public override toString(): string {

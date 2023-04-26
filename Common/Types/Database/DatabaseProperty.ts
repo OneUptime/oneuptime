@@ -5,7 +5,7 @@ import { JSONArray, JSONObject } from '../JSON';
 import SerializableObject from '../SerializableObject';
 
 export default class DatabaseProperty extends SerializableObject {
-    public constructor() { 
+    public constructor() {
         super();
     }
 

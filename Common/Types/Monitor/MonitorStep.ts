@@ -156,7 +156,7 @@ export default class MonitorStep extends DatabaseProperty {
             throw new BadDataException('Invalid monitor criteria');
         }
 
-        const monitorStep = new MonitorStep();
+        const monitorStep: MonitorStep = new MonitorStep();
 
         monitorStep.data = {
             monitorDestination: monitorDestination || undefined,
@@ -169,10 +169,10 @@ export default class MonitorStep extends DatabaseProperty {
             requestBody: (json['requestBody'] as string) || undefined,
             defaultMonitorStatusId: json['defaultMonitorStatusId']
                 ? new ObjectID(
-                    (json['defaultMonitorStatusId'] as JSONObject)[
-                    'value'
-                    ] as string
-                )
+                      (json['defaultMonitorStatusId'] as JSONObject)[
+                          'value'
+                      ] as string
+                  )
                 : undefined,
         };
 

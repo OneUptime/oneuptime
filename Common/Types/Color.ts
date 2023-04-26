@@ -31,15 +31,15 @@ export default class Color extends DatabaseProperty {
         return {
             _type: ObjectType.Color,
             value: (this as Color).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Color {
-        if(json['_type'] === ObjectType.Color){
-            return new Color(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Color) {
+            return new Color((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public static override toDatabase(

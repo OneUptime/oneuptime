@@ -34,15 +34,18 @@ export default class InBetween extends SerializableObject {
             _type: ObjectType.InBetween,
             startValue: (this as InBetween).startValue,
             endValue: (this as InBetween).endValue,
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): InBetween {
-        if(json['_type'] === ObjectType.InBetween){
-            return new InBetween(json['startValue'] as number | Date | string, json['endValue'] as number | Date | string);
+        if (json['_type'] === ObjectType.InBetween) {
+            return new InBetween(
+                json['startValue'] as number | Date | string,
+                json['endValue'] as number | Date | string
+            );
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public override toString(): string {

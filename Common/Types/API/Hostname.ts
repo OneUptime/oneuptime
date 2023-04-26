@@ -55,15 +55,15 @@ export default class Hostname extends DatabaseProperty {
         return {
             _type: ObjectType.Hostname,
             value: (this as Hostname).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Hostname {
-        if(json['_type'] === ObjectType.Hostname){
-            return new Hostname(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Hostname) {
+            return new Hostname((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public override toString(): string {

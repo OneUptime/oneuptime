@@ -61,15 +61,15 @@ export default class Name extends DatabaseProperty {
         return {
             _type: ObjectType.Name,
             value: (this as Name).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Name {
-        if(json['_type'] === ObjectType.Name){
-            return new Name(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Name) {
+            return new Name((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public static override fromDatabase(_value: string): Name | null {

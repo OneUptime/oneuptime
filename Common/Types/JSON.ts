@@ -92,7 +92,6 @@ export type JSONValue =
     | Array<CheckOn>
     | FilterType
     | Array<FilterType>
-
     | Search
     | Domain
     | Array<Domain>

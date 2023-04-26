@@ -1,6 +1,6 @@
-import BadDataException from "../Exception/BadDataException";
-import { JSONObject, ObjectType } from "../JSON";
-import SerializableObject from "../SerializableObject";
+import BadDataException from '../Exception/BadDataException';
+import { JSONObject, ObjectType } from '../JSON';
+import SerializableObject from '../SerializableObject';
 
 export default class EqualToOrNull extends SerializableObject {
     private _value!: string;
@@ -20,19 +20,18 @@ export default class EqualToOrNull extends SerializableObject {
         return this.value;
     }
 
-
     public override toJSON(): JSONObject {
         return {
             _type: ObjectType.EqualToOrNull,
             value: (this as EqualToOrNull).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): EqualToOrNull {
-        if(json['_type'] === ObjectType.EqualToOrNull){
+        if (json['_type'] === ObjectType.EqualToOrNull) {
             return new EqualToOrNull(json['value'] as string);
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 }

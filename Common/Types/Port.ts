@@ -23,17 +23,16 @@ export default class Port extends DatabaseProperty {
         return {
             _type: ObjectType.Port,
             value: (this as Port).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Port {
-        if(json['_type'] === ObjectType.Port){
-            return new Port(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Port) {
+            return new Port((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
-
 
     public static isValid(port: number | string | PositiveNumber): boolean {
         if (typeof port === Typeof.String) {

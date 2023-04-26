@@ -60,15 +60,15 @@ export default class Email extends DatabaseProperty {
         return {
             _type: ObjectType.Email,
             value: (this as Email).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Email {
-        if(json['_type'] === ObjectType.Email){
-            return new Email(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Email) {
+            return new Email((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public override toString(): string {

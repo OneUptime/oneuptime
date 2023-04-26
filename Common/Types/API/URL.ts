@@ -126,8 +126,6 @@ export default class URL extends DatabaseProperty {
         return urlString;
     }
 
-    
-
     public static fromURL(url: URL): URL {
         return URL.fromString(url.toString());
     }
@@ -188,15 +186,15 @@ export default class URL extends DatabaseProperty {
         return {
             _type: ObjectType.URL,
             value: (this as URL).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): URL {
-        if(json['_type'] === ObjectType.URL){
-            return URL.fromString(json['value'] as string || '');
+        if (json['_type'] === ObjectType.URL) {
+            return URL.fromString((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public addRoute(route: Route | string): URL {

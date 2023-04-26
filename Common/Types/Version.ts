@@ -31,15 +31,15 @@ export default class Version extends DatabaseProperty {
         return {
             _type: ObjectType.Version,
             value: (this as Version).toString(),
-        }
+        };
     }
 
     public static override fromJSON(json: JSONObject): Version {
-        if(json['_type'] === ObjectType.Version){
-            return new Version(json['value'] as string || '');
+        if (json['_type'] === ObjectType.Version) {
+            return new Version((json['value'] as string) || '');
         }
 
-        throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     protected static override toDatabase(

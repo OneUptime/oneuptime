@@ -70,8 +70,7 @@ export default class MonitorSteps extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorStepsInstanceArray'] as JSONArray;
 
-        const monitorSteps = new MonitorSteps();
-
+        const monitorSteps: MonitorSteps = new MonitorSteps();
 
         monitorSteps.data = {
             monitorStepsInstanceArray: monitorStepsInstanceArray.map(

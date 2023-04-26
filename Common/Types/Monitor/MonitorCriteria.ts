@@ -72,8 +72,7 @@ export default class MonitorCriteria extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorCriteriaInstanceArray'] as JSONArray;
 
-        const monitorCriteria = new MonitorCriteria();
-
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
 
         monitorCriteria.data = {
             monitorCriteriaInstanceArray: monitorCriteriaInstanceArray.map(

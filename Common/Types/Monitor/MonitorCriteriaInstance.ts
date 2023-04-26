@@ -220,14 +220,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         const incidents: Array<CriteriaIncident> = [];
 
         for (const filter of json['filters']) {
-            filters.push({ ...filter as any });
+            filters.push({ ...(filter as any) });
         }
 
         for (const incident of json['incidents']) {
-            incidents.push({ ...incident as any });
+            incidents.push({ ...(incident as any) });
         }
 
-        const monitorCriteriaInstance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+        const monitorCriteriaInstance: MonitorCriteriaInstance =
+            new MonitorCriteriaInstance();
 
         monitorCriteriaInstance.data = {
             monitorStatusId,
