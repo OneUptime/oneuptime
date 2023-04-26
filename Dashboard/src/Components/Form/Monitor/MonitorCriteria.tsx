@@ -71,7 +71,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                         ];
                                     newMonitorCriterias.splice(index, 1);
                                     setMonitorCriteria(
-                                        new MonitorCriteria().fromJSON({
+                                        MonitorCriteria.fromJSON({
                                             _type: 'MonitorCriteria',
                                             value: {
                                                 monitorCriteriaInstanceArray:
@@ -93,7 +93,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                         ];
                                     newMonitorCriterias[index] = value;
                                     setMonitorCriteria(
-                                        new MonitorCriteria().fromJSON({
+                                        MonitorCriteria.fromJSON({
                                             _type: 'MonitorCriteria',
                                             value: {
                                                 monitorCriteriaInstanceArray:
@@ -120,7 +120,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                             ];
                         newMonitorCriterias.push(new MonitorCriteriaInstance());
                         setMonitorCriteria(
-                            new MonitorCriteria().fromJSON({
+                            MonitorCriteria.fromJSON({
                                 _type: 'MonitorCriteria',
                                 value: {
                                     monitorCriteriaInstanceArray:

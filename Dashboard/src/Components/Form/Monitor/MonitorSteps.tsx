@@ -169,7 +169,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                 ];
                                 newMonitorStepss[index] = value;
                                 setMonitorSteps(
-                                    new MonitorSteps().fromJSON({
+                                    MonitorSteps.fromJSON({
                                         _type: 'MonitorSteps',
                                         value: {
                                             monitorStepsInstanceArray:
