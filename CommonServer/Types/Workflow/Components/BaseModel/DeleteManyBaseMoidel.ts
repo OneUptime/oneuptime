@@ -122,14 +122,16 @@ export default class DeleteManyBaseModel<
                 ] = options.projectId;
             }
 
-            if (args['query']) {
-                args['query'] = JSONFunctions.deserialize(
+            let query: Query<TBaseModel> = args['query'] as Query<TBaseModel>;
+
+            if (query) {
+                query = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
 
             await this.modelService.deleteBy({
-                query: (args['query'] as Query<TBaseModel>) || {},
+                query: (query) || {},
                 limit: new PositiveNumber(args['limit'] as number),
                 skip: new PositiveNumber(args['skip'] as number),
                 props: {

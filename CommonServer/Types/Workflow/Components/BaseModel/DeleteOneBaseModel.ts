@@ -89,8 +89,10 @@ export default class DeleteOneBaseModel<
                 );
             }
 
-            if (args['query']) {
-                args['query'] = JSONFunctions.deserialize(
+            let query: Query<TBaseModel> = args['query'] as Query<TBaseModel>;
+
+            if (query) {
+                query = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
@@ -102,7 +104,7 @@ export default class DeleteOneBaseModel<
             }
 
             await this.modelService.deleteOneBy({
-                query: (args['query'] as Query<TBaseModel>) || {},
+                query: (query as Query<TBaseModel>) || {},
                 props: {
                     isRoot: true,
                     tenantId: options.projectId,

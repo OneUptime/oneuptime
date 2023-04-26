@@ -118,14 +118,16 @@ export default class UpdateOneBaseModel<
                 ] = options.projectId;
             }
 
-            if (args['query']) {
-                args['query'] = JSONFunctions.deserialize(
+            let query: Query<TBaseModel> = args['query'] as Query<TBaseModel>;
+
+            if (query) {
+                query = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
 
             await this.modelService.updateOneBy({
-                query: (args['query'] as Query<TBaseModel>) || {},
+                query: (query) || {},
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 props: {
                     isRoot: true,

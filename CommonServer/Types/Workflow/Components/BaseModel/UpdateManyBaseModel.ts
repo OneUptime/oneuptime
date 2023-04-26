@@ -139,8 +139,10 @@ export default class UpdateManyBaseModel<
                 args['limit'] = LIMIT_PER_PROJECT;
             }
 
-            if (args['query']) {
-                args['query'] = JSONFunctions.deserialize(
+            let query: Query<TBaseModel> = args['query'] as Query<TBaseModel>;
+
+            if (query) {
+                query = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
@@ -152,7 +154,7 @@ export default class UpdateManyBaseModel<
             }
 
             await this.modelService.updateBy({
-                query: (args['query'] as Query<TBaseModel>) || {},
+                query: (query) || {},
                 data: args['data'] as QueryDeepPartialEntity<TBaseModel>,
                 limit: new PositiveNumber(args['limit'] as number),
                 skip: new PositiveNumber(args['skip'] as number),

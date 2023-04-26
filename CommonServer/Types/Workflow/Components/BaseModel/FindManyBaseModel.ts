@@ -141,21 +141,25 @@ export default class FindManyBaseModel<
                 args['limit'] = LIMIT_PER_PROJECT;
             }
 
-            if (args['query']) {
-                args['query'] = JSONFunctions.deserialize(
+            let query: Query<TBaseModel> = args['query'] as Query<TBaseModel>;
+
+            if (query) {
+                query = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
 
-            if (args['select']) {
-                args['select'] = JSONFunctions.deserialize(
+            let select: Select<TBaseModel> = args['select'] as Select<TBaseModel>;
+
+            if (select) {
+                select = JSONFunctions.deserialize(
                     args['select'] as JSONObject
                 ) as Select<TBaseModel>;
             }
 
             const models: Array<TBaseModel> = await this.modelService.findBy({
-                query: (args['query'] as Query<TBaseModel>) || {},
-                select: args['select'] as Select<TBaseModel>,
+                query: (query) || {},
+                select: select,
                 limit: new PositiveNumber(args['limit'] as number),
                 skip: new PositiveNumber(args['skip'] as number),
                 props: {
