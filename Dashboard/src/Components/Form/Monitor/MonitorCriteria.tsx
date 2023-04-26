@@ -11,6 +11,7 @@ export interface ComponentProps {
     initialValue: MonitorCriteria | undefined;
     onChange?: undefined | ((value: MonitorCriteria) => void);
     monitorStatusDropdownOptions: Array<DropdownOption>;
+    incidentSeverityDropdownOptions: Array<DropdownOption>;
 }
 
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
@@ -41,6 +42,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 monitorStatusDropdownOptions={
                                     props.monitorStatusDropdownOptions
                                 }
+                                incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
                                 initialValue={i}
                                 onDelete={() => {
 

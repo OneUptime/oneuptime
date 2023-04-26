@@ -11,6 +11,7 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 export interface ComponentProps extends CustomElementProps {
     error?: string | undefined;
@@ -26,6 +27,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
         React.useState<Array<DropdownOption>>([]);
 
+    const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =   React.useState<Array<DropdownOption>>([]);
+
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>();
 
@@ -33,11 +36,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setError(props.error);
     }, [props.error]);
 
-    const fetchMonitorStatuses: Function = async (): Promise<void> => {
+    const fetchDropdownOptions: Function = async (): Promise<void> => {
         setIsLoading(true);
 
         try {
-            const list: ListResult<MonitorStatus> = await ModelAPI.getList(
+            const monitorStatusList: ListResult<MonitorStatus> = await ModelAPI.getList(
                 MonitorStatus,
                 {},
                 LIMIT_PER_PROJECT,
@@ -49,9 +52,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 {}
             );
 
-            if (list.data) {
+            if (monitorStatusList.data) {
                 setMonitorStatusDropdownOptions(
-                    list.data.map((i: MonitorStatus) => {
+                    monitorStatusList.data.map((i: MonitorStatus) => {
                         return {
                             value: i._id!,
                             label: i.name!,
@@ -59,6 +62,30 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     })
                 );
             }
+
+            const incidentSeverityList: ListResult<IncidentSeverity> = await ModelAPI.getList(
+                IncidentSeverity,
+                {},
+                LIMIT_PER_PROJECT,
+                0,
+                {
+                    name: true,
+                },
+                {},
+                {}
+            );
+
+            if (incidentSeverityList.data) {
+                setIncidentSeverityDropdownOptions(
+                    incidentSeverityList.data.map((i: IncidentSeverity) => {
+                        return {
+                            value: i._id!,
+                            label: i.name!,
+                        };
+                    })
+                );
+            }
+
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -66,7 +93,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
     };
     useEffect(() => {
-        fetchMonitorStatuses().catch();
+        fetchDropdownOptions().catch();
     }, []);
 
     const [monitorSteps, setMonitorSteps] = React.useState<MonitorSteps>(
@@ -102,6 +129,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             monitorStatusDropdownOptions={
                                 monitorStatusDropdownOptions
                             }
+                            incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
                             initialValue={i}
                             // onDelete={() => {
                             //     // remove the criteria filter

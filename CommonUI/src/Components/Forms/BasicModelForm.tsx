@@ -16,6 +16,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
+    onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
     onValidate?:
         | undefined
         | ((
@@ -94,6 +95,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             isLoading={props.isLoading || false}
             fields={formFields}
             id={props.id}
+            onChange={props.onChange}
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
             }

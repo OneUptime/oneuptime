@@ -28,6 +28,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
+    incidentSeverityDropdownOptions: Array<DropdownOption>;
     initialValue?: undefined | MonitorStep;
     onChange?: undefined | ((value: MonitorStep) => void);
     // onDelete?: undefined | (() => void);
@@ -296,6 +297,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     monitorStatusDropdownOptions={
                         props.monitorStatusDropdownOptions
                     }
+                    incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
                     initialValue={monitorStep?.data?.monitorCriteria}
                     onChange={(value: MonitorCriteria) => {
                         monitorStep.setMonitorCriteria(value);

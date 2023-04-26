@@ -1,14 +1,15 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
-import ModelForm from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Incident from 'Model/Models/Incident';
+import BasicForm from 'CommonUI/src/Components/Forms/BasicForm';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 export interface ComponentProps {
     initialValue?: undefined | CriteriaIncident;
     onChange?: undefined | ((value: CriteriaIncident) => void);
+    incidentSeverityDropdownOptions: Array<DropdownOption>;
     // onDelete?: undefined | (() => void);
 }
 
@@ -17,7 +18,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div className="mt-4">
-            <ModelForm
+            <BasicForm
                 modelType={Incident}
                 hideSubmitButton={true}
                 initialValue={props.initialValue}
@@ -55,11 +56,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         stepId: 'incident-details',
                         description: 'What type of incident is this?',
                         fieldType: FormFieldSchemaType.Dropdown,
-                        dropdownModal: {
-                            type: IncidentSeverity,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
+                        dropdownOptions: props.incidentSeverityDropdownOptions,
                         required: true,
                         placeholder: 'Incident Severity',
                     },

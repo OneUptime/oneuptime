@@ -33,6 +33,7 @@ import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
+    incidentSeverityDropdownOptions: Array<DropdownOption>;
     initialValue?: undefined | MonitorCriteriaInstance;
     onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
     onDelete?: undefined | (() => void);
@@ -183,7 +184,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                 description: '',
                             })
                         }
-                        monitorCriteriaInstance.setName(value);
+                        monitorCriteriaInstance.setDescription(value);
                         setMonitorCriteriaInstance(
                             MonitorCriteriaInstance.clone(
                                 monitorCriteriaInstance
@@ -339,6 +340,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         initialValue={
                             monitorCriteriaInstance?.data?.incidents || []
                         }
+                        incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
                         onChange={(value: Array<CriteriaIncident>) => {
                             monitorCriteriaInstance.setIncidents(value);
                             setMonitorCriteriaInstance(

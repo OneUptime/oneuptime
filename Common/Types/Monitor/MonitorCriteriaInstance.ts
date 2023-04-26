@@ -111,7 +111,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: Array<CriteriaIncident>
     ): MonitorCriteriaInstance {
         if (this.data) {
-            this.data.incidents = incidents;
+            this.data.incidents = [...incidents];
         }
 
         return this;
@@ -149,6 +149,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 filterCondition: this.data.filterCondition,
                 filters: this.data.filters,
                 incidents: this.data.incidents,
+                name: this.data.name,
+                description: this.data.description,
             }
         }
     }

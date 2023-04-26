@@ -36,7 +36,7 @@ const Radio: FunctionComponent<ComponentProps> = (
                     <div key={index} className="flex items-center gap-x-3">
                         <input
                             tabIndex={props.tabIndex}
-                            checked={value?.value === option.value}
+                            defaultChecked={value?.value === option.value}
                             onClick={() => {
                                 setValue(option);
                                 props.onChange && props.onChange(option.value);

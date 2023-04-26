@@ -1,10 +1,12 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaIncidentForm from './MonitorCriteriaIncidentForm';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 export interface ComponentProps {
     initialValue: Array<CriteriaIncident> | undefined;
     onChange?: undefined | ((value: Array<CriteriaIncident>) => void);
+    incidentSeverityDropdownOptions: Array<DropdownOption>;
 }
 
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
@@ -32,6 +34,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                 return (
                     <MonitorCriteriaIncidentForm
                         key={index}
+                        incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
                         initialValue={i}
                         // onDelete={() => {
                         //     // remove the criteria filter
