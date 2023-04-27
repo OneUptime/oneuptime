@@ -204,6 +204,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         if (item['currentIncidentState']) {
                             return (
                                 <Pill
+                                isMinimal={true}
                                     color={
                                         (
                                             item[
@@ -248,6 +249,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         if (item['incidentSeverity']) {
                             return (
                                 <Pill
+                                isMinimal={true}
                                     color={
                                         (
                                             item[

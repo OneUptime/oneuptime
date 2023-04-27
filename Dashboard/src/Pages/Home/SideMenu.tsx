@@ -22,7 +22,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenu>
             <SideMenuItem<Incident>
                 link={{
-                    title: 'Unresolved Incidents',
+                    title: 'Active Incidents',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route
                     ),
