@@ -14,7 +14,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             <ul role="list" className="space-y-6">
                 {props.criteriaFilters.map(
                     (i: CriteriaFilter, index: number) => {
-                        const isLastItem =
+                        const isLastItem: boolean =
                             index === props.criteriaFilters.length - 1;
                         return (
                             <li className="relative flex gap-x-4" key={index}>
