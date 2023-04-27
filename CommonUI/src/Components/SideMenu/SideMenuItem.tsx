@@ -27,32 +27,32 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         linkClassName = `bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
     }
 
-    if(props.badge && props.badge > 0){
-        if(props.badgeType === BadgeType.DANGER){
-            linkClassName = `text-red-400 hover:text-red-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    // if(props.badge && props.badge > 0){
+    //     if(props.badgeType === BadgeType.DANGER){
+    //         linkClassName = `text-red-400 hover:text-red-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
 
-            if(Navigation.isOnThisPage(props.link.to)){
-                linkClassName = `bg-gray-100 text-red-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
-            }
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             linkClassName = `bg-gray-100 text-red-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //         }
 
-        }
+    //     }
 
-        if(props.badgeType === BadgeType.WARNING){
-            linkClassName = `text-yellow-400 hover:text-yellow-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //     if(props.badgeType === BadgeType.WARNING){
+    //         linkClassName = `text-yellow-400 hover:text-yellow-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
 
-            if(Navigation.isOnThisPage(props.link.to)){
-                linkClassName = `bg-gray-100 text-yellow-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
-            }
-        }
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             linkClassName = `bg-gray-100 text-yellow-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //         }
+    //     }
 
-        if(props.badgeType === BadgeType.SUCCESS){
-            linkClassName = `text-emerald-400 hover:text-emerald-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //     if(props.badgeType === BadgeType.SUCCESS){
+    //         linkClassName = `text-emerald-400 hover:text-emerald-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
 
-            if(Navigation.isOnThisPage(props.link.to)){
-                linkClassName = `bg-gray-100 text-emerald-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
-            }
-        }
-    }
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             linkClassName = `bg-gray-100 text-emerald-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //         }
+    //     }
+    // }
 
     let iconClassName = "text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6";
 
@@ -61,32 +61,32 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
     }
 
 
-    if(props.badge && props.badge > 0){
-        if(props.badgeType === BadgeType.DANGER){
-            iconClassName = `text-red-400 group-hover:text-red-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    // if(props.badge && props.badge > 0){
+    //     if(props.badgeType === BadgeType.DANGER){
+    //         iconClassName = `text-red-400 group-hover:text-red-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
 
-            if(Navigation.isOnThisPage(props.link.to)){
-                iconClassName = `text-red-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
-            }
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             iconClassName = `text-red-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //         }
 
-        }
+    //     }
 
-        if(props.badgeType === BadgeType.WARNING){
-            iconClassName = `text-yellow-400 group-hover:text-yellow-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //     if(props.badgeType === BadgeType.WARNING){
+    //         iconClassName = `text-yellow-400 group-hover:text-yellow-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
 
-            if(Navigation.isOnThisPage(props.link.to)){
-                iconClassName = `text-yellow-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
-            }
-        }
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             iconClassName = `text-yellow-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //         }
+    //     }
 
-        if(props.badgeType === BadgeType.SUCCESS){
-            iconClassName = `text-emerald-400 group-hover:text-emerald-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //     if(props.badgeType === BadgeType.SUCCESS){
+    //         iconClassName = `text-emerald-400 group-hover:text-emerald-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
 
-            if(Navigation.isOnThisPage(props.link.to)){
-                iconClassName = `text-emerald-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
-            }
-        }
-    }
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             iconClassName = `text-emerald-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //         }
+    //     }
+    // }
 
 
 
