@@ -1,7 +1,7 @@
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorStepElement from './MonitorStep';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import Dropdown, { DropdownOption, DropdownValue } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -11,6 +11,9 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps extends CustomElementProps {
     error?: string | undefined;
@@ -187,13 +190,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                 ];
                                 newMonitorStepss[index] = value;
                                 setMonitorSteps(
-                                    MonitorSteps.fromJSON({
-                                        _type: 'MonitorSteps',
-                                        value: {
-                                            monitorStepsInstanceArray:
-                                                newMonitorStepss,
-                                        },
-                                    })
+                                    MonitorSteps.clone(
+                                        monitorSteps
+                                    )
                                 );
                             }}
                         />
@@ -218,6 +217,46 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     );
                 }}
             /> */}
+
+            <HorizontalRule />
+
+            
+                <div className="mt-4">
+                    <FieldLabelElement
+                        title="Default Monitor Status"
+                        description="What would like the monitor status to be when none of the above criteria is met?"
+                        required={true}
+                    />
+                    
+                    <Dropdown
+                        initialValue={monitorStatusDropdownOptions.find(
+                            (i: DropdownOption) => {
+                                return (
+                                    i.value ===
+                                        monitorSteps?.data
+                                            ?.defaultMonitorStatusId?.id || undefined
+                                );
+                            }
+                        )}
+                        options={monitorStatusDropdownOptions}
+                        onChange={(
+                            value: DropdownValue | Array<DropdownValue> | null
+                        ) => {
+                            monitorSteps.setDefaultMonitorStatusId(
+                                value
+                                    ? new ObjectID(value.toString())
+                                    : undefined
+                            );
+                            setMonitorSteps(
+                                MonitorSteps.clone(
+                                    monitorSteps
+                                )
+                            );
+                        }}
+                    />
+                </div>
+           
+
         </div>
     );
 };

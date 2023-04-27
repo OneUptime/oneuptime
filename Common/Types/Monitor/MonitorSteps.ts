@@ -4,9 +4,11 @@ import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorStep from './MonitorStep';
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
+import ObjectID from '../ObjectID';
 
 export interface MonitorStepsType {
     monitorStepsInstanceArray: Array<MonitorStep>;
+    defaultMonitorStatusId?: ObjectID | undefined;
 }
 
 export default class MonitorSteps extends DatabaseProperty {
@@ -16,6 +18,7 @@ export default class MonitorSteps extends DatabaseProperty {
         super();
         this.data = {
             monitorStepsInstanceArray: [new MonitorStep()],
+            defaultMonitorStatusId: undefined,
         };
     }
 
@@ -24,8 +27,27 @@ export default class MonitorSteps extends DatabaseProperty {
             _type: ObjectType.MonitorSteps,
             value: {
                 monitorStepsInstanceArray: [new MonitorStep().toJSON()],
+                defaultMonitorStatusId: undefined,
             },
         };
+    }
+
+    public static clone(
+        monitorSteps: MonitorSteps
+    ): MonitorSteps {
+        return MonitorSteps.fromJSON(
+            monitorSteps.toJSON()
+        );
+    }
+
+    public setDefaultMonitorStatusId(
+        monitorStatusId: ObjectID | undefined
+    ): MonitorSteps {
+        if (this.data) {
+            this.data.defaultMonitorStatusId = monitorStatusId;
+        }
+
+        return this;
     }
 
     public override toJSON(): JSONObject {
@@ -42,6 +64,8 @@ export default class MonitorSteps extends DatabaseProperty {
                             return step.toJSON();
                         }
                     ),
+                defaultMonitorStatusId: this.data.defaultMonitorStatusId?.toString() || undefined,
+
             },
         };
     }
@@ -79,6 +103,7 @@ export default class MonitorSteps extends DatabaseProperty {
                     return MonitorStep.fromJSON(json);
                 }
             ),
+            defaultMonitorStatusId: (json['value'] as JSONObject)['defaultMonitorStatusId'] ? new ObjectID((json['value'] as JSONObject)['defaultMonitorStatusId'] as string) : undefined,
         };
 
         return monitorSteps;
@@ -94,6 +119,10 @@ export default class MonitorSteps extends DatabaseProperty {
 
         if (value.data.monitorStepsInstanceArray.length === 0) {
             return 'Monitor Steps is required';
+        }
+
+        if(value.data.defaultMonitorStatusId) {
+            return 'Default Monitor Status is required'
         }
 
         for (const step of value.data.monitorStepsInstanceArray) {

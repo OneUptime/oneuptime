@@ -17,7 +17,6 @@ export interface MonitorStepType {
     requestType: HTTPMethod;
     requestHeaders?: Dictionary<string> | undefined;
     requestBody?: string | undefined;
-    defaultMonitorStatusId?: ObjectID | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -33,16 +32,9 @@ export default class MonitorStep extends DatabaseProperty {
             requestType: HTTPMethod.GET,
             requestHeaders: undefined,
             requestBody: undefined,
-            defaultMonitorStatusId: undefined,
         };
     }
 
-    public setDefaultMonitorStatusId(
-        defaultMonitorStatusId: ObjectID | undefined
-    ): MonitorStep {
-        this.data!.defaultMonitorStatusId = defaultMonitorStatusId;
-        return this;
-    }
 
     public setRequestType(requestType: HTTPMethod): MonitorStep {
         this.data!.requestType = requestType;
@@ -83,7 +75,6 @@ export default class MonitorStep extends DatabaseProperty {
                 requestType: HTTPMethod.GET,
                 requestHeaders: undefined,
                 requestBody: undefined,
-                defaultMonitorStatusId: undefined,
             },
         };
     }
@@ -123,6 +114,8 @@ export default class MonitorStep extends DatabaseProperty {
         return null;
     }
 
+    
+
     public override toJSON(): JSONObject {
         if (this.data) {
             return {
@@ -135,8 +128,7 @@ export default class MonitorStep extends DatabaseProperty {
                     requestType: this.data.requestType,
                     requestHeaders: this.data.requestHeaders || undefined,
                     requestBody: this.data.requestBody || undefined,
-                    defaultMonitorStatusId:
-                        this.data.defaultMonitorStatusId?.toJSON() || undefined,
+                   
                 },
             };
         }
@@ -204,13 +196,7 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders:
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
-            defaultMonitorStatusId: json['defaultMonitorStatusId']
-                ? new ObjectID(
-                      (json['defaultMonitorStatusId'] as JSONObject)[
-                          'value'
-                      ] as string
-                  )
-                : undefined,
+           
         };
 
         return monitorStep;
