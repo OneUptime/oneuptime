@@ -1,7 +1,6 @@
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorStepElement from './MonitorStep';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -21,13 +20,12 @@ export interface ComponentProps extends CustomElementProps {
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
-        React.useState<Array<DropdownOption>>([]);
+    const [monitorStatusOptions, setMonitorStatusOptions] = React.useState<
+        Array<MonitorStatus>
+    >([]);
 
-    const [
-        incidentSeverityDropdownOptions,
-        setIncidentSeverityDropdownOptions,
-    ] = React.useState<Array<DropdownOption>>([]);
+    const [incidentSeverityOptions, setIncidentSeverityOptions] =
+        React.useState<Array<IncidentSeverity>>([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>('');
@@ -44,20 +42,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     0,
                     {
                         name: true,
+                        color: true,
                     },
                     {},
                     {}
                 );
 
             if (monitorStatusList.data) {
-                setMonitorStatusDropdownOptions(
-                    monitorStatusList.data.map((i: MonitorStatus) => {
-                        return {
-                            value: i._id!,
-                            label: i.name!,
-                        };
-                    })
-                );
+                setMonitorStatusOptions(monitorStatusList.data);
             }
 
             const incidentSeverityList: ListResult<IncidentSeverity> =
@@ -68,19 +60,15 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     0,
                     {
                         name: true,
+                        color: true,
                     },
                     {},
                     {}
                 );
 
             if (incidentSeverityList.data) {
-                setIncidentSeverityDropdownOptions(
-                    incidentSeverityList.data.map((i: IncidentSeverity) => {
-                        return {
-                            value: i._id!,
-                            label: i.name!,
-                        };
-                    })
+                setIncidentSeverityOptions(
+                    incidentSeverityList.data as Array<IncidentSeverity>
                 );
             }
         } catch (err) {
@@ -113,12 +101,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         <MonitorStepElement
                             monitorType={props.monitorType}
                             key={index}
-                            monitorStatusDropdownOptions={
-                                monitorStatusDropdownOptions
-                            }
-                            incidentSeverityDropdownOptions={
-                                incidentSeverityDropdownOptions
-                            }
+                            monitorStatusOptions={monitorStatusOptions}
+                            incidentSeverityOptions={incidentSeverityOptions}
                             monitorStep={i}
                         />
                     );

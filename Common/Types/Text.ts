@@ -16,6 +16,43 @@ export default class Text {
         return result;
     }
 
+    public static convertNumberToWords(num: number): string {
+        const words: Array<string> = [
+            'first',
+            'second',
+            'third',
+            'fourth',
+            'fifth',
+            'sixth',
+            'seventh',
+            'eighth',
+            'ninth',
+            'tenth',
+            'eleventh',
+            'twelfth',
+            'thirteenth',
+            'fourteenth',
+            'fifteenth',
+            'sixteenth',
+            'seventeenth',
+            'eighteenth',
+            'nineteenth',
+            'twentieth',
+        ];
+
+        if (num <= 20) {
+            return words[num - 1]!;
+        }
+
+        if (num % 10 === 0) {
+            return `${words[19]} ${words[num / 10 - 2]}`;
+        }
+
+        return `${words[19]} ${words[Math.floor(num / 10) - 2]}-${
+            words[(num % 10) - 1]
+        }`;
+    }
+
     public static uppercaseFirstLetter(word: string): string {
         if (word.length > 0) {
             return word.charAt(0).toUpperCase() + word.slice(1);

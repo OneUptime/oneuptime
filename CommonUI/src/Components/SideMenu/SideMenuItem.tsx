@@ -19,18 +19,7 @@ export interface ComponentProps {
 const SideMenuItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
-    let badgeClasName: string = `bg-indigo-${
-        Navigation.isOnThisPage(props.link.to) ? '500' : '400'
-    } p-1 rounded-full pr-3 pl-3 text-white  text-sm`;
-    if (props.showWarning) {
-        badgeClasName =
-            'bg-yellow-500 p-1 rounded-full pr-2 pl-3 text-white  text-sm';
-    }
-
-    if (props.showAlert) {
-        badgeClasName =
-            'bg-red-500 p-1 rounded-full pr-3 pl-3 text-white  text-sm';
-    }
+    const badgeClasName: string = `p-1 rounded-full pr-3 pl-3 text-white  text-sm`;
 
     return (
         <UILink

@@ -1,11 +1,11 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorCriteriaIncident from './MonitorCriteriaIncident';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 export interface ComponentProps {
     incidents: Array<CriteriaIncident>;
-    incidentSeverityDropdownOptions: Array<DropdownOption>;
+    incidentSeverityOptions: Array<IncidentSeverity>;
 }
 
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
@@ -17,9 +17,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                 return (
                     <MonitorCriteriaIncident
                         key={index}
-                        incidentSeverityDropdownOptions={
-                            props.incidentSeverityDropdownOptions
-                        }
+                        incidentSeverityOptions={props.incidentSeverityOptions}
                         incident={i}
                     />
                 );

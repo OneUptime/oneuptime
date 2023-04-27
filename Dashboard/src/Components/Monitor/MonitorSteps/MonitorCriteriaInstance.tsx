@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import FieldLabelElement, {
     Size,
@@ -10,12 +9,17 @@ import CriteriaFilters from './CriteriaFilters';
 import MonitorCriteriaIncidents from './MonitorCriteriaIncidents';
 
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Detail from 'CommonUI/src/Components/Detail/Detail';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import Color from 'Common/Types/Color';
+import { Black } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
-    monitorStatusDropdownOptions: Array<DropdownOption>;
-    incidentSeverityDropdownOptions: Array<DropdownOption>;
+    monitorStatusOptions: Array<MonitorStatus>;
+    incidentSeverityOptions: Array<IncidentSeverity>;
     isLastCriteria: boolean;
     monitorCriteriaInstance: MonitorCriteriaInstance;
 }
@@ -24,31 +28,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="mt-4">
-            <Detail
-                id={'monitor-criteria-instance'}
-                item={props.monitorCriteriaInstance.data}
-                showDetailsInNumberOfColumns={2}
-                fields={[
-                    {
-                        key: 'name',
-                        title: 'Criteria Name',
-                        fieldType: FieldType.Text,
-                        placeholder: 'No data entered',
-                    },
-                    {
-                        key: 'description',
-                        title: 'Criteria Description',
-                        fieldType: FieldType.LongText,
-                        placeholder: 'No data entered',
-                    },
-                ]}
-            />
+        <div className="mb-4">
+            {props.monitorCriteriaInstance.data?.description && (
+                <p className="-mt-8">
+                    {props.monitorCriteriaInstance.data?.description}
+                </p>
+            )}
 
             <div className="mt-4">
                 <FieldLabelElement
                     title={`Filters - ${props.monitorCriteriaInstance.data?.filterCondition} of these should match for this criteria to be met:`}
-                    required={true}
                     description=""
                     size={Size.Medium}
                 />
@@ -60,34 +49,62 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <Detail
-                id={'monitor-criteria-instance'}
-                item={props.monitorCriteriaInstance.data}
-                fields={[
-                    {
-                        key: 'monitorStatusId',
-                        title: 'When filters match, change monitor status to',
-                        fieldType: FieldType.Dropdown,
-                        placeholder: 'Do not change monitor status',
-                        dropdownOptions: props.monitorStatusDropdownOptions,
-                        fieldTitleSize: Size.Medium,
-                    },
-                ]}
-            />
+            <div className="mt-4">
+                <div className="flex">
+                    <Icon
+                        icon={IconProp.AltGlobe}
+                        className="h-5 w-5 text-gray-900"
+                    />
+                    <p className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                        <span className="font-medium text-gray-900">
+                            Change Monitor Status
+                        </span>{' '}
+                        when this criteria is met. Change monitor Status to:
+                    </p>
+                    <Pill
+                        color={
+                            (props.monitorStatusOptions.find(
+                                (option: IncidentSeverity) => {
+                                    return (
+                                        option.id?.toString() ===
+                                        props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
+                                    );
+                                }
+                            )?.color as Color) || Black
+                        }
+                        text={
+                            (props.monitorStatusOptions.find(
+                                (option: IncidentSeverity) => {
+                                    return (
+                                        option.id?.toString() ===
+                                        props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
+                                    );
+                                }
+                            )?.name as string) || ''
+                        }
+                    />
+                </div>
+            </div>
 
             <div className="mt-4">
-                <FieldLabelElement
-                    title="When filters match, create this incident:"
-                    size={Size.Medium}
-                />
-
+                <div className="flex">
+                    <Icon
+                        icon={IconProp.Alert}
+                        className="h-5 w-5 text-gray-900"
+                    />
+                    <p className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                        <span className="font-medium text-gray-900">
+                            Create incident
+                        </span>{' '}
+                        when this criteria is met. These are the incident
+                        details:{' '}
+                    </p>
+                </div>
                 <MonitorCriteriaIncidents
                     incidents={
                         props.monitorCriteriaInstance?.data?.incidents || []
                     }
-                    incidentSeverityDropdownOptions={
-                        props.incidentSeverityDropdownOptions
-                    }
+                    incidentSeverityOptions={props.incidentSeverityOptions}
                 />
             </div>
 

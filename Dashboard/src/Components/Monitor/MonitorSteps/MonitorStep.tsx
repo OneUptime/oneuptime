@@ -7,16 +7,17 @@ import React, {
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import MonitorCriteriaElement from './MonitorCriteria';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Detail from 'CommonUI/src/Components/Detail/Detail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Field from 'CommonUI/src/Components/Detail/Field';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 export interface ComponentProps {
-    monitorStatusDropdownOptions: Array<DropdownOption>;
-    incidentSeverityDropdownOptions: Array<DropdownOption>;
+    monitorStatusOptions: Array<MonitorStatus>;
+    incidentSeverityOptions: Array<IncidentSeverity>;
     monitorStep: MonitorStep;
     monitorType: MonitorType;
 }
@@ -120,20 +121,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
             <div className="mt-5">
                 <FieldLabelElement
-                    title="Monitor Criteria"
+                    title="Criteria"
                     isHeading={true}
                     description={
                         'Criteria we will use to determine if your resource status.'
                     }
                     required={true}
                 />
+
                 <MonitorCriteriaElement
-                    monitorStatusDropdownOptions={
-                        props.monitorStatusDropdownOptions
-                    }
-                    incidentSeverityDropdownOptions={
-                        props.incidentSeverityDropdownOptions
-                    }
+                    monitorStatusOptions={props.monitorStatusOptions}
+                    incidentSeverityOptions={props.incidentSeverityOptions}
                     monitorCriteria={props.monitorStep?.data?.monitorCriteria!}
                 />
             </div>
