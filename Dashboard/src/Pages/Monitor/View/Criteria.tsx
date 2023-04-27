@@ -13,7 +13,10 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
-import { CustomElementProps, FormFieldStyleType } from 'CommonUI/src/Components/Forms/Types/Field';
+import {
+    CustomElementProps,
+    FormFieldStyleType,
+} from 'CommonUI/src/Components/Forms/Types/Field';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import MonitorSteps from '../../../Components/Form/Monitor/MonitorSteps';
@@ -63,12 +66,13 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-              <CardModelDetail
+            <CardModelDetail
                 name="Monitoring Criteria"
                 editButtonText="Edit Monitoring Criteria"
                 cardProps={{
                     title: 'Monitoring Criteria',
-                    description: "Here is the criteria we use to monitor this resource.",
+                    description:
+                        'Here is the criteria we use to monitor this resource.',
                     icon: IconProp.Criteria,
                 }}
                 createEditModalWidth={ModalWidth.Large}
@@ -104,7 +108,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             );
                         },
                     },
-                   
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -130,7 +133,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
         </ModelPage>
     );
 };

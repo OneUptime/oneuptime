@@ -38,7 +38,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Criteria}
                 />
-                 <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Interval',
                         to: RouteUtil.populateRouteParams(
@@ -55,7 +55,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             title: 'Status Timeline',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
-                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                 ] as Route,
                                 props.modelId
                             ),
@@ -66,7 +66,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         link={{
                             title: 'Incidents',
                             to: RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
+                                RouteMap[
+                                    PageMap.MONITOR_VIEW_INCIDENTS
+                                ] as Route,
                                 props.modelId
                             ),
                         }}
@@ -81,7 +83,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                                PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                             ] as Route,
                             props.modelId
                         ),

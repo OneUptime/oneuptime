@@ -11,9 +11,9 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 export interface ComponentProps extends CustomElementProps {
-   
     monitorSteps: MonitorSteps;
     monitorType: MonitorType;
 }
@@ -30,11 +30,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     ] = React.useState<Array<DropdownOption>>([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
-    const [error, setError] = React.useState<string>();
-
-    useEffect(() => {
-        setError(props.error);
-    }, [props.error]);
+    const [error, setError] = React.useState<string>('');
 
     const fetchDropdownOptions: Function = async (): Promise<void> => {
         setIsLoading(true);
@@ -101,13 +97,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         return <ComponentLoader></ComponentLoader>;
     }
 
-    if(!props.monitorSteps){
-        return <div>Monitor Criteria not defined for this resource.</div>
+    if (!props.monitorSteps) {
+        return <div>Monitor Criteria not defined for this resource.</div>;
+    }
+
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
 
     return (
         <div>
-            
             {props.monitorSteps.data?.monitorStepsInstanceArray.map(
                 (i: MonitorStep, index: number) => {
                     return (
@@ -121,13 +120,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                 incidentSeverityDropdownOptions
                             }
                             monitorStep={i}
-                        
                         />
                     );
                 }
             )}
-
-            
         </div>
     );
 };

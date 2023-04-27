@@ -30,21 +30,37 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         return <MarkdownViewer text={text} />;
     };
 
-    const getDropdownViewer: Function = (data: string, options: Array<DropdownOption>, placeholder: string): ReactElement => {
-
-        if(!options){
-            return <div>No options found</div>
+    const getDropdownViewer: Function = (
+        data: string,
+        options: Array<DropdownOption>,
+        placeholder: string
+    ): ReactElement => {
+        if (!options) {
+            return <div>No options found</div>;
         }
 
-        if(!options.find((i: DropdownOption)=>i.value === data)){
-            return <div>{placeholder}</div>
+        if (
+            !options.find((i: DropdownOption) => {
+                return i.value === data;
+            })
+        ) {
+            return <div>{placeholder}</div>;
         }
 
-        return <div>{options.find((i: DropdownOption)=>i.value === data)?.label as string}</div>
+        return (
+            <div>
+                {
+                    options.find((i: DropdownOption) => {
+                        return i.value === data;
+                    })?.label as string
+                }
+            </div>
+        );
     };
 
-
-    const getDictionaryOfStringsViewer: Function = (data: Dictionary<string>): ReactElement => {
+    const getDictionaryOfStringsViewer: Function = (
+        data: Dictionary<string>
+    ): ReactElement => {
         return <DictionaryOfStringsViewer value={data} />;
     };
 
@@ -134,7 +150,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         }
 
         if (field.fieldType === FieldType.Dropdown) {
-            data = getDropdownViewer(data as string, field.dropdownOptions, field.placeholder as string);
+            data = getDropdownViewer(
+                data as string,
+                field.dropdownOptions,
+                field.placeholder as string
+            );
         }
 
         if (data && field.fieldType === FieldType.HiddenText) {

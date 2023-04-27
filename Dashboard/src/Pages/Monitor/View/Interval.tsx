@@ -58,12 +58,13 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-              <CardModelDetail
+            <CardModelDetail
                 name="Monitoring Interval"
                 editButtonText="Edit Monitoring Interval"
                 cardProps={{
                     title: 'Monitoring Interval',
-                    description: "Here is how often we will check your monitor status.",
+                    description:
+                        'Here is how often we will check your monitor status.',
                     icon: IconProp.Clock,
                 }}
                 isEditable={true}
@@ -72,14 +73,13 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                         field: {
                             monitoringInterval: true,
                         },
-                        
+
                         title: 'Monitoring Interval',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownOptions: MonitoringIntrerval,
                         required: true,
                         placeholder: 'Monitoring Interval',
                     },
-                   
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -105,7 +105,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
         </ModelPage>
     );
 };

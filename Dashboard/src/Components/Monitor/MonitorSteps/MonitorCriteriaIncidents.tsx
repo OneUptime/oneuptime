@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorCriteriaIncident from './MonitorCriteriaIncident';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
@@ -11,8 +11,6 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-   
-
     return (
         <div className="mt-4">
             {props.incidents.map((i: CriteriaIncident, index: number) => {
@@ -23,8 +21,6 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                             props.incidentSeverityDropdownOptions
                         }
                         incident={i}
-                        
-                      
                     />
                 );
             })}

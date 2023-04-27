@@ -7,9 +7,7 @@ import React, {
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import MonitorCriteriaElement from './MonitorCriteria';
-import  {
-    DropdownOption,
-} from 'CommonUI/src/Components/Dropdown/Dropdown';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Detail from 'CommonUI/src/Components/Detail/Detail';
@@ -25,15 +23,10 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const [destinationFieldTitle, setDestinationFieldTitle] =
         useState<string>('URL');
     const [destinationFieldDescription, setDestinationFieldDescription] =
         useState<string>('');
-
-
-
 
     useEffect(() => {
         if (props.monitorType === MonitorType.API) {
@@ -59,46 +52,44 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.monitorType]);
 
-
-
-
     return (
         <div className="mt-5">
             <div className="mt-5">
-                <Detail id={"monitor-step"}
+                <Detail
+                    id={'monitor-step'}
                     item={props.monitorStep.data}
-                    fields={[{
-                        key: 'monitorDestination',
-                        title: destinationFieldTitle,
-                        description: destinationFieldDescription,
-                        fieldType: FieldType.Text,
-                        placeholder: 'No data entered',
-                    }, {
-                        key: 'requestType',
-                        title: 'Request Type',
-                        description: 'Whats the type of the API request?',
-                        fieldType: FieldType.Text,
-                        placeholder: 'No data entered',
-                    }, 
-                    {
-                        key: 'requestBody',
-                        title: 'Request Body',
-                        description: 'Request Body to send, if any.',
-                        fieldType: FieldType.JSON,
-                        placeholder: 'No data entered',
-                    },
-                    {
-                        key: 'requestHeaders',
-                        title: 'Request Headers',
-                        description: 'Request Headers to send, if any.',
-                        fieldType: FieldType.DictionaryOfStrings,
-                        placeholder: 'No data entered',
-                    }]}
+                    fields={[
+                        {
+                            key: 'monitorDestination',
+                            title: destinationFieldTitle,
+                            description: destinationFieldDescription,
+                            fieldType: FieldType.Text,
+                            placeholder: 'No data entered',
+                        },
+                        {
+                            key: 'requestType',
+                            title: 'Request Type',
+                            description: 'Whats the type of the API request?',
+                            fieldType: FieldType.Text,
+                            placeholder: 'No data entered',
+                        },
+                        {
+                            key: 'requestBody',
+                            title: 'Request Body',
+                            description: 'Request Body to send, if any.',
+                            fieldType: FieldType.JSON,
+                            placeholder: 'No data entered',
+                        },
+                        {
+                            key: 'requestHeaders',
+                            title: 'Request Headers',
+                            description: 'Request Headers to send, if any.',
+                            fieldType: FieldType.DictionaryOfStrings,
+                            placeholder: 'No data entered',
+                        },
+                    ]}
                 />
             </div>
-        
-
-         
 
             <HorizontalRule />
 
@@ -112,7 +103,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     required={true}
                 />
                 <MonitorCriteriaElement
-                    monitorType={props.monitorType}
                     monitorStatusDropdownOptions={
                         props.monitorStatusDropdownOptions
                     }
@@ -122,7 +112,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     monitorCriteria={props.monitorStep?.data?.monitorCriteria!}
                 />
             </div>
-
         </div>
     );
 };
