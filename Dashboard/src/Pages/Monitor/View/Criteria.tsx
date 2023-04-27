@@ -11,9 +11,14 @@ import Monitor from 'Model/Models/Monitor';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import MonitoringIntrerval from '../../../Components/Form/Monitor/MonitorInterval';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitoringIntervalElement from '../../../Components/Form/Monitor/MonitoringIntervalElement';
+import { CustomElementProps, FormFieldStyleType } from 'CommonUI/src/Components/Forms/Types/Field';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
+import MonitorSteps from '../../../Components/Form/Monitor/MonitorSteps';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -59,25 +64,45 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
               <CardModelDetail
-                name="Monitoring Interval"
-                editButtonText="Edit Monitoring Interval"
+                name="Monitoring Criteria"
+                editButtonText="Edit Monitoring Criteria"
                 cardProps={{
-                    title: 'Monitoring Interval',
-                    description: "Here is how often we will check your monitor status.",
-                    icon: IconProp.Clock,
+                    title: 'Monitoring Criteria',
+                    description: "Here is the criteria we use to monitor this resource.",
+                    icon: IconProp.Criteria,
                 }}
+                createEditModalWidth={ModalWidth.Large}
                 isEditable={true}
                 formFields={[
                     {
                         field: {
-                            monitoringInterval: true,
+                            monitorSteps: true,
                         },
-                        
-                        title: 'Monitoring Interval',
-                        fieldType: FormFieldSchemaType.Dropdown,
-                        dropdownOptions: MonitoringIntrerval,
+                        stepId: 'criteria',
+                        styleType: FormFieldStyleType.Heading,
+                        title: 'Monitor Details',
+                        fieldType: FormFieldSchemaType.CustomComponent,
                         required: true,
-                        placeholder: 'Monitoring Interval',
+                        customValidation: (values: FormValues<Monitor>) => {
+                            return MonitorStepsType.getValidationError(
+                                values.monitorSteps as MonitorStepsType,
+                                values.monitorType as MonitorType
+                            );
+                        },
+                        getCustomElement: (
+                            value: FormValues<Monitor>,
+                            props: CustomElementProps
+                        ) => {
+                            return (
+                                <MonitorSteps
+                                    {...props}
+                                    monitorType={
+                                        value.monitorType || MonitorType.Manual
+                                    }
+                                    error={''}
+                                />
+                            );
+                        },
                     },
                    
                 ]}
