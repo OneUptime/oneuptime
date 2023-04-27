@@ -12,7 +12,7 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
-import MonitoringIntervalElement from '../../../Components/Form/Monitor/MonitoringIntervalElement';
+import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
 import { CustomElementProps, FormFieldStyleType } from 'CommonUI/src/Components/Forms/Types/Field';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';

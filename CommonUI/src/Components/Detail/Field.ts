@@ -4,12 +4,14 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ReactElement } from 'react';
 import AlignItem from '../../Types/AlignItem';
 import FieldType from '../Types/FieldType';
+import { DropdownOption } from '../Dropdown/Dropdown';
 
 export default interface Field {
     title?: string;
     description?: string;
     key: string;
     fieldType?: FieldType;
+    dropdownOptions?: Array<DropdownOption> | undefined;
     colSpan?: number | undefined;
     alignItem?: AlignItem | undefined;
     contentClassName?: string | undefined;

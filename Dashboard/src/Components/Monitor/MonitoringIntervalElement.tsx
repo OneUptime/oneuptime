@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import MonitoringIntrerval from './MonitorInterval';
+import MonitoringIntrerval from '../../Utils/MonitorIntervalDropdownOptions';
 
 export interface ComponentProps {
     monitoringInterval: string;

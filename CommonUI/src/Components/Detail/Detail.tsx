@@ -6,7 +6,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
-import _ from 'lodash';
+import _, { Dictionary } from 'lodash';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
@@ -15,6 +15,8 @@ import ColorViewer from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
 import AlignItem from '../../Types/AlignItem';
 import PlaceholderText from './PlaceholderText';
+import DictionaryOfStringsViewer from '../Dictionary/DictionaryOfStingsViewer';
+import { DropdownOption } from '../Dropdown/Dropdown';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -26,6 +28,24 @@ export interface ComponentProps {
 const Detail: Function = (props: ComponentProps): ReactElement => {
     const getMarkdownViewer: Function = (text: string): ReactElement => {
         return <MarkdownViewer text={text} />;
+    };
+
+    const getDropdownViewer: Function = (data: string, options: Array<DropdownOption>, placeholder: string): ReactElement => {
+
+        if(!options){
+            return <div>No options found</div>
+        }
+
+        if(!options.find((i: DropdownOption)=>i.value === data)){
+            return <div>{placeholder}</div>
+        }
+
+        return <div>{options.find((i: DropdownOption)=>i.value === data)?.label as string}</div>
+    };
+
+
+    const getDictionaryOfStringsViewer: Function = (data: Dictionary<string>): ReactElement => {
+        return <DictionaryOfStringsViewer value={data} />;
     };
 
     const getColorField: Function = (color: Color): ReactElement => {
@@ -71,6 +91,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = getColorField(data);
         }
 
+        if (data && field.fieldType === FieldType.DictionaryOfStrings) {
+            data = getDictionaryOfStringsViewer(data);
+        }
+
         if (!data && field.fieldType === FieldType.Color && field.placeholder) {
             data = getColorField(new Color(field.placeholder));
         }
@@ -109,6 +133,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = getMarkdownViewer(data as string);
         }
 
+        if (field.fieldType === FieldType.Dropdown) {
+            data = getDropdownViewer(data as string, field.dropdownOptions, field.placeholder as string);
+        }
+
         if (data && field.fieldType === FieldType.HiddenText) {
             data = (
                 <HiddenText
@@ -122,12 +150,17 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data &&
             (field.fieldType === FieldType.HTML ||
                 field.fieldType === FieldType.CSS ||
+                field.fieldType === FieldType.JSON ||
                 field.fieldType === FieldType.JavaScript)
         ) {
             let codeType: CodeType = CodeType.HTML;
 
             if (field.fieldType === FieldType.CSS) {
                 codeType = CodeType.CSS;
+            }
+
+            if (field.fieldType === FieldType.JSON) {
+                codeType = CodeType.JSON;
             }
 
             if (field.fieldType === FieldType.JavaScript) {

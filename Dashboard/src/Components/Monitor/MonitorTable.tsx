@@ -24,7 +24,7 @@ import {
     FormFieldStyleType,
 } from 'CommonUI/src/Components/Forms/Types/Field';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import MonitoringIntrerval from '../Form/Monitor/MonitorInterval';
+import MonitoringIntrerval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 
 export interface ComponentProps {

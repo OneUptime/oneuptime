@@ -11,9 +11,9 @@ import Monitor from 'Model/Models/Monitor';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import MonitoringIntrerval from '../../../Components/Form/Monitor/MonitorInterval';
+import MonitoringIntrerval from '../../../Utils/MonitorIntervalDropdownOptions';
 import { JSONObject } from 'Common/Types/JSON';
-import MonitoringIntervalElement from '../../../Components/Form/Monitor/MonitoringIntervalElement';
+import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
