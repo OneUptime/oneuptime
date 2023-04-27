@@ -9,7 +9,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="flex">
+        <div className="flex w-full">
             {props.criteriaFilter?.checkOn && (
                 <div className="w-1/3 mr-1">
                     <div>{props.criteriaFilter?.checkOn}</div>

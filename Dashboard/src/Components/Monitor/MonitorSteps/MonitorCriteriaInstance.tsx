@@ -1,8 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
-import FieldLabelElement, {
-    Size,
-} from 'CommonUI/src/Components/Detail/FieldLabel';
 
 import CriteriaFilters from './CriteriaFilters';
 
@@ -36,11 +33,21 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             )}
 
             <div className="mt-4">
-                <FieldLabelElement
-                    title={`Filters - ${props.monitorCriteriaInstance.data?.filterCondition} of these should match for this criteria to be met:`}
-                    description=""
-                    size={Size.Medium}
-                />
+
+            <div className="flex">
+                    <Icon
+                        icon={IconProp.Filter}
+                        className="h-5 w-5 text-gray-900"
+                    />
+                    <p className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                        <span className="font-medium text-gray-900">
+                        Filters ({props.monitorCriteriaInstance.data?.filterCondition})
+                        </span>{' '}
+                        {props.monitorCriteriaInstance.data?.filterCondition} of these should match for this criteria to be met:
+                        
+                    </p>
+                    
+                </div>
 
                 <CriteriaFilters
                     criteriaFilters={
@@ -55,13 +62,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         icon={IconProp.AltGlobe}
                         className="h-5 w-5 text-gray-900"
                     />
-                    <p className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                    <p className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                         <span className="font-medium text-gray-900">
                             Change Monitor Status
                         </span>{' '}
-                        when this criteria is met. Change monitor Status to:
-                    </p>
-                    <Pill
+                        when this criteria is met. Change monitor status to:
+                        <span className='ml-3'>
+                        <Pill
                         color={
                             (props.monitorStatusOptions.find(
                                 (option: IncidentSeverity) => {
@@ -83,6 +90,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                             )?.name as string) || ''
                         }
                     />
+                    </span>
+                    </p>
+                    
                 </div>
             </div>
 

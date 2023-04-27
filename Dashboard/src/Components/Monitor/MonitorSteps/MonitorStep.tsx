@@ -124,7 +124,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     title="Criteria"
                     isHeading={true}
                     description={
-                        'Criteria we will use to determine if your resource status.'
+                        'Criteria we will use to determine your resource status.'
                     }
                     required={true}
                 />
