@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -12,21 +12,78 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
-import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
+import MonitorStepsViewer from '../../../Components/Monitor/MonitorSteps/MonitorSteps';
 import {
     CustomElementProps,
     FormFieldStyleType,
 } from 'CommonUI/src/Components/Forms/Types/Field';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
-import MonitorSteps from '../../../Components/Form/Monitor/MonitorSteps';
+import MonitorStepsForm from '../../../Components/Form/Monitor/MonitorSteps';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import API from 'CommonUI/src/Utils/API/API';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    const [error, setError] = useState<string>('');
+
+    const fetchItem: Function = async (): Promise<void> => {
+        // get item.
+        setIsLoading(true);
+
+        setError('');
+        try {
+            const item: Monitor | null = await ModelAPI.getItem(
+                Monitor,
+                modelId,
+                {
+                    monitorType: true
+                } as any,
+                {}
+            );
+
+            if (!item) {
+                setError(
+                    `Monitor not found`
+                );
+
+                return;
+            }
+
+            setMonitorType(
+                item.monitorType
+            );
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+        setIsLoading(false);
+    };
+
+    const [monitorType, setMonitorType] = useState<MonitorType | undefined>(undefined);
+
+    useEffect(() => {
+        // fetch the model
+        fetchItem();
+    }, []);
+
+    if(!monitorType || isLoading){
+        return <ComponentLoader />
+    }
+
+    if(error){
+        return <ErrorMessage error={error} />
+    }
+
 
     return (
         <ModelPage
@@ -98,7 +155,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             props: CustomElementProps
                         ) => {
                             return (
-                                <MonitorSteps
+                                <MonitorStepsForm
                                     {...props}
                                     monitorType={
                                         value.monitorType || MonitorType.Manual
@@ -116,16 +173,18 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                monitoringInterval: true,
+                                monitorSteps: true,
                             },
                             title: 'Monitoring Interval',
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
-                                    <MonitoringIntervalElement
-                                        monitoringInterval={
-                                            item['monitoringInterval'] as string
+                                    <MonitorStepsViewer
+                                        monitorSteps={
+                                            item['monitorSteps'] as MonitorSteps
                                         }
+                                        monitorType={monitorType}
                                     />
+
                                 );
                             },
                         },
