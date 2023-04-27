@@ -44,7 +44,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                             if (item['incidentSeverityId']) {
                                 return (
                                     <Pill
-                                    isMinimal={true}
+                                        isMinimal={true}
                                         color={
                                             (props.incidentSeverityOptions.find(
                                                 (option: IncidentSeverity) => {

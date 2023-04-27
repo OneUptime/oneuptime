@@ -23,7 +23,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
 
     let linkClassName: string = `text-gray-500 hover:text-gray-900 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
 
-    if(Navigation.isOnThisPage(props.link.to)){
+    if (Navigation.isOnThisPage(props.link.to)) {
         linkClassName = `bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
     }
 
@@ -54,12 +54,12 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
     //     }
     // }
 
-    let iconClassName = "text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6";
+    let iconClassName =
+        'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
 
-    if(Navigation.isOnThisPage(props.link.to)){
-        iconClassName = "text-indigo-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6";
+    if (Navigation.isOnThisPage(props.link.to)) {
+        iconClassName = 'text-indigo-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
     }
-
 
     // if(props.badge && props.badge > 0){
     //     if(props.badgeType === BadgeType.DANGER){
@@ -88,24 +88,17 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
     //     }
     // }
 
-
-
     return (
         <UILink
-            className={`${props.className ? props.className : ''}  ${
-                linkClassName
-            } flex justify-between`}
+            className={`${
+                props.className ? props.className : ''
+            }  ${linkClassName} flex justify-between`}
             to={props.link.to}
         >
             <div className="flex">
                 {props.icon ? (
                     <>
-                        <Icon
-                            className={
-                                iconClassName
-                            }
-                            icon={props.icon}
-                        />
+                        <Icon className={iconClassName} icon={props.icon} />
                     </>
                 ) : (
                     <></>

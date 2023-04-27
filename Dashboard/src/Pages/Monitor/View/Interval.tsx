@@ -1,6 +1,11 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -25,7 +30,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -68,79 +72,82 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         fetchItem();
     }, []);
 
-
     const getPageContent: Function = (): ReactElement => {
         if (!monitorType || isLoading) {
             return <ComponentLoader />;
         }
-    
+
         if (error) {
             return <ErrorMessage error={error} />;
         }
-    
-    
+
         if (monitorType === MonitorType.Manual) {
-            return  <EmptyState
-            icon={IconProp.Clock}
-            title={'No Monitoring Interval for Manual Monitors'}
-            description={
-                <>
-                    This is a manual monitor. It does not monitor anything and so, it cannot have monitorting interval set. You can have monitoring interval on other monitor types.{' '}
-                </>
-            }
-        />
+            return (
+                <EmptyState
+                    icon={IconProp.Clock}
+                    title={'No Monitoring Interval for Manual Monitors'}
+                    description={
+                        <>
+                            This is a manual monitor. It does not monitor
+                            anything and so, it cannot have monitorting interval
+                            set. You can have monitoring interval on other
+                            monitor types.{' '}
+                        </>
+                    }
+                />
+            );
         }
 
-        return (<CardModelDetail
-            name="Monitoring Interval"
-            editButtonText="Edit Monitoring Interval"
-            cardProps={{
-                title: 'Monitoring Interval',
-                description:
-                    'Here is how often we will check your monitor status.',
-                icon: IconProp.Clock,
-            }}
-            isEditable={true}
-            formFields={[
-                {
-                    field: {
-                        monitoringInterval: true,
-                    },
-
+        return (
+            <CardModelDetail
+                name="Monitoring Interval"
+                editButtonText="Edit Monitoring Interval"
+                cardProps={{
                     title: 'Monitoring Interval',
-                    fieldType: FormFieldSchemaType.Dropdown,
-                    dropdownOptions: MonitoringIntrerval,
-                    required: true,
-                    placeholder: 'Monitoring Interval',
-                },
-            ]}
-            modelDetailProps={{
-                showDetailsInNumberOfColumns: 2,
-                modelType: Monitor,
-                id: 'model-detail-monitors',
-                fields: [
+                    description:
+                        'Here is how often we will check your monitor status.',
+                    icon: IconProp.Clock,
+                }}
+                isEditable={true}
+                formFields={[
                     {
                         field: {
                             monitoringInterval: true,
                         },
-                        title: 'Monitoring Interval',
-                        getElement: (item: JSONObject): ReactElement => {
-                            return (
-                                <MonitoringIntervalElement
-                                    monitoringInterval={
-                                        item['monitoringInterval'] as string
-                                    }
-                                />
-                            );
-                        },
-                    },
-                ],
-                modelId: modelId,
-            }}
-        />);
-    }
 
-    
+                        title: 'Monitoring Interval',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownOptions: MonitoringIntrerval,
+                        required: true,
+                        placeholder: 'Monitoring Interval',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 2,
+                    modelType: Monitor,
+                    id: 'model-detail-monitors',
+                    fields: [
+                        {
+                            field: {
+                                monitoringInterval: true,
+                            },
+                            title: 'Monitoring Interval',
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <MonitoringIntervalElement
+                                        monitoringInterval={
+                                            item['monitoringInterval'] as string
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+        );
+    };
 
     return (
         <ModelPage

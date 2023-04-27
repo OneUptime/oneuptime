@@ -89,90 +89,94 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         }
 
         if (monitorType === MonitorType.Manual) {
-            return <EmptyState
-                icon={IconProp.Criteria}
-                title={'No Criteria for Manual Monitors'}
-                description={
-                    <>
-                        This is a manual monitor and it cannot have any criteria set. You can have monitoring criteria on other monitor types.{' '}
-                    </>
-                }
-            />
+            return (
+                <EmptyState
+                    icon={IconProp.Criteria}
+                    title={'No Criteria for Manual Monitors'}
+                    description={
+                        <>
+                            This is a manual monitor and it cannot have any
+                            criteria set. You can have monitoring criteria on
+                            other monitor types.{' '}
+                        </>
+                    }
+                />
+            );
         }
 
-        return (<CardModelDetail
-            name="Monitoring Criteria"
-            editButtonText="Edit Monitoring Criteria"
-            cardProps={{
-                title: 'Monitoring Criteria',
-                description:
-                    'Here is the criteria we use to monitor this resource.',
-                icon: IconProp.Criteria,
-            }}
-            createEditModalWidth={ModalWidth.Large}
-            isEditable={true}
-            formFields={[
-                {
-                    field: {
-                        monitorSteps: true,
-                    },
-                    stepId: 'criteria',
-                    styleType: FormFieldStyleType.Heading,
-                    title: 'Monitor Details',
-                    fieldType: FormFieldSchemaType.CustomComponent,
-                    required: true,
-                    customValidation: (values: FormValues<Monitor>) => {
-                        return MonitorStepsType.getValidationError(
-                            values.monitorSteps as MonitorStepsType,
-                            values.monitorType as MonitorType
-                        );
-                    },
-                    getCustomElement: (
-                        value: FormValues<Monitor>,
-                        props: CustomElementProps
-                    ) => {
-                        return (
-                            <MonitorStepsForm
-                                {...props}
-                                monitorType={
-                                    value.monitorType || MonitorType.Manual
-                                }
-                                error={''}
-                            />
-                        );
-                    },
-                },
-            ]}
-            modelDetailProps={{
-                showDetailsInNumberOfColumns: 1,
-                modelType: Monitor,
-                id: 'model-detail-monitors',
-                fields: [
+        return (
+            <CardModelDetail
+                name="Monitoring Criteria"
+                editButtonText="Edit Monitoring Criteria"
+                cardProps={{
+                    title: 'Monitoring Criteria',
+                    description:
+                        'Here is the criteria we use to monitor this resource.',
+                    icon: IconProp.Criteria,
+                }}
+                createEditModalWidth={ModalWidth.Large}
+                isEditable={true}
+                formFields={[
                     {
                         field: {
                             monitorSteps: true,
                         },
-                        title: '',
-                        getElement: (item: JSONObject): ReactElement => {
+                        stepId: 'criteria',
+                        styleType: FormFieldStyleType.Heading,
+                        title: 'Monitor Details',
+                        fieldType: FormFieldSchemaType.CustomComponent,
+                        required: true,
+                        customValidation: (values: FormValues<Monitor>) => {
+                            return MonitorStepsType.getValidationError(
+                                values.monitorSteps as MonitorStepsType,
+                                values.monitorType as MonitorType
+                            );
+                        },
+                        getCustomElement: (
+                            value: FormValues<Monitor>,
+                            props: CustomElementProps
+                        ) => {
                             return (
-                                <MonitorStepsViewer
-                                    monitorSteps={
-                                        item[
-                                        'monitorSteps'
-                                        ] as MonitorStepsType
+                                <MonitorStepsForm
+                                    {...props}
+                                    monitorType={
+                                        value.monitorType || MonitorType.Manual
                                     }
-                                    monitorType={monitorType}
+                                    error={''}
                                 />
                             );
                         },
                     },
-                ],
-                modelId: modelId,
-            }}
-        />)
-    }
-
-
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: Monitor,
+                    id: 'model-detail-monitors',
+                    fields: [
+                        {
+                            field: {
+                                monitorSteps: true,
+                            },
+                            title: '',
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <MonitorStepsViewer
+                                        monitorSteps={
+                                            item[
+                                                'monitorSteps'
+                                            ] as MonitorStepsType
+                                        }
+                                        monitorType={monitorType}
+                                    />
+                                );
+                            },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+        );
+    };
 
     return (
         <ModelPage
