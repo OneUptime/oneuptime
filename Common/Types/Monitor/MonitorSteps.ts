@@ -32,12 +32,8 @@ export default class MonitorSteps extends DatabaseProperty {
         };
     }
 
-    public static clone(
-        monitorSteps: MonitorSteps
-    ): MonitorSteps {
-        return MonitorSteps.fromJSON(
-            monitorSteps.toJSON()
-        );
+    public static clone(monitorSteps: MonitorSteps): MonitorSteps {
+        return MonitorSteps.fromJSON(monitorSteps.toJSON());
     }
 
     public setDefaultMonitorStatusId(
@@ -64,8 +60,8 @@ export default class MonitorSteps extends DatabaseProperty {
                             return step.toJSON();
                         }
                     ),
-                defaultMonitorStatusId: this.data.defaultMonitorStatusId?.toString() || undefined,
-
+                defaultMonitorStatusId:
+                    this.data.defaultMonitorStatusId?.toString() || undefined,
             },
         };
     }
@@ -103,7 +99,15 @@ export default class MonitorSteps extends DatabaseProperty {
                     return MonitorStep.fromJSON(json);
                 }
             ),
-            defaultMonitorStatusId: (json['value'] as JSONObject)['defaultMonitorStatusId'] ? new ObjectID((json['value'] as JSONObject)['defaultMonitorStatusId'] as string) : undefined,
+            defaultMonitorStatusId: (json['value'] as JSONObject)[
+                'defaultMonitorStatusId'
+            ]
+                ? new ObjectID(
+                      (json['value'] as JSONObject)[
+                          'defaultMonitorStatusId'
+                      ] as string
+                  )
+                : undefined,
         };
 
         return monitorSteps;
@@ -121,8 +125,8 @@ export default class MonitorSteps extends DatabaseProperty {
             return 'Monitor Steps is required';
         }
 
-        if(value.data.defaultMonitorStatusId) {
-            return 'Default Monitor Status is required'
+        if (value.data.defaultMonitorStatusId) {
+            return 'Default Monitor Status is required';
         }
 
         for (const step of value.data.monitorStepsInstanceArray) {

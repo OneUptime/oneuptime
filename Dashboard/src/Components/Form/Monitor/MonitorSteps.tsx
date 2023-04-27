@@ -1,7 +1,10 @@
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorStepElement from './MonitorStep';
-import Dropdown, { DropdownOption, DropdownValue } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import Dropdown, {
+    DropdownOption,
+    DropdownValue,
+} from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -190,9 +193,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                 ];
                                 newMonitorStepss[index] = value;
                                 setMonitorSteps(
-                                    MonitorSteps.clone(
-                                        monitorSteps
-                                    )
+                                    MonitorSteps.clone(monitorSteps)
                                 );
                             }}
                         />
@@ -220,43 +221,34 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
             <HorizontalRule />
 
-            
-                <div className="mt-4">
-                    <FieldLabelElement
-                        title="Default Monitor Status"
-                        description="What would like the monitor status to be when none of the above criteria is met?"
-                        required={true}
-                    />
-                    
-                    <Dropdown
-                        initialValue={monitorStatusDropdownOptions.find(
-                            (i: DropdownOption) => {
-                                return (
-                                    i.value ===
-                                        monitorSteps?.data
-                                            ?.defaultMonitorStatusId?.id || undefined
-                                );
-                            }
-                        )}
-                        options={monitorStatusDropdownOptions}
-                        onChange={(
-                            value: DropdownValue | Array<DropdownValue> | null
-                        ) => {
-                            monitorSteps.setDefaultMonitorStatusId(
-                                value
-                                    ? new ObjectID(value.toString())
-                                    : undefined
-                            );
-                            setMonitorSteps(
-                                MonitorSteps.clone(
-                                    monitorSteps
-                                )
-                            );
-                        }}
-                    />
-                </div>
-           
+            <div className="mt-4">
+                <FieldLabelElement
+                    title="Default Monitor Status"
+                    description="What would like the monitor status to be when none of the above criteria is met?"
+                    required={true}
+                />
 
+                <Dropdown
+                    initialValue={monitorStatusDropdownOptions.find(
+                        (i: DropdownOption) => {
+                            return (
+                                i.value ===
+                                    monitorSteps?.data?.defaultMonitorStatusId
+                                        ?.id || undefined
+                            );
+                        }
+                    )}
+                    options={monitorStatusDropdownOptions}
+                    onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null
+                    ) => {
+                        monitorSteps.setDefaultMonitorStatusId(
+                            value ? new ObjectID(value.toString()) : undefined
+                        );
+                        setMonitorSteps(MonitorSteps.clone(monitorSteps));
+                    }}
+                />
+            </div>
         </div>
     );
 };

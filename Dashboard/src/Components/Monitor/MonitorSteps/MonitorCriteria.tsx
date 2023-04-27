@@ -58,7 +58,6 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                         );
                     }
                 )}
-                
             </ul>
         </div>
     );

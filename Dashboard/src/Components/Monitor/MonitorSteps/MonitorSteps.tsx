@@ -1,5 +1,10 @@
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import MonitorStepElement from './MonitorStep';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -35,9 +40,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>('');
 
-    const [defaultMonitorStatus, setDefaultMonitorStatus] = useState<MonitorStatus | undefined>(undefined);
-
-
+    const [defaultMonitorStatus, setDefaultMonitorStatus] = useState<
+        MonitorStatus | undefined
+    >(undefined);
 
     const fetchDropdownOptions: Function = async (): Promise<void> => {
         setIsLoading(true);
@@ -52,7 +57,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     {
                         name: true,
                         color: true,
-                        isOperationalState: true
+                        isOperationalState: true,
                     },
                     {},
                     {}
@@ -60,7 +65,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
             if (monitorStatusList.data) {
                 setMonitorStatusOptions(monitorStatusList.data);
-                setDefaultMonitorStatus(monitorStatusList.data.find((status: MonitorStatus) => status?.isOperationalState));
+                setDefaultMonitorStatus(
+                    monitorStatusList.data.find((status: MonitorStatus) => {
+                        return status?.isOperationalState;
+                    })
+                );
             }
 
             const incidentSeverityList: ListResult<IncidentSeverity> =
@@ -104,7 +113,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-
     return (
         <div>
             {props.monitorSteps.data?.monitorStepsInstanceArray.map(
@@ -121,7 +129,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 }
             )}
 
-
             <div className="mt-4 ml-0.5">
                 <div className="flex">
                     <Icon
@@ -133,44 +140,44 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             Default Monitor Status
                         </span>{' '}
                         When no criteria is met, monitor status should be:
-                        <div className='mt-3'>
-                            {props.monitorSteps.data?.defaultMonitorStatusId && <Statusbubble
-                                color={
-                                    (monitorStatusOptions.find(
-                                        (option: IncidentSeverity) => {
-                                            return (
-                                                option.id?.toString() ===
-                                                props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                                            );
-                                        }
-                                    )?.color as Color) || Black
-                                }
-                                text={
-                                    (monitorStatusOptions.find(
-                                        (option: IncidentSeverity) => {
-                                            return (
-                                                option.id?.toString() ===
-                                                props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                                            );
-                                        }
-                                    )?.name as string) || ''
-                                }
-                            />}
+                        <div className="mt-3">
+                            {props.monitorSteps.data
+                                ?.defaultMonitorStatusId && (
+                                <Statusbubble
+                                    color={
+                                        (monitorStatusOptions.find(
+                                            (option: IncidentSeverity) => {
+                                                return (
+                                                    option.id?.toString() ===
+                                                    props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                                                );
+                                            }
+                                        )?.color as Color) || Black
+                                    }
+                                    text={
+                                        (monitorStatusOptions.find(
+                                            (option: IncidentSeverity) => {
+                                                return (
+                                                    option.id?.toString() ===
+                                                    props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                                                );
+                                            }
+                                        )?.name as string) || ''
+                                    }
+                                />
+                            )}
 
-                            {!props.monitorSteps.data?.defaultMonitorStatusId && defaultMonitorStatus && <Statusbubble
-                                color={
-                                    defaultMonitorStatus.color!
-                                }
-                                text={
-                                    defaultMonitorStatus.name!
-                                }
-                            />}
+                            {!props.monitorSteps.data?.defaultMonitorStatusId &&
+                                defaultMonitorStatus && (
+                                    <Statusbubble
+                                        color={defaultMonitorStatus.color!}
+                                        text={defaultMonitorStatus.name!}
+                                    />
+                                )}
                         </div>
                     </p>
-
                 </div>
             </div>
-
         </div>
     );
 };

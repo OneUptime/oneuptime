@@ -35,7 +35,6 @@ export default class MonitorStep extends DatabaseProperty {
         };
     }
 
-
     public setRequestType(requestType: HTTPMethod): MonitorStep {
         this.data!.requestType = requestType;
         return this;
@@ -114,8 +113,6 @@ export default class MonitorStep extends DatabaseProperty {
         return null;
     }
 
-    
-
     public override toJSON(): JSONObject {
         if (this.data) {
             return {
@@ -128,7 +125,6 @@ export default class MonitorStep extends DatabaseProperty {
                     requestType: this.data.requestType,
                     requestHeaders: this.data.requestHeaders || undefined,
                     requestBody: this.data.requestBody || undefined,
-                   
                 },
             };
         }
@@ -196,7 +192,6 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders:
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
-           
         };
 
         return monitorStep;

@@ -33,7 +33,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             )}
 
             <div className="mt-4">
-
                 <div className="flex">
                     <Icon
                         icon={IconProp.Filter}
@@ -41,12 +40,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     />
                     <p className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                         <span className="font-medium text-gray-900">
-                            Filters ({props.monitorCriteriaInstance.data?.filterCondition})
+                            Filters (
+                            {
+                                props.monitorCriteriaInstance.data
+                                    ?.filterCondition
+                            }
+                            )
                         </span>{' '}
-                        {props.monitorCriteriaInstance.data?.filterCondition} of these should match for this criteria to be met:
-
+                        {props.monitorCriteriaInstance.data?.filterCondition} of
+                        these should match for this criteria to be met:
                     </p>
-
                 </div>
 
                 <CriteriaFilters
@@ -67,7 +70,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                             Change Monitor Status
                         </span>{' '}
                         when this criteria is met. Change monitor status to:
-                        <div className='mt-3'>
+                        <div className="mt-3">
                             <Statusbubble
                                 color={
                                     (props.monitorStatusOptions.find(
@@ -92,7 +95,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                             />
                         </div>
                     </p>
-
                 </div>
             </div>
 
