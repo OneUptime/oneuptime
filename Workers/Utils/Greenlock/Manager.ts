@@ -17,7 +17,7 @@ module.exports = {
                 servername,
             }: {
                 servername: string;
-            }): Promise<JSON | undefined> => {
+            }): Promise<JSONObject | undefined> => {
                 // Required: find the certificate with the subject of `servername`
                 // Optional (multi-domain certs support): find a certificate with `servername` as an altname
                 // Optional (wildcard support): find a certificate with `wildname` as an altname
