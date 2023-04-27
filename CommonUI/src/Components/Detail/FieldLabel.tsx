@@ -4,18 +4,16 @@ import Link from '../Link/Link';
 
 export enum Size {
     Normal = 'text-sm',
-    Medium = 'text-base',  
+    Medium = 'text-base',
     Large = 'text-=lg',
 }
 
-
 export interface ComponentProps {
     title?: string | undefined;
-    required?: boolean | undefined;
     description?: string | undefined;
     alignClassName?: string | undefined;
     sideLink?: DetailSideLink | undefined;
-    size? : Size | undefined;
+    size?: Size | undefined;
 }
 
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
@@ -24,7 +22,11 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
     return (
         <>
             {props.title && (
-                <label className={`${props.size || 'text-sm'} font-medium text-gray-500`}>
+                <label
+                    className={`${
+                        props.size || 'text-sm'
+                    } font-medium text-gray-500`}
+                >
                     <span className={props.alignClassName}>{props.title}</span>
                     {props.sideLink &&
                         props.sideLink?.text &&

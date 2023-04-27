@@ -27,7 +27,6 @@ import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import MonitorStepsForm from '../../../Components/Form/Monitor/MonitorSteps';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
@@ -182,7 +181,9 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorStepsViewer
                                         monitorSteps={
-                                            item['monitorSteps'] as MonitorSteps
+                                            item[
+                                                'monitorSteps'
+                                            ] as MonitorStepsType
                                         }
                                         monitorType={monitorType}
                                     />

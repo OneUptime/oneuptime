@@ -24,17 +24,14 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-   
-
-    const [requestDetailsFields, setRequestDetailsFields] = useState<Array<Field>>([]);
+    const [requestDetailsFields, setRequestDetailsFields] = useState<
+        Array<Field>
+    >([]);
 
     useEffect(() => {
-
         let fields: Array<Field> = [];
 
         if (props.monitorType === MonitorType.API) {
-            
-
             fields = [
                 {
                     key: 'monitorDestination',
@@ -73,25 +70,30 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     description: 'URL of the website you want to monitor.',
                     fieldType: FieldType.Text,
                     placeholder: 'No data entered',
-                }];
+                },
+            ];
         } else if (props.monitorType === MonitorType.Ping) {
             fields = [
                 {
                     key: 'monitorDestination',
                     title: 'Ping URL',
-                    description: 'URL of the resources you would like us to ping.',
+                    description:
+                        'URL of the resources you would like us to ping.',
                     fieldType: FieldType.Text,
                     placeholder: 'No data entered',
-                }];
+                },
+            ];
         } else if (props.monitorType === MonitorType.IP) {
             fields = [
                 {
                     key: 'monitorDestination',
                     title: 'IP Address',
-                    description: 'IP Address of the resource you would like us to ping.',
+                    description:
+                        'IP Address of the resource you would like us to ping.',
                     fieldType: FieldType.Text,
                     placeholder: 'No data entered',
-                }];
+                },
+            ];
         }
         setRequestDetailsFields(fields);
     }, [props.monitorType]);
@@ -99,11 +101,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     return (
         <div className="mt-5">
             <FieldLabelElement
-                    title={'Request Details'}
-                    description={'Here is the details of the request we will send to monitor your resource status.'}
-                    required={true}
-                    isHeading={true}
-                />
+                title={'Request Details'}
+                description={
+                    'Here is the details of the request we will send to monitor your resource status.'
+                }
+                required={true}
+                isHeading={true}
+            />
             <div className="mt-5">
                 <Detail
                     id={'monitor-step'}
@@ -131,7 +135,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         props.incidentSeverityDropdownOptions
                     }
                     monitorCriteria={props.monitorStep?.data?.monitorCriteria!}
-                   
                 />
             </div>
         </div>

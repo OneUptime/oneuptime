@@ -1,7 +1,9 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
-import FieldLabelElement, { Size } from 'CommonUI/src/Components/Detail/FieldLabel';
+import FieldLabelElement, {
+    Size,
+} from 'CommonUI/src/Components/Detail/FieldLabel';
 
 import CriteriaFilters from './CriteriaFilters';
 
@@ -68,13 +70,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         fieldType: FieldType.Dropdown,
                         placeholder: 'Do not change monitor status',
                         dropdownOptions: props.monitorStatusDropdownOptions,
-                        fieldTitleSize: Size.Medium
+                        fieldTitleSize: Size.Medium,
                     },
                 ]}
             />
 
             <div className="mt-4">
-                <FieldLabelElement title="When filters match, create this incident:" size={Size.Medium} />
+                <FieldLabelElement
+                    title="When filters match, create this incident:"
+                    size={Size.Medium}
+                />
 
                 <MonitorCriteriaIncidents
                     incidents={

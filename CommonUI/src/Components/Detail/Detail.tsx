@@ -231,7 +231,13 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : { width: '100%' }
                 }
             >
-                <FieldLabelElement size={field.fieldTitleSize} title={field.title} description={field.description} sideLink={field.sideLink} alignClassName={alignClassName} />
+                <FieldLabelElement
+                    size={field.fieldTitleSize}
+                    title={field.title}
+                    description={field.description}
+                    sideLink={field.sideLink}
+                    alignClassName={alignClassName}
+                />
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
                     {data && (
@@ -248,7 +254,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        <div className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1}`}>
+        <div
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+                props.showDetailsInNumberOfColumns || 1
+            }`}
+        >
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

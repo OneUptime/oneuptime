@@ -27,7 +27,13 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     props.incidentSeverityDropdownOptions
                                 }
                                 monitorCriteriaInstance={i}
-                                isLastCriteria={index === (props.monitorCriteria.data?.monitorCriteriaInstanceArray.length || 1) - 1}
+                                isLastCriteria={
+                                    index ===
+                                    (props.monitorCriteria.data
+                                        ?.monitorCriteriaInstanceArray.length ||
+                                        1) -
+                                        1
+                                }
                             />
                         </div>
                     );
