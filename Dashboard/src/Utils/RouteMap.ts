@@ -215,6 +215,11 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}`
     ),
 
+    [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/interval`
+    ),
+
+
     [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
     ),
