@@ -12,6 +12,7 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Detail from 'CommonUI/src/Components/Detail/Detail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Field from 'CommonUI/src/Components/Detail/Field';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -23,71 +24,91 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [destinationFieldTitle, setDestinationFieldTitle] =
-        useState<string>('URL');
-    const [destinationFieldDescription, setDestinationFieldDescription] =
-        useState<string>('');
+   
+
+    const [requestDetailsFields, setRequestDetailsFields] = useState<Array<Field>>([]);
 
     useEffect(() => {
+
+        let fields: Array<Field> = [];
+
         if (props.monitorType === MonitorType.API) {
-            setDestinationFieldTitle('API URL');
-            setDestinationFieldDescription(
-                'Whats the URL of the API you want to monitor?'
-            );
+            
+
+            fields = [
+                {
+                    key: 'monitorDestination',
+                    title: 'API URL',
+                    description: 'URL of the API you want to monitor.',
+                    fieldType: FieldType.Text,
+                    placeholder: 'No data entered',
+                },
+                {
+                    key: 'requestType',
+                    title: 'Request Type',
+                    description: 'Whats the type of the API request?',
+                    fieldType: FieldType.Text,
+                    placeholder: 'No data entered',
+                },
+                {
+                    key: 'requestBody',
+                    title: 'Request Body',
+                    description: 'Request Body to send, if any.',
+                    fieldType: FieldType.JSON,
+                    placeholder: 'No data entered',
+                },
+                {
+                    key: 'requestHeaders',
+                    title: 'Request Headers',
+                    description: 'Request Headers to send, if any.',
+                    fieldType: FieldType.DictionaryOfStrings,
+                    placeholder: 'No data entered',
+                },
+            ];
         } else if (props.monitorType === MonitorType.Website) {
-            setDestinationFieldTitle('Website URL');
-            setDestinationFieldDescription(
-                'Whats the URL of the website you want to monitor?'
-            );
+            fields = [
+                {
+                    key: 'monitorDestination',
+                    title: 'Website URL',
+                    description: 'URL of the website you want to monitor.',
+                    fieldType: FieldType.Text,
+                    placeholder: 'No data entered',
+                }];
         } else if (props.monitorType === MonitorType.Ping) {
-            setDestinationFieldTitle('Ping URL');
-            setDestinationFieldDescription(
-                'Whats the URL of the resource you want to ping?'
-            );
+            fields = [
+                {
+                    key: 'monitorDestination',
+                    title: 'Ping URL',
+                    description: 'URL of the resources you would like us to ping.',
+                    fieldType: FieldType.Text,
+                    placeholder: 'No data entered',
+                }];
         } else if (props.monitorType === MonitorType.IP) {
-            setDestinationFieldTitle('IP Address');
-            setDestinationFieldDescription(
-                'Whats the IP address you want to monitor?'
-            );
+            fields = [
+                {
+                    key: 'monitorDestination',
+                    title: 'IP Address',
+                    description: 'IP Address of the resource you would like us to ping.',
+                    fieldType: FieldType.Text,
+                    placeholder: 'No data entered',
+                }];
         }
+        setRequestDetailsFields(fields);
     }, [props.monitorType]);
 
     return (
         <div className="mt-5">
+            <FieldLabelElement
+                    title={'Request Details'}
+                    description={'Here is the details of the request we will send to monitor your resource status.'}
+                    required={true}
+                    isHeading={true}
+                />
             <div className="mt-5">
                 <Detail
                     id={'monitor-step'}
                     item={props.monitorStep.data}
-                    fields={[
-                        {
-                            key: 'monitorDestination',
-                            title: destinationFieldTitle,
-                            description: destinationFieldDescription,
-                            fieldType: FieldType.Text,
-                            placeholder: 'No data entered',
-                        },
-                        {
-                            key: 'requestType',
-                            title: 'Request Type',
-                            description: 'Whats the type of the API request?',
-                            fieldType: FieldType.Text,
-                            placeholder: 'No data entered',
-                        },
-                        {
-                            key: 'requestBody',
-                            title: 'Request Body',
-                            description: 'Request Body to send, if any.',
-                            fieldType: FieldType.JSON,
-                            placeholder: 'No data entered',
-                        },
-                        {
-                            key: 'requestHeaders',
-                            title: 'Request Headers',
-                            description: 'Request Headers to send, if any.',
-                            fieldType: FieldType.DictionaryOfStrings,
-                            placeholder: 'No data entered',
-                        },
-                    ]}
+                    fields={requestDetailsFields}
                 />
             </div>
 
@@ -98,7 +119,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     title="Monitor Criteria"
                     isHeading={true}
                     description={
-                        'Add Monitoiring Criteria for this monitor. Monitor different properties.'
+                        'Criteria we will use to determine if your resource status.'
                     }
                     required={true}
                 />
@@ -110,6 +131,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         props.incidentSeverityDropdownOptions
                     }
                     monitorCriteria={props.monitorStep?.data?.monitorCriteria!}
+                   
                 />
             </div>
         </div>

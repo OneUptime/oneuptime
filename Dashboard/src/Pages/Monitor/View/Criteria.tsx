@@ -1,6 +1,11 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -47,43 +52,40 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                 Monitor,
                 modelId,
                 {
-                    monitorType: true
+                    monitorType: true,
                 } as any,
                 {}
             );
 
             if (!item) {
-                setError(
-                    `Monitor not found`
-                );
+                setError(`Monitor not found`);
 
                 return;
             }
 
-            setMonitorType(
-                item.monitorType
-            );
+            setMonitorType(item.monitorType);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
         setIsLoading(false);
     };
 
-    const [monitorType, setMonitorType] = useState<MonitorType | undefined>(undefined);
+    const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
+        undefined
+    );
 
     useEffect(() => {
         // fetch the model
         fetchItem();
     }, []);
 
-    if(!monitorType || isLoading){
-        return <ComponentLoader />
+    if (!monitorType || isLoading) {
+        return <ComponentLoader />;
     }
 
-    if(error){
-        return <ErrorMessage error={error} />
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
-
 
     return (
         <ModelPage
@@ -167,7 +169,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                    showDetailsInNumberOfColumns: 2,
+                    showDetailsInNumberOfColumns: 1,
                     modelType: Monitor,
                     id: 'model-detail-monitors',
                     fields: [
@@ -175,7 +177,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             field: {
                                 monitorSteps: true,
                             },
-                            title: 'Monitoring Interval',
+                            title: '',
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <MonitorStepsViewer
@@ -184,7 +186,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                                         }
                                         monitorType={monitorType}
                                     />
-
                                 );
                             },
                         },

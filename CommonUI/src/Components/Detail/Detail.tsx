@@ -1,6 +1,5 @@
 import React, { ReactElement } from 'react';
 import Field from './Field';
-import Link from '../Link/Link';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
 import FieldType from '../Types/FieldType';
@@ -17,6 +16,7 @@ import AlignItem from '../../Types/AlignItem';
 import PlaceholderText from './PlaceholderText';
 import DictionaryOfStringsViewer from '../Dictionary/DictionaryOfStingsViewer';
 import { DropdownOption } from '../Dropdown/Dropdown';
+import FieldLabelElement from './FieldLabel';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -231,28 +231,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : { width: '100%' }
                 }
             >
-                {field.title && (
-                    <label className="text-sm font-medium text-gray-500">
-                        <span className={alignClassName}>{field.title}</span>
-                        {field.sideLink &&
-                            field.sideLink?.text &&
-                            field.sideLink?.url && (
-                                <span>
-                                    <Link
-                                        to={field.sideLink?.url}
-                                        className="underline-on-hover"
-                                    >
-                                        {field.sideLink?.text}
-                                    </Link>
-                                </span>
-                            )}
-                    </label>
-                )}
-                {field.description && (
-                    <p className={`${alignClassName} text-sm text-gray-400`}>
-                        {field.description}
-                    </p>
-                )}
+                <FieldLabelElement size={field.fieldTitleSize} title={field.title} description={field.description} sideLink={field.sideLink} alignClassName={alignClassName} />
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
                     {data && (
@@ -269,7 +248,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        <div className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2`}>
+        <div className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1}`}>
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
+import FieldLabelElement, { Size } from 'CommonUI/src/Components/Detail/FieldLabel';
 
 import CriteriaFilters from './CriteriaFilters';
 
@@ -14,7 +14,7 @@ import Detail from 'CommonUI/src/Components/Detail/Detail';
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
     incidentSeverityDropdownOptions: Array<DropdownOption>;
-
+    isLastCriteria: boolean;
     monitorCriteriaInstance: MonitorCriteriaInstance;
 }
 
@@ -26,6 +26,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <Detail
                 id={'monitor-criteria-instance'}
                 item={props.monitorCriteriaInstance.data}
+                showDetailsInNumberOfColumns={2}
                 fields={[
                     {
                         key: 'name',
@@ -39,20 +40,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         fieldType: FieldType.LongText,
                         placeholder: 'No data entered',
                     },
-                    {
-                        key: 'filterCondition',
-                        title: 'Filter Condition',
-                        fieldType: FieldType.Text,
-                        placeholder: 'No data entered',
-                    },
                 ]}
             />
 
             <div className="mt-4">
                 <FieldLabelElement
-                    title="Filters"
+                    title={`Filters - ${props.monitorCriteriaInstance.data?.filterCondition} of these should match for this criteria to be met:`}
                     required={true}
-                    description="Add criteria for different monitor properties."
+                    description=""
+                    size={Size.Medium}
                 />
 
                 <CriteriaFilters
@@ -72,12 +68,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         fieldType: FieldType.Dropdown,
                         placeholder: 'Do not change monitor status',
                         dropdownOptions: props.monitorStatusDropdownOptions,
+                        fieldTitleSize: Size.Medium
                     },
                 ]}
             />
 
             <div className="mt-4">
-                <FieldLabelElement title="When filters match, Create Incident" />
+                <FieldLabelElement title="When filters match, create this incident:" size={Size.Medium} />
 
                 <MonitorCriteriaIncidents
                     incidents={
@@ -89,7 +86,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <HorizontalRule />
+            {!props.isLastCriteria && <HorizontalRule />}
         </div>
     );
 };

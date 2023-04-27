@@ -17,6 +17,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <Detail
                 id={'monitor-criteria-instance'}
                 item={props.incident}
+                showDetailsInNumberOfColumns={2}
                 fields={[
                     {
                         key: 'title',
