@@ -12,7 +12,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="mt-4">
+        <div className="mt-4 ml-5">
             {props.incidents.map((i: CriteriaIncident, index: number) => {
                 return (
                     <MonitorCriteriaIncident
