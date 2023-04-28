@@ -61,7 +61,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            <div className="mt-4">
+            {props.monitorCriteriaInstance.data?.monitorStatusId && <div className="mt-4">
                 <div className="flex">
                     <Icon
                         icon={IconProp.AltGlobe}
@@ -98,9 +98,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>}
 
-            <div className="mt-4">
+            {(props.monitorCriteriaInstance?.data?.incidents?.length || 0) > 0 && <div className="mt-4">
                 <div className="flex">
                     <Icon
                         icon={IconProp.Alert}
@@ -120,9 +120,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     }
                     incidentSeverityOptions={props.incidentSeverityOptions}
                 />
-            </div>
+            </div>}
 
+                <div className='mt-10'>
             {!props.isLastCriteria && <HorizontalRule />}
+            </div>
         </div>
     );
 };
