@@ -729,23 +729,6 @@ export default class ScheduledMaintenance extends BaseModel {
     public isStatusPageSubscribersNotifiedOnEventScheduled?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        update: [],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        type: TableColumnType.Boolean,
-        title: 'Status Page Subscribers Notified On Ongoing Event',
-        description: 'Status Page Subscribers Notified On Ongoing Event',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        default: false,
-    })
-    public isStatusPageSubscribersNotifiedOnEventOngoing?: boolean = undefined;
-
-    @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

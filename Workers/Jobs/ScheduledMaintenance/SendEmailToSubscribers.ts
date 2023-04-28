@@ -52,41 +52,23 @@ RunCron(
                 },
             });
 
-        const ongoingEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
-                query: {
-                    isStatusPageSubscribersNotifiedOnEventOngoing: false,
-                    startsAt: QueryHelper.lessThan(
-                        OneUptimeDate.getCurrentDate()
-                    ),
-                },
-                props: {
-                    isRoot: true,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                    startsAt: true,
-                },
-                populate: {
-                    monitors: {
-                        _id: true,
-                    },
-                },
-            });
-
-        const totalEvents: Array<ScheduledMaintenance> = [
-            ...ongoingEvents,
-            ...scheduledEvents,
-        ];
-
-        for (const event of totalEvents) {
+        for (const event of scheduledEvents) {
             if (!event.monitors || event.monitors.length === 0) {
                 continue;
             }
+
+            // update the flag.
+
+            await ScheduledMaintenanceService.updateOneById({
+                id: event.id!,
+                data: {
+                    isStatusPageSubscribersNotifiedOnEventScheduled: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
 
             // get status page resources from monitors.
 
