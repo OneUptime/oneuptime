@@ -13,6 +13,7 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Color from 'Common/Types/Color';
 import { Black } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import { FilterCondition } from 'Common/Types/Monitor/CriteriaFilter';
 
 export interface ComponentProps {
     monitorStatusOptions: Array<MonitorStatus>;
@@ -56,6 +57,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     criteriaFilters={
                         props.monitorCriteriaInstance?.data?.filters || []
                     }
+                    filterCondition={props.monitorCriteriaInstance?.data?.filterCondition || FilterCondition.Any}
                 />
             </div>
 

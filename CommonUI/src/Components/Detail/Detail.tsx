@@ -108,7 +108,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         }
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {
-            data = getDictionaryOfStringsViewer(data);
+            data = getDictionaryOfStringsViewer(props.item[field.key]);
         }
 
         if (!data && field.fieldType === FieldType.Color && field.placeholder) {

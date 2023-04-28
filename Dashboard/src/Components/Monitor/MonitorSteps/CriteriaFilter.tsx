@@ -1,24 +1,26 @@
 import {
     CheckOn,
     CriteriaFilter,
+    FilterCondition,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     criteriaFilter: CriteriaFilter | undefined;
+    filterCondition?: FilterCondition | undefined;
 }
 
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let text: string = 'Check if this resource, ';
+    let text: string = 'Check if this resource ';
 
     if (props.criteriaFilter?.checkOn === CheckOn.IsOnline) {
         if (props.criteriaFilter?.filterType === FilterType.True) {
-            text += ' is online. ';
+            text += ' is online ';
         } else {
-            text += ' is offline. ';
+            text += ' is offline ';
         }
     } else {
         text += props.criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
@@ -28,14 +30,30 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         props.criteriaFilter?.filterType &&
         props.criteriaFilter?.checkOn !== CheckOn.IsOnline
     ) {
-        text +=
+
+        if(props.criteriaFilter?.filterType.toLowerCase().includes('contains')){
+            text += props.criteriaFilter?.filterType.toString().toLowerCase() +
+            ' ';
+        }else{
+            text +=
             'is ' +
             props.criteriaFilter?.filterType.toString().toLowerCase() +
             ' ';
+        }
+
+       
     }
 
     if (props.criteriaFilter?.value !== undefined) {
-        text += props.criteriaFilter?.value.toString();
+        text += props.criteriaFilter?.value.toString()+" ";
+    }
+
+    if(props.filterCondition === FilterCondition.All){
+        text += 'and,';
+    }
+
+    if(props.filterCondition === FilterCondition.Any){
+        text += 'or,';
     }
 
     return (

@@ -192,7 +192,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                         ?.monitorStepsInstanceArray || []),
                                 ];
                                 newMonitorStepss[index] = value;
-                                monitorSteps.setMonitorStepsInstanceArray(newMonitorStepss);
+                                monitorSteps.setMonitorStepsInstanceArray(
+                                    newMonitorStepss
+                                );
                                 setMonitorSteps(
                                     MonitorSteps.clone(monitorSteps)
                                 );
@@ -234,8 +236,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                    props.initialValue?.data?.defaultMonitorStatusId
-                                        ?.id.toString() || undefined
+                                    props.initialValue?.data?.defaultMonitorStatusId?.id.toString() ||
+                                undefined
                             );
                         }
                     )}

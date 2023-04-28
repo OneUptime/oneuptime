@@ -1,9 +1,10 @@
-import { CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
+import { CriteriaFilter, FilterCondition } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement } from 'react';
 import CriteriaFilterElement from './CriteriaFilter';
 
 export interface ComponentProps {
     criteriaFilters: Array<CriteriaFilter>;
+    filterCondition: FilterCondition;
 }
 
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
@@ -29,6 +30,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                                 <CriteriaFilterElement
                                     key={index}
                                     criteriaFilter={i}
+                                    filterCondition={!isLastItem ? props.filterCondition : undefined}
                                 />{' '}
                             </li>
                         );

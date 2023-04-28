@@ -127,7 +127,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     fieldType: FormFieldSchemaType.CustomComponent,
                     required: true,
                     customValidation: (values: FormValues<Monitor>) => {
-                        const error =  MonitorStepsType.getValidationError(
+                        const error = MonitorStepsType.getValidationError(
                             values.monitorSteps as MonitorStepsType,
                             values.monitorType as MonitorType
                         );

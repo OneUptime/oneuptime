@@ -32,7 +32,9 @@ export default class MonitorSteps extends DatabaseProperty {
         };
     }
 
-    public setMonitorStepsInstanceArray(monitorSteps: Array<MonitorStep>): void {
+    public setMonitorStepsInstanceArray(
+        monitorSteps: Array<MonitorStep>
+    ): void {
         if (this.data) {
             this.data.monitorStepsInstanceArray = monitorSteps;
         }

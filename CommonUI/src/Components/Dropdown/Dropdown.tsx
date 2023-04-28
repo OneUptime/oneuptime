@@ -37,7 +37,6 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | undefined
     >(props.initialValue);
 
-
     useEffect(() => {
         if (props.value) {
             setValue(props.value ? props.value : undefined);
@@ -55,7 +54,6 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             }}
         >
             <Select
-            
                 onBlur={() => {
                     props.onBlur && props.onBlur();
                 }}
@@ -76,7 +74,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                                 option as Array<DropdownOption>;
                             setValue(value);
 
-                            props.onChange && props.onChange(value.map((i)=> i.value));
+                            props.onChange &&
+                                props.onChange(
+                                    value.map(i => {
+                                        return i.value;
+                                    })
+                                );
                         } else {
                             const value: DropdownOption =
                                 option as DropdownOption;

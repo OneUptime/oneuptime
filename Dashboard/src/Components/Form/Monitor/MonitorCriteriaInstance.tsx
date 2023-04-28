@@ -82,12 +82,12 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }, [props.monitorStatusDropdownOptions]);
 
     const [showMonitorStatusChangeControl, setShowMonitorStatusChangeControl] =
-        useState<boolean>(Boolean(
-            props.initialValue?.data?.monitorStatusId?.id
-        ) || false);
-    const [showIncidentControl, setShowIncidentControl] =
-        useState<boolean>((props.initialValue?.data?.incidents?.length ||
-            0) > 0);
+        useState<boolean>(
+            Boolean(props.initialValue?.data?.monitorStatusId?.id) || false
+        );
+    const [showIncidentControl, setShowIncidentControl] = useState<boolean>(
+        (props.initialValue?.data?.incidents?.length || 0) > 0
+    );
 
     return (
         <div className="mt-4">
@@ -261,15 +261,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
             <div className="mt-4">
                 <Toggle
-                    initialValue={Boolean(
-                        showMonitorStatusChangeControl
-                    )}
+                    initialValue={Boolean(showMonitorStatusChangeControl)}
                     title="When filters match, Change monitor status"
                     onChange={(value: boolean) => {
                         setShowMonitorStatusChangeControl(value);
                         monitorCriteriaInstance.setChangeMonitorStatus(value);
 
-                        if(!value){
+                        if (!value) {
                             monitorCriteriaInstance.setMonitorStatusId(
                                 undefined
                             );
@@ -321,19 +319,17 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
             <div className="mt-4">
                 <Toggle
-                    initialValue={
-                        showIncidentControl
-                    }
+                    initialValue={showIncidentControl}
                     title="When filters match, Create an incident."
                     onChange={(value: boolean) => {
                         setShowIncidentControl(value);
                         monitorCriteriaInstance.setCreateIncidents(value);
 
                         if (
-                            value && 
-                            !monitorCriteriaInstance.data?.incidents ||
+                            (value &&
+                                (!monitorCriteriaInstance.data?.incidents) ||
                             monitorCriteriaInstance.data?.incidents?.length ===
-                                0
+                                0)
                         ) {
                             monitorCriteriaInstance.setIncidents([
                                 {
@@ -342,7 +338,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                     incidentSeverityId: undefined,
                                 },
                             ]);
-                        }else{
+                        } if(!value) {
                             monitorCriteriaInstance.setIncidents([]);
                         }
 

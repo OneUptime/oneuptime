@@ -84,7 +84,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         if (
             criteriaFilter?.checkOn === CheckOn.ResponseBody ||
-            criteriaFilter?.checkOn === CheckOn.ResponseHeader
+            criteriaFilter?.checkOn === CheckOn.ResponseHeader || 
+            criteriaFilter?.checkOn === CheckOn.ResponseHeaderValue
         ) {
             options = options.filter((i: DropdownOption) => {
                 return (
@@ -116,8 +117,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         }
     }, [criteriaFilter]);
 
-    if(isLoading){
-        return <></>
+    if (isLoading) {
+        return <></>;
     }
 
     return (
