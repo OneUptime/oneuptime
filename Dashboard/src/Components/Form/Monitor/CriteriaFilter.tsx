@@ -32,6 +32,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         Array<DropdownOption>
     >([]);
 
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
     useEffect(() => {
         let options: Array<DropdownOption> =
             DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
@@ -46,6 +48,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         }
 
         setCheckOnOptions(options);
+        setIsLoading(false);
     }, [props.monitorType]);
 
     const [filterTypeOptions, setFilterTypeOptions] = React.useState<
@@ -112,6 +115,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             props.onChange(criteriaFilter);
         }
     }, [criteriaFilter]);
+
+    if(isLoading){
+        return <></>
+    }
 
     return (
         <div className="flex">

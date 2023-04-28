@@ -133,14 +133,14 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             );
                         },
                         getCustomElement: (
-                            value: FormValues<Monitor>,
+                            _value: FormValues<Monitor>,
                             props: CustomElementProps
                         ) => {
                             return (
                                 <MonitorStepsForm
                                     {...props}
                                     monitorType={
-                                        value.monitorType || MonitorType.Manual
+                                        monitorType || MonitorType.Manual
                                     }
                                     error={''}
                                 />

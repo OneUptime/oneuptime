@@ -268,6 +268,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     onChange={(value: boolean) => {
                         setShowMonitorStatusChangeControl(value);
                         monitorCriteriaInstance.setChangeMonitorStatus(value);
+
+                        if(!value){
+                            monitorCriteriaInstance.setMonitorStatusId(
+                                undefined
+                            );
+                        }
+
                         setMonitorCriteriaInstance(
                             MonitorCriteriaInstance.clone(
                                 monitorCriteriaInstance
@@ -323,6 +330,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         monitorCriteriaInstance.setCreateIncidents(value);
 
                         if (
+                            value && 
                             !monitorCriteriaInstance.data?.incidents ||
                             monitorCriteriaInstance.data?.incidents?.length ===
                                 0
@@ -334,6 +342,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                     incidentSeverityId: undefined,
                                 },
                             ]);
+                        }else{
+                            monitorCriteriaInstance.setIncidents([]);
                         }
 
                         setMonitorCriteriaInstance(
