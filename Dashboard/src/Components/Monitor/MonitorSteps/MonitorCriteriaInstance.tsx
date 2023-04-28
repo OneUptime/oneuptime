@@ -27,9 +27,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     return (
         <div className="mb-4">
             {props.monitorCriteriaInstance.data?.description && (
-                <p className="-mt-8">
+                <div className="-mt-8">
                     {props.monitorCriteriaInstance.data?.description}
-                </p>
+                </div>
             )}
 
             <div className="mt-4">
@@ -38,7 +38,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         icon={IconProp.Filter}
                         className="h-5 w-5 text-gray-900"
                     />
-                    <p className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                    <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                         <span className="font-medium text-gray-900">
                             Filters (
                             {
@@ -49,7 +49,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         </span>{' '}
                         {props.monitorCriteriaInstance.data?.filterCondition} of
                         these should match for this criteria to be met:
-                    </p>
+                    </div>
                 </div>
 
                 <CriteriaFilters
@@ -65,7 +65,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         icon={IconProp.AltGlobe}
                         className="h-5 w-5 text-gray-900"
                     />
-                    <p className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                    <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                         <span className="font-medium text-gray-900">
                             Change Monitor Status
                         </span>{' '}
@@ -94,7 +94,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                 }
                             />
                         </div>
-                    </p>
+                    </div>
                 </div>
             </div>
 
@@ -104,13 +104,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         icon={IconProp.Alert}
                         className="h-5 w-5 text-gray-900"
                     />
-                    <p className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                    <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                         <span className="font-medium text-gray-900">
                             Create incident
                         </span>{' '}
                         when this criteria is met. These are the incident
                         details:{' '}
-                    </p>
+                    </div>
                 </div>
                 <MonitorCriteriaIncidents
                     incidents={

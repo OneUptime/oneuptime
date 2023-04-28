@@ -135,7 +135,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         icon={IconProp.AltGlobe}
                         className="h-5 w-5 text-gray-900"
                     />
-                    <p className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                    <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                         <span className="font-medium text-gray-900">
                             Default Monitor Status
                         </span>{' '}
@@ -175,7 +175,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                     />
                                 )}
                         </div>
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>

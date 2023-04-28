@@ -234,8 +234,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                    monitorSteps?.data?.defaultMonitorStatusId
-                                        ?.id || undefined
+                                    props.initialValue?.data?.defaultMonitorStatusId
+                                        ?.id.toString() || undefined
                             );
                         }
                     )}

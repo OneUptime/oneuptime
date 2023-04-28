@@ -82,9 +82,12 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }, [props.monitorStatusDropdownOptions]);
 
     const [showMonitorStatusChangeControl, setShowMonitorStatusChangeControl] =
-        useState<boolean>(false);
+        useState<boolean>(Boolean(
+            props.initialValue?.data?.monitorStatusId?.id
+        ) || false);
     const [showIncidentControl, setShowIncidentControl] =
-        useState<boolean>(false);
+        useState<boolean>((props.initialValue?.data?.incidents?.length ||
+            0) > 0);
 
     return (
         <div className="mt-4">
@@ -259,7 +262,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <div className="mt-4">
                 <Toggle
                     initialValue={Boolean(
-                        monitorCriteriaInstance?.data?.monitorStatusId?.id
+                        showMonitorStatusChangeControl
                     )}
                     title="When filters match, Change monitor status"
                     onChange={(value: boolean) => {
@@ -312,8 +315,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <div className="mt-4">
                 <Toggle
                     initialValue={
-                        (monitorCriteriaInstance?.data?.incidents?.length ||
-                            0) > 0
+                        showIncidentControl
                     }
                     title="When filters match, Create an incident."
                     onChange={(value: boolean) => {

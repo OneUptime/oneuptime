@@ -29,7 +29,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     <div className="h-1.5 w-1.5 rounded-full bg-slate-100 ring-1 ring-slate-300"></div>
                                 </div>
 
-                                <p className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                                <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
                                     <span className="font-medium text-gray-900">
                                         {i.data?.name || 'Criteria'}
                                     </span>{' '}
@@ -53,7 +53,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                             }
                                         />
                                     </div>
-                                </p>
+                                </div>
                             </li>
                         );
                     }

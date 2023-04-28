@@ -41,9 +41,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     return (
         <div className="flex w-full -ml-3">
             <div className="flex">
-                <p className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                     <span className="font-medium text-gray-900">{text}</span>{' '}
-                </p>
+                </div>
             </div>
         </div>
     );
