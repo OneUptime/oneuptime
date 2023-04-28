@@ -5,6 +5,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import Incident from 'Model/Models/Incident';
 import BasicForm from 'CommonUI/src/Components/Forms/BasicForm';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 export interface ComponentProps {
     initialValue?: undefined | CriteriaIncident;
@@ -21,8 +22,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <BasicForm
                 modelType={Incident}
                 hideSubmitButton={true}
-                initialValue={props.initialValue}
-                onChange={props.onChange}
+                initialValues={props.initialValue}
+                onChange={( values: FormValues<Incident>) => {
+                    props.onChange && props.onChange(values as CriteriaIncident)
+                }}
                 disableAutofocus={true}
                 fields={[
                     {

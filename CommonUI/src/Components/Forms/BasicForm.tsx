@@ -185,9 +185,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         useEffect(() => {
             validate(currentValue);
-            if (props.onChange) {
-                props.onChange(currentValue);
-            }
         }, [currentValue]);
 
         useImperativeHandle(
@@ -244,6 +241,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             refCurrentValue.current = updatedValue;
 
             setCurrentValue(refCurrentValue.current);
+
+            if (props.onChange && isInitialValuesSet.current) {
+                props.onChange(refCurrentValue.current);
+            }
         };
 
         const submitForm: Function = (): void => {
