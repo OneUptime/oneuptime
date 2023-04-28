@@ -32,6 +32,12 @@ export default class MonitorSteps extends DatabaseProperty {
         };
     }
 
+    public setMonitorStepsInstanceArray(monitorSteps: Array<MonitorStep>): void {
+        if (this.data) {
+            this.data.monitorStepsInstanceArray = monitorSteps;
+        }
+    }
+
     public static clone(monitorSteps: MonitorSteps): MonitorSteps {
         return MonitorSteps.fromJSON(monitorSteps.toJSON());
     }
@@ -125,7 +131,7 @@ export default class MonitorSteps extends DatabaseProperty {
             return 'Monitor Steps is required';
         }
 
-        if (value.data.defaultMonitorStatusId) {
+        if (!value.data.defaultMonitorStatusId) {
             return 'Default Monitor Status is required';
         }
 

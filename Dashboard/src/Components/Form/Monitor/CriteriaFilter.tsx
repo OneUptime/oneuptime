@@ -117,7 +117,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         <div className="flex">
             <div className="w-1/3 mr-1">
                 <Dropdown
-                    value={checkOnOptions.find((i: DropdownOption) => {
+                    initialValue={checkOnOptions.find((i: DropdownOption) => {
                         return i.value === criteriaFilter?.checkOn;
                     })}
                     options={checkOnOptions}
@@ -136,7 +136,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn && (
                         <Dropdown
-                            value={filterTypeOptions.find(
+                            initialValue={filterTypeOptions.find(
                                 (i: DropdownOption) => {
                                     return (
                                         i.value === criteriaFilter?.filterType

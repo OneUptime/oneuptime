@@ -192,6 +192,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                         ?.monitorStepsInstanceArray || []),
                                 ];
                                 newMonitorStepss[index] = value;
+                                monitorSteps.setMonitorStepsInstanceArray(newMonitorStepss);
                                 setMonitorSteps(
                                     MonitorSteps.clone(monitorSteps)
                                 );
