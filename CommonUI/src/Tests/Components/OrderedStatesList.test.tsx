@@ -63,7 +63,7 @@ describe('OrderedSateList', () => {
             onRefreshClick: jest.fn(),
         };
         render(<OrderedStatesList {...props} />);
-        const refreshButton: HTMLElement = screen.getByRole('button');
+        const refreshButton: HTMLElement = screen.getByRole('refresh-button');
         refreshButton.click();
         expect(props.onRefreshClick).toHaveBeenCalled();
     });
@@ -76,5 +76,48 @@ describe('OrderedSateList', () => {
         const newItem: HTMLElement = getByText('Add New Item');
         newItem.click();
         expect(props.onCreateNewItem).toHaveBeenCalled();
+    });
+    it('renders ErrorMessage with error message and callback when error is defined', () => {
+        const props: ComponentProps = {
+            ...defaultProps,
+            error: 'Failed to load data',
+            onRefreshClick: jest.fn(),
+        };
+        render(<OrderedStatesList {...props} />);
+        expect(screen.getByText('Failed to load data')).toBeInTheDocument();
+        expect(screen.getByRole('refresh-button')).toBeInTheDocument();
+        screen.getByRole('refresh-button').click();
+        expect(props.onRefreshClick).toHaveBeenCalled();
+    });
+    it('renders ErrorMessage with default message and callback when data is empty and noItemsMessage is not defined', () => {
+        const props: ComponentProps = {
+            ...defaultProps,
+            data: [],
+            noItemsMessage: undefined,
+            onRefreshClick: jest.fn(),
+        };
+        render(<OrderedStatesList {...props} />);
+        expect(
+            screen.getByText(`No ${props.singularLabel.toLowerCase()}`)
+        ).toBeInTheDocument();
+        expect(screen.getByRole('refresh-button')).toBeInTheDocument();
+        screen.getByRole('refresh-button').click();
+        expect(props.onRefreshClick).toHaveBeenCalled();
+    });
+    it('should render custom title element provided by getTitleElement function', () => {
+        const props: ComponentProps = {
+            ...defaultProps,
+            getTitleElement: jest.fn(),
+        };
+        render(<OrderedStatesList {...props} />);
+        expect(props.getTitleElement).toHaveBeenCalled();
+    });
+    it('should render custom title element provided by getDescriptionElement function', () => {
+        const props: ComponentProps = {
+            ...defaultProps,
+            getDescriptionElement: jest.fn(),
+        };
+        render(<OrderedStatesList {...props} />);
+        expect(props.getDescriptionElement).toHaveBeenCalled();
     });
 });
