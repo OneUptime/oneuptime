@@ -93,7 +93,7 @@ export default class IfElse extends ComponentCode {
 
             const serialize: Function = (arg: any): any => {
                 if (typeof arg === 'string') {
-                    return arg.replace(/\n/g, '');
+                    return arg.replace(/\n/g, '--newline--');
                 }
 
                 return arg;
