@@ -6,7 +6,6 @@ import Project from './Project';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
-import URL from 'Common/Types/API/URL';
 import User from './User';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -19,6 +18,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
+import File from './File';
 
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
@@ -187,24 +187,73 @@ export default class Probe extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectProbe,
+            Permission.CanCreateProjectStatusPage,
         ],
-        read: [Permission.Public],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectProbe,
+            Permission.CanEditProjectStatusPage,
         ],
     })
-    @TableColumn({ type: TableColumnType.ShortURL })
-    @Column({
-        type: ColumnType.ShortURL,
-        nullable: true,
-        length: ColumnLength.ShortURL,
-        transformer: URL.getDatabaseTransformer(),
+    @TableColumn({
+        manyToOneRelationColumn: 'iconFileId',
+        type: TableColumnType.Entity,
+        modelType: File,
+        title: 'Icon',
+        description: 'Status Page Icon',
     })
-    public iconUrl?: URL = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return File;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'delete',
+        }
+    )
+    @JoinColumn({ name: 'iconFileId' })
+    public iconFile?: File = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Icon',
+        description: 'Status Page Icon File ID',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public iconFileId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
