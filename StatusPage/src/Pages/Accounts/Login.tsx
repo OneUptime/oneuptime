@@ -131,13 +131,26 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                         submitButtonText={'Login'}
                         onSuccess={(value: JSONObject) => {
                             LoginUtil.login(value);
-                            Navigation.navigate(
-                                new Route(
-                                    props.isPreviewPage
-                                        ? `/status-page/${props.statusPageId}/`
-                                        : '/'
-                                )
-                            );
+
+                            if (
+                                Navigation.getQueryStringByName('redirectUrl')
+                            ) {
+                                Navigation.navigate(
+                                    new Route(
+                                        Navigation.getQueryStringByName(
+                                            'redirectUrl'
+                                        )!
+                                    )
+                                );
+                            } else {
+                                Navigation.navigate(
+                                    new Route(
+                                        props.isPreviewPage
+                                            ? `/status-page/${props.statusPageId}/`
+                                            : '/'
+                                    )
+                                );
+                            }
                         }}
                         onBeforeCreate={(item: StatusPagePrivateUser) => {
                             if (!props.statusPageId) {

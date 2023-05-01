@@ -8,7 +8,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import User from '../../Utils/User';
+import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import SubscribeSideMenu from './SideMenu';
@@ -32,13 +32,15 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
     if (
         props.statusPageId &&
         props.isPrivatePage &&
-        !User.isLoggedIn(props.statusPageId)
+        !UserUtil.isLoggedIn(props.statusPageId)
     ) {
         Navigation.navigate(
             new Route(
                 props.isPreviewPage
-                    ? `/status-page/${props.statusPageId}/login`
-                    : '/login'
+                    ? `/status-page/${
+                          props.statusPageId
+                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
+                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
             )
         );
     }

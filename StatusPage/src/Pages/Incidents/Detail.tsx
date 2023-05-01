@@ -165,8 +165,10 @@ const Detail: FunctionComponent<PageComponentProps> = (
         Navigation.navigate(
             new Route(
                 props.isPreviewPage
-                    ? `/status-page/${props.statusPageId}/login`
-                    : '/login'
+                    ? `/status-page/${
+                          props.statusPageId
+                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
+                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
             )
         );
     }

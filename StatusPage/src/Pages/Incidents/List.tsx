@@ -30,7 +30,7 @@ import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getIncidentEventItem } from './Detail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import User from '../../Utils/User';
+import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -59,13 +59,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (
         props.statusPageId &&
         props.isPrivatePage &&
-        !User.isLoggedIn(props.statusPageId)
+        !UserUtil.isLoggedIn(props.statusPageId)
     ) {
         Navigation.navigate(
             new Route(
                 props.isPreviewPage
-                    ? `/status-page/${props.statusPageId}/login`
-                    : '/login'
+                    ? `/status-page/${
+                          props.statusPageId
+                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
+                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
             )
         );
     }
