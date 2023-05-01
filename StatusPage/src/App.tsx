@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
@@ -68,10 +67,7 @@ const App: FunctionComponent = () => {
     };
 
     const isPreviewPage: Function = (): boolean => {
-
-        return Navigation.containsInPath(
-            "/status-page/"
-        );
+        return Navigation.containsInPath('/status-page/');
     };
 
     return (
