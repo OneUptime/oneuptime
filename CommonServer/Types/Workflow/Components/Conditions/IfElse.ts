@@ -91,12 +91,24 @@ export default class IfElse extends ComponentCode {
                 },
             });
 
+            const serialize: Function = (arg: any): any => {
+                if (typeof arg === 'string') {
+                    return arg.replace(/\n/g, '--newline--');
+                }
+
+                return arg;
+            };
+
             const script: VMScript = new VMScript(
                 `module.exports = function() {  
                     
-                    const input1 = ${(args['input-1'] as string) || ''};
+                    const input1 = ${
+                        serialize(args['input-1'] as string) || ''
+                    };
 
-                    const input2 = ${(args['input-2'] as string) || ''};
+                    const input2 = ${
+                        serialize(args['input-2'] as string) || ''
+                    };
                     
                     return input1 ${
                         (args['operator'] as string) || '=='

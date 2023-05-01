@@ -40,7 +40,7 @@ import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Monitor from 'Model/Models/Monitor';
-import User from '../../Utils/User';
+import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
@@ -97,13 +97,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (
         props.statusPageId &&
         props.isPrivatePage &&
-        !User.isLoggedIn(props.statusPageId)
+        !UserUtil.isLoggedIn(props.statusPageId)
     ) {
         Navigation.navigate(
             new Route(
                 props.isPreviewPage
-                    ? `/status-page/${props.statusPageId}/login`
-                    : '/login'
+                    ? `/status-page/${
+                          props.statusPageId
+                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
+                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
             )
         );
     }

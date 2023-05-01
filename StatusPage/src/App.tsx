@@ -31,7 +31,6 @@ import PageMap from './Utils/PageMap';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import RouteParams from './Utils/RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
 
 // Logout.
@@ -68,16 +67,7 @@ const App: FunctionComponent = () => {
     };
 
     const isPreviewPage: Function = (): boolean => {
-        const id: string | null = Navigation.getParamByName(
-            RouteParams.StatusPageId,
-            RouteMap[PageMap.PREVIEW_OVERVIEW]!
-        );
-
-        if (id) {
-            return true;
-        }
-
-        return false;
+        return Navigation.containsInPath('/status-page/');
     };
 
     return (

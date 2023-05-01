@@ -27,6 +27,10 @@ abstract class Navigation {
         return this.params;
     }
 
+    public static getCurrentPath(): Route {
+        return new Route(window.location.pathname);
+    }
+
     public static getQueryStringByName(paramName: string): string | null {
         const urlSearchParams: URLSearchParams = new URLSearchParams(
             window.location.search
@@ -105,6 +109,10 @@ abstract class Navigation {
 
     public static reload(): void {
         window.location.reload();
+    }
+
+    public static containsInPath(text: string): boolean {
+        return window.location.pathname.includes(text);
     }
 
     public static isOnThisPage(route: Route | URL): boolean {

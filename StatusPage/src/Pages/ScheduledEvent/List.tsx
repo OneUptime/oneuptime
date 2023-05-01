@@ -31,7 +31,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getScheduledEventEventItem } from './Detail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
-import User from '../../Utils/User';
+import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -62,13 +62,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (
         props.statusPageId &&
         props.isPrivatePage &&
-        !User.isLoggedIn(props.statusPageId)
+        !UserUtil.isLoggedIn(props.statusPageId)
     ) {
         Navigation.navigate(
             new Route(
                 props.isPreviewPage
-                    ? `/status-page/${props.statusPageId}/login`
-                    : '/login'
+                    ? `/status-page/${
+                          props.statusPageId
+                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
+                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
             )
         );
     }
