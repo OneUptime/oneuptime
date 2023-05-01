@@ -310,6 +310,11 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/labels`
     ),
 
+    // Probes.
+    [PageMap.SETTINGS_PROBES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/probes`
+    ),
+
     // workflows.
     [PageMap.WORKFLOWS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/workflows`

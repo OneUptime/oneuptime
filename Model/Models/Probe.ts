@@ -150,9 +150,19 @@ export default class Probe extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
-        update: [],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectProbe,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Version })
     @Column({
@@ -207,7 +217,7 @@ export default class Probe extends BaseModel {
         type: TableColumnType.Entity,
         modelType: File,
         title: 'Icon',
-        description: 'Status Page Icon',
+        description: 'Probe Icon',
     })
     @ManyToOne(
         (_type: string) => {
@@ -246,7 +256,7 @@ export default class Probe extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'Icon',
-        description: 'Status Page Icon File ID',
+        description: 'Probe Page Icon File ID',
     })
     @Column({
         type: ColumnType.ObjectID,

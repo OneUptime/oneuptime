@@ -102,6 +102,9 @@ enum PageMap {
     // Labels.
     SETTINGS_LABELS = 'SETTINGS_LABELS',
 
+    // Probes.
+    SETTINGS_PROBES = 'SETTINGS_PROBES',
+
     // SSO.
     SETTINGS_SSO = 'SETTINGS_SSO',
 
