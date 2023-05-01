@@ -13,6 +13,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
             {props.error} <br />{' '}
             {props.onRefreshClick ? (
                 <span
+                    role={'refresh-button'}
                     onClick={() => {
                         if (props.onRefreshClick) {
                             props.onRefreshClick();
