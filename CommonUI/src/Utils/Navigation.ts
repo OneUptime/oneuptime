@@ -107,6 +107,10 @@ abstract class Navigation {
         window.location.reload();
     }
 
+    public static containsInPath(text: string): boolean {
+        return window.location.pathname.includes(text);
+    }
+
     public static isOnThisPage(route: Route | URL): boolean {
         if (route instanceof Route) {
             const current: Route = this.getCurrentRoute();

@@ -1,3 +1,4 @@
+
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
@@ -31,7 +32,6 @@ import PageMap from './Utils/PageMap';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import RouteParams from './Utils/RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
 
 // Logout.
@@ -68,16 +68,10 @@ const App: FunctionComponent = () => {
     };
 
     const isPreviewPage: Function = (): boolean => {
-        const id: string | null = Navigation.getParamByName(
-            RouteParams.StatusPageId,
-            RouteMap[PageMap.PREVIEW_OVERVIEW]!
+
+        return Navigation.containsInPath(
+            "/status-page/"
         );
-
-        if (id) {
-            return true;
-        }
-
-        return false;
     };
 
     return (
