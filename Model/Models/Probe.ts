@@ -174,7 +174,12 @@ export default class Probe extends BaseModel {
     public probeVersion?: Version = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
         update: [],
     })
