@@ -84,6 +84,25 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:6.0.$CI_PIPELINE_ID-test --tag oneuptime/realtime:test --push -f ./Realtime/Dockerfile .
       
 
+  probe-test:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy probe-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:6.0.$CI_PIPELINE_ID-test --tag oneuptime/probe:test --push -f ./Probe/Dockerfile .
+
   probe-api-test:
     runs-on: ubuntu-latest
     env:
