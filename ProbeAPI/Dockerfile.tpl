@@ -1,5 +1,5 @@
 #
-# OneUptime-ProbeAPI Dockerfile
+# OneUptime-probe-api Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -10,6 +10,10 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
+
+
+# Install python
+RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -55,6 +59,7 @@ COPY ./ProbeAPI/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
+#   - 3400: OneUptime-probe-api
 EXPOSE 3400
 
 {{ if eq .Env.ENVIRONMENT "development" }}
@@ -68,3 +73,4 @@ RUN npm run compile
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
+
