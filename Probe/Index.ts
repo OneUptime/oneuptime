@@ -8,6 +8,10 @@ const init: Function = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
+
+        // Register this probe. 
+        
+
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
