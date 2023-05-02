@@ -57,73 +57,81 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     criteriaFilters={
                         props.monitorCriteriaInstance?.data?.filters || []
                     }
-                    filterCondition={props.monitorCriteriaInstance?.data?.filterCondition || FilterCondition.Any}
+                    filterCondition={
+                        props.monitorCriteriaInstance?.data?.filterCondition ||
+                        FilterCondition.Any
+                    }
                 />
             </div>
 
-            {props.monitorCriteriaInstance.data?.monitorStatusId && <div className="mt-4">
-                <div className="flex">
-                    <Icon
-                        icon={IconProp.AltGlobe}
-                        className="h-5 w-5 text-gray-900"
-                    />
-                    <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                        <span className="font-medium text-gray-900">
-                            Change Monitor Status
-                        </span>{' '}
-                        when this criteria is met. Change monitor status to:
-                        <div className="mt-3">
-                            <Statusbubble
-                                color={
-                                    (props.monitorStatusOptions.find(
-                                        (option: IncidentSeverity) => {
-                                            return (
-                                                option.id?.toString() ===
-                                                props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
-                                            );
-                                        }
-                                    )?.color as Color) || Black
-                                }
-                                text={
-                                    (props.monitorStatusOptions.find(
-                                        (option: IncidentSeverity) => {
-                                            return (
-                                                option.id?.toString() ===
-                                                props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
-                                            );
-                                        }
-                                    )?.name as string) || ''
-                                }
-                            />
+            {props.monitorCriteriaInstance.data?.monitorStatusId && (
+                <div className="mt-4">
+                    <div className="flex">
+                        <Icon
+                            icon={IconProp.AltGlobe}
+                            className="h-5 w-5 text-gray-900"
+                        />
+                        <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                            <span className="font-medium text-gray-900">
+                                Change Monitor Status
+                            </span>{' '}
+                            when this criteria is met. Change monitor status to:
+                            <div className="mt-3">
+                                <Statusbubble
+                                    color={
+                                        (props.monitorStatusOptions.find(
+                                            (option: IncidentSeverity) => {
+                                                return (
+                                                    option.id?.toString() ===
+                                                    props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
+                                                );
+                                            }
+                                        )?.color as Color) || Black
+                                    }
+                                    text={
+                                        (props.monitorStatusOptions.find(
+                                            (option: IncidentSeverity) => {
+                                                return (
+                                                    option.id?.toString() ===
+                                                    props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
+                                                );
+                                            }
+                                        )?.name as string) || ''
+                                    }
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>}
+            )}
 
-            {(props.monitorCriteriaInstance?.data?.incidents?.length || 0) > 0 && <div className="mt-4">
-                <div className="flex">
-                    <Icon
-                        icon={IconProp.Alert}
-                        className="h-5 w-5 text-gray-900"
-                    />
-                    <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                        <span className="font-medium text-gray-900">
-                            Create incident
-                        </span>{' '}
-                        when this criteria is met. These are the incident
-                        details:{' '}
+            {(props.monitorCriteriaInstance?.data?.incidents?.length || 0) >
+                0 && (
+                <div className="mt-4">
+                    <div className="flex">
+                        <Icon
+                            icon={IconProp.Alert}
+                            className="h-5 w-5 text-gray-900"
+                        />
+                        <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                            <span className="font-medium text-gray-900">
+                                Create incident
+                            </span>{' '}
+                            when this criteria is met. These are the incident
+                            details:{' '}
+                        </div>
                     </div>
+                    <MonitorCriteriaIncidents
+                        incidents={
+                            props.monitorCriteriaInstance?.data?.incidents || []
+                        }
+                        incidentSeverityOptions={props.incidentSeverityOptions}
+                    />
                 </div>
-                <MonitorCriteriaIncidents
-                    incidents={
-                        props.monitorCriteriaInstance?.data?.incidents || []
-                    }
-                    incidentSeverityOptions={props.incidentSeverityOptions}
-                />
-            </div>}
+            )}
 
-                <div className='mt-10'>
-            {!props.isLastCriteria && <HorizontalRule />}
+            <div className="mt-10">
+                {!props.isLastCriteria && <HorizontalRule />}
             </div>
         </div>
     );

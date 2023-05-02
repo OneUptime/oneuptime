@@ -266,7 +266,6 @@ export default class OneUptimeDate {
         return b.diff(a, 'days');
     }
 
-
     public static getNumberOfMinutesBetweenDates(
         startDate: Date,
         endDate: Date
@@ -376,17 +375,15 @@ export default class OneUptimeDate {
     }
 
     public static fromString(date: string | JSONObject): Date {
-
-        if(typeof date === 'string') {
+        if (typeof date === 'string') {
             return moment(date).toDate();
         }
 
-        if(date && date['value'] && typeof date['value'] === 'string'){
+        if (date && date['value'] && typeof date['value'] === 'string') {
             return moment(date['value']).toDate();
         }
 
         throw new BadDataException('Invalid date');
-        
     }
 
     public static asDateForDatabaseQuery(date: string | Date): string {

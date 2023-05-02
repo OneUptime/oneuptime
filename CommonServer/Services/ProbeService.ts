@@ -10,12 +10,14 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected  override async onBeforeCreate(createBy: CreateBy<Model>): Promise<OnCreate<Model>> {
-        if(!createBy.data.key) {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
+        if (!createBy.data.key) {
             createBy.data.key = ObjectID.generate().toString();
         }
 
-        if(!createBy.data.probeVersion) {
+        if (!createBy.data.probeVersion) {
             createBy.data.probeVersion = new Version('1.0.0');
         }
 

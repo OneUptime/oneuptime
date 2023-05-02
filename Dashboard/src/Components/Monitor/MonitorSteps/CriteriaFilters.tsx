@@ -1,4 +1,7 @@
-import { CriteriaFilter, FilterCondition } from 'Common/Types/Monitor/CriteriaFilter';
+import {
+    CriteriaFilter,
+    FilterCondition,
+} from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement } from 'react';
 import CriteriaFilterElement from './CriteriaFilter';
 
@@ -30,7 +33,11 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                                 <CriteriaFilterElement
                                     key={index}
                                     criteriaFilter={i}
-                                    filterCondition={!isLastItem ? props.filterCondition : undefined}
+                                    filterCondition={
+                                        !isLastItem
+                                            ? props.filterCondition
+                                            : undefined
+                                    }
                                 />{' '}
                             </li>
                         );

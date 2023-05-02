@@ -76,7 +76,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
                             props.onChange &&
                                 props.onChange(
-                                    value.map(i => {
+                                    value.map((i: DropdownOption) => {
                                         return i.value;
                                     })
                                 );

@@ -129,7 +129,6 @@ export default class MonitorProbe extends AccessControlModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -149,8 +148,7 @@ export default class MonitorProbe extends AccessControlModel {
         type: TableColumnType.Entity,
         modelType: Probe,
         title: 'Probe',
-        description:
-            'Relation to Probe Resource in which this object belongs',
+        description: 'Relation to Probe Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -186,8 +184,7 @@ export default class MonitorProbe extends AccessControlModel {
         required: true,
         canReadOnPopulate: true,
         title: 'Probe ID',
-        description:
-            'ID of your OneUptime Probe in which this object belongs',
+        description: 'ID of your OneUptime Probe in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -264,10 +261,12 @@ export default class MonitorProbe extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CanReadMonitorProbe,],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorProbe,
+        ],
 
         update: [],
     })
@@ -281,10 +280,12 @@ export default class MonitorProbe extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CanReadMonitorProbe],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorProbe,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
@@ -430,7 +431,7 @@ export default class MonitorProbe extends AccessControlModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanEditMonitorProbe,
-        ]
+        ],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -444,5 +445,4 @@ export default class MonitorProbe extends AccessControlModel {
         default: true,
     })
     public isEnabled?: boolean = undefined;
-
 }

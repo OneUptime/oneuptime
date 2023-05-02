@@ -30,29 +30,28 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         props.criteriaFilter?.filterType &&
         props.criteriaFilter?.checkOn !== CheckOn.IsOnline
     ) {
-
-        if(props.criteriaFilter?.filterType.toLowerCase().includes('contains')){
-            text += props.criteriaFilter?.filterType.toString().toLowerCase() +
-            ' ';
-        }else{
+        if (
+            props.criteriaFilter?.filterType.toLowerCase().includes('contains')
+        ) {
             text +=
-            'is ' +
-            props.criteriaFilter?.filterType.toString().toLowerCase() +
-            ' ';
+                props.criteriaFilter?.filterType.toString().toLowerCase() + ' ';
+        } else {
+            text +=
+                'is ' +
+                props.criteriaFilter?.filterType.toString().toLowerCase() +
+                ' ';
         }
-
-       
     }
 
     if (props.criteriaFilter?.value !== undefined) {
-        text += props.criteriaFilter?.value.toString()+" ";
+        text += props.criteriaFilter?.value.toString() + ' ';
     }
 
-    if(props.filterCondition === FilterCondition.All){
+    if (props.filterCondition === FilterCondition.All) {
         text += 'and,';
     }
 
-    if(props.filterCondition === FilterCondition.Any){
+    if (props.filterCondition === FilterCondition.Any) {
         text += 'or,';
     }
 

@@ -327,9 +327,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
                         if (
                             (value &&
-                                (!monitorCriteriaInstance.data?.incidents) ||
+                                !monitorCriteriaInstance.data?.incidents) ||
                             monitorCriteriaInstance.data?.incidents?.length ===
-                                0)
+                                0
                         ) {
                             monitorCriteriaInstance.setIncidents([
                                 {
@@ -338,7 +338,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                     incidentSeverityId: undefined,
                                 },
                             ]);
-                        } if(!value) {
+                        }
+                        if (!value) {
                             monitorCriteriaInstance.setIncidents([]);
                         }
 

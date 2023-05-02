@@ -53,15 +53,11 @@ export default class ModelAPI {
 
     public static async update<TBaseModel extends BaseModel>(
         model: TBaseModel,
-        modelType: { new (): TBaseModel },
+        modelType: { new (): TBaseModel }
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        return await ModelAPI.createOrUpdate(
-            model,
-            modelType,
-            FormType.Update,
-        );
+        return await ModelAPI.createOrUpdate(model, modelType, FormType.Update);
     }
 
     public static async updateById<TBaseModel extends BaseModel>(
@@ -190,7 +186,7 @@ export default class ModelAPI {
             .addRoute(apiPath)
             .addRoute('/get-list');
 
-        if(requestOptions?.overrideRequestUrl){
+        if (requestOptions?.overrideRequestUrl) {
             apiUrl = requestOptions.overrideRequestUrl;
         }
 
@@ -261,9 +257,9 @@ export default class ModelAPI {
             .addRoute(apiPath)
             .addRoute('/count');
 
-            if(requestOptions?.overrideRequestUrl){
-                apiUrl = requestOptions.overrideRequestUrl;
-            }
+        if (requestOptions?.overrideRequestUrl) {
+            apiUrl = requestOptions.overrideRequestUrl;
+        }
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -344,9 +340,9 @@ export default class ModelAPI {
             .addRoute('/' + id.toString())
             .addRoute('/get-item');
 
-            if(requestOptions?.overrideRequestUrl){
-                apiUrl = requestOptions.overrideRequestUrl;
-            }
+        if (requestOptions?.overrideRequestUrl) {
+            apiUrl = requestOptions.overrideRequestUrl;
+        }
 
         if (!apiUrl) {
             throw new BadDataException(

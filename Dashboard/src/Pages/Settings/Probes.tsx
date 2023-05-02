@@ -25,9 +25,7 @@ import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-    const [showKeyModal, setShowKeyModal] =
-        useState<boolean>(false);
+    const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
     const [currentProbe, setCurrentProbe] = useState<JSONObject | null>(null);
 
@@ -56,10 +54,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             <>
-
-            <ModelTable<Probe>
+                <ModelTable<Probe>
                     modelType={Probe}
                     id="probes-table"
                     name="Settings > Global Probes"
@@ -73,16 +69,14 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             'Global Probes help you monitor external resources from different locations around the world.',
                     }}
                     fetchRequestOptions={{
-                        overrideRequestUrl: URL.fromString(DASHBOARD_API_URL.toString()).addRoute('/probe/global-probes')
+                        overrideRequestUrl: URL.fromString(
+                            DASHBOARD_API_URL.toString()
+                        ).addRoute('/probe/global-probes'),
                     }}
                     noItemsMessage={'No probes found.'}
-                    
-                   
                     showRefreshButton={true}
                     showFilterButton={true}
-                    
                     columns={[
-                        
                         {
                             field: {
                                 name: true,
@@ -91,9 +85,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Text,
                             isFilterable: true,
                             getElement: (item: JSONObject): ReactElement => {
-                                return (
-                                    <ProbeElement probe={item}/>
-                                );
+                                return <ProbeElement probe={item} />;
                             },
                         },
                         {
@@ -112,25 +104,40 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Text,
                             isFilterable: false,
                             getElement: (item: JSONObject): ReactElement => {
-
-                                if(item && item['lastAlive'] && OneUptimeDate.getNumberOfMinutesBetweenDates(OneUptimeDate.fromString(item['lastAlive'] as string), OneUptimeDate.getCurrentDate()) < 5){
-                                    return <Statusbubble text={'Connected'} color={Green}/>
+                                if (
+                                    item &&
+                                    item['lastAlive'] &&
+                                    OneUptimeDate.getNumberOfMinutesBetweenDates(
+                                        OneUptimeDate.fromString(
+                                            item['lastAlive'] as string
+                                        ),
+                                        OneUptimeDate.getCurrentDate()
+                                    ) < 5
+                                ) {
+                                    return (
+                                        <Statusbubble
+                                            text={'Connected'}
+                                            color={Green}
+                                        />
+                                    );
                                 }
 
                                 return (
-                                    <Statusbubble text={'Disconnected'} color={Red}/>
+                                    <Statusbubble
+                                        text={'Disconnected'}
+                                        color={Red}
+                                    />
                                 );
                             },
                         },
-                       
                     ]}
                 />
-
 
                 <ModelTable<Probe>
                     modelType={Probe}
                     query={{
-                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
                     }}
                     id="probes-table"
                     name="Settings > Probes"
@@ -182,7 +189,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             required: false,
                             placeholder: 'Upload logo',
                         },
-
                     ]}
                     showRefreshButton={true}
                     showFilterButton={true}
@@ -208,7 +214,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     columns={[
-                        
                         {
                             field: {
                                 name: true,
@@ -217,9 +222,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Text,
                             isFilterable: true,
                             getElement: (item: JSONObject): ReactElement => {
-                                return (
-                                    <ProbeElement probe={item}/>
-                                );
+                                return <ProbeElement probe={item} />;
                             },
                         },
                         {
@@ -238,41 +241,56 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Text,
                             isFilterable: false,
                             getElement: (item: JSONObject): ReactElement => {
-
-                                if(item && item['lastAlive'] && OneUptimeDate.getNumberOfMinutesBetweenDates(OneUptimeDate.fromString(item['lastAlive'] as string), OneUptimeDate.getCurrentDate()) < 5){
-                                    return <Statusbubble text={'Connected'} color={Green}/>
+                                if (
+                                    item &&
+                                    item['lastAlive'] &&
+                                    OneUptimeDate.getNumberOfMinutesBetweenDates(
+                                        OneUptimeDate.fromString(
+                                            item['lastAlive'] as string
+                                        ),
+                                        OneUptimeDate.getCurrentDate()
+                                    ) < 5
+                                ) {
+                                    return (
+                                        <Statusbubble
+                                            text={'Connected'}
+                                            color={Green}
+                                        />
+                                    );
                                 }
 
                                 return (
-                                    <Statusbubble text={'Disconnected'} color={Red}/>
+                                    <Statusbubble
+                                        text={'Disconnected'}
+                                        color={Red}
+                                    />
                                 );
                             },
                         },
-                       
                     ]}
                 />
-
 
                 {showKeyModal && currentProbe ? (
                     <ConfirmModal
                         title={`Probe Key`}
-
                         description={
                             <div>
                                 <span>
-                                    Here is your probe key. Please keep this a secret.
+                                    Here is your probe key. Please keep this a
+                                    secret.
                                 </span>
                                 <br />
                                 <br />
                                 <span>
-                                    <b>Probe ID: </b> {currentProbe['_id']?.toString()}
+                                    <b>Probe ID: </b>{' '}
+                                    {currentProbe['_id']?.toString()}
                                 </span>
                                 <br />
                                 <br />
                                 <span>
-                                    <b>Probe Key: </b> {currentProbe['key']?.toString()}
+                                    <b>Probe Key: </b>{' '}
+                                    {currentProbe['key']?.toString()}
                                 </span>
-
                             </div>
                         }
                         submitButtonText={'Close'}
@@ -285,7 +303,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     <></>
                 )}
             </>
-
         </Page>
     );
 };

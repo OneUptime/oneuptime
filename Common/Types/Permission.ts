@@ -68,7 +68,6 @@ enum Permission {
     CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
     CanReadScheduledMaintenanceCustomField = 'CanReadScheduledMaintenanceCustomField',
 
-
     CanCreateMonitorProbe = 'CanCreateMonitorProbe',
     CanDeleteMonitorProbe = 'CanDeleteMonitorProbe',
     CanEditMonitorProbe = 'CanEditMonitorProbe',
@@ -1628,7 +1627,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateMonitorProbe,

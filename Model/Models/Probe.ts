@@ -64,9 +64,7 @@ export default class Probe extends BaseModel {
             Permission.ProjectMember,
             Permission.CanCreateProjectProbe,
         ],
-        read: [Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        ],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({
@@ -181,10 +179,12 @@ export default class Probe extends BaseModel {
             Permission.ProjectMember,
             Permission.CanCreateProjectProbe,
         ],
-        read: [Permission.ProjectOwner,
+        read: [
+            Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectProbe],
+            Permission.CanReadProjectProbe,
+        ],
         update: [],
     })
     @TableColumn({
@@ -410,17 +410,10 @@ export default class Probe extends BaseModel {
     })
     public createdByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-            
-        ],
-        update: [
-            
-        ]
+        create: [],
+        read: [],
+        update: [],
     })
     @TableColumn({
         isDefaultValueColumn: true,

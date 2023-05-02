@@ -26,10 +26,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
     if (!probe) {
         return (
             <div className="flex">
-
-                <div className="bold">
-                    No probe found.
-                </div>
+                <div className="bold">No probe found.</div>
             </div>
         );
     }
@@ -47,20 +44,19 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
                     />
                 )}
                 {!props.probe?.iconFileId && (
-                    <Icon icon={IconProp.Signal} className='text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-0.5 mt-0.5 h-6 w-6'/>
+                    <Icon
+                        icon={IconProp.Signal}
+                        className="text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-0.5 mt-0.5 h-6 w-6"
+                    />
                 )}
             </div>
             <div className="mt-1 mr-1 ml-3">
                 <div>
-                   
-                    <span
-                       
-                    >{`${(probe['name']?.toString() as string) ||
-                        ''
-                        }`}</span>{' '}
+                    <span>{`${
+                        (probe['name']?.toString() as string) || ''
+                    }`}</span>{' '}
                 </div>
             </div>
-            
         </div>
     );
 };

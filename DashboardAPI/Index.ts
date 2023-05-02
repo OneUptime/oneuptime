@@ -45,7 +45,6 @@ import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
 } from 'CommonServer/Services/WorkflowVariableService';
 
-
 import MonitorProbe from 'Model/Models/MonitorProbe';
 import MonitorProbeService, {
     Service as MonitorProbeServiceType,
@@ -252,12 +251,13 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<MonitorProbe, MonitorProbeServiceType>(MonitorProbe, MonitorProbeService).getRouter()
+    new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
+        MonitorProbe,
+        MonitorProbeService
+    ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

@@ -28,7 +28,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                               ...props.initialValue,
                               incidentSeverityId:
                                   props.incidentSeverityDropdownOptions.find(
-                                      (i) => {
+                                      (i: DropdownOption) => {
                                           return (
                                               i.value.toString() ===
                                               props.initialValue?.incidentSeverityId?.toString()!
