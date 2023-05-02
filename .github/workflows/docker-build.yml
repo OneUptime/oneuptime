@@ -1,0 +1,313 @@
+name:  Docker Build
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+
+
+jobs:
+
+  docker-build-accounts:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./Accounts/Dockerfile .
+
+  docker-build-alert:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for mail service
+      - name: build docker image
+        run: sudo docker build -f ./Alert/Dockerfile .
+
+  docker-build-api-reference:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./ApiReference/Dockerfile .
+
+  docker-build-dashboard-api:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+        
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./DashboardAPI/Dockerfile .
+
+  docker-build-dashboard:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./Dashboard/Dockerfile .
+
+  docker-build-file:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for file
+      - name: build docker image
+        run: sudo docker build -f ./File/Dockerfile .
+
+  docker-build-haraka:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build images
+      - name: build docker image
+        run: sudo docker build -f ./Haraka/Dockerfile .
+
+  docker-build-helm-chart:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./HelmChart/Dockerfile .
+
+  docker-build-home:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./Home/Dockerfile .
+
+  docker-build-identity:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for identity
+      - name: build docker image
+        run: sudo docker build -f ./Identity/Dockerfile .
+
+  docker-build-integrations:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for licensing
+      - name: build docker image
+        run: sudo docker build -f ./Integration/Dockerfile .
+
+  docker-build-licensing:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for licensing
+      - name: build docker image
+        run: sudo docker build -f ./Licensing/Dockerfile .
+
+  docker-build-mail:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for mail service
+      - name: build docker image
+        run: sudo docker build -f ./Mail/Dockerfile .
+
+  docker-build-nginx:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for mail service
+      - name: build docker image
+        run: sudo docker build -f ./Nginx/Dockerfile ./Nginx
+
+  docker-build-probe:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image probe api
+      - name: build docker image
+        run: sudo docker build -f ./Probe/Dockerfile .
+
+  docker-build-probe-api:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image probe api
+      - name: build docker image
+        run: sudo docker build -f ./ProbeAPI/Dockerfile .
+
+  docker-build-realtime:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./Realtime/Dockerfile .
+
+  docker-build-status-page:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./StatusPage/Dockerfile .
+
+  docker-build-workers:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+
+        
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./Workers/Dockerfile .
+
+  docker-build-workflow:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+
+      # build image for mail service
+      - name: build docker image
+        run: sudo docker build -f ./Workflow/Dockerfile .
