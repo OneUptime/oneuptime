@@ -16,6 +16,9 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ProbeElement from '../../Components/Probe/Probe';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import { Green, Red } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
 
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -114,7 +117,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     showFilterButton={true}
                     actionButtons={[
                         {
-                            title: 'Show Probe Key',
+                            title: 'Show ID and Key',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
                                 item: JSONObject,
@@ -142,7 +145,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             title: 'Name',
                             type: FieldType.Text,
                             isFilterable: true,
-
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <ProbeElement probe={item}/>
@@ -159,12 +161,23 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                _id: true,
+                                lastAlive: true,
                             },
-                            title: 'Probe ID',
+                            title: 'Status',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            isFilterable: false,
+                            getElement: (item: JSONObject): ReactElement => {
+
+                                if(item && item['lastAlive'] && OneUptimeDate.getNumberOfMinutesBetweenDates(item['lastAlive'] as Date, OneUptimeDate.getCurrentDate()) < 5){
+                                    <Statusbubble text={'Connected'} color={Green}/>
+                                }
+
+                                return (
+                                    <Statusbubble text={'Disconnected'} color={Red}/>
+                                );
+                            },
                         },
+                       
                     ]}
                 />
 
@@ -177,6 +190,11 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             <div>
                                 <span>
                                     Here is your probe key. Please keep this a secret.
+                                </span>
+                                <br />
+                                <br />
+                                <span>
+                                    <b>Probe ID: </b> {currentProbe['_id']?.toString()}
                                 </span>
                                 <br />
                                 <br />

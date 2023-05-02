@@ -264,6 +264,16 @@ export default class OneUptimeDate {
         return b.diff(a, 'days');
     }
 
+
+    public static getNumberOfMinutesBetweenDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        const a: moment.Moment = moment(startDate);
+        const b: moment.Moment = moment(endDate);
+        return b.diff(a, 'minutes');
+    }
+
     public static getNumberOfDaysBetweenDatesInclusive(
         startDate: Date,
         endDate: Date

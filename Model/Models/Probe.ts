@@ -182,7 +182,10 @@ export default class Probe extends BaseModel {
             Permission.ProjectMember,
             Permission.CanCreateProjectProbe,
         ],
-        read: [Permission.Public],
+        read: [Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectProbe],
         update: [],
     })
     @TableColumn({
