@@ -375,11 +375,8 @@ services:
         {{ end }}
     
 
-    probe-1:
-        {{ if eq .Env.ENVIRONMENT "development" }}
-        ports:
-            - '9655:9229' # Debugging port.
-        {{ end }}    
+    {{ if .Env.GLOBAL_PROBE_1_KEY }}
+    probe-1:   
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
@@ -393,7 +390,11 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./Probe/.env
-
+        environment:
+            - PROBE_NAME={{ .Env.GLOBAL_PROBE_1_NAME }}
+            - PROBE_DESCRIPTION={{ .Env.GLOBAL_PROBE_1_DESCRIPTION }}
+            - PROBE_KEY={{ .Env.GLOBAL_PROBE_1_KEY }}
+            - PROBE_API_URL=http://probe-api:3400
         depends_on:
             - probe-api
         links:
@@ -414,6 +415,7 @@ services:
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
         {{ end }}
+    {{ end }}
 
     identity:
         ports:

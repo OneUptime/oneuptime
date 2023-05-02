@@ -5,7 +5,6 @@ import Express, {
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import ObjectID from 'Common/Types/ObjectID';
 import Response from 'CommonServer/Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeService from 'CommonServer/Services/ProbeService';
@@ -32,7 +31,7 @@ router.post(
             }
 
 
-            const probeKey =  new ObjectID(data.probeKey);
+            const probeKey =  data.probeKey;
 
             const probe: Probe | null = await ProbeService.findOneBy({
                 query: {

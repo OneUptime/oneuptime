@@ -12,7 +12,7 @@ export class Service extends DatabaseService<Model> {
 
     protected  override async onBeforeCreate(createBy: CreateBy<Model>): Promise<OnCreate<Model>> {
         if(!createBy.data.key) {
-            createBy.data.key = ObjectID.generate();
+            createBy.data.key = ObjectID.generate().toString();
         }
 
         if(!createBy.data.probeVersion) {
