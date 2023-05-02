@@ -7,6 +7,27 @@ on:
 
 jobs:
 
+  github-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compress into a Tarball
+        uses: a7ul/tar-action@v1.1.0
+        id: compress
+        with:
+          command: c
+          cwd: ../
+          files: |
+            .
+          outPath: release.tar.gz 
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "release.tar.gz"
+          tag: 6.0.$CI_PIPELINE_ID
+          artifactErrorsFailBuild: true
+
   workflow-release:
     runs-on: ubuntu-latest
     env:
