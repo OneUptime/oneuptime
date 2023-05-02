@@ -453,11 +453,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 tBaseModel as TBaseModel,
                 props.modelType,
                 props.formType,
-                props.apiUrl,
                 miscDataProps,
                 {
                     ...props.saveRequestOptions,
                     requestHeaders: props.requestHeaders,
+                    overrideRequestUrl: props.apiUrl,
                 }
             );
 

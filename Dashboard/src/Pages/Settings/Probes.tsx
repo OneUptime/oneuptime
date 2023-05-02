@@ -19,6 +19,8 @@ import ProbeElement from '../../Components/Probe/Probe';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import { Green, Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
+import URL from 'Common/Types/API/URL';
+import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -56,6 +58,75 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
         >
 
             <>
+
+            <ModelTable<Probe>
+                    modelType={Probe}
+                    id="probes-table"
+                    name="Settings > Global Probes"
+                    isDeleteable={false}
+                    isEditable={false}
+                    isCreateable={false}
+                    cardProps={{
+                        icon: IconProp.Signal,
+                        title: 'Global Probes',
+                        description:
+                            'Global Probes help you monitor external resources from different locations around the world.',
+                    }}
+                    fetchRequestOptions={{
+                        overrideRequestUrl: URL.fromString(DASHBOARD_API_URL.toString()).addRoute('/probe/global-probes')
+                    }}
+                    noItemsMessage={'No probes found.'}
+                    
+                   
+                    showRefreshButton={true}
+                    showFilterButton={true}
+                    
+                    columns={[
+                        
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: 'Name',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <ProbeElement probe={item}/>
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                lastAlive: true,
+                            },
+                            title: 'Status',
+                            type: FieldType.Text,
+                            isFilterable: false,
+                            getElement: (item: JSONObject): ReactElement => {
+
+                                if(item && item['lastAlive'] && OneUptimeDate.getNumberOfMinutesBetweenDates(OneUptimeDate.fromString(item['lastAlive'] as string), OneUptimeDate.getCurrentDate()) < 5){
+                                    return <Statusbubble text={'Connected'} color={Green}/>
+                                }
+
+                                return (
+                                    <Statusbubble text={'Disconnected'} color={Red}/>
+                                );
+                            },
+                        },
+                       
+                    ]}
+                />
+
+
                 <ModelTable<Probe>
                     modelType={Probe}
                     query={{
@@ -168,8 +239,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             isFilterable: false,
                             getElement: (item: JSONObject): ReactElement => {
 
-                                if(item && item['lastAlive'] && OneUptimeDate.getNumberOfMinutesBetweenDates(item['lastAlive'] as Date, OneUptimeDate.getCurrentDate()) < 5){
-                                    <Statusbubble text={'Connected'} color={Green}/>
+                                if(item && item['lastAlive'] && OneUptimeDate.getNumberOfMinutesBetweenDates(OneUptimeDate.fromString(item['lastAlive'] as string), OneUptimeDate.getCurrentDate()) < 5){
+                                    return <Statusbubble text={'Connected'} color={Green}/>
                                 }
 
                                 return (

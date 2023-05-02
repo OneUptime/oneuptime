@@ -410,4 +410,29 @@ export default class Probe extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public createdByUserId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            
+        ],
+        read: [
+            
+        ],
+        update: [
+            
+        ]
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isGlobalProbe?: boolean = undefined;
 }

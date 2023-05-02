@@ -1,3 +1,5 @@
+import BadDataException from './Exception/BadDataException';
+import { JSONObject } from './JSON';
 import PositiveNumber from './PositiveNumber';
 import moment from 'moment-timezone';
 
@@ -373,8 +375,18 @@ export default class OneUptimeDate {
         return moment(date).isAfter(new Date());
     }
 
-    public static fromString(date: string): Date {
-        return moment(date).toDate();
+    public static fromString(date: string | JSONObject): Date {
+
+        if(typeof date === 'string') {
+            return moment(date).toDate();
+        }
+
+        if(date && date['value'] && typeof date['value'] === 'string'){
+            return moment(date['value']).toDate();
+        }
+
+        throw new BadDataException('Invalid date');
+        
     }
 
     public static asDateForDatabaseQuery(date: string | Date): string {

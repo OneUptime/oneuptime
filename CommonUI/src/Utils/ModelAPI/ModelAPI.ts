@@ -31,13 +31,13 @@ export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
 export interface RequestOptions {
     isMultiTenantRequest?: boolean | undefined;
     requestHeaders?: Dictionary<string> | undefined;
+    overrideRequestUrl?: URL | undefined;
 }
 
 export default class ModelAPI {
     public static async create<TBaseModel extends BaseModel>(
         model: TBaseModel,
         modelType: { new (): TBaseModel },
-        apiUrlOverride?: URL,
         requestOptions?: RequestOptions | undefined
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
@@ -46,7 +46,6 @@ export default class ModelAPI {
             model,
             modelType,
             FormType.Create,
-            apiUrlOverride,
             {},
             requestOptions
         );
@@ -55,7 +54,6 @@ export default class ModelAPI {
     public static async update<TBaseModel extends BaseModel>(
         model: TBaseModel,
         modelType: { new (): TBaseModel },
-        apiUrlOverride?: URL
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -63,7 +61,6 @@ export default class ModelAPI {
             model,
             modelType,
             FormType.Update,
-            apiUrlOverride
         );
     }
 
@@ -118,13 +115,12 @@ export default class ModelAPI {
         model: TBaseModel,
         modelType: { new (): TBaseModel },
         formType: FormType,
-        apiUrlOverride?: URL,
         miscDataProps?: JSONObject,
         requestOptions?: RequestOptions | undefined
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        let apiUrl: URL | null = apiUrlOverride || null;
+        let apiUrl: URL | null = requestOptions?.overrideRequestUrl || null;
 
         if (!apiUrl) {
             const apiPath: Route | null = model.getCrudApiPath();
@@ -190,9 +186,13 @@ export default class ModelAPI {
             );
         }
 
-        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
             .addRoute('/get-list');
+
+        if(requestOptions?.overrideRequestUrl){
+            apiUrl = requestOptions.overrideRequestUrl;
+        }
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -257,9 +257,13 @@ export default class ModelAPI {
             );
         }
 
-        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
             .addRoute('/count');
+
+            if(requestOptions?.overrideRequestUrl){
+                apiUrl = requestOptions.overrideRequestUrl;
+            }
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -335,10 +339,14 @@ export default class ModelAPI {
             );
         }
 
-        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
             .addRoute('/' + id.toString())
             .addRoute('/get-item');
+
+            if(requestOptions?.overrideRequestUrl){
+                apiUrl = requestOptions.overrideRequestUrl;
+            }
 
         if (!apiUrl) {
             throw new BadDataException(
