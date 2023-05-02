@@ -50,6 +50,11 @@ import ProbeService, {
     Service as ProbeServiceType,
 } from 'CommonServer/Services/ProbeService';
 
+import MonitorProbe from 'Model/Models/MonitorProbe';
+import MonitorProbeService, {
+    Service as MonitorProbeServiceType,
+} from 'CommonServer/Services/MonitorProbeService';
+
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPagePrivateUserService, {
     Service as StatusPagePrivateUserServiceType,
@@ -248,10 +253,19 @@ app.use(
         ProjectService
     ).getRouter()
 );
+
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter()
 );
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorProbe, MonitorProbeServiceType>(MonitorProbe, ProbeService).getRouter()
+);
+
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
