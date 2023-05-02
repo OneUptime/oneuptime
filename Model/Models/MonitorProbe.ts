@@ -3,23 +3,21 @@ import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
-import Color from 'Common/Types/Color';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import Monitor from './Monitor';
+import Probe from './Probe';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -27,23 +25,23 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectLabel,
+        Permission.CanCreateMonitorProbe,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectLabel,
+        Permission.CanReadMonitorProbe,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectLabel,
+        Permission.CanDeleteMonitorProbe,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditProjectLabel,
+        Permission.CanEditMonitorProbe,
     ],
 })
 @EnableWorkflow({
@@ -52,31 +50,30 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     update: true,
     read: true,
 })
-@CrudApiEndpoint(new Route('/label'))
-@SlugifyColumn('name', 'slug')
+@CrudApiEndpoint(new Route('/monitor-probe'))
 @TableMetadata({
-    tableName: 'Label',
-    singularName: 'Label',
-    pluralName: 'Labels',
-    icon: IconProp.Label,
+    tableName: 'MonitorProbe',
+    singularName: 'Monitor Probe',
+    pluralName: 'Monitor Probes',
+    icon: IconProp.Signal,
     tableDescription:
-        'Organize resources for your project by using labels / tags.',
+        'Add probes to monitor your resource from multiple locations around the world.',
 })
 @Entity({
-    name: 'Label',
+    name: 'MonitorProbe',
 })
-export default class Label extends AccessControlModel {
+export default class MonitorProbe extends AccessControlModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
@@ -106,13 +103,13 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
@@ -132,105 +129,183 @@ export default class Label extends AccessControlModel {
     })
     public projectId?: ObjectID = undefined;
 
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanEditProjectLabel,
-        ],
-    })
-    @TableColumn({
-        required: true,
-        type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
-        title: 'Name',
-        description: 'Any friendly name of this object',
-    })
-    @Column({
-        nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
-    })
-    @UniqueColumnBy('projectId')
-    public name?: string = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
     @TableColumn({
-        required: true,
-        unique: true,
-        type: TableColumnType.Slug,
-        title: 'Slug',
-        description: 'Friendly globally unique name for your object',
+        manyToOneRelationColumn: 'probeId',
+        type: TableColumnType.Entity,
+        modelType: Probe,
+        title: 'Probe',
+        description:
+            'Relation to Probe Resource in which this object belongs',
     })
-    @Column({
-        nullable: false,
-        type: ColumnType.Slug,
-        length: ColumnLength.Slug,
-    })
-    public slug?: string = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return Probe;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'monitorId' })
+    public probe?: Probe = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
-        update: [
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+        title: 'Probe ID',
+        description:
+            'ID of your OneUptime Probe in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public probeId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorProbe,
+        ],
+        update: [],
     })
     @TableColumn({
-        required: false,
-        type: TableColumnType.LongText,
-        title: 'Description',
-        description: 'Any friendly description of this object',
+        manyToOneRelationColumn: 'monitorId',
+        type: TableColumnType.Entity,
+        modelType: Monitor,
+        title: 'Monitor',
+        description:
+            'Relation to Monitor Resource in which this object belongs',
     })
-    @Column({
-        nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
-    })
-    public description?: string = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return Monitor;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'monitorId' })
+    public monitor?: Monitor = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+        title: 'Monitor ID',
+        description:
+            'ID of your OneUptime Monitor in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public monitorId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadMonitorProbe,],
+
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public lastPingAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadMonitorProbe],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public nextPingAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateMonitorProbe,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
@@ -260,13 +335,13 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
@@ -289,7 +364,7 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
@@ -321,7 +396,7 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [],
     })
@@ -342,34 +417,32 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CanCreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.CanReadMonitorProbe,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectLabel,
-        ],
+            Permission.ProjectMember,
+            Permission.CanEditMonitorProbe,
+        ]
     })
     @TableColumn({
-        title: 'Color',
+        isDefaultValueColumn: true,
         required: true,
-        unique: false,
-        type: TableColumnType.Color,
-        canReadOnPopulate: true,
-        description: 'Color of this resource in Hex (#32a852 for example)',
+        type: TableColumnType.Boolean,
     })
     @Column({
-        type: ColumnType.Color,
-        length: ColumnLength.Color,
-        unique: false,
+        type: ColumnType.Boolean,
         nullable: false,
-        transformer: Color.getDatabaseTransformer(),
+        unique: false,
+        default: true,
     })
-    public color?: Color = undefined;
+    public isEnabled?: boolean = undefined;
+
 }
