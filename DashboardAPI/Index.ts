@@ -263,7 +263,7 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<MonitorProbe, MonitorProbeServiceType>(MonitorProbe, ProbeService).getRouter()
+    new BaseAPI<MonitorProbe, MonitorProbeServiceType>(MonitorProbe, MonitorProbeService).getRouter()
 );
 
 

@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -10,15 +10,21 @@ import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ProbeElement from '../../Components/Probe/Probe';
 
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+    const [showKeyModal, setShowKeyModal] =
+        useState<boolean>(false);
+
+    const [currentProbe, setCurrentProbe] = useState<JSONObject | null>(null);
 
     return (
         <Page
@@ -45,98 +51,152 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<Probe>
-                modelType={Probe}
-                query={{
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
-                }}
-                id="probes-table"
-                name="Settings > Probes"
-                isDeleteable={true}
-                isEditable={true}
-                isCreateable={true}
-                cardProps={{
-                    icon: IconProp.Signal,
-                    title: 'Custom Probes',
-                    description:
-                        'Custom Probes help you monitor internal resources that is behind your firewall.',
-                }}
-                noItemsMessage={'No probes found.'}
-                viewPageRoute={Navigation.getCurrentRoute()}
-                formFields={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: 'Name',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'internal-probe',
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                    
-                    {
-                        field: {
-                            description: true,
-                        },
-                        title: 'Description',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: true,
-                        placeholder:
-                            'This probe is to monitor all the internal services.',
-                    },
-                    {
-                        field: {
-                            iconFile: true,
-                        },
-                        title: 'Probe Logo',
-                        fieldType: FormFieldSchemaType.ImageFile,
-                        required: false,
-                        placeholder: 'Upload logo',
-                    },
-                    
-                ]}
-                showRefreshButton={true}
-                showFilterButton={true}
-                
-                columns={[
-                    {
-                        field: {
-                            _id: true,
-                        },
-                        title: 'Probe ID',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: 'Name',
-                        type: FieldType.Text,
-                        isFilterable: true,
 
-                        getElement: (item: JSONObject): ReactElement => {
-                            return (
-                                <Pill
-                                    color={item['color'] as Color}
-                                    text={item['name'] as string}
-                                />
-                            );
+            <>
+                <ModelTable<Probe>
+                    modelType={Probe}
+                    query={{
+                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                    }}
+                    id="probes-table"
+                    name="Settings > Probes"
+                    isDeleteable={true}
+                    isEditable={true}
+                    isCreateable={true}
+                    cardProps={{
+                        icon: IconProp.Signal,
+                        title: 'Custom Probes',
+                        description:
+                            'Custom Probes help you monitor internal resources that is behind your firewall.',
+                    }}
+                    selectMoreFields={{
+                        key: true,
+                        iconFileId: true,
+                    }}
+                    noItemsMessage={'No probes found.'}
+                    viewPageRoute={Navigation.getCurrentRoute()}
+                    formFields={[
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: 'Name',
+                            fieldType: FormFieldSchemaType.Text,
+                            required: true,
+                            placeholder: 'internal-probe',
+                            validation: {
+                                minLength: 2,
+                            },
                         },
-                    },
-                    {
-                        field: {
-                            description: true,
+
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                            fieldType: FormFieldSchemaType.LongText,
+                            required: true,
+                            placeholder:
+                                'This probe is to monitor all the internal services.',
                         },
-                        title: 'Description',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                ]}
-            />
+                        {
+                            field: {
+                                iconFile: true,
+                            },
+                            title: 'Probe Logo',
+                            fieldType: FormFieldSchemaType.ImageFile,
+                            required: false,
+                            placeholder: 'Upload logo',
+                        },
+
+                    ]}
+                    showRefreshButton={true}
+                    showFilterButton={true}
+                    actionButtons={[
+                        {
+                            title: 'Show Probe Key',
+                            buttonStyleType: ButtonStyleType.NORMAL,
+                            onClick: async (
+                                item: JSONObject,
+                                onCompleteAction: Function,
+                                onError: (err: Error) => void
+                            ) => {
+                                try {
+                                    setCurrentProbe(item);
+                                    setShowKeyModal(true);
+
+                                    onCompleteAction();
+                                } catch (err) {
+                                    onCompleteAction();
+                                    onError(err as Error);
+                                }
+                            },
+                        },
+                    ]}
+                    columns={[
+                        
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: 'Name',
+                            type: FieldType.Text,
+                            isFilterable: true,
+
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <ProbeElement probe={item}/>
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                _id: true,
+                            },
+                            title: 'Probe ID',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                    ]}
+                />
+
+
+                {showKeyModal && currentProbe ? (
+                    <ConfirmModal
+                        title={`Probe Key`}
+
+                        description={
+                            <div>
+                                <span>
+                                    Here is your probe key. Please keep this a secret.
+                                </span>
+                                <br />
+                                <br />
+                                <span>
+                                    <b>Probe Key: </b> {currentProbe['key']?.toString()}
+                                </span>
+
+                            </div>
+                        }
+                        submitButtonText={'Close'}
+                        submitButtonType={ButtonStyleType.NORMAL}
+                        onSubmit={async () => {
+                            setShowKeyModal(false);
+                        }}
+                    />
+                ) : (
+                    <></>
+                )}
+            </>
+
         </Page>
     );
 };

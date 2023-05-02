@@ -4,7 +4,6 @@ import DatabaseService, { OnCreate } from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import CreateBy from '../Types/Database/CreateBy';
-import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -19,8 +18,6 @@ export class Service extends DatabaseService<Model> {
         if(!createBy.data.probeVersion) {
             createBy.data.probeVersion = new Version('1.0.0');
         }
-
-        createBy.data.lastAlive = OneUptimeDate.getCurrentDate();
 
         return { createBy: createBy, carryForward: [] };
     }

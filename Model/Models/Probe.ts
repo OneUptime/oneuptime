@@ -64,7 +64,9 @@ export default class Probe extends BaseModel {
             Permission.ProjectMember,
             Permission.CanCreateProjectProbe,
         ],
-        read: [],
+        read: [Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({
@@ -184,15 +186,12 @@ export default class Probe extends BaseModel {
         update: [],
     })
     @TableColumn({
-        isDefaultValueColumn: true,
-        required: true,
+        isDefaultValueColumn: false,
+        required: false,
         type: TableColumnType.Date,
     })
     @Column({
-        nullable: false,
-        default: () => {
-            return 'CURRENT_TIMESTAMP';
-        },
+        nullable: true,
         type: ColumnType.Date,
     })
     public lastAlive?: Date = undefined;
