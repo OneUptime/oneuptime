@@ -1,13 +1,35 @@
-import { ExpressApplication } from 'CommonServer/Utils/Express';
+import 'ejs';
+import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
+import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
+import AliveAPI from './API/Alive';
+import RegisterAPI from './API/Register';
 
-export const APP_NAME: string = 'data-ingestor';
-const app: ExpressApplication = App(APP_NAME);
+import Redis from 'CommonServer/Infrastructure/Redis';
 
-// API
-import ProbeAPI from './API/Probe';
+const app: ExpressApplication = Express.getExpressApp();
 
-// Attach to the app.
-app.use([`/${APP_NAME}/probe`, '/probe'], ProbeAPI);
+const APP_NAME: string = 'probe-api';
 
-export default app;
+app.use([`/${APP_NAME}`, '/'], AliveAPI);
+app.use([`/${APP_NAME}`, '/'], RegisterAPI);
+
+const init: Function = async (): Promise<void> => {
+    try {
+        // init the app
+        await App(APP_NAME);
+        // connect to the database.
+        await PostgresAppInstance.connect(
+            PostgresAppInstance.getDatasourceOptions()
+        );
+
+        // connect redis
+        await Redis.connect();
+    } catch (err) {
+        logger.error('App Init Failed:');
+        logger.error(err);
+    }
+};
+
+init();
