@@ -180,6 +180,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             placeholder:
                                 'This probe is to monitor all the internal services.',
                         },
+                        
                         {
                             field: {
                                 iconFile: true,
@@ -188,6 +189,14 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             fieldType: FormFieldSchemaType.ImageFile,
                             required: false,
                             placeholder: 'Upload logo',
+                        },
+                        {
+                            field: {
+                                shouldAutoEnableProbeOnNewMonitors: true,
+                            },
+                            title: 'Enable monitoring automatically on new monitors',
+                            fieldType: FormFieldSchemaType.Toggle,
+                            required: false,
                         },
                     ]}
                     showRefreshButton={true}
@@ -231,6 +240,14 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                             type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                shouldAutoEnableProbeOnNewMonitors: true,
+                            },
+                            title: 'Enable Monitoring by Default',
+                            type: FieldType.Boolean,
                             isFilterable: true,
                         },
                         {
