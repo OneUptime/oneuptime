@@ -7,10 +7,25 @@ on:
 
 jobs:
 
-
-
-          
-
+  github-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: release
+      - name: "Build Changelog"
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v3.7.1
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: ${{env.ONEUPTIME_VERSION}}
+          artifactErrorsFailBuild: true
+          body: |
+            ${{steps.build_changelog.outputs.changelog}}
 
   workflow-docker-image-deploy:
     runs-on: ubuntu-latest
