@@ -34,7 +34,8 @@ jobs:
           artifacts: "release.tar.gz"
           tag: ${{env.ONEUPTIME_VERSION}}
           artifactErrorsFailBuild: true
-          body: ${{steps.build_changelog.outputs.changelog}}
+          body: |
+            ${{steps.build_changelog.outputs.changelog}}
 
   workflow-release:
     runs-on: ubuntu-latest
