@@ -1,4 +1,4 @@
-import { EVERY_DAY, EVERY_MINUTE } from '../../Utils/CronTime';
+import { EVERY_DAY, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';

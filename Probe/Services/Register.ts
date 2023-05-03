@@ -31,8 +31,8 @@ export default class Register {
             }
 
             await API.post(URL.fromString(PROBE_API_URL.toString()).addRoute("/alive"), {
-                "probeKey": PROBE_KEY,
-                "probeId": PROBE_ID,
+                "probeKey": PROBE_KEY.toString(),
+                "probeId": PROBE_ID.toString(),
             })
 
             LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID.toString() as string);

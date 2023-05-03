@@ -3,6 +3,8 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import Register from './Services/Register';
 
+import './Jobs/Alive';
+
 const APP_NAME: string = 'probe';
 
 const init: Function = async (): Promise<void> => {

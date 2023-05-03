@@ -375,7 +375,7 @@ services:
         {{ end }}
     
 
-    {{ if .Env.GLOBAL_PROBE_1_KEY }}
+    {{ if .Env.GLOBAL_PROBE_1_NAME }}
     probe-1:   
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
@@ -415,6 +415,35 @@ services:
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
         {{ end }}
+    {{ end }}
+
+
+    {{ if .Env.GLOBAL_PROBE_2_NAME }}
+    probe-2:   
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Probe/Dockerfile
+        {{ else }}
+        image:  oneuptime/probe:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Probe/.env
+        environment:
+            - PROBE_NAME={{ .Env.GLOBAL_PROBE_2_NAME }}
+            - PROBE_DESCRIPTION={{ .Env.GLOBAL_PROBE_2_DESCRIPTION }}
+            - PROBE_KEY={{ .Env.GLOBAL_PROBE_2_KEY }}
+            - PROBE_API_URL=http://probe-api:3400
+        depends_on:
+            - probe-api
+        links:
+            - probe-api
+        volumes:
+            - ./Certs:/usr/src/Certs
     {{ end }}
 
     identity:
