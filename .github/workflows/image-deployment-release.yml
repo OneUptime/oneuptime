@@ -23,12 +23,16 @@ jobs:
           cwd: ../
           files: |
             .
-          outPath: release.tar.gz 
+          outPath: release.tar.gz
+      - name: "Build Changelog"
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@{latest-release}
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "release.tar.gz"
           tag: ${{env.ONEUPTIME_VERSION}}
           artifactErrorsFailBuild: true
+          body: ${{steps.build_changelog.outputs.changelog}}
 
   workflow-release:
     runs-on: ubuntu-latest
