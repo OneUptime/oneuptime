@@ -75,6 +75,7 @@ router.post(
             newProbe.name = data['probeName'] as string;
             newProbe.description = data['probeDescription'] as string;
             newProbe.lastAlive = OneUptimeDate.getCurrentDate();
+            newProbe.shouldAutoEnableProbeOnNewMonitors = true;
 
             newProbe = await ProbeService.create({
                 data: newProbe,

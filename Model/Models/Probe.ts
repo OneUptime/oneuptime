@@ -427,4 +427,38 @@ export default class Probe extends BaseModel {
         default: false,
     })
     public isGlobalProbe?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
 }

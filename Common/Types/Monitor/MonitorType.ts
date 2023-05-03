@@ -5,9 +5,9 @@ enum MonitorType {
     Website = 'Website',
     API = 'API',
     Ping = 'Ping',
-    // Kubernetes = 'Kubernetes',
+    Kubernetes = 'Kubernetes',
     IP = 'IP',
-    // IncomingRequest = 'IncomingRequest',
+    IncomingRequest = 'IncomingRequest',
 }
 
 export default MonitorType;
