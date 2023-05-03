@@ -263,6 +263,7 @@ export default class Probe extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'Icon',
         description: 'Probe Page Icon File ID',
+        canReadOnPopulate: true,
     })
     @Column({
         type: ColumnType.ObjectID,

@@ -110,6 +110,12 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 monitorId: modelId.toString(),
 
             }}
+            onBeforeCreate={(item: MonitorProbe): MonitorProbe => {
+                item.monitorId = modelId;
+                item.projectId = DashboardNavigation.getProjectId()!
+
+                return item;
+            }}
             id="probes-table"
             name="Monitor > Monitor Probes"
             isDeleteable={false}
@@ -120,10 +126,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 title: 'Probes',
                 description:
                     'Probes help you monitor this resource.',
-            }}
-            selectMoreFields={{
-                key: true,
-                iconFileId: true,
             }}
             noItemsMessage={'No probes found for this resource. However, you can add some probes to monitor this resource.'}
             viewPageRoute={Navigation.getCurrentRoute()}
@@ -167,15 +169,10 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                     },
                     isFilterable: false,
-                    filterEntityType: Probe,
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
                     title: 'Probe',
                     type: FieldType.Entity,
                     getElement: (item: JSONObject): ReactElement => {
-                        return <ProbeElement probe={item} />;
+                        return <ProbeElement probe={item['probe'] as JSONObject} />;
                     },
                 },
                 {
@@ -185,6 +182,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     title: 'Last Monitored At',
                     type: FieldType.DateTime,
                     isFilterable: false,
+                    noValueMessage: 'Never. Will be monitored soon.',
                     
                 },
                 {

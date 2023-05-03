@@ -161,7 +161,7 @@ export default class MonitorProbe extends AccessControlModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'monitorId' })
+    @JoinColumn({ name: 'probeId' })
     public probe?: Probe = undefined;
 
     @ColumnAccessControl({

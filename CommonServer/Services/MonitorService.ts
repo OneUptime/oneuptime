@@ -12,7 +12,6 @@ import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ProbeService from './ProbeService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import MonitorProbe from 'Model/Models/MonitorProbe';
-import OneUptimeDate from 'Common/Types/Date';
 import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 
@@ -125,8 +124,6 @@ export class Service extends DatabaseService<Model> {
             monitorProbe.probeId = probe.id!;
             monitorProbe.projectId = projectId;
             monitorProbe.isEnabled = true;
-            monitorProbe.lastPingAt = OneUptimeDate.getCurrentDate();
-            monitorProbe.nextPingAt = OneUptimeDate.getCurrentDate();
 
             await MonitorProbeService.create({
                 data: monitorProbe,

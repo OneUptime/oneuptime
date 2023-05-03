@@ -36,6 +36,7 @@ import Monitor from './Monitor';
 import MonitorStatus from './MonitorStatus';
 import MonitorStatusTimeline from './MonitorStatusTimeline';
 import MonitorCustomField from './MonitorCustomField';
+import MonitorProbe from './MonitorProbe';
 
 // Incidents
 import Incident from './Incident';
@@ -133,4 +134,6 @@ export default [
 
     ProjectSSO,
     StatusPageSSO,
+
+    MonitorProbe
 ];
