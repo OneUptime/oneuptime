@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: write
     env:
-      CI_PIPELINE_ID: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
     steps:
       - uses: actions/checkout@v3
       - name: Compress into a Tarball
@@ -27,7 +27,7 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "release.tar.gz"
-          tag: "${CI_PIPELINE_ID}"
+          tag: ${{env.ONEUPTIME_VERSION}}
           artifactErrorsFailBuild: true
 
   workflow-release:
