@@ -27,6 +27,11 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/incidents`
     ),
 
+    [PageMap.MONITOR_VIEW_PROBES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/probes`
+    ),
+
+
     [PageMap.MONITOR_VIEW_CRITERIA]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/criteria`
     ),
