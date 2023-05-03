@@ -125,7 +125,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 icon: IconProp.Signal,
                 title: 'Probes',
                 description:
-                    'Probes help you monitor this resource.',
+                    'List of probes that help you monitor this resource.',
             }}
             noItemsMessage={'No probes found for this resource. However, you can add some probes to monitor this resource.'}
             viewPageRoute={Navigation.getCurrentRoute()}
@@ -182,7 +182,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     title: 'Last Monitored At',
                     type: FieldType.DateTime,
                     isFilterable: false,
-                    noValueMessage: 'Never. Will be monitored soon.',
+                    noValueMessage: 'Will be picked up by this probe soon.',
                     
                 },
                 {

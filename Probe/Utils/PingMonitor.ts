@@ -7,15 +7,17 @@ import net, { Socket } from 'net';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {
-    isAlive: boolean;
+    isOnline: boolean;
     responseTimeInMS?: PositiveNumber;
     remoteAddressIP: IPv4 | IPv6;
     remoteAddressPort: Port;
 }
+
 export interface PingOptions {
     port?: PositiveNumber;
     timeout?: PositiveNumber;
 }
+
 export default class Ping {
     public static async fetch(
         _host: Hostname | IPv4 | IPv6,
@@ -50,7 +52,7 @@ export default class Ping {
                 });
                 socket.on('timeout', () => {
                     resolve({
-                        isAlive: false,
+                        isOnline: false,
                     });
                 });
                 socket.on('connect', () => {
@@ -62,7 +64,7 @@ export default class Ping {
 
                     socket.end(() => {
                         resolve({
-                            isAlive: true,
+                            isOnline: true,
                             responseTimeInMS,
                             remoteAddressIP,
                             remoteAddressPort:
@@ -73,7 +75,7 @@ export default class Ping {
                 });
                 socket.on('error', () => {
                     resolve({
-                        isAlive: false,
+                        isOnline: false,
                     });
                 });
             }
