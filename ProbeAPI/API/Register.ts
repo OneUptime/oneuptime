@@ -50,16 +50,30 @@ router.post(
             });
 
             if (probe) {
-                return Response.sendTextResponse(
-                    req,
-                    res,
-                    'Probe already registered'
-                );
+
+                await ProbeService.updateOneById({
+                    id: probe.id!,
+                    data: {
+                        name: data['probeName'] as string,
+                        description: data['probeDescription'] as string,
+                        lastAlive:  OneUptimeDate.getCurrentDate()
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                return Response.sendJsonObjectResponse(req, res, {
+                    _id: probe._id?.toString(),
+                    message: 'Probe already registered',
+                });
             }
 
             let newProbe: Probe = new Probe();
             newProbe.isGlobalProbe = true;
             newProbe.key = probeKey;
+            newProbe.name = data['probeName'] as string;
+            newProbe.description = data['probeDescription'] as string;
             newProbe.lastAlive = OneUptimeDate.getCurrentDate();
 
             newProbe = await ProbeService.create({

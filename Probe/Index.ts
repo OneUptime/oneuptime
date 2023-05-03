@@ -1,6 +1,7 @@
 import 'ejs';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
+import Register from './Services/Register';
 
 const APP_NAME: string = 'probe';
 
@@ -10,7 +11,7 @@ const init: Function = async (): Promise<void> => {
         await App(APP_NAME);
 
         // Register this probe. 
-        
+        await Register.registerProbe();
 
     } catch (err) {
         logger.error('App Init Failed:');
