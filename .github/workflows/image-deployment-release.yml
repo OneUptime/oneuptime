@@ -27,7 +27,7 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "release.tar.gz"
-          tag: ${CI_PIPELINE_ID}
+          tag: "${CI_PIPELINE_ID}"
           artifactErrorsFailBuild: true
 
   workflow-release:
