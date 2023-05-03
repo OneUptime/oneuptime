@@ -164,7 +164,18 @@ abstract class Navigation {
         this.navigateHook(-1);
     }
 
-    public static navigate(to: Route | URL): void {
+    public static navigate(
+        to: Route | URL,
+        options?: {
+            openInNewTab?: boolean | undefined;
+        }
+    ): void {
+        if (options?.openInNewTab) {
+            // open in new tab
+            window.open(to.toString(), '_blank');
+            return;
+        }
+
         if (this.navigateHook && to instanceof Route) {
             this.navigateHook(to.toString());
         }

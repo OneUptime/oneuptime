@@ -88,6 +88,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 name="Status Page > Resources"
                 sortBy="order"
+                showViewIdButton={true}
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}
                 isViewable={false}
@@ -243,14 +244,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             displayName: true,
                         },
                         title: 'Display Name',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            displayDescription: true,
-                        },
-                        title: 'Display Description',
                         type: FieldType.Text,
                         isFilterable: true,
                     },

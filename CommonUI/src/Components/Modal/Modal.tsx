@@ -23,6 +23,7 @@ export interface ComponentProps {
     onSubmit: () => void;
     submitButtonStyleType?: undefined | ButtonStyleType;
     submitButtonType?: undefined | ButtonType;
+    closeButtonStyleType?: undefined | ButtonStyleType;
     isLoading?: undefined | boolean;
     disableSubmitButton?: undefined | boolean;
     error?: string | undefined;
@@ -153,6 +154,11 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 props.submitButtonStyleType
                                     ? props.submitButtonStyleType
                                     : ButtonStyleType.PRIMARY
+                            }
+                            closeButtonStyleType={
+                                props.closeButtonStyleType
+                                    ? props.closeButtonStyleType
+                                    : ButtonStyleType.NORMAL
                             }
                             submitButtonText={
                                 props.submitButtonText

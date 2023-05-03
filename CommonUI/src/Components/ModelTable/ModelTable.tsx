@@ -48,7 +48,7 @@ import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
-import { BILLING_ENABLED, getAllEnvVars } from '../../Config';
+import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from '../../Config';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
@@ -61,6 +61,7 @@ import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import { FormStep } from '../Forms/Types/FormStep';
+import URL from 'Common/Types/API/URL';
 
 export enum ShowTableAs {
     Table,
@@ -91,6 +92,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
+    showViewIdButton?: undefined | boolean;
     enableDragAndDrop?: boolean | undefined;
     viewPageRoute?: undefined | Route;
     onViewPage?: (item: TBaseModel) => Promise<Route>;
@@ -144,6 +146,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         showTableAs = ShowTableAs.Table;
     }
 
+    const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
+    const [viewId, setViewId] = useState<string | null>(null);
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
     const model: TBaseModel = new props.modelType();
@@ -357,7 +361,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         model.hasUpdatePermissions(permissions)) ||
                     (props.isViewable &&
                         model.hasReadPermissions(permissions)))) ||
-            (props.actionButtons && props.actionButtons.length > 0)
+            (props.actionButtons && props.actionButtons.length > 0) ||
+            props.showViewIdButton
         ) {
             columns.push({
                 title: 'Actions',
@@ -777,6 +782,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             for (const moreSchema of props.actionButtons) {
                 actionsSchema.push(moreSchema);
             }
+        }
+
+        if (props.showViewIdButton) {
+            actionsSchema.push({
+                title: 'View ID',
+                buttonStyleType: ButtonStyleType.OUTLINE,
+                onClick: async (
+                    item: JSONObject,
+                    onCompleteAction: Function,
+                    onError: (err: Error) => void
+                ) => {
+                    try {
+                        setViewId(item['_id'] as string);
+                        setShowViewIdModal(true);
+                        onCompleteAction();
+                    } catch (err) {
+                        onError(err as Error);
+                    }
+                },
+            });
         }
 
         if (permissions) {
@@ -1355,6 +1380,47 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         setErrorModalText('');
                     }}
                     submitButtonType={ButtonStyleType.NORMAL}
+                />
+            )}
+
+            {showViewIdModal && (
+                <ConfirmModal
+                    title={`${
+                        props.singularName || model.singularName || ''
+                    } ID`}
+                    description={
+                        <div>
+                            <span>
+                                ID of this{' '}
+                                {props.singularName || model.singularName || ''}
+                                : {viewId}
+                            </span>
+                            <br />
+                            <br />
+
+                            <span>
+                                You can use this ID to interact with{' '}
+                                {props.singularName || model.singularName || ''}{' '}
+                                via the OneUptime API. Click the button below to
+                                go to API Documentation.
+                            </span>
+                        </div>
+                    }
+                    onClose={() => {
+                        setShowViewIdModal(false);
+                    }}
+                    submitButtonText={'Go to API Docs'}
+                    onSubmit={() => {
+                        setShowViewIdModal(false);
+                        Navigation.navigate(
+                            URL.fromString(API_DOCS_URL.toString()).addRoute(
+                                '/' + model.getAPIDocumentationPath()
+                            ),
+                            { openInNewTab: true }
+                        );
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                    closeButtonType={ButtonStyleType.OUTLINE}
                 />
             )}
         </>

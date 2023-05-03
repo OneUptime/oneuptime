@@ -34,6 +34,7 @@ import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
 import { EnableWorkflowOn } from '../Types/Model/EnableWorkflow';
 import IconProp from '../Types/Icon/IconProp';
+import Text from '../Types/Text';
 
 export type DbTypes =
     | string
@@ -479,6 +480,10 @@ export default class BaseModel extends BaseEntity {
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public getAPIDocumentationPath(): string {
+        return Text.pascalCaseToDashes(this.tableName as string);
     }
 
     private hasPermissions(

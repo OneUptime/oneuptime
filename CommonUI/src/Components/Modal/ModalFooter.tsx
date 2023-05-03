@@ -7,6 +7,7 @@ export interface ComponentProps {
     submitButtonText?: undefined | string;
     onSubmit: () => void;
     submitButtonStyleType?: undefined | ButtonStyleType;
+    closeButtonStyleType?: undefined | ButtonStyleType;
     submitButtonType?: undefined | ButtonType;
     isLoading?: undefined | boolean;
     disableSubmitButton?: undefined | boolean;
@@ -46,7 +47,11 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
 
             {props.onClose ? (
                 <Button
-                    buttonStyle={ButtonStyleType.NORMAL}
+                    buttonStyle={
+                        props.closeButtonStyleType
+                            ? props.closeButtonStyleType
+                            : ButtonStyleType.NORMAL
+                    }
                     title={'Close'}
                     data-dismiss="modal"
                     onClick={() => {
