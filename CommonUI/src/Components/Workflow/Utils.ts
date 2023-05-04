@@ -86,6 +86,12 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
+    if (componentInputType === ComponentInputType.LongText) {
+        return {
+            fieldType: FormFieldSchemaType.LongText,
+        };
+    }
+
     // Second priorioty.
 
     if (
@@ -194,12 +200,6 @@ export const componentInputTypeToFormFieldType: Function = (
     if (componentInputType === ComponentInputType.DateTime) {
         return {
             fieldType: FormFieldSchemaType.DateTime,
-        };
-    }
-
-    if (componentInputType === ComponentInputType.LongText) {
-        return {
-            fieldType: FormFieldSchemaType.Text,
         };
     }
 

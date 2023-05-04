@@ -74,7 +74,7 @@ export default class SendMessageToChannel extends ComponentCode {
 
         try {
             apiResult = await API.post(args['webhook-url'] as URL, {
-                text: args['text'],
+                text: `${args['text']}`,
             });
 
             if (apiResult instanceof HTTPErrorResponse) {
