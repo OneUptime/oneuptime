@@ -70,6 +70,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 id="table-status-page-note"
                 isDeleteable={true}
                 isCreateable={true}
+                showViewIdButton={true}
                 isEditable={true}
                 name="Status Page > Announcements"
                 isViewable={false}

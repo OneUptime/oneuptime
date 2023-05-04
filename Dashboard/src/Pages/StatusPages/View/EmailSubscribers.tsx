@@ -69,6 +69,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 id="table-subscriber"
                 name="Status Page > Email Subscribers"
                 isDeleteable={true}
+                showViewIdButton={true}
                 isCreateable={true}
                 isEditable={false}
                 isViewable={false}

@@ -66,6 +66,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 name="Status Page > Groups"
                 isDeleteable={true}
                 sortBy="order"
+                showViewIdButton={true}
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}
                 isViewable={false}
