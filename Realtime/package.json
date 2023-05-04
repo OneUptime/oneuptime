@@ -24,7 +24,7 @@
         "express": "^4.17.3",
         "lodash": "^4.17.21",
         "Model": "file:../Model",
-        "socket.io": "^4.5.4",
+        "socket.io": "^4.6.1",
         "ts-node": "^10.9.1",
         "uuid": "^8.3.2",
         "winston": "^3.6.0",
