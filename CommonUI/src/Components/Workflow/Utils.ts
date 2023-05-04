@@ -203,12 +203,6 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-    if (componentInputType === ComponentInputType.LongText) {
-        return {
-            fieldType: FormFieldSchemaType.Text,
-        };
-    }
-
     if (componentInputType === ComponentInputType.Decimal) {
         return {
             fieldType: FormFieldSchemaType.Number,
