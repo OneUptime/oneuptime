@@ -44,7 +44,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 id="teams-table"
                 name="Settings > Teams"
                 isDeleteable={false}
-                isEditable={true}
+                isEditable={false}
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
@@ -57,6 +57,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
+                showViewIdButton={true}
                 formFields={[
                     {
                         field: {

@@ -59,6 +59,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 noItemsMessage={'No global variables found.'}
+                showViewIdButton={true}
                 formFields={[
                     {
                         field: {

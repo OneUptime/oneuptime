@@ -777,16 +777,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
-        // add actions buttons from props.
-        if (props.actionButtons) {
-            for (const moreSchema of props.actionButtons) {
-                actionsSchema.push(moreSchema);
-            }
-        }
-
         if (props.showViewIdButton) {
             actionsSchema.push({
-                title: 'View ID',
+                title: 'Show ID',
                 buttonStyleType: ButtonStyleType.OUTLINE,
                 onClick: async (
                     item: JSONObject,
@@ -804,11 +797,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
+        // add actions buttons from props.
+        if (props.actionButtons) {
+            for (const moreSchema of props.actionButtons) {
+                actionsSchema.push(moreSchema);
+            }
+        }
+
+       
+
         if (permissions) {
             if (props.isViewable && model.hasReadPermissions(permissions)) {
                 actionsSchema.push({
-                    title: props.viewButtonText || 'View',
-                    buttonStyleType: ButtonStyleType.LINK,
+                    title: props.viewButtonText || `View ${props.singularName || model.singularName}`,
+                    buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,
@@ -868,7 +870,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             if (props.isEditable && model.hasUpdatePermissions(permissions)) {
                 actionsSchema.push({
                     title: props.editButtonText || 'Edit',
-                    buttonStyleType: ButtonStyleType.NORMAL,
+                    buttonStyleType: ButtonStyleType.OUTLINE,
                     onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,

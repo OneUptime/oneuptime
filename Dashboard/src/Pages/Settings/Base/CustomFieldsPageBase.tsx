@@ -52,6 +52,7 @@ const CustomFieldsPageBase: Function = <TBaseModel extends BaseModel>(
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
+                showViewIdButton={true}
                 id="custom-fields-table"
                 name={'Settings > ' + props.title}
                 isDeleteable={true}

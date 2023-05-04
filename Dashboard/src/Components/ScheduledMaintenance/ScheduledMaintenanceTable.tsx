@@ -192,18 +192,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     placeholder: 'Labels',
                 },
             ]}
+            showViewIdButton={true}
             showRefreshButton={true}
             showFilterButton={true}
             viewPageRoute={props.viewPageRoute}
             columns={[
-                {
-                    field: {
-                        _id: true,
-                    },
-                    title: 'Scheduled Maintenance ID',
-                    type: FieldType.Text,
-                    isFilterable: true,
-                },
                 {
                     field: {
                         title: true,

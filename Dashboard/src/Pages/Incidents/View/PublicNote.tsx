@@ -72,6 +72,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 name="Monitor > Public Note"
                 isDeleteable={true}
                 isCreateable={true}
+                showViewIdButton={true}
                 isEditable={true}
                 createEditModalWidth={ModalWidth.Large}
                 isViewable={false}

@@ -41,7 +41,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                 modelType={StatusPage}
                 id="status-page-table"
                 isDeleteable={false}
-                isEditable={true}
+                isEditable={false}
                 isCreateable={true}
                 name="Status Pages"
                 isViewable={true}
@@ -51,6 +51,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of status page for this project.',
                 }}
+                showViewIdButton={true}
                 formSteps={[
                     {
                         title: 'Status Page Info',
