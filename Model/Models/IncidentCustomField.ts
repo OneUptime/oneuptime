@@ -185,7 +185,8 @@ export default class IncidentCustomField extends BaseModel {
         required: false,
         type: TableColumnType.LongText,
         title: 'Description',
-        description: 'Friendly description of this custom field that will help you remember',
+        description:
+            'Friendly description of this custom field that will help you remember',
     })
     @Column({
         nullable: true,

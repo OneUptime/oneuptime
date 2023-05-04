@@ -62,13 +62,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     )}
                 </div>
                 <div className="mb-2 text-sm">
-                    {props.description && <MarkdownViewer
-                        text={
-                            props.description ||
-                            ''
-                        }
-                    />}
-
+                    {props.description && (
+                        <MarkdownViewer text={props.description || ''} />
+                    )}
                 </div>
             </div>
             {props.showHistoryChart && (

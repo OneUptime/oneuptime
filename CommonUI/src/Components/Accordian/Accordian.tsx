@@ -88,20 +88,19 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         )}
                         {props.title && (
                             <div
-                                className={`ml-1 -mt-1 ${props.onClick ? 'cursor-pointer' : ''
-                                    }`}
+                                className={`ml-1 -mt-1 ${
+                                    props.onClick ? 'cursor-pointer' : ''
+                                }`}
                             >
                                 <div className="text-gray-500">
                                     {props.title}{' '}
                                 </div>
                                 <div className="mb-2 text-sm">
-                                    {props.description && <MarkdownViewer
-                                        text={
-                                            props.description ||
-                                            ''
-                                        }
-                                    />}
-
+                                    {props.description && (
+                                        <MarkdownViewer
+                                            text={props.description || ''}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         )}

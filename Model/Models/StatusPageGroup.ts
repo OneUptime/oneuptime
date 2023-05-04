@@ -288,7 +288,8 @@ export default class StatusPageGroup extends BaseModel {
         required: false,
         type: TableColumnType.LongText,
         title: 'Description',
-        description: 'Description for this group. This is visible on Status Page. This can be in markdown format.',
+        description:
+            'Description for this group. This is visible on Status Page. This can be in markdown format.',
     })
     @Column({
         nullable: true,

@@ -211,7 +211,8 @@ export default class ScheduledMaintenance extends BaseModel {
         required: false,
         type: TableColumnType.Description,
         title: 'Description',
-        description: 'Description of this scheduled event that will show up on Status Page. This is in markdown.',
+        description:
+            'Description of this scheduled event that will show up on Status Page. This is in markdown.',
     })
     @Column({
         nullable: true,
