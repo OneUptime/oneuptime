@@ -94,9 +94,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Description',
                     stepId: 'event-info',
-                    fieldType: FormFieldSchemaType.LongText,
+                    fieldType: FormFieldSchemaType.Markdown,
                     required: true,
-                    placeholder: 'Description',
                 },
                 {
                     field: {
