@@ -15,6 +15,8 @@ import Port from 'Common/Types/Port';
 import { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
 import { IsDevelopment } from 'CommonServer/Config';
+import { SendGridApiKey } from '../Config';
+import SendgridMail from '@sendgrid/mail';
 
 Handlebars.registerHelper('ifCond', function (v1, v2, options) {
     if (v1 === v2) {
@@ -115,6 +117,11 @@ export default class MailService {
         };
     }
 
+    public static getGlobalFromEmail(){
+        const emailServer = this.getGlobalSmtpSettings();
+        return emailServer.fromEmail;
+    }
+
     private static getGlobalSmtpSettings(): EmailServer {
         return this.getEmailServer(process.env);
     }
@@ -195,9 +202,7 @@ export default class MailService {
         mail: EmailMessage,
         emailServer?: EmailServer
     ): Promise<void> {
-        if (!emailServer) {
-            emailServer = this.getGlobalSmtpSettings();
-        }
+       
 
         // default vars.
         if (!mail.vars) {
@@ -212,6 +217,24 @@ export default class MailService {
             ? await this.compileEmailBody(mail.templateType, mail.vars)
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
+
+        if(!emailServer && SendGridApiKey){
+            SendgridMail.setApiKey(SendGridApiKey);
+
+            const msg = {
+                to: mail.toEmail.toString(), // Change to your recipient
+                from: this.getGlobalFromEmail().toString(), // Change to your verified sender
+                subject: mail.subject,
+                html: mail.body,
+              }
+
+              await SendgridMail.send(msg)
+              return;
+        }
+
+        if (!emailServer) {
+            emailServer = this.getGlobalSmtpSettings();
+        }
 
         await this.transportMail(mail, emailServer);
     }
