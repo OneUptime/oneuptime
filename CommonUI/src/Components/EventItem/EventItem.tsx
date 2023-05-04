@@ -89,8 +89,13 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     </h2>
                 </div>
                 {props.eventDescription && (
-                    <p className="mt-0 text-gray-400 text-sm">
-                        {props.eventDescription}
+                    <p className="mt-2 text-sm">
+                        <MarkdownViewer
+                            text={
+                                props.eventDescription ||
+                                ''
+                            }
+                        />
                     </p>
                 )}
 
@@ -116,7 +121,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     )}
 
                 {props.eventResourcesAffected &&
-                props.eventResourcesAffected?.length > 0 ? (
+                    props.eventResourcesAffected?.length > 0 ? (
                     <div key={0}>
                         <div className="flex space-x-1">
                             <div className="text-sm text-gray-400 mr-3 mt-1">
@@ -145,12 +150,11 @@ const EventItem: FunctionComponent<ComponentProps> = (
 
                 {props.eventTimeline && props.eventTimeline.length > 0 && (
                     <div
-                        className={`w-full border-t border-gray-200 mt-5 -ml-5 ${
-                            props.eventTimeline &&
-                            props.eventTimeline.length > 0
+                        className={`w-full border-t border-gray-200 mt-5 -ml-5 ${props.eventTimeline &&
+                                props.eventTimeline.length > 0
                                 ? 'mb-5'
                                 : 'mb-0'
-                        } -mr-5 -pr-5`}
+                            } -mr-5 -pr-5`}
                         style={{ width: 'calc(100% + 2.5em)' }}
                     ></div>
                 )}
@@ -170,12 +174,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                                     {i !==
                                                         props.eventTimeline
                                                             .length -
-                                                            1 && (
-                                                        <span
-                                                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                            aria-hidden="true"
-                                                        ></span>
-                                                    )}
+                                                        1 && (
+                                                            <span
+                                                                className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                                                                aria-hidden="true"
+                                                            ></span>
+                                                        )}
                                                     <div className="relative flex items-start space-x-3">
                                                         <div>
                                                             <div className="relative px-1">
@@ -242,12 +246,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                                     {i !==
                                                         props.eventTimeline
                                                             .length -
-                                                            1 && (
-                                                        <span
-                                                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                            aria-hidden="true"
-                                                        ></span>
-                                                    )}
+                                                        1 && (
+                                                            <span
+                                                                className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                                                                aria-hidden="true"
+                                                            ></span>
+                                                        )}
                                                     <div className="relative flex items-start space-x-3">
                                                         <div>
                                                             <div className="relative px-1">

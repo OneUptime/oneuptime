@@ -152,7 +152,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Display Name',
                         description:
-                            'This will be the name that will be shown on the status page.',
+                            'This will be the name that will be shown on the status page',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Display Name',
@@ -161,11 +161,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             displayDescription: true,
                         },
-                        title: 'Description ',
-                        fieldType: FormFieldSchemaType.LongText,
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.Markdown,
                         required: false,
-                        description: 'This will be visible on the status page.',
-                        placeholder: 'Display Description.',
+                        placeholder: '',
                     },
                     {
                         field: {

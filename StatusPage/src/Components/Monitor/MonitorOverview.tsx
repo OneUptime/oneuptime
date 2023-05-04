@@ -6,6 +6,7 @@ import MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
 import Icon from 'CommonUI/src/Components/Icon/Icon';
 import Tooltip from 'CommonUI/src/Components/Tooltip/Toolip';
 import IconProp from 'Common/Types/Icon/IconProp';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
 
 export interface ComponentProps {
     monitorName: string;
@@ -60,8 +61,14 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         </div>
                     )}
                 </div>
-                <div className="mb-2 text-gray-400 text-sm">
-                    {props.description}
+                <div className="mb-2 text-sm">
+                    {props.description && <MarkdownViewer
+                        text={
+                            props.description ||
+                            ''
+                        }
+                    />}
+
                 </div>
             </div>
             {props.showHistoryChart && (

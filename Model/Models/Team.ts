@@ -188,7 +188,7 @@ export default class Team extends BaseModel {
         required: false,
         type: TableColumnType.LongText,
         title: 'Description',
-        description: 'Any friendly description of this object',
+        description: 'Friendly description that will help you remember',
     })
     @Column({
         nullable: true,
