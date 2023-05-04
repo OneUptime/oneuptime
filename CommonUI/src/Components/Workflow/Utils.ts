@@ -86,6 +86,12 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
+    if (componentInputType === ComponentInputType.LongText) {
+        return {
+            fieldType: FormFieldSchemaType.LongText,
+        };
+    }
+
     // Second priorioty.
 
     if (
