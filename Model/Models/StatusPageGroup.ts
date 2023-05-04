@@ -286,15 +286,14 @@ export default class StatusPageGroup extends BaseModel {
     })
     @TableColumn({
         required: false,
-        type: TableColumnType.LongText,
+        type: TableColumnType.Markdown,
         title: 'Description',
         description:
             'Description for this group. This is visible on Status Page. This can be in markdown format.',
     })
     @Column({
         nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        type: ColumnType.Markdown,
     })
     public description?: string = undefined;
 

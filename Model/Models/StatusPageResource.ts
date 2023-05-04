@@ -413,14 +413,13 @@ export default class StatusPageResource extends BaseModel {
     })
     @TableColumn({
         required: false,
-        type: TableColumnType.LongText,
+        type: TableColumnType.Markdown,
         title: 'Display Description',
-        description: 'Display description of the monitor on the Status Page',
+        description: 'Display description of the monitor on the Status Page. This is in markdown format.',
     })
     @Column({
         nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        type: ColumnType.Markdown,
     })
     public displayDescription?: string = undefined;
 
