@@ -101,7 +101,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
                 }}
                 showViewIdButton={true}
                 columns={[
-                   
                     {
                         field: {
                             name: true,

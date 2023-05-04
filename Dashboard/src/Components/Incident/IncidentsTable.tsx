@@ -166,7 +166,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             showViewIdButton={true}
             viewPageRoute={props.viewPageRoute}
             columns={[
-                
                 {
                     field: {
                         title: true,

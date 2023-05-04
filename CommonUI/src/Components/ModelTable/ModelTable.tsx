@@ -804,12 +804,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-       
-
         if (permissions) {
             if (props.isViewable && model.hasReadPermissions(permissions)) {
                 actionsSchema.push({
-                    title: props.viewButtonText || `View ${props.singularName || model.singularName}`,
+                    title:
+                        props.viewButtonText ||
+                        `View ${props.singularName || model.singularName}`,
                     buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                         item: JSONObject,

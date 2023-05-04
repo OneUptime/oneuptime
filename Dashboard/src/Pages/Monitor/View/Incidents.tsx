@@ -165,7 +165,6 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 showViewIdButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
-                   
                     {
                         field: {
                             title: true,

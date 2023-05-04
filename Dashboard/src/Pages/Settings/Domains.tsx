@@ -190,7 +190,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         </div>
                     }
                     submitButtonText={'Verify Domain'}
-                    
                     onClose={() => {
                         setShowVerificationModal(false);
                         setError('');
