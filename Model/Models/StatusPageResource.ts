@@ -415,7 +415,8 @@ export default class StatusPageResource extends BaseModel {
         required: false,
         type: TableColumnType.Markdown,
         title: 'Display Description',
-        description: 'Display description of the monitor on the Status Page. This is in markdown format.',
+        description:
+            'Display description of the monitor on the Status Page. This is in markdown format.',
     })
     @Column({
         nullable: true,

@@ -101,7 +101,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                     },
 
-
                     {
                         field: {
                             incidentSeverity: true,
@@ -210,14 +209,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -246,14 +245,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -307,7 +306,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -328,7 +327,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         incidentId={modelId}
                                         incidentTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         incidentType={IncidentType.Ack}
@@ -352,7 +351,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         incidentId={modelId}
                                         incidentTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         incidentType={IncidentType.Resolve}
@@ -371,21 +370,17 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
-
-
             <CardModelDetail
                 name="Incident Description"
                 cardProps={{
                     title: 'Incident Description',
-                    description: "Description for this incident. This is visible on Status Page and is in markdown format.",
+                    description:
+                        'Description for this incident. This is visible on Status Page and is in markdown format.',
                     icon: IconProp.AltGlobe,
                 }}
-                editButtonText='Edit Incident Description'
+                editButtonText="Edit Incident Description"
                 isEditable={true}
-
                 formFields={[
-
                     {
                         field: {
                             description: true,
@@ -396,27 +391,23 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
-
                 ]}
                 modelDetailProps={{
-
                     showDetailsInNumberOfColumns: 1,
                     modelType: Incident,
                     id: 'model-detail-incident-description',
                     fields: [
-
                         {
                             field: {
                                 description: true,
                             },
                             title: 'Description',
                             fieldType: FieldType.Markdown,
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
         </ModelPage>
     );
 };

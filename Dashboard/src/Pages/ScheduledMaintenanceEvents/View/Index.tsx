@@ -262,14 +262,14 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentScheduledMaintenanceState'
+                                                    'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentScheduledMaintenanceState'
+                                                    'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -361,7 +361,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -382,7 +382,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         scheduledMaintenanceId={modelId}
                                         scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         stateType={StateType.Ongoing}
@@ -406,7 +406,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         scheduledMaintenanceId={modelId}
                                         scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         stateType={StateType.Completed}
@@ -426,14 +426,13 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                 name="Event Description"
                 cardProps={{
                     title: 'Event Description',
-                    description: "Description for this event. This is visible on Status Page and is in markdown format.",
+                    description:
+                        'Description for this event. This is visible on Status Page and is in markdown format.',
                     icon: IconProp.AltGlobe,
                 }}
-                editButtonText='Edit Event Description'
+                editButtonText="Edit Event Description"
                 isEditable={true}
-
                 formFields={[
-
                     {
                         field: {
                             description: true,
@@ -444,22 +443,19 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
-
                 ]}
                 modelDetailProps={{
-
                     showDetailsInNumberOfColumns: 1,
                     modelType: ScheduledMaintenance,
                     id: 'model-detail-event-description',
                     fields: [
-
                         {
                             field: {
                                 description: true,
                             },
                             title: 'Description',
                             fieldType: FieldType.Markdown,
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}

@@ -89,9 +89,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Description',
                     stepId: 'incident-details',
-                    fieldType: FormFieldSchemaType.LongText,
+                    fieldType: FormFieldSchemaType.Markdown,
                     required: true,
-                    placeholder: 'Description',
                 },
                 {
                     field: {
