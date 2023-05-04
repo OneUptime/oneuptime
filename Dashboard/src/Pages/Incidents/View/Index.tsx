@@ -375,7 +375,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Incident Description',
                     description:
-                        'Description for this incident. This is visible on Status Page and is in markdown format.',
+                        'Description of this incident. This is visible on Status Page and is in markdown format.',
                     icon: IconProp.AltGlobe,
                 }}
                 editButtonText="Edit Incident Description"
