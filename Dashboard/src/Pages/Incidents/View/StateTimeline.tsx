@@ -69,6 +69,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isCreateable={true}
                 isViewable={false}
+                showViewIdButton={true}
                 query={{
                     incidentId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),

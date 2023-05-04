@@ -74,7 +74,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 actionButtons={[
                     {
                         title: 'Send Test Email',
-                        buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
+                        buttonStyleType: ButtonStyleType.OUTLINE,
                         icon: IconProp.Play,
                         onClick: async (
                             item: JSONObject,

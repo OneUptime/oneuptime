@@ -94,9 +94,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Description',
                     stepId: 'event-info',
-                    fieldType: FormFieldSchemaType.LongText,
+                    fieldType: FormFieldSchemaType.Markdown,
                     required: true,
-                    placeholder: 'Description',
                 },
                 {
                     field: {
@@ -192,18 +191,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     placeholder: 'Labels',
                 },
             ]}
+            showViewIdButton={true}
             showRefreshButton={true}
             showFilterButton={true}
             viewPageRoute={props.viewPageRoute}
             columns={[
-                {
-                    field: {
-                        _id: true,
-                    },
-                    title: 'Scheduled Maintenance ID',
-                    type: FieldType.Text,
-                    isFilterable: true,
-                },
                 {
                     field: {
                         title: true,

@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 
 export interface ComponentProps {
     title?: string | undefined;
@@ -94,8 +95,12 @@ const Accordian: FunctionComponent<ComponentProps> = (
                                 <div className="text-gray-500">
                                     {props.title}{' '}
                                 </div>
-                                <div className="text-sm text-gray-400">
-                                    {props.description}
+                                <div className="mb-2 text-sm">
+                                    {props.description && (
+                                        <MarkdownViewer
+                                            text={props.description || ''}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         )}

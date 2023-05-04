@@ -25,3 +25,5 @@ export const InternalSmtpFromEmail: Email = new Email(
 
 export const InternalSmtpFromName: string =
     process.env['INTERNAL_SMTP_NAME'] || '';
+
+export const SendGridApiKey: string = process.env['SENDGRID_API_KEY'] || '';

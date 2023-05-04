@@ -99,15 +99,8 @@ const Labels: FunctionComponent<PageComponentProps> = (
                 selectMoreFields={{
                     color: true,
                 }}
+                showViewIdButton={true}
                 columns={[
-                    {
-                        field: {
-                            _id: true,
-                        },
-                        title: 'Label ID',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
                     {
                         field: {
                             name: true,

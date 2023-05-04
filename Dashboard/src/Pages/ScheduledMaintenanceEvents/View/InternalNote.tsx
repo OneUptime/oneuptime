@@ -76,6 +76,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}
+                showViewIdButton={true}
                 createEditModalWidth={ModalWidth.Large}
                 query={{
                     scheduledMaintenanceId: modelId,

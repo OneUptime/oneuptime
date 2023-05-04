@@ -44,6 +44,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             name="Monitors"
             id="Monitors-table"
             isDeleteable={false}
+            showViewIdButton={true}
             isEditable={false}
             isCreateable={true}
             isViewable={true}

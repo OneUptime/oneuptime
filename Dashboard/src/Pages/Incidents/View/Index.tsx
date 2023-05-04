@@ -72,7 +72,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 name="Incident Details"
                 cardProps={{
                     title: 'Incident Details',
-                    description: "Here's more details for this monitor.",
+                    description: "Here's more details for this incident.",
                     icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}
@@ -99,16 +99,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         validation: {
                             minLength: 2,
                         },
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        title: 'Description',
-                        stepId: 'incident-details',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: true,
-                        placeholder: 'Description',
                     },
 
                     {
@@ -197,13 +187,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             title: 'Incident Title',
                             fieldType: FieldType.Text,
                         },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                            fieldType: FieldType.LongText,
-                        },
+
                         {
                             field: {
                                 currentIncidentState: {
@@ -380,6 +364,45 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+            <CardModelDetail
+                name="Incident Description"
+                cardProps={{
+                    title: 'Incident Description',
+                    description:
+                        'Description for this incident. This is visible on Status Page and is in markdown format.',
+                    icon: IconProp.AltGlobe,
+                }}
+                editButtonText="Edit Incident Description"
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+
+                        fieldType: FormFieldSchemaType.Markdown,
+                        required: true,
+                        placeholder: 'Description',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: Incident,
+                    id: 'model-detail-incident-description',
+                    fields: [
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                            fieldType: FieldType.Markdown,
                         },
                     ],
                     modelId: modelId,

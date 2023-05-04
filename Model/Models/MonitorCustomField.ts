@@ -185,7 +185,8 @@ export default class MonitorCustomField extends BaseModel {
         required: false,
         type: TableColumnType.LongText,
         title: 'Description',
-        description: 'Any friendly description of this object',
+        description:
+            'Friendly description of this custom field that will help you remember',
     })
     @Column({
         nullable: true,

@@ -76,6 +76,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 createEditModalWidth={ModalWidth.Large}
                 isCreateable={true}
                 isEditable={true}
+                showViewIdButton={true}
                 isViewable={false}
                 query={{
                     scheduledMaintenanceId: modelId,

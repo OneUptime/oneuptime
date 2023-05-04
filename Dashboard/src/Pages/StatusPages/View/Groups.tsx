@@ -66,6 +66,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 name="Status Page > Groups"
                 isDeleteable={true}
                 sortBy="order"
+                showViewIdButton={true}
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}
                 isViewable={false}
@@ -110,9 +111,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Group Description',
-                        fieldType: FormFieldSchemaType.LongText,
+                        fieldType: FormFieldSchemaType.Markdown,
                         required: false,
-                        placeholder: 'Resource Group Description',
                     },
                     {
                         field: {
@@ -131,15 +131,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
-                        title: 'Name',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        title: 'Description',
+                        title: 'Resource Group Name',
                         type: FieldType.Text,
                         isFilterable: true,
                     },

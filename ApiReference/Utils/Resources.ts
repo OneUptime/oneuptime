@@ -1,4 +1,3 @@
-import Text from 'Common/Types/Text';
 import BaseModel from 'Common/Models/BaseModel';
 import Models from 'Model/Models/Index';
 import ArrayUtil from 'Common/Types/ArrayUtil';
@@ -24,9 +23,7 @@ export default class ResourceUtil {
 
                 return {
                     name: modelInstance.singularName!,
-                    path: Text.pascalCaseToDashes(
-                        modelInstance.tableName as string
-                    ),
+                    path: modelInstance.getAPIDocumentationPath(),
                     model: modelInstance,
                     description: modelInstance.tableDescription!,
                 };

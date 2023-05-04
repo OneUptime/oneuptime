@@ -20,6 +20,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import Markdown from 'CommonServer/Types/Markdown';
 
 RunCron(
     'ScheduledMaintenance:SendEmailToSubscribers',
@@ -216,7 +217,9 @@ RunCron(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',
-                                    eventDescription: event.description || '',
+                                    eventDescription: Markdown.convertToHTMML(
+                                        event.description || ''
+                                    ),
                                     unsubscribeUrl: new URL(
                                         HttpProtocol,
                                         Domain
@@ -229,8 +232,7 @@ RunCron(
                                 },
                                 subject:
                                     statusPageName +
-                                    ` - 'New Scheduled'
-                                    } Maintenance`,
+                                    ` - 'New Scheduled Maintenance`,
                             },
                             ProjectSmtpConfigService.toEmailServer(
                                 statuspage.smtpConfig

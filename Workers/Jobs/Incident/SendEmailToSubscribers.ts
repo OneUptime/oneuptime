@@ -20,6 +20,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import Markdown from 'CommonServer/Types/Markdown';
 
 RunCron(
     'Incident:SendEmailToSubscribers',
@@ -212,7 +213,9 @@ RunCron(
                                         ' - ',
                                     incidentTitle: incident.title || '',
                                     incidentDescription:
-                                        incident.description || '',
+                                        Markdown.convertToHTMML(
+                                            incident.description || ''
+                                        ),
                                     unsubscribeUrl: new URL(
                                         HttpProtocol,
                                         Domain

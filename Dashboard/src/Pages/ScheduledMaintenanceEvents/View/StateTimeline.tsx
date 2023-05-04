@@ -70,6 +70,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 name="Scheduled Maintenance Events > State Timeline"
                 isDeleteable={true}
                 isCreateable={true}
+                showViewIdButton={true}
                 isViewable={false}
                 query={{
                     scheduledMaintenanceId: modelId,

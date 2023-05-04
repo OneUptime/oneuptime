@@ -162,16 +162,9 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
+                showViewIdButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
-                    {
-                        field: {
-                            _id: true,
-                        },
-                        title: 'Incident ID',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
                     {
                         field: {
                             title: true,

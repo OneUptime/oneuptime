@@ -72,6 +72,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 id="table-incident-internal-note"
                 name="Monitor > Internal Note"
                 isDeleteable={true}
+                showViewIdButton={true}
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}

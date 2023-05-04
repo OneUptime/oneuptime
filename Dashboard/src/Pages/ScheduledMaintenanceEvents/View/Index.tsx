@@ -80,10 +80,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         title: 'Event Info',
                         id: 'event-info',
                     },
-                    {
-                        title: 'Event Time',
-                        id: 'event-time',
-                    },
+
                     {
                         title: 'Resources Affected',
                         id: 'resources-affected',
@@ -112,21 +109,12 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             minLength: 2,
                         },
                     },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        stepId: 'event-info',
-                        title: 'Description',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: true,
-                        placeholder: 'Description',
-                    },
+
                     {
                         field: {
                             startsAt: true,
                         },
-                        stepId: 'event-time',
+                        stepId: 'event-info',
                         title: 'Event Starts At',
                         description:
                             'This is in your local timezone - ' +
@@ -140,7 +128,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             endsAt: true,
                         },
                         title: 'Ends At',
-                        stepId: 'event-time',
+                        stepId: 'event-info',
                         description:
                             'This is in your local timezone - ' +
                             OneUptimeDate.getCurrentTimezoneString(),
@@ -252,13 +240,6 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Scheduled Maintenance Title',
                             fieldType: FieldType.Text,
-                        },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                            fieldType: FieldType.LongText,
                         },
                         {
                             field: {
@@ -435,6 +416,45 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+            <CardModelDetail
+                name="Event Description"
+                cardProps={{
+                    title: 'Event Description',
+                    description:
+                        'Description for this event. This is visible on Status Page and is in markdown format.',
+                    icon: IconProp.AltGlobe,
+                }}
+                editButtonText="Edit Event Description"
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+
+                        fieldType: FormFieldSchemaType.Markdown,
+                        required: true,
+                        placeholder: 'Description',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: ScheduledMaintenance,
+                    id: 'model-detail-event-description',
+                    fields: [
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                            fieldType: FieldType.Markdown,
                         },
                     ],
                     modelId: modelId,

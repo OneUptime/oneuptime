@@ -89,8 +89,8 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     </h2>
                 </div>
                 {props.eventDescription && (
-                    <p className="mt-0 text-gray-400 text-sm">
-                        {props.eventDescription}
+                    <p className="mt-2 text-sm">
+                        <MarkdownViewer text={props.eventDescription || ''} />
                     </p>
                 )}
 

@@ -75,10 +75,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     modelType={Workflow}
                     id="status-page-table"
                     isDeleteable={false}
-                    isEditable={true}
+                    isEditable={false}
                     isCreateable={true}
                     name="Workflows"
                     isViewable={true}
+                    showViewIdButton={true}
                     cardProps={{
                         icon: IconProp.CheckCircle,
                         title: 'Workflows',

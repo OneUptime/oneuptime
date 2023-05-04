@@ -88,6 +88,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 name="Status Page > Resources"
                 sortBy="order"
+                showViewIdButton={true}
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}
                 isViewable={false}
@@ -151,7 +152,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Display Name',
                         description:
-                            'This will be the name that will be shown on the status page.',
+                            'This will be the name that will be shown on the status page',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Display Name',
@@ -160,11 +161,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             displayDescription: true,
                         },
-                        title: 'Description ',
-                        fieldType: FormFieldSchemaType.LongText,
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.Markdown,
                         required: false,
-                        description: 'This will be visible on the status page.',
-                        placeholder: 'Display Description.',
+                        placeholder: '',
                     },
                     {
                         field: {
@@ -243,14 +243,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             displayName: true,
                         },
                         title: 'Display Name',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            displayDescription: true,
-                        },
-                        title: 'Display Description',
                         type: FieldType.Text,
                         isFilterable: true,
                     },

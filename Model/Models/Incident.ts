@@ -209,13 +209,14 @@ export default class Incident extends BaseModel {
     })
     @TableColumn({
         required: false,
-        type: TableColumnType.Description,
+        type: TableColumnType.Markdown,
         title: 'Description',
-        description: 'Short description of this incident.',
+        description:
+            'Short description of this incident. THis is in markdown and will be visible on the status page.',
     })
     @Column({
         nullable: true,
-        type: ColumnType.VeryLongText,
+        type: ColumnType.Markdown,
     })
     public description?: string = undefined;
 

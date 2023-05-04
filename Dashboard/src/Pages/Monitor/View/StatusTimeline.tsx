@@ -67,6 +67,7 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                 id="table-monitor-status-timeline"
                 name="Monitor > Status Timeline"
                 isDeleteable={true}
+                showViewIdButton={true}
                 isCreateable={true}
                 isViewable={false}
                 query={{

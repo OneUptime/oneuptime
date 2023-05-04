@@ -62,6 +62,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}
+                showViewIdButton={true}
                 name="Workflows"
                 isViewable={false}
                 cardProps={{

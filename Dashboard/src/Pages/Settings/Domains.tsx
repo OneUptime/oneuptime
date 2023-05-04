@@ -67,6 +67,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
         >
             <ModelTable<Domain>
                 modelType={Domain}
+                showViewIdButton={true}
                 name="Settings > Domain"
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),

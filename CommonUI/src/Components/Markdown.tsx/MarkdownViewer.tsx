@@ -49,7 +49,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                     p: ({ ...props }: any) => {
                         return (
                             <p
-                                className="text-sm mt-3 mb-3 text-gray-500"
+                                className="text-sm mt-1 mb-3 text-gray-500"
                                 {...props}
                             />
                         );

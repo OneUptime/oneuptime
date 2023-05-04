@@ -68,6 +68,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 id="status-page-group"
                 name="Status Page > Private Users"
                 isDeleteable={true}
+                showViewIdButton={true}
                 isCreateable={true}
                 isViewable={false}
                 query={{
