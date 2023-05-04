@@ -31,17 +31,38 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 ) => {
     useEffect(() => {
         if (props.forceSSO && props.statusPageId) {
-            Navigation.navigate(
-                !props.isPreviewPage
-                    ? RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.SSO]!,
-                          props.statusPageId
-                      )
-                    : RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.PREVIEW_SSO]!,
-                          props.statusPageId
-                      )
-            );
+            if (Navigation.getQueryStringByName('redirectUrl')) {
+                // forward redirect url to sso page
+                Navigation.navigate(
+                    new Route(
+                        (!props.isPreviewPage
+                            ? RouteUtil.populateRouteParams(
+                                  RouteMap[PageMap.SSO]!,
+                                  props.statusPageId
+                              )
+                            : RouteUtil.populateRouteParams(
+                                  RouteMap[PageMap.PREVIEW_SSO]!,
+                                  props.statusPageId
+                              )
+                        ).toString() +
+                            `?redirectUrl=${Navigation.getQueryStringByName(
+                                'redirectUrl'
+                            )}`
+                    )
+                );
+            } else {
+                Navigation.navigate(
+                    !props.isPreviewPage
+                        ? RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.SSO]!,
+                              props.statusPageId
+                          )
+                        : RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.PREVIEW_SSO]!,
+                              props.statusPageId
+                          )
+                );
+            }
         }
     }, [props.forceSSO, props.statusPageId]);
 
