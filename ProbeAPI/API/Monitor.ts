@@ -4,70 +4,92 @@ import Express, {
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import ObjectID from 'Common/Types/ObjectID';
 import Response from 'CommonServer/Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ProbeService from 'CommonServer/Services/ProbeService';
+import ProbeAuthorization from '../Middleware/ProbeAuthorization';
+import MonitorProbe from 'Model/Models/MonitorProbe';
+import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
+import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
-import { JSONObject } from 'Common/Types/JSON';
-import Probe from 'Model/Models/Probe';
+import { ProbeExpressRequest } from '../Types/Request';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import CronTab from "CommonServer/Utils/CronTab"
+import Monitor from 'Model/Models/Monitor';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 const router: ExpressRouter = Express.getRouter();
 
 router.post(
     '/monitor/list',
+    ProbeAuthorization.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+           
+            const data  = req.body; 
+            const limit = data['limit'] as number || 100;
 
-            if (!data['probeId'] || !data['probeKey']) {
+
+            if(!(req as ProbeExpressRequest).probe || !(req as ProbeExpressRequest).probe?.id){
                 return Response.sendErrorResponse(
                     req,
                     res,
-                    new BadDataException('ProbeId or ProbeKey is missing')
+                    new BadDataException('Probe not found')
                 );
             }
 
-            const probeId: ObjectID = new ObjectID(data['probeId'] as string);
-
-            const probeKey: string = data['probeKey'] as string;
-
-            const probe: Probe | null = await ProbeService.findOneBy({
+            //get list of monitors to be monitored
+            const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy({
                 query: {
-                    _id: probeId.toString(),
-                    key: probeKey,
+                    probeId: ((req as ProbeExpressRequest).probe)!.id!,
+                    isEnabled: true, 
+                    nextPingAt: QueryHelper.lessThanEqualTo(
+                        OneUptimeDate.getCurrentDate()
+                    )
                 },
+                skip: 0, 
+                limit: limit,
                 select: {
-                    _id: true,
+                    probeId: true,
+                    monitorId: true
+                },
+                populate: {
+                    monitor: {
+                        monitorSteps: true,
+                        monitorType: true,
+                        monitoringInterval: true,
+                    }
                 },
                 props: {
-                    isRoot: true,
-                },
+                    isRoot: true
+                }
             });
 
-            if (!probe) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadDataException('Invalid Probe ID or Probe Key')
-                );
+            // update the lastMonitoredAt field of the monitors
+
+            for(const monitorProbe of monitorProbes){
+                await MonitorProbeService.updateOneById({
+                    id: monitorProbe.id!,
+                    data: {
+                        lastPingAt: OneUptimeDate.getCurrentDate(),
+                        nextPingAt: CronTab.getNextExecutionTime(monitorProbe?.monitor?.monitoringInterval as string)
+                    },
+                    props: {
+                        isRoot: true
+                    }
+                });
             }
-
-            await ProbeService.updateOneById({
-                id: probeId,
-                data: {
-                    lastAlive: OneUptimeDate.getCurrentDate(),
-                },
-                props: {
-                    isRoot: true,
-                },
+            
+            const monitors: Array<Monitor> = monitorProbes.map((monitorProbe) => {
+                return monitorProbe.monitor!;
             });
 
-            return Response.sendEmptyResponse(req, res);
+
+            // return the list of monitors to be monitored
+
+            return Response.sendEntityArrayResponse(req, res, monitors, new PositiveNumber(monitors.length), Monitor);
         } catch (err) {
             return next(err);
         }
