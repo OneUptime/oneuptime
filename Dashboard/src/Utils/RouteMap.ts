@@ -31,7 +31,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/probes`
     ),
 
-
     [PageMap.MONITOR_VIEW_CRITERIA]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/criteria`
     ),

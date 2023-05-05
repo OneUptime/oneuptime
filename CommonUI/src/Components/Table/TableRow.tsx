@@ -125,7 +125,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 props.item,
                                                 column.key,
                                                 ''
-                                            )?.toString() ||  column.noValueMessage || ''
+                                            )?.toString() ||
+                                            column.noValueMessage ||
+                                            ''
                                         )
                                     ) : (
                                         <></>

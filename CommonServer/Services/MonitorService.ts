@@ -14,6 +14,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import MonitorProbe from 'Model/Models/MonitorProbe';
 import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import Probe from 'Model/Models/Probe';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -75,47 +76,59 @@ export class Service extends DatabaseService<Model> {
             onCreate.createBy.props
         );
 
-        if(createdItem.monitorType && (createdItem.monitorType === MonitorType.API || createdItem.monitorType === MonitorType.IncomingRequest || createdItem.monitorType === MonitorType.Website || createdItem.monitorType === MonitorType.Ping || createdItem.monitorType === MonitorType.IP)) {
-            await this.addDefaultProbesToMonitor(createdItem.projectId, createdItem.id);
+        if (
+            createdItem.monitorType &&
+            (createdItem.monitorType === MonitorType.API ||
+                createdItem.monitorType === MonitorType.IncomingRequest ||
+                createdItem.monitorType === MonitorType.Website ||
+                createdItem.monitorType === MonitorType.Ping ||
+                createdItem.monitorType === MonitorType.IP)
+        ) {
+            await this.addDefaultProbesToMonitor(
+                createdItem.projectId,
+                createdItem.id
+            );
         }
 
         return createdItem;
     }
 
-
-    public async addDefaultProbesToMonitor(projectId: ObjectID, monitorId: ObjectID) {
-        const globalProbes = await ProbeService.findBy({
+    public async addDefaultProbesToMonitor(
+        projectId: ObjectID,
+        monitorId: ObjectID
+    ): Promise<void> {
+        const globalProbes: Array<Probe> = await ProbeService.findBy({
             query: {
                 isGlobalProbe: true,
-                shouldAutoEnableProbeOnNewMonitors: true
+                shouldAutoEnableProbeOnNewMonitors: true,
             },
             select: {
-                _id: true
+                _id: true,
             },
             skip: 0,
             limit: LIMIT_PER_PROJECT,
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
 
-        const projectProbes = await ProbeService.findBy({
+        const projectProbes: Array<Probe> = await ProbeService.findBy({
             query: {
                 isGlobalProbe: false,
                 shouldAutoEnableProbeOnNewMonitors: true,
-                projectId: projectId
+                projectId: projectId,
             },
             select: {
-                _id: true
+                _id: true,
             },
             skip: 0,
             limit: LIMIT_PER_PROJECT,
             props: {
-                isRoot: true
-            }
-        })
+                isRoot: true,
+            },
+        });
 
-        const totalProbes = [...globalProbes, ...projectProbes];
+        const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
 
         for (const probe of totalProbes) {
             const monitorProbe: MonitorProbe = new MonitorProbe();
@@ -128,8 +141,8 @@ export class Service extends DatabaseService<Model> {
             await MonitorProbeService.create({
                 data: monitorProbe,
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
         }
     }

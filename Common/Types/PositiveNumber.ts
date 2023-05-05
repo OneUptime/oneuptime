@@ -18,7 +18,7 @@ export default class PositiveNumber {
             }
         }
 
-        if (positiveNumber as number < 0) {
+        if ((positiveNumber as number) < 0) {
             throw new BadDataException('positiveNumber cannot be less than 0');
         }
 

@@ -429,7 +429,6 @@ export default class Probe extends BaseModel {
     })
     public isGlobalProbe?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

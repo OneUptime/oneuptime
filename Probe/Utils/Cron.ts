@@ -9,7 +9,6 @@ const RunCron: Function = (
     },
     runFunction: Function
 ): void => {
-    
     cron.schedule(options.schedule, async () => {
         try {
             logger.info(`Job ${jobName} Start`);
@@ -21,7 +20,7 @@ const RunCron: Function = (
         }
     });
 
-    if(options.runOnStartup) {
+    if (options.runOnStartup) {
         runFunction();
     }
 };

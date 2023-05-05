@@ -50,13 +50,12 @@ router.post(
             });
 
             if (probe) {
-
                 await ProbeService.updateOneById({
                     id: probe.id!,
                     data: {
                         name: data['probeName'] as string,
                         description: data['probeDescription'] as string,
-                        lastAlive:  OneUptimeDate.getCurrentDate()
+                        lastAlive: OneUptimeDate.getCurrentDate(),
                     },
                     props: {
                         isRoot: true,

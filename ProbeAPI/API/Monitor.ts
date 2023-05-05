@@ -12,9 +12,10 @@ import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
 import { ProbeExpressRequest } from '../Types/Request';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import CronTab from "CommonServer/Utils/CronTab"
+import CronTab from 'CommonServer/Utils/CronTab';
 import Monitor from 'Model/Models/Monitor';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import { JSONObject } from 'Common/Types/JSON';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -27,12 +28,13 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-           
-            const data  = req.body; 
-            const limit = data['limit'] as number || 100;
+            const data: JSONObject = req.body;
+            const limit: number = (data['limit'] as number) || 100;
 
-
-            if(!(req as ProbeExpressRequest).probe || !(req as ProbeExpressRequest).probe?.id){
+            if (
+                !(req as ProbeExpressRequest).probe ||
+                !(req as ProbeExpressRequest).probe?.id
+            ) {
                 return Response.sendErrorResponse(
                     req,
                     res,
@@ -41,55 +43,65 @@ router.post(
             }
 
             //get list of monitors to be monitored
-            const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy({
-                query: {
-                    probeId: ((req as ProbeExpressRequest).probe)!.id!,
-                    isEnabled: true, 
-                    nextPingAt: QueryHelper.lessThanEqualTo(
-                        OneUptimeDate.getCurrentDate()
-                    )
-                },
-                skip: 0, 
-                limit: limit,
-                select: {
-                    probeId: true,
-                    monitorId: true
-                },
-                populate: {
-                    monitor: {
-                        monitorSteps: true,
-                        monitorType: true,
-                        monitoringInterval: true,
-                    }
-                },
-                props: {
-                    isRoot: true
-                }
-            });
+            const monitorProbes: Array<MonitorProbe> =
+                await MonitorProbeService.findBy({
+                    query: {
+                        probeId: (req as ProbeExpressRequest).probe!.id!,
+                        isEnabled: true,
+                        nextPingAt: QueryHelper.lessThanEqualTo(
+                            OneUptimeDate.getCurrentDate()
+                        ),
+                    },
+                    skip: 0,
+                    limit: limit,
+                    select: {
+                        probeId: true,
+                        monitorId: true,
+                    },
+                    populate: {
+                        monitor: {
+                            monitorSteps: true,
+                            monitorType: true,
+                            monitoringInterval: true,
+                        },
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             // update the lastMonitoredAt field of the monitors
 
-            for(const monitorProbe of monitorProbes){
+            for (const monitorProbe of monitorProbes) {
                 await MonitorProbeService.updateOneById({
                     id: monitorProbe.id!,
                     data: {
                         lastPingAt: OneUptimeDate.getCurrentDate(),
-                        nextPingAt: CronTab.getNextExecutionTime(monitorProbe?.monitor?.monitoringInterval as string)
+                        nextPingAt: CronTab.getNextExecutionTime(
+                            monitorProbe?.monitor?.monitoringInterval as string
+                        ),
                     },
                     props: {
-                        isRoot: true
-                    }
+                        isRoot: true,
+                    },
                 });
             }
-            
-            const monitors: Array<Monitor> = monitorProbes.map((monitorProbe) => {
-                return monitorProbe.monitor!;
-            });
 
+            const monitors: Array<Monitor> = monitorProbes.map(
+                (monitorProbe: MonitorProbe) => {
+                    return monitorProbe.monitor!;
+                }
+            );
 
             // return the list of monitors to be monitored
 
-            return Response.sendEntityArrayResponse(req, res, monitors, new PositiveNumber(monitors.length), Monitor);
+            return Response.sendEntityArrayResponse(
+                req,
+                res,
+                monitors,
+                new PositiveNumber(monitors.length),
+                Monitor
+            );
         } catch (err) {
             return next(err);
         }

@@ -47,7 +47,7 @@ export const ClusterKey: ObjectID = new ObjectID(
     process.env['ONEUPTIME_SECRET'] || 'secret'
 );
 
-export const hasClusterKey: boolean = !!process.env['ONEUPTIME_SECRET'];
+export const hasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
 export const Domain: Hostname = Hostname.fromString(
     process.env['DOMAIN'] || 'localhost'

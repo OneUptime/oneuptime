@@ -135,5 +135,5 @@ export default [
     ProjectSSO,
     StatusPageSSO,
 
-    MonitorProbe
+    MonitorProbe,
 ];

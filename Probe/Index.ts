@@ -12,9 +12,8 @@ const init: Function = async (): Promise<void> => {
         // init the app
         await App(APP_NAME);
 
-        // Register this probe. 
+        // Register this probe.
         await Register.registerProbe();
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

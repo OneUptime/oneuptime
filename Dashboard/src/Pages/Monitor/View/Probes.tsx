@@ -23,7 +23,7 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorProbe from 'Model/Models/MonitorProbe'
+import MonitorProbe from 'Model/Models/MonitorProbe';
 import DashboardNavigation from '../../../Utils/Navigation';
 import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -93,109 +93,110 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         <>
                             This is a manual monitor. It does not monitor
                             anything and so, it cannot have monitorting probes
-                            set. You can have monitoring probes on other
-                            monitor types.{' '}
+                            set. You can have monitoring probes on other monitor
+                            types.{' '}
                         </>
                     }
                 />
             );
         }
 
+        return (
+            <ModelTable<MonitorProbe>
+                modelType={MonitorProbe}
+                query={{
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    monitorId: modelId.toString(),
+                }}
+                onBeforeCreate={(item: MonitorProbe): MonitorProbe => {
+                    item.monitorId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
 
-        return (<ModelTable<MonitorProbe>
-            modelType={MonitorProbe}
-            query={{
-                projectId:
-                    DashboardNavigation.getProjectId()?.toString(),
-                monitorId: modelId.toString(),
-
-            }}
-            onBeforeCreate={(item: MonitorProbe): MonitorProbe => {
-                item.monitorId = modelId;
-                item.projectId = DashboardNavigation.getProjectId()!
-
-                return item;
-            }}
-            id="probes-table"
-            name="Monitor > Monitor Probes"
-            isDeleteable={false}
-            isEditable={true}
-            isCreateable={true}
-            cardProps={{
-                icon: IconProp.Signal,
-                title: 'Probes',
-                description:
-                    'List of probes that help you monitor this resource.',
-            }}
-            noItemsMessage={'No probes found for this resource. However, you can add some probes to monitor this resource.'}
-            viewPageRoute={Navigation.getCurrentRoute()}
-            formFields={[
-                {
-                    field: {
-                        probe: true,
+                    return item;
+                }}
+                id="probes-table"
+                name="Monitor > Monitor Probes"
+                isDeleteable={false}
+                isEditable={true}
+                isCreateable={true}
+                cardProps={{
+                    icon: IconProp.Signal,
+                    title: 'Probes',
+                    description:
+                        'List of probes that help you monitor this resource.',
+                }}
+                noItemsMessage={
+                    'No probes found for this resource. However, you can add some probes to monitor this resource.'
+                }
+                viewPageRoute={Navigation.getCurrentRoute()}
+                formFields={[
+                    {
+                        field: {
+                            probe: true,
+                        },
+                        title: 'Probe',
+                        stepId: 'incident-details',
+                        description: 'Which probe do you want to use?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: Probe,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Probe',
                     },
-                    title: 'Probe',
-                    stepId: 'incident-details',
-                    description: 'Which probe do you want to use?',
-                    fieldType: FormFieldSchemaType.Dropdown,
-                    dropdownModal: {
-                        type: Probe,
-                        labelField: 'name',
-                        valueField: '_id',
-                    },
-                    required: true,
-                    placeholder: 'Probe',
-                },
 
-                
-                {
-                    field: {
-                        isEnabled: true,
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
                     },
-                    title: 'Enabled',
-                    fieldType: FormFieldSchemaType.Toggle,
-                    required: false,
-                },
-            ]}
-            showRefreshButton={true}
-            showFilterButton={false}
-           
-            columns={[
-                {
-                    field: {
-                        probe: {
-                            name: true,
-                            iconFileId: true,
+                ]}
+                showRefreshButton={true}
+                showFilterButton={false}
+                columns={[
+                    {
+                        field: {
+                            probe: {
+                                name: true,
+                                iconFileId: true,
+                            },
+                        },
+                        isFilterable: false,
+                        title: 'Probe',
+                        type: FieldType.Entity,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <ProbeElement
+                                    probe={item['probe'] as JSONObject}
+                                />
+                            );
                         },
                     },
-                    isFilterable: false,
-                    title: 'Probe',
-                    type: FieldType.Entity,
-                    getElement: (item: JSONObject): ReactElement => {
-                        return <ProbeElement probe={item['probe'] as JSONObject} />;
+                    {
+                        field: {
+                            lastPingAt: true,
+                        },
+                        title: 'Last Monitored At',
+                        type: FieldType.DateTime,
+                        isFilterable: false,
+                        noValueMessage: 'Will be picked up by this probe soon.',
                     },
-                },
-                {
-                    field: {
-                        lastPingAt: true,
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        type: FieldType.Boolean,
+                        isFilterable: false,
                     },
-                    title: 'Last Monitored At',
-                    type: FieldType.DateTime,
-                    isFilterable: false,
-                    noValueMessage: 'Will be picked up by this probe soon.',
-                    
-                },
-                {
-                    field: {
-                        isEnabled: true,
-                    },
-                    title: 'Enabled',
-                    type: FieldType.Boolean,
-                    isFilterable: false,
-                    
-                },
-            ]}
-        />)
+                ]}
+            />
+        );
     };
 
     return (
