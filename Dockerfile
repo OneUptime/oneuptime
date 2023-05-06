@@ -9,6 +9,7 @@ RUN npm install -g pm2
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
+RUN mkdir /usr/src
 RUN mkdir /usr/src/oneuptime
 
 WORKDIR /usr/src/oneuptime
@@ -17,7 +18,8 @@ COPY . /usr/src/oneuptime/
 
 ENV IS_DOCKER=true
 
-RUN bash ./Scripts/NodeModulesScripts/install-node-modules.sh
+RUN bash ./Scripts/NodeScripts/install-node-modules.sh
+RUN bash ./Scripts/NodeScripts/compile.sh
 
 # Expose ports.
 #   - 80: OneUptime HTTP
