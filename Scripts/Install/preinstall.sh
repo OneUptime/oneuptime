@@ -2,7 +2,7 @@
 
 set -e
 
-bash ./Scripts/Bash/generate-secrets.sh
+bash ./Scripts/Install/generate-secrets.sh
 
 # Talk to the user
 echo "Welcome to the OneUptime 🟢 Runner"
@@ -36,7 +36,7 @@ fi
 
 echo "Installing OneUptime 🟢"
 
-bash ./Scripts/Bash/install-git.sh
+bash ./Scripts/Install/install-git.sh
 
 if [[ $IS_DOCKER == "true" ]]
 then
@@ -64,14 +64,14 @@ then
 fi
 
 
-bash ./Scripts/Bash/install-node.sh
+bash ./Scripts/Install/install-node.sh
 
-bash ./Scripts/Bash/install-docker.sh
+bash ./Scripts/Install/install-docker.sh
 
-bash ./Scripts/Bash/install-gomplate.sh
+bash ./Scripts/Install/install-gomplate.sh
 
 # Generate Self Signed SSL certificate. 
-bash ./Scripts/Bash/generate-certs.sh
+bash ./Scripts/Install/generate-certs.sh
 
 # Generate env files from env templates.
-bash ./Scripts/Bash/generate-env-files.sh  
+bash ./Scripts/Install/generate-env-files.sh  

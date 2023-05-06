@@ -13,7 +13,7 @@ fi
 
 set -e
 
-bash ./Scripts/Bash/preinstall.sh
+bash ./Scripts/Install/preinstall.sh
 
 # Load env values from config.env
 export $(grep -v '^#' config.env | xargs)
@@ -26,4 +26,4 @@ sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postg
 # Start all containers.
 npm run start
 
-bash ./Scripts/Bash/check-status.sh
+bash ./Scripts/Install/check-status.sh
