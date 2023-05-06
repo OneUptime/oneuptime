@@ -1,9 +1,9 @@
 # This file is work in progress and will not build yet.
 
-FROM docker:latest
+FROM ubuntu:latest
 
 # Install bash and curl and git. 
-RUN apk update && apk install bash && apk install curl && apk install git && apk install sudo
+RUN apt-get update && apt-get install -y bash && apt-get install -y curl && apt-get install -y git && apt-get install -y sudo
 
 RUN mkdir /usr/src/oneuptime
 
