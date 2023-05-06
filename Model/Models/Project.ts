@@ -522,4 +522,20 @@ export default class Model extends TenantModel {
         default: false,
     })
     public requireSsoForLogin?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+           
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+    })
+    public activeMonitorsLimit?: number = undefined;
 }

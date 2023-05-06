@@ -5,6 +5,7 @@ import NotImplementedException from 'Common/Types/Exception/NotImplementedExcept
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusCode from 'Common/Types/API/StatusCode';
 import { SslResponse } from './SslMonitor';
+import { JSONObject } from 'Common/Types/JSON';
 
 export interface APIResponse {
     isSecure: boolean;
@@ -25,7 +26,7 @@ export default class API {
         _method: HTTPMethod,
         _url: URL,
         _requestHeaders: Headers,
-        _requestBody: string
+        _requestBody: string | JSONObject
     ): Promise<APIResponse> {
         throw new NotImplementedException();
     }

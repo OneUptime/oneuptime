@@ -35,6 +35,16 @@ export default class MonitorStep extends DatabaseProperty {
         };
     }
 
+    
+    public get id() : ObjectID {
+        return new ObjectID(this.data?.id!);
+    }
+
+    public set id(v : ObjectID) {
+       this.data!.id = v.toString();
+    }
+    
+
     public setRequestType(requestType: HTTPMethod): MonitorStep {
         this.data!.requestType = requestType;
         return this;

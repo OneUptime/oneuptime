@@ -1,4 +1,5 @@
 import Hostname from 'Common/Types/API/Hostname';
+import URL from 'Common/Types/API/URL';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
 import Port from 'Common/Types/Port';
@@ -9,37 +10,40 @@ import net, { Socket } from 'net';
 export interface PingResponse {
     isOnline: boolean;
     responseTimeInMS?: PositiveNumber;
-    remoteAddressIP: IPv4 | IPv6;
-    remoteAddressPort: Port;
 }
 
 export interface PingOptions {
-    port?: PositiveNumber;
     timeout?: PositiveNumber;
 }
 
-export default class Ping {
-    public static async fetch(
-        _host: Hostname | IPv4 | IPv6,
+export default class PingMonitor {
+    public static async ping(
+        host: Hostname | IPv4 | IPv6 | URL,
         pingOptions?: PingOptions
     ): Promise<PingResponse> {
         return new Promise<PingResponse>(
             (resolve: Function, _reject: Function) => {
                 const timeout: number =
-                    pingOptions?.timeout?.toNumber() || 4000;
+                    pingOptions?.timeout?.toNumber() || 5000;
                 const startTime: [number, number] = process.hrtime();
                 let responseTimeInMS: PositiveNumber;
                 let connectionOptions: net.NetConnectOpts;
-                if (_host instanceof Hostname) {
+                if (host instanceof Hostname) {
                     connectionOptions = {
-                        host: _host.hostname,
-                        port: _host.port.toNumber(),
+                        host: host.hostname,
+                        port: host.port.toNumber(),
+                        timeout,
+                    };
+                } else if(host instanceof URL){
+                    connectionOptions = {
+                        host: host.hostname.hostname,
+                        port: host.hostname.port.toNumber(),
                         timeout,
                     };
                 } else {
                     connectionOptions = {
-                        host: _host.toString(),
-                        port: pingOptions?.port?.toNumber() || 80,
+                        host: host.toString(),
+                        port: 80,
                         timeout,
                     };
                 }
@@ -56,20 +60,11 @@ export default class Ping {
                     });
                 });
                 socket.on('connect', () => {
-                    const remoteAddressIP: undefined | IPv4 | IPv6 | '' =
-                        socket.remoteAddress &&
-                        (net.isIPv4(socket.remoteAddress)
-                            ? new IPv4(socket.remoteAddress)
-                            : new IPv6(socket.remoteAddress));
-
+                    
                     socket.end(() => {
                         resolve({
                             isOnline: true,
                             responseTimeInMS,
-                            remoteAddressIP,
-                            remoteAddressPort:
-                                socket.remotePort &&
-                                new Port(socket.remotePort),
                         });
                     });
                 });
