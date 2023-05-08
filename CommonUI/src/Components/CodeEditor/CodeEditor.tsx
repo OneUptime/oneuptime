@@ -104,7 +104,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
             <Editor
                 defaultLanguage={props.type}
-                height="25vh"
+                height="30vh"
                 value={value}
                 onChange={(code: string | undefined) => {
                     if (code === undefined) {
@@ -167,7 +167,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     suggestOnTriggerCharacters: true,
                     wordBasedSuggestions: true,
                     wordSeparators: '~!@#$%^&*()-=+[{]}|;:\'",.<>/?',
-                    wordWrap: 'off',
+                    wordWrap: props.type === CodeType.Markdown ? 'on' : 'off',
                     wordWrapBreakAfterCharacters: '\t})]?|&,;',
                     wordWrapBreakBeforeCharacters: '{([+',
                     wordWrapColumn: 80,

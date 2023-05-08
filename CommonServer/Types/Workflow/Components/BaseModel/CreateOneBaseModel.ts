@@ -81,7 +81,7 @@ export default class CreateOneBaseModel<
             }
 
             if (typeof args['json'] === 'string') {
-                args['json'] = JSON.parse(args['json'] as string);
+                args['json'] = JSONFunctions.parse(args['json'] as string);
             }
 
             if (typeof args['json'] !== 'object') {

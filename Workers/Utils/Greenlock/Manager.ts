@@ -7,6 +7,7 @@ import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 // because greenlock package expects module.exports.
 module.exports = {
@@ -98,7 +99,7 @@ module.exports = {
                         return i.blob;
                     })
                     .map((i: GreenlockCertificate) => {
-                        return JSON.parse(i.blob!);
+                        return JSONFunctions.parse(i.blob!);
                     })
                     .filter((site: any) => {
                         logger.info('Filter Site: ');

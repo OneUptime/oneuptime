@@ -34,7 +34,7 @@ class BaseAPI extends API {
         if (headers && headers['global-permissions']) {
             PermissionUtil.setGlobalPermissions(
                 JSONFunctions.deserialize(
-                    JSON.parse(headers['global-permissions'])
+                    JSONFunctions.parse(headers['global-permissions'])
                 ) as UserGlobalAccessPermission
             );
         }
@@ -49,7 +49,7 @@ class BaseAPI extends API {
         if (headers && headers['project-permissions']) {
             PermissionUtil.setProjectPermissions(
                 JSONFunctions.deserialize(
-                    JSON.parse(headers['project-permissions'])
+                    JSONFunctions.parse(headers['project-permissions'])
                 ) as UserTenantAccessPermission
             );
         }

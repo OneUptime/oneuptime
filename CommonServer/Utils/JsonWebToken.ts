@@ -8,6 +8,7 @@ import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
 import User from 'Model/Models/User';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 class JSONWebToken {
     public static sign(
@@ -53,7 +54,7 @@ class JSONWebToken {
             const decodedToken: string = JSON.stringify(
                 jwt.verify(token, EncryptionSecret.toString()) as string
             );
-            const decoded: JSONObject = JSON.parse(decodedToken);
+            const decoded: JSONObject = JSONFunctions.parse(decodedToken);
 
             if (decoded['statusPageId']) {
                 return {

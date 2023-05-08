@@ -7,6 +7,7 @@ import { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 import SerializableObject from './SerializableObject';
 import SerializableObjectDictionary from './SerializableObjectDictionary';
+import JSON5 from 'json5';
 
 export default class JSONFunctions {
     public static toJSON(
@@ -339,6 +340,10 @@ export default class JSONFunctions {
         }
 
         return returnArr;
+    }
+
+    public static parse(val: string): JSONObject {
+        return JSON5.parse(val);
     }
 
     public static deserialize(val: JSONObject): JSONObject {

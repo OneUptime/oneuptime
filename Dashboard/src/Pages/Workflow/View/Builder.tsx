@@ -25,6 +25,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import IconProp from 'Common/Types/Icon/IconProp';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, {
@@ -179,7 +180,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setSaveTimeout(
             setTimeout(async () => {
                 try {
-                    const graph: any = JSON.parse(
+                    const graph: any = JSONFunctions.parse(
                         JSON.stringify({ nodes, edges })
                     ); // deep copy
 

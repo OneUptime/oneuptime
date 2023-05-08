@@ -83,7 +83,7 @@ export default class FindManyBaseModel<
             }
 
             if (typeof args['query'] === 'string') {
-                args['query'] = JSON.parse(args['query'] as string);
+                args['query'] = JSONFunctions.parse(args['query'] as string);
             }
 
             if (typeof args['query'] !== 'object') {
@@ -105,7 +105,7 @@ export default class FindManyBaseModel<
             }
 
             if (typeof args['select'] === 'string') {
-                args['select'] = JSON.parse(args['select'] as string);
+                args['select'] = JSONFunctions.parse(args['select'] as string);
             }
 
             if (typeof args['select'] !== 'object') {
