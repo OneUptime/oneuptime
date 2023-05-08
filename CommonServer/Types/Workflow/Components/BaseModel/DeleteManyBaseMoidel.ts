@@ -82,7 +82,7 @@ export default class DeleteManyBaseModel<
             }
 
             if (typeof args['query'] === 'string') {
-                args['query'] = JSON.parse(args['query'] as string);
+                args['query'] = JSONFunctions.parse(args['query'] as string);
             }
 
             if (typeof args['query'] !== 'object') {

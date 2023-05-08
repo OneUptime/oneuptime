@@ -9,6 +9,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ConfirmModal from '../Modal/ConfirmModal';
 import SideOver from '../SideOver/SideOver';
 import RunForm from './RunForm';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     onClose: () => void;
@@ -80,7 +81,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
                                         'string'
                                 ) {
                                     component.returnValues[args.id] =
-                                        JSON.parse(
+                                        JSONFunctions.parse(
                                             component.returnValues[
                                                 args.id
                                             ] as string

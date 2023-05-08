@@ -4,6 +4,7 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JSONComponents from 'Common/Types/Workflow/Components/JSON';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class TextToJSON extends ComponentCode {
     public constructor() {
@@ -59,7 +60,9 @@ export default class TextToJSON extends ComponentCode {
         }
 
         try {
-            const returnValue: JSONObject = JSON.parse(args['text'] as string);
+            const returnValue: JSONObject = JSONFunctions.parse(
+                args['text'] as string
+            );
             return Promise.resolve({
                 returnValues: {
                     json: returnValue,

@@ -5,6 +5,7 @@ import { RunOptions } from '../../ComponentCode';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export class ApiComponentUtils {
     public static getReturnValues(
@@ -55,14 +56,21 @@ export class ApiComponentUtils {
         }
 
         if (args['request-body'] && typeof args['request-body'] === 'string') {
-            args['request-body'] = JSON.parse(args['request-body'] as string);
+            console.log('here');
+
+            console.log(args['request-body']);
+            args['request-body'] = JSONFunctions.parse(
+                `${args['request-body'] as string}`
+            );
+
+            console.log(args['request-body']);
         }
 
         if (
             args['request-headers'] &&
             typeof args['request-headers'] === 'string'
         ) {
-            args['request-headers'] = JSON.parse(
+            args['request-headers'] = JSONFunctions.parse(
                 args['request-headers'] as string
             );
         }

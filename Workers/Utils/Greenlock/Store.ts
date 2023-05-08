@@ -3,6 +3,7 @@
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import logger from 'CommonServer/Utils/Logger';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 module.exports = {
     create: (_opts: any) => {
@@ -127,7 +128,7 @@ module.exports = {
                         return null;
                     }
 
-                    return JSON.parse(keyblob);
+                    return JSONFunctions.parse(keyblob);
                 },
             },
 
@@ -162,7 +163,7 @@ module.exports = {
                         return null;
                     }
 
-                    return JSON.parse(keyblob);
+                    return JSONFunctions.parse(keyblob);
                 },
 
                 // And you'll also need to save certificates. You may find the metadata useful to save
@@ -194,7 +195,7 @@ module.exports = {
                         return null;
                     }
 
-                    return JSON.parse(certblob);
+                    return JSONFunctions.parse(certblob);
                 },
             },
 

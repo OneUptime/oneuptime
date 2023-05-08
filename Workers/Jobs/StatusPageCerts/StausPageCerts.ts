@@ -17,6 +17,7 @@ import Express, {
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import { JSONObject } from 'Common/Types/JSON';
 import Response from 'CommonServer/Utils/Response';
@@ -447,11 +448,16 @@ RunCron(
                 continue;
             }
 
-            const key: string = JSON.parse(cert.blob || '{}').privateKeyPem;
-            let crt: string = JSON.parse(certBlob.blob || '{}').cert;
+            const key: string = JSONFunctions.parse(
+                cert.blob || '{}'
+            ).privateKeyPem;
+            let crt: string = JSONFunctions.parse(certBlob.blob || '{}').cert;
 
-            if (JSON.parse(certBlob.blob || '{}').chain) {
-                crt += '\n' + '\n' + JSON.parse(certBlob.blob || '{}').chain;
+            if (JSONFunctions.parse(certBlob.blob || '{}').chain) {
+                crt +=
+                    '\n' +
+                    '\n' +
+                    JSONFunctions.parse(certBlob.blob || '{}').chain;
             }
 
             // Write to disk.
