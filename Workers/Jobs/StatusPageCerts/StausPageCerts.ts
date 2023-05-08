@@ -448,16 +448,19 @@ RunCron(
                 continue;
             }
 
-            const key: string = JSONFunctions.parse(
-                cert.blob || '{}'
-            ).privateKeyPem;
-            let crt: string = JSONFunctions.parse(certBlob.blob || '{}').cert;
+            const key: string = JSONFunctions.parse(cert.blob || '{}')[
+                'privateKeyPem'
+            ] as string;
+            let crt: string = JSONFunctions.parse(certBlob.blob || '{}')[
+                'cert'
+            ] as string;
 
-            if (JSONFunctions.parse(certBlob.blob || '{}').chain) {
-                crt +=
+            if (JSONFunctions.parse(certBlob.blob || '{}')['chain'] as string) {
+                crt += ('\n' +
                     '\n' +
-                    '\n' +
-                    JSONFunctions.parse(certBlob.blob || '{}').chain;
+                    JSONFunctions.parse(certBlob.blob || '{}')[
+                        'chain'
+                    ]) as string;
             }
 
             // Write to disk.
