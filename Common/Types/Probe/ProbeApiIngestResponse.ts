@@ -1,4 +1,4 @@
-import ObjectID from "../ObjectID";
+import ObjectID from '../ObjectID';
 
 export default interface ProbeApiIngestResponse {
     monitorId: ObjectID;

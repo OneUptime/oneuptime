@@ -34,15 +34,17 @@ RunCron(
         const monitoringPromises: Array<Promise<void>> = [];
 
         for (const monitor of monitors) {
-            const promise: Promise<void> = new Promise<void>(async (resolve:Function, reject: Function) => {
-                try {
-                    await MonitorUtil.probeMonitor(monitor);
-                    resolve();
-                } catch (err) {
-                    logger.error(err);
-                    reject(err);
+            const promise: Promise<void> = new Promise<void>(
+                async (resolve: Function, reject: Function) => {
+                    try {
+                        await MonitorUtil.probeMonitor(monitor);
+                        resolve();
+                    } catch (err) {
+                        logger.error(err);
+                        reject(err);
+                    }
                 }
-            });
+            );
 
             monitoringPromises.push(promise);
         }

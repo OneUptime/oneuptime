@@ -30,12 +30,10 @@ export default class MonitorUtil {
 
             // report this back to Probe API.
 
-            const probeApiResult
+            const probeApiResult;
 
             results.push(result);
         }
-
-       
 
         return results;
     }

@@ -1,5 +1,10 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { CheckOn, CriteriaFilter, FilterType } from 'Common/Types/Monitor/CriteriaFilter';
+import {
+    CheckOn,
+    CriteriaFilter,
+    FilterCondition,
+    FilterType,
+} from 'Common/Types/Monitor/CriteriaFilter';
 import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
@@ -8,18 +13,21 @@ import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Typeof from 'Common/Types/Typeof';
 import MonitorService from 'CommonServer/Services/MonitorService';
+import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
+import IncidentService from 'CommonServer/Services/IncidentService';
 import logger from 'CommonServer/Utils/Logger';
+import Incident from 'Model/Models/Incident';
 import Monitor from 'Model/Models/Monitor';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
         probeMonitorResponse: ProbeMonitorResponse
     ): Promise<ProbeApiIngestResponse> {
-    
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
-        }
-       
+        };
+
         // fetch monitor
 
         const monitor: Monitor | null = await MonitorService.findOneById({
@@ -27,6 +35,8 @@ export default class ProbeMonitorResponseService {
             select: {
                 monitorSteps: true,
                 monitorType: true,
+                projectId: true,
+                _id: true,
             },
             props: {
                 isRoot: true,
@@ -39,84 +49,203 @@ export default class ProbeMonitorResponseService {
 
         // save data to Clickhouse.
 
-
         const monitorSteps: MonitorSteps = monitor.monitorSteps!;
 
-        if(!monitorSteps.data?.monitorStepsInstanceArray) {
+        if (!monitorSteps.data?.monitorStepsInstanceArray) {
             // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
-            return response; 
+            return response;
         }
 
-        const monitorStep = monitorSteps.data.monitorStepsInstanceArray.find((monitorStep) => {
-            return monitorStep.id === probeMonitorResponse.monitorStepId;
-        });
+        const monitorStep = monitorSteps.data.monitorStepsInstanceArray.find(
+            (monitorStep) => {
+                return monitorStep.id === probeMonitorResponse.monitorStepId;
+            }
+        );
 
-        if(!monitorStep) {
+        if (!monitorStep) {
             // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
-            return response; 
+            return response;
         }
 
         // now process the monitor step
 
         response.ingestedMonitorStepId = monitorStep.id;
 
-        //find next monitor step after this one. 
-        const nextMonitorStepIndex: number = monitorSteps.data.monitorStepsInstanceArray.findIndex((step: MonitorStep) => {
-            return step.id === monitorStep.id;
-        });
+        //find next monitor step after this one.
+        const nextMonitorStepIndex: number =
+            monitorSteps.data.monitorStepsInstanceArray.findIndex(
+                (step: MonitorStep) => {
+                    return step.id === monitorStep.id;
+                }
+            );
 
-        response.nextMonitorStepId = monitorSteps.data.monitorStepsInstanceArray[nextMonitorStepIndex + 1]?.id;        
+        response.nextMonitorStepId =
+            monitorSteps.data.monitorStepsInstanceArray[
+                nextMonitorStepIndex + 1
+            ]?.id;
 
         // now process probe response monitors
 
         response = await this.processMonitorStep({
-            probeMonitorResponse: probeMonitorResponse, monitorStep: monitorStep, monitor: monitor, probeApiIngestResponse: response}
-            );
+            probeMonitorResponse: probeMonitorResponse,
+            monitorStep: monitorStep,
+            monitor: monitor,
+            probeApiIngestResponse: response,
+        });
 
         return response;
-        
     }
 
-
-    private static async processMonitorStep(input: { probeMonitorResponse: ProbeMonitorResponse; monitorStep: MonitorStep; monitor: Monitor; probeApiIngestResponse: ProbeApiIngestResponse; }): Promise<ProbeApiIngestResponse> {
-
+    private static async processMonitorStep(input: {
+        probeMonitorResponse: ProbeMonitorResponse;
+        monitorStep: MonitorStep;
+        monitor: Monitor;
+        probeApiIngestResponse: ProbeApiIngestResponse;
+    }): Promise<ProbeApiIngestResponse> {
         // process monitor step here.
 
-        const criteria: MonitorCriteria | undefined = input.monitorStep.data?.monitorCriteria;
+        const criteria: MonitorCriteria | undefined =
+            input.monitorStep.data?.monitorCriteria;
 
-        if(!criteria || !criteria.data) {
+        if (!criteria || !criteria.data) {
             // do nothing as there's no criteria to process.
             return input.probeApiIngestResponse;
         }
 
-        for(const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
-            await this.processMonitorCriteiaInstance({
-                probeMonitorResponse: input.probeMonitorResponse, monitorStep: input.monitorStep, monitor: input.monitor, probeApiIngestResponse: input.probeApiIngestResponse, criteriaInstance: criteriaInstance
-            });
+        for (const criteriaInstance of criteria.data
+            .monitorCriteriaInstanceArray) {
+            const isCriteriaFilterMet: boolean =
+                await this.processMonitorCriteiaInstance({
+                    probeMonitorResponse: input.probeMonitorResponse,
+                    monitorStep: input.monitorStep,
+                    monitor: input.monitor,
+                    probeApiIngestResponse: input.probeApiIngestResponse,
+                    criteriaInstance: criteriaInstance,
+                });
+
+            if (isCriteriaFilterMet) {
+                break;
+            }
         }
 
         return input.probeApiIngestResponse;
     }
 
-
-    private static async processMonitorCriteiaInstance(input: { probeMonitorResponse: ProbeMonitorResponse; monitorStep: MonitorStep; monitor: Monitor; probeApiIngestResponse: ProbeApiIngestResponse; criteriaInstance: MonitorCriteriaInstance }): Promise<ProbeApiIngestResponse> {
-        
+    private static async processMonitorCriteiaInstance(input: {
+        probeMonitorResponse: ProbeMonitorResponse;
+        monitorStep: MonitorStep;
+        monitor: Monitor;
+        probeApiIngestResponse: ProbeApiIngestResponse;
+        criteriaInstance: MonitorCriteriaInstance;
+    }): Promise<boolean> {
         // process monitor criteria instance here.
 
+        const isCriteriaFiltersMet: boolean =
+            await this.isMonitorInstanceCriteriaFiltersMet({
+                probeMonitorResponse: input.probeMonitorResponse,
+                monitorStep: input.monitorStep,
+                monitor: input.monitor,
+                probeApiIngestResponse: input.probeApiIngestResponse,
+                criteriaInstance: input.criteriaInstance,
+            });
 
-        
+        if (isCriteriaFiltersMet) {
+            // criteria filters are met, now process the actions.
+
+            if (
+                input.criteriaInstance.data?.changeMonitorStatus &&
+                input.criteriaInstance.data?.monitorStatusId
+            ) {
+                // change monitor status
+
+                const monitorStatusId =
+                    input.criteriaInstance.data?.monitorStatusId;
+
+                //change monitor status.
+
+                const monitorStatusTimeline: MonitorStatusTimeline =
+                    new MonitorStatusTimeline();
+                monitorStatusTimeline.monitorId = input.monitor.id!;
+                monitorStatusTimeline.monitorStatusId = monitorStatusId;
+                monitorStatusTimeline.projectId = input.monitor.projectId!;
+
+                await MonitorStatusTimelineService.create({
+                    data: monitorStatusTimeline,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+            if (input.criteriaInstance.data?.createIncidents) {
+                // create incidents
+
+                for (const criteriaIncident of input.criteriaInstance.data
+                    ?.incidents || []) {
+                    // create incident here.
+
+                    const incident: Incident = new Incident();
+
+                    incident.title = criteriaIncident.title;
+                    incident.description = criteriaIncident.description;
+                    incident.incidentSeverityId =
+                        criteriaIncident.incidentSeverityId!;
+                    incident.monitors = [input.monitor];
+                    incident.projectId = input.monitor.projectId!;
+
+                    await IncidentService.create({
+                        data: incident,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+                }
+            }
+        }
+
         // do nothing as there's no criteria to process.
-        return input.probeApiIngestResponse;
+        return isCriteriaFiltersMet;
     }
 
-    private static async isMonitorInstanceCriteriaFiltersMet(input: { probeMonitorResponse: ProbeMonitorResponse; monitorStep: MonitorStep; monitor: Monitor; probeApiIngestResponse: ProbeApiIngestResponse; criteriaInstance: MonitorCriteriaInstance }): Promise<boolean> {
-        for(const criteriaFilter of input.criteriaInstance.data?.filters || []) {
-            if(!await this.isMonitorInstanceCriteriaFilterMet({probeMonitorResponse: input.probeMonitorResponse, monitorStep: input.monitorStep, monitor: input.monitor, probeApiIngestResponse: input.probeApiIngestResponse, criteriaInstance: input.criteriaInstance, criteriaFilter: criteriaFilter})) {
+    private static async isMonitorInstanceCriteriaFiltersMet(input: {
+        probeMonitorResponse: ProbeMonitorResponse;
+        monitorStep: MonitorStep;
+        monitor: Monitor;
+        probeApiIngestResponse: ProbeApiIngestResponse;
+        criteriaInstance: MonitorCriteriaInstance;
+    }): Promise<boolean> {
+        const result = true;
+
+        for (const criteriaFilter of input.criteriaInstance.data?.filters ||
+            []) {
+            const criteriaResult =
+                await this.isMonitorInstanceCriteriaFilterMet({
+                    probeMonitorResponse: input.probeMonitorResponse,
+                    monitorStep: input.monitorStep,
+                    monitor: input.monitor,
+                    probeApiIngestResponse: input.probeApiIngestResponse,
+                    criteriaInstance: input.criteriaInstance,
+                    criteriaFilter: criteriaFilter,
+                });
+
+            if (
+                FilterCondition.Any ===
+                    input.criteriaInstance.data?.filterCondition &&
+                criteriaResult === true
+            ) {
+                return true;
+            }
+
+            if (
+                FilterCondition.All ===
+                    input.criteriaInstance.data?.filterCondition &&
+                criteriaResult === false
+            ) {
                 return false;
             }
         }
 
-        return false; 
+        return result;
     }
 
     private static async isMonitorInstanceCriteriaFilterMet(input: { probeMonitorResponse: ProbeMonitorResponse; monitorStep: MonitorStep; monitor: Monitor; probeApiIngestResponse: ProbeApiIngestResponse; criteriaInstance: MonitorCriteriaInstance; criteriaFilter: CriteriaFilter }): Promise<boolean> {
@@ -127,9 +256,9 @@ export default class ProbeMonitorResponseService {
         if(input.criteriaFilter.checkOn === CheckOn.IsOnline && input.criteriaFilter.filterType === FilterType.True){
             if(input.probeMonitorResponse.isOnline){
                 return true;
-            }else{
-                return false;
             }
+                return false;
+            
         }
 
 
@@ -157,53 +286,51 @@ export default class ProbeMonitorResponseService {
             if(input.criteriaFilter.filterType === FilterType.GreaterThan){
                 if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs > (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             } 
 
             if(input.criteriaFilter.filterType === FilterType.LessThan){
                 if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs < (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
 
             if(input.criteriaFilter.filterType === FilterType.EqualTo){
                 if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs === (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
 
             if(input.criteriaFilter.filterType === FilterType.NotEqualTo){
                 if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs !== (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
 
             if(input.criteriaFilter.filterType === FilterType.GreaterThanOrEqualTo){
                 if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs >= (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
 
             if(input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo){
                 if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs <= (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
         }
-
-
 
         //check reponse code
         if(input.criteriaFilter.checkOn === CheckOn.ResponseCode){
@@ -228,25 +355,25 @@ export default class ProbeMonitorResponseService {
             if(input.criteriaFilter.filterType === FilterType.GreaterThan){
                 if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode > (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             } 
 
             if(input.criteriaFilter.filterType === FilterType.LessThan){
                 if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode < (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
 
             if(input.criteriaFilter.filterType === FilterType.EqualTo){
                 if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode === (input.criteriaFilter.value as number)){
                     return true;
-                }else{
-                    return false;
                 }
+                    return false;
+                
             }
 
             if(input.criteriaFilter.filterType === FilterType.NotEqualTo){
@@ -275,7 +402,99 @@ export default class ProbeMonitorResponseService {
         }
 
         if(input.criteriaFilter.checkOn === CheckOn.ResponseBody){
+
+            let responseBody = input.probeMonitorResponse.responseBody;
+
+            if(responseBody && typeof responseBody === Typeof.Object){
+                responseBody = JSON.stringify(responseBody);
+            }
+
+            if(!responseBody){
+                return false;
+            }
             
+            // contains
+            if(input.criteriaFilter.filterType === FilterType.Contains){
+
+                if(value && responseBody && (responseBody as string).includes(value as string)){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+
+            if(input.criteriaFilter.filterType === FilterType.NotContains){
+
+                if(value && responseBody && !(responseBody as string).includes(value as string)){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+
+
+        }
+
+
+        if(input.criteriaFilter.checkOn === CheckOn.ResponseHeader){
+
+            let headerKeys = Object.keys(input.probeMonitorResponse.responseHeaders || {}).map((key) => {
+                return key.toLowerCase();
+            });
+
+           
+            
+            // contains
+            if(input.criteriaFilter.filterType === FilterType.Contains){
+
+                if(value && headerKeys && headerKeys.includes(value as string)){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+
+            if(input.criteriaFilter.filterType === FilterType.NotContains){
+
+                if(value && headerKeys && !headerKeys.includes(value as string)){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+
+
+        }
+
+
+        if(input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue){
+
+            let headerValues = Object.values(input.probeMonitorResponse.responseHeaders || {}).map((key) => {
+                return key.toLowerCase();
+            });
+
+           
+            
+            // contains
+            if(input.criteriaFilter.filterType === FilterType.Contains){
+
+                if(value && headerValues && headerValues.includes(value as string)){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+
+            if(input.criteriaFilter.filterType === FilterType.NotContains){
+
+                if(value && headerValues && !headerValues.includes(value as string)){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+
+
         }
 
 

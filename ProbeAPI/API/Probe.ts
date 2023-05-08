@@ -26,16 +26,21 @@ router.post(
                 req.body['probeMonitorResponse'];
 
             if (!probeResponse) {
-                return Response.sendErrorResponse(req, res, new BadDataException("ProbeMonitorResponse not found"));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('ProbeMonitorResponse not found')
+                );
             }
 
-        
             // process probe response here.
-            const probeApiIngestResponse: ProbeApiIngestResponse = await ProbeMonitorResponseService.processProbeResponse(probeResponse);
-
+            const probeApiIngestResponse: ProbeApiIngestResponse =
+                await ProbeMonitorResponseService.processProbeResponse(
+                    probeResponse
+                );
 
             return Response.sendJsonObjectResponse(req, res, {
-                probeApiIngestResponse: probeApiIngestResponse
+                probeApiIngestResponse: probeApiIngestResponse,
             } as any);
         } catch (err) {
             return next(err);
