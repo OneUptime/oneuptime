@@ -377,7 +377,12 @@ export default class RunWorkflow {
 
 
         const serializeValueForJSON: Function = (value: string): string => {
-            return value.replace(/\n/g, '\\\\n')
+            
+            if(!value){
+                return value;
+            }
+
+            return value.replace(/\n/g, '\\n')
         }
 
         const deepFind: Function = (
