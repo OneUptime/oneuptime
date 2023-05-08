@@ -116,7 +116,7 @@ const init: Function = async (
       window.process.env = {}
     }
     const envVars = '${JSON.stringify(process.env)}';
-    window.process.env = JSONFunctions.parse(envVars);
+    window.process.env = JSON.parse(envVars);
   `;
 
                 Response.sendJavaScriptResponse(req, res, script);
