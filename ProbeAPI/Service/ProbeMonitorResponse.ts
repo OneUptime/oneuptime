@@ -19,6 +19,8 @@ import logger from 'CommonServer/Utils/Logger';
 import Incident from 'Model/Models/Incident';
 import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import ObjectID from 'Common/Types/ObjectID';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -56,11 +58,14 @@ export default class ProbeMonitorResponseService {
             return response;
         }
 
-        const monitorStep = monitorSteps.data.monitorStepsInstanceArray.find(
-            (monitorStep) => {
-                return monitorStep.id === probeMonitorResponse.monitorStepId;
-            }
-        );
+        const monitorStep: MonitorStep | undefined =
+            monitorSteps.data.monitorStepsInstanceArray.find(
+                (monitorStep: MonitorStep) => {
+                    return (
+                        monitorStep.id === probeMonitorResponse.monitorStepId
+                    );
+                }
+            );
 
         if (!monitorStep) {
             // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
@@ -158,7 +163,7 @@ export default class ProbeMonitorResponseService {
             ) {
                 // change monitor status
 
-                const monitorStatusId =
+                const monitorStatusId: ObjectID | undefined =
                     input.criteriaInstance.data?.monitorStatusId;
 
                 //change monitor status.
@@ -214,11 +219,9 @@ export default class ProbeMonitorResponseService {
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
     }): Promise<boolean> {
-        const result = true;
-
         for (const criteriaFilter of input.criteriaInstance.data?.filters ||
             []) {
-            const criteriaResult =
+            const criteriaResult: boolean =
                 await this.isMonitorInstanceCriteriaFilterMet({
                     probeMonitorResponse: input.probeMonitorResponse,
                     monitorStep: input.monitorStep,
@@ -245,263 +248,310 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        return result;
+        return false;
     }
 
-    private static async isMonitorInstanceCriteriaFilterMet(input: { probeMonitorResponse: ProbeMonitorResponse; monitorStep: MonitorStep; monitor: Monitor; probeApiIngestResponse: ProbeApiIngestResponse; criteriaInstance: MonitorCriteriaInstance; criteriaFilter: CriteriaFilter }): Promise<boolean> {
-        
+    private static async isMonitorInstanceCriteriaFilterMet(input: {
+        probeMonitorResponse: ProbeMonitorResponse;
+        monitorStep: MonitorStep;
+        monitor: Monitor;
+        probeApiIngestResponse: ProbeApiIngestResponse;
+        criteriaInstance: MonitorCriteriaInstance;
+        criteriaFilter: CriteriaFilter;
+    }): Promise<boolean> {
         // process monitor criteria filter here.
         let value: number | string | undefined = input.criteriaFilter.value;
         //check is online filter
-        if(input.criteriaFilter.checkOn === CheckOn.IsOnline && input.criteriaFilter.filterType === FilterType.True){
-            if(input.probeMonitorResponse.isOnline){
+        if (
+            input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+            input.criteriaFilter.filterType === FilterType.True
+        ) {
+            if (input.probeMonitorResponse.isOnline) {
                 return true;
             }
-                return false;
-            
+            return false;
         }
 
-
         // check response time filter
-        if(input.criteriaFilter.checkOn === CheckOn.ResponseTime){
-            
-            if(!value){
-                return false
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
+            if (!value) {
+                return false;
             }
 
-            if(typeof value === Typeof.String){
-                try{
+            if (typeof value === Typeof.String) {
+                try {
                     value = parseInt(value as string);
-                }catch(err){
+                } catch (err) {
                     logger.error(err);
                     return false;
                 }
             }
 
-
-            if(typeof value !== Typeof.Number){
+            if (typeof value !== Typeof.Number) {
                 return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.GreaterThan){
-                if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs > (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
+                if (
+                    input.probeMonitorResponse.responseTimeInMs &&
+                    input.probeMonitorResponse.responseTimeInMs >
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
-            } 
-
-            if(input.criteriaFilter.filterType === FilterType.LessThan){
-                if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs < (input.criteriaFilter.value as number)){
-                    return true;
-                }
-                    return false;
-                
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.EqualTo){
-                if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs === (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.LessThan) {
+                if (
+                    input.probeMonitorResponse.responseTimeInMs &&
+                    input.probeMonitorResponse.responseTimeInMs <
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.NotEqualTo){
-                if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs !== (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
+                if (
+                    input.probeMonitorResponse.responseTimeInMs &&
+                    input.probeMonitorResponse.responseTimeInMs ===
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.GreaterThanOrEqualTo){
-                if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs >= (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
+                if (
+                    input.probeMonitorResponse.responseTimeInMs &&
+                    input.probeMonitorResponse.responseTimeInMs !==
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo){
-                if(input.probeMonitorResponse.responseTimeInMs && input.probeMonitorResponse.responseTimeInMs <= (input.criteriaFilter.value as number)){
+            if (
+                input.criteriaFilter.filterType ===
+                FilterType.GreaterThanOrEqualTo
+            ) {
+                if (
+                    input.probeMonitorResponse.responseTimeInMs &&
+                    input.probeMonitorResponse.responseTimeInMs >=
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
+                return false;
+            }
+
+            if (
+                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
+            ) {
+                if (
+                    input.probeMonitorResponse.responseTimeInMs &&
+                    input.probeMonitorResponse.responseTimeInMs <=
+                        (input.criteriaFilter.value as number)
+                ) {
+                    return true;
+                }
+                return false;
             }
         }
 
         //check reponse code
-        if(input.criteriaFilter.checkOn === CheckOn.ResponseCode){
-            if(!value){
-                return false
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseCode) {
+            if (!value) {
+                return false;
             }
 
-            if(typeof value === Typeof.String){
-                try{
+            if (typeof value === Typeof.String) {
+                try {
                     value = parseInt(value as string);
-                }catch(err){
+                } catch (err) {
                     logger.error(err);
                     return false;
                 }
             }
 
-
-            if(typeof value !== Typeof.Number){
+            if (typeof value !== Typeof.Number) {
                 return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.GreaterThan){
-                if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode > (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
+                if (
+                    input.probeMonitorResponse.responseCode &&
+                    input.probeMonitorResponse.responseCode >
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
-            } 
-
-            if(input.criteriaFilter.filterType === FilterType.LessThan){
-                if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode < (input.criteriaFilter.value as number)){
-                    return true;
-                }
-                    return false;
-                
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.EqualTo){
-                if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode === (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.LessThan) {
+                if (
+                    input.probeMonitorResponse.responseCode &&
+                    input.probeMonitorResponse.responseCode <
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
                 }
-                    return false;
-                
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.NotEqualTo){
-                if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode !== (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
+                if (
+                    input.probeMonitorResponse.responseCode &&
+                    input.probeMonitorResponse.responseCode ===
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.GreaterThanOrEqualTo){
-                if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode >= (input.criteriaFilter.value as number)){
+            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
+                if (
+                    input.probeMonitorResponse.responseCode &&
+                    input.probeMonitorResponse.responseCode !==
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo){
-                if(input.probeMonitorResponse.responseCode && input.probeMonitorResponse.responseCode <= (input.criteriaFilter.value as number)){
+            if (
+                input.criteriaFilter.filterType ===
+                FilterType.GreaterThanOrEqualTo
+            ) {
+                if (
+                    input.probeMonitorResponse.responseCode &&
+                    input.probeMonitorResponse.responseCode >=
+                        (input.criteriaFilter.value as number)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
+            }
+
+            if (
+                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
+            ) {
+                if (
+                    input.probeMonitorResponse.responseCode &&
+                    input.probeMonitorResponse.responseCode <=
+                        (input.criteriaFilter.value as number)
+                ) {
+                    return true;
+                }
+                return false;
             }
         }
 
-        if(input.criteriaFilter.checkOn === CheckOn.ResponseBody){
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseBody) {
+            let responseBody: string | JSONObject | undefined =
+                input.probeMonitorResponse.responseBody;
 
-            let responseBody = input.probeMonitorResponse.responseBody;
-
-            if(responseBody && typeof responseBody === Typeof.Object){
+            if (responseBody && typeof responseBody === Typeof.Object) {
                 responseBody = JSON.stringify(responseBody);
             }
 
-            if(!responseBody){
+            if (!responseBody) {
                 return false;
             }
-            
+
             // contains
-            if(input.criteriaFilter.filterType === FilterType.Contains){
-
-                if(value && responseBody && (responseBody as string).includes(value as string)){
+            if (input.criteriaFilter.filterType === FilterType.Contains) {
+                if (
+                    value &&
+                    responseBody &&
+                    (responseBody as string).includes(value as string)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.NotContains){
-
-                if(value && responseBody && !(responseBody as string).includes(value as string)){
+            if (input.criteriaFilter.filterType === FilterType.NotContains) {
+                if (
+                    value &&
+                    responseBody &&
+                    !(responseBody as string).includes(value as string)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
-
-
         }
 
-
-        if(input.criteriaFilter.checkOn === CheckOn.ResponseHeader){
-
-            let headerKeys = Object.keys(input.probeMonitorResponse.responseHeaders || {}).map((key) => {
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
+            const headerKeys: Array<string> = Object.keys(
+                input.probeMonitorResponse.responseHeaders || {}
+            ).map((key: string) => {
                 return key.toLowerCase();
             });
 
-           
-            
             // contains
-            if(input.criteriaFilter.filterType === FilterType.Contains){
-
-                if(value && headerKeys && headerKeys.includes(value as string)){
+            if (input.criteriaFilter.filterType === FilterType.Contains) {
+                if (
+                    value &&
+                    headerKeys &&
+                    headerKeys.includes(value as string)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.NotContains){
-
-                if(value && headerKeys && !headerKeys.includes(value as string)){
+            if (input.criteriaFilter.filterType === FilterType.NotContains) {
+                if (
+                    value &&
+                    headerKeys &&
+                    !headerKeys.includes(value as string)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
-
-
         }
 
-
-        if(input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue){
-
-            let headerValues = Object.values(input.probeMonitorResponse.responseHeaders || {}).map((key) => {
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
+            const headerValues: Array<string> = Object.values(
+                input.probeMonitorResponse.responseHeaders || {}
+            ).map((key: string) => {
                 return key.toLowerCase();
             });
 
-           
-            
             // contains
-            if(input.criteriaFilter.filterType === FilterType.Contains){
-
-                if(value && headerValues && headerValues.includes(value as string)){
+            if (input.criteriaFilter.filterType === FilterType.Contains) {
+                if (
+                    value &&
+                    headerValues &&
+                    headerValues.includes(value as string)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
 
-            if(input.criteriaFilter.filterType === FilterType.NotContains){
-
-                if(value && headerValues && !headerValues.includes(value as string)){
+            if (input.criteriaFilter.filterType === FilterType.NotContains) {
+                if (
+                    value &&
+                    headerValues &&
+                    !headerValues.includes(value as string)
+                ) {
                     return true;
-                }else{
-                    return false;
                 }
+                return false;
             }
-
-
         }
-
-
-
 
         return false;
-
-
     }
 }

@@ -3,6 +3,12 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Monitor from 'Model/Models/Monitor';
 import PingMonitor, { PingResponse } from './PingMonitor';
+import API from 'Common/Utils/API';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import URL from 'Common/Types/API/URL';
+import { PROBE_API_URL } from '../Config';
+import ProbeAPIRequest from './ProbeAPIRequest';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -30,7 +36,15 @@ export default class MonitorUtil {
 
             // report this back to Probe API.
 
-            const probeApiResult;
+            await API.fetch<JSONObject>(
+                HTTPMethod.POST,
+                URL.fromString(PROBE_API_URL.toString()).addRoute(
+                    '/probe/response/ingest'
+                ),
+                ProbeAPIRequest.getDefaultRequestBody(),
+                {},
+                {}
+            );
 
             results.push(result);
         }
