@@ -62,7 +62,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                           props.statusPageId
                       }/login?redirectUrl=${Navigation.getCurrentPath()}`
                     : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            )
+            ),
+            { forceNavigate: true }
         );
     }
 

@@ -4,6 +4,7 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JSONComponents from 'Common/Types/Workflow/Components/JSON';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class JsonToText extends ComponentCode {
     public constructor() {
@@ -53,7 +54,7 @@ export default class JsonToText extends ComponentCode {
         }
 
         if (typeof args['json'] === 'string') {
-            args['json'] = JSON.parse(args['json'] as string);
+            args['json'] = JSONFunctions.parse(args['json'] as string);
         }
 
         if (typeof args['json'] !== 'object') {

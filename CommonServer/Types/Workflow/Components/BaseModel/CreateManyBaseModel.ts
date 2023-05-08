@@ -80,7 +80,9 @@ export default class CreateManyBaseModel<
             }
 
             if (typeof args['json-array'] === 'string') {
-                args['json-array'] = JSON.parse(args['json-array'] as string);
+                args['json-array'] = JSONFunctions.parse(
+                    args['json-array'] as string
+                );
             }
 
             if (!Array.isArray(args['json-array'])) {

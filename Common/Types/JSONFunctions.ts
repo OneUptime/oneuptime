@@ -15,6 +15,7 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import OneUptimeDate from './Date';
 import BaseModel from '../Models/BaseModel';
 import GreaterThan from './Database/GreaterThan';
+import JSON5 from 'json5';
 import GreaterThanOrEqual from './Database/GreaterThanOrEqual';
 import LessThan from './Database/LessThan';
 import LessThanOrEqual from './Database/LessThanOrEqual';
@@ -677,6 +678,10 @@ export default class JSONFunctions {
         }
 
         return returnArr;
+    }
+
+    public static parse(val: string): JSONObject {
+        return JSON5.parse(val);
     }
 
     public static deserialize(val: JSONObject): JSONObject {

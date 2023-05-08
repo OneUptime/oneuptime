@@ -8,6 +8,7 @@ import VM, { VMScript } from 'vm2';
 import axios from 'axios';
 import http from 'http';
 import https from 'https';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class JavaScriptCode extends ComponentCode {
     public constructor() {
@@ -83,7 +84,7 @@ export default class JavaScriptCode extends ComponentCode {
             const functionToRun: any = vm.run(script);
 
             const returnVal: any = await functionToRun(
-                JSON.parse((args['arguments'] as string) || '{}')
+                JSONFunctions.parse((args['arguments'] as string) || '{}')
             );
 
             return {

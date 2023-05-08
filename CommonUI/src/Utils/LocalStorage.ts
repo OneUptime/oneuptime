@@ -22,7 +22,7 @@ export default class LocalStorage {
         try {
             if (value) {
                 return JSONFunctions.deserializeValue(
-                    JSON.parse(value?.toString())
+                    JSONFunctions.parse(value?.toString())
                 );
             }
             return value;

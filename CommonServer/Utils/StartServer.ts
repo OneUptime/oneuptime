@@ -25,6 +25,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusCode from 'Common/Types/API/StatusCode';
 import Typeof from 'Common/Types/Typeof';
 import Response from './Response';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -65,7 +66,7 @@ const setDefaultHeaders: RequestHandler = (
     next: NextFunction
 ): void => {
     if (typeof req.body === Typeof.String) {
-        req.body = JSON.parse(req.body);
+        req.body = JSONFunctions.parse(req.body);
     }
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Origin', req.headers['origin']);
@@ -115,7 +116,7 @@ const init: Function = async (
       window.process.env = {}
     }
     const envVars = '${JSON.stringify(process.env)}';
-    window.process.env = JSON.parse(envVars);
+    window.process.env = JSONFunctions.parse(envVars);
   `;
 
                 Response.sendJavaScriptResponse(req, res, script);

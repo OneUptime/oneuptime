@@ -18,7 +18,7 @@ export default abstract class Cache {
 
         try {
             const jsonObject: JSONObject = JSONFunctions.deserialize(
-                JSON.parse(value)
+                JSONFunctions.parse(value)
             ) as JSONObject;
 
             if (!jsonObject) {

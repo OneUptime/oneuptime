@@ -3,12 +3,13 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, {
+    ComponentInputType,
     ComponentType,
     NodeDataProp,
     NodeType,
     Port,
 } from 'Common/Types/Workflow/Component';
-
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import WorkflowService from 'CommonServer/Services/WorkflowService';
 import ComponentCode, {
     RunReturnType,
@@ -374,12 +375,20 @@ export default class RunWorkflow {
         // pick arguments from storage map.
         const argumentObj: JSONObject = {};
 
+        const serializeValueForJSON: Function = (value: string): string => {
+            if (!value) {
+                return value;
+            }
+
+            return value.replace(/\n/g, '\\n');
+        };
+
         const deepFind: Function = (
             obj: JSONObject,
             path: string
         ): JSONValue => {
             const paths: Array<string> = path.split('.');
-            let current: any = JSON.parse(JSON.stringify(obj));
+            let current: any = JSONFunctions.parse(JSON.stringify(obj));
 
             for (let i: number = 0; i < paths.length; ++i) {
                 if (
@@ -437,7 +446,9 @@ export default class RunWorkflow {
                     } else {
                         argumentContentCopy = argumentContentCopy.replace(
                             '{{' + variable + '}}',
-                            value
+                            argument.type === ComponentInputType.JSON
+                                ? serializeValueForJSON(value)
+                                : `${value}`
                         );
                     }
                 }

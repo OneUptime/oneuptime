@@ -4,6 +4,7 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JSONComponents from 'Common/Types/Workflow/Components/JSON';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class MergeJSON extends ComponentCode {
     public constructor() {
@@ -53,7 +54,7 @@ export default class MergeJSON extends ComponentCode {
         }
 
         if (typeof args['json1'] === 'string') {
-            args['json1'] = JSON.parse(args['json1'] as string);
+            args['json1'] = JSONFunctions.parse(args['json1'] as string);
         }
 
         if (typeof args['json1'] !== 'object') {
@@ -67,7 +68,7 @@ export default class MergeJSON extends ComponentCode {
         }
 
         if (typeof args['json2'] === 'string') {
-            args['json2'] = JSON.parse(args['json2'] as string);
+            args['json2'] = JSONFunctions.parse(args['json2'] as string);
         }
 
         if (typeof args['json2'] !== 'object') {
