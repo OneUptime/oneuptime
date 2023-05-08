@@ -168,12 +168,17 @@ abstract class Navigation {
         to: Route | URL,
         options?: {
             openInNewTab?: boolean | undefined;
+            forceNavigate?: boolean | undefined;
         }
     ): void {
         if (options?.openInNewTab) {
             // open in new tab
             window.open(to.toString(), '_blank');
             return;
+        }
+
+        if (options?.forceNavigate && to instanceof Route) {
+            window.location.href = to.toString();
         }
 
         if (this.navigateHook && to instanceof Route) {

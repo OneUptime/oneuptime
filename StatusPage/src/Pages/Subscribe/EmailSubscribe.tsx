@@ -40,8 +40,8 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                     ? `/status-page/${
                           props.statusPageId
                       }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            )
+                   : `/login?redirectUrl=${Navigation.getCurrentPath()}`  ), {forceNavigate: true}
+          
         );
     }
 
