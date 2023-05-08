@@ -2,7 +2,6 @@ import Hostname from 'Common/Types/API/Hostname';
 import URL from 'Common/Types/API/URL';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
-import Port from 'Common/Types/Port';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import net, { Socket } from 'net';
 
@@ -34,7 +33,7 @@ export default class PingMonitor {
                         port: host.port.toNumber(),
                         timeout,
                     };
-                } else if(host instanceof URL){
+                } else if (host instanceof URL) {
                     connectionOptions = {
                         host: host.hostname.hostname,
                         port: host.hostname.port.toNumber(),
@@ -60,7 +59,6 @@ export default class PingMonitor {
                     });
                 });
                 socket.on('connect', () => {
-                    
                     socket.end(() => {
                         resolve({
                             isOnline: true,

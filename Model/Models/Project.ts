@@ -523,12 +523,9 @@ export default class Model extends TenantModel {
     })
     public requireSsoForLogin?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
-        read: [
-           
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.Number })

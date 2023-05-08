@@ -7,9 +7,8 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Monitor from 'Model/Models/Monitor';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import MonitorUtil from "../../Utils/Monitor";
+import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
+import MonitorUtil from '../../Utils/Monitor';
 import logger from 'CommonServer/Utils/Logger';
 
 RunCron(
@@ -19,23 +18,23 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
+        const result: HTTPResponse<Array<Monitor>> | HTTPErrorResponse =
+            await API.fetch<Array<Monitor>>(
+                HTTPMethod.POST,
+                URL.fromString(PROBE_API_URL.toString()).addRoute(
+                    '/monitor/list'
+                ),
+                ProbeAPIRequest.getDefaultRequestBody(),
+                {},
+                {}
+            );
 
-        const result: HTTPResponse<Array<Monitor>> | HTTPErrorResponse = await API.fetch<Array<Monitor>>(
-            HTTPMethod.POST,
-            URL.fromString(PROBE_API_URL.toString()).addRoute("/monitor/list"),
-            ProbeAPIRequest.getDefaultRequestBody(),
-            {},
-            {
-            }
-        );
-
-
-        const monitors = result.data as Array<Monitor>;
+        const monitors: Array<Monitor> = result.data as Array<Monitor>;
 
         const monitoringPromises: Array<Promise<void>> = [];
 
         for (const monitor of monitors) {
-            const promise = new Promise<void>(async (resolve, reject) => {
+            const promise: Promise<void> = new Promise<void>(async (resolve:Function, reject: Function) => {
                 try {
                     await MonitorUtil.probeMonitor(monitor);
                     resolve();
@@ -43,12 +42,10 @@ RunCron(
                     logger.error(err);
                     reject(err);
                 }
-
             });
 
             monitoringPromises.push(promise);
         }
-
 
         await Promise.allSettled(monitoringPromises);
     }

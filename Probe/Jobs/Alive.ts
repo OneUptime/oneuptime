@@ -5,7 +5,7 @@ import { PROBE_API_URL } from '../Config';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import URL from 'Common/Types/API/URL';
 import logger from 'CommonServer/Utils/Logger';
-import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
+import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 
 RunCron(
     'Basic:Alive',
@@ -21,7 +21,7 @@ RunCron(
 
         await API.post(
             URL.fromString(PROBE_API_URL.toString()).addRoute('/alive'),
-            ProbeAPIRequest.getDefaultRequestBody(),
+            ProbeAPIRequest.getDefaultRequestBody()
         );
     }
 );

@@ -6,7 +6,10 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import ProbeAuthorization from '../Middleware/ProbeAuthorization';
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
+import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ProbeMonitorResponseService from '../Service/ProbeMonitorResponse';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -19,18 +22,21 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+            const probeResponse: ProbeMonitorResponse =
+                req.body['probeMonitorResponse'];
 
-            const probeResponses: Array<ProbeMonitorResponse> = req.body['probeMonitorResponses'];
-
-            if(!probeResponses || probeResponses.length === 0){
-                return Response.sendEmptyResponse(req, res);
+            if (!probeResponse) {
+                return Response.sendErrorResponse(req, res, new BadDataException("ProbeMonitorResponse not found"));
             }
 
-            // save data to Clickhouse.
+        
+            // process probe response here.
+            const probeApiIngestResponse: ProbeApiIngestResponse = await ProbeMonitorResponseService.processProbeResponse(probeResponse);
 
-            
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendJsonObjectResponse(req, res, {
+                probeApiIngestResponse: probeApiIngestResponse
+            } as any);
         } catch (err) {
             return next(err);
         }
