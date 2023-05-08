@@ -8,7 +8,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Monitor from 'Model/Models/Monitor';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
-import MonitorUtil from '../../Utils/Monitor';
+import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';
 
 RunCron(

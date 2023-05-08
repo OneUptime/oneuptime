@@ -2,12 +2,12 @@ import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Monitor from 'Model/Models/Monitor';
-import PingMonitor, { PingResponse } from './PingMonitor';
+import PingMonitor, { PingResponse } from './MonitorTypes/PingMonitor';
 import API from 'Common/Utils/API';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import URL from 'Common/Types/API/URL';
-import { PROBE_API_URL } from '../Config';
-import ProbeAPIRequest from './ProbeAPIRequest';
+import { PROBE_API_URL } from '../../Config';
+import ProbeAPIRequest from '../ProbeAPIRequest';
 import { JSONObject } from 'Common/Types/JSON';
 
 export default class MonitorUtil {
