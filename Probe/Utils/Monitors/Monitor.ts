@@ -74,6 +74,15 @@ export default class MonitorUtil {
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         }
 
+        if (monitor.monitorType === MonitorType.Website) {
+            const response: PingResponse = await PingMonitor.ping(
+                monitorStep.data?.monitorDestination
+            );
+
+            result.isOnline = response.isOnline;
+            result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+        }
+
         return result;
     }
 }
