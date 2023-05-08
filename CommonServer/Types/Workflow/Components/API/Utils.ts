@@ -56,14 +56,9 @@ export class ApiComponentUtils {
         }
 
         if (args['request-body'] && typeof args['request-body'] === 'string') {
-            console.log('here');
-
-            console.log(args['request-body']);
             args['request-body'] = JSONFunctions.parse(
                 `${args['request-body'] as string}`
             );
-
-            console.log(args['request-body']);
         }
 
         if (

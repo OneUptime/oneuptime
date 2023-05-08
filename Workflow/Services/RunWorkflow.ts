@@ -375,15 +375,13 @@ export default class RunWorkflow {
         // pick arguments from storage map.
         const argumentObj: JSONObject = {};
 
-
         const serializeValueForJSON: Function = (value: string): string => {
-            
-            if(!value){
+            if (!value) {
                 return value;
             }
 
-            return value.replace(/\n/g, '\\n')
-        }
+            return value.replace(/\n/g, '\\n');
+        };
 
         const deepFind: Function = (
             obj: JSONObject,
@@ -448,7 +446,9 @@ export default class RunWorkflow {
                     } else {
                         argumentContentCopy = argumentContentCopy.replace(
                             '{{' + variable + '}}',
-                            argument.type === ComponentInputType.JSON ? serializeValueForJSON(value) : `${value}`
+                            argument.type === ComponentInputType.JSON
+                                ? serializeValueForJSON(value)
+                                : `${value}`
                         );
                     }
                 }
