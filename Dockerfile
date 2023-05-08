@@ -1,13 +1,11 @@
 # This file is work in progress and will not build yet.
 
-FROM node:18.13.0-alpine
-
-USER root
-RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
-RUN npm install -g pm2
+FROM docker:latest
 
 # Install bash. 
-RUN apk update && apk add bash && apk add curl
+RUN apk update && apk add bash && apk add curl && apk add sudo && apk add nodejs && apk add npm && apk add gomplate
+
+RUN npm i -g ts-node
 
 RUN mkdir /usr/src
 RUN mkdir /usr/src/oneuptime
@@ -16,10 +14,10 @@ WORKDIR /usr/src/oneuptime
 
 COPY . /usr/src/oneuptime/
 
-ENV IS_DOCKER=true
+RUN bash ./Scripts/Install/generate-secrets.sh
+RUN bash ./Scripts/Install/generate-env-files.sh
 
-RUN bash ./Scripts/NodeScripts/install-node-modules.sh
-RUN bash ./Scripts/NodeScripts/compile.sh
+RUN docker compose build
 
 # Expose ports.
 #   - 80: OneUptime HTTP
@@ -28,7 +26,3 @@ RUN bash ./Scripts/NodeScripts/compile.sh
 
 EXPOSE 80
 
-ENTRYPOINT ["pm2", "--no-daemon", "start"]
-
-# Actual script to start can be overridden from `docker run`
-CMD ["process.json"]
