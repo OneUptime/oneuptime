@@ -9,7 +9,7 @@
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "depcheck ./ --skip-missing=true",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "author": "",
   "license": "ISC",

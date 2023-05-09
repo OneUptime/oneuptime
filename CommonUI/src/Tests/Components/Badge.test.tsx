@@ -14,27 +14,27 @@ describe('Badge', () => {
         const badge: HTMLElement = screen.getByRole('badge');
         expect(badge).toBeInTheDocument();
         const testId: HTMLElement = screen.getByText(1);
-        expect(testId).toHaveClass('bg-success');
+        expect(testId).toHaveClass('text-emerald-600');
     });
     test('it should show sucess when badgetype is equal to success', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.SUCCESS} />);
         const testId: HTMLElement = screen.getByText(1);
-        expect(testId).toHaveClass('bg-success');
+        expect(testId).toHaveClass('text-emerald-600');
     });
     test('it should show danger when badgetype is equal to danger', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.DANGER} />);
         const testId: HTMLElement = screen.getByText(1);
-        expect(testId).toHaveClass('bg-danger');
+        expect(testId).toHaveClass('text-red-600');
     });
     test('it should show warning when badgetype is equal to warning', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.WARNING} />);
         const testId: HTMLElement = screen.getByText(1);
-        expect(testId).toHaveClass('bg-warning');
+        expect(testId).toHaveClass('text-yellow-600');
     });
     test('it should show danger when badgetype is equal to danger', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.DANGER} />);
         const testId: HTMLElement = screen.getByText(1);
-        expect(testId).toHaveClass('bg-danger');
+        expect(testId).toHaveClass('text-red-600');
     });
     test('it should badgeCount when badgetype is equal to success', () => {
         render(<Badge badgeCount={2} badgeType={BadgeType.SUCCESS} />);
