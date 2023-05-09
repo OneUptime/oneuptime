@@ -318,3 +318,17 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd Workflow && npm install && npm run compile
+
+  compile-test-server:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd TestServer && npm install && npm run compile
