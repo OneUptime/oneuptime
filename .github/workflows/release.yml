@@ -27,6 +27,29 @@ jobs:
           body: |
             ${{steps.build_changelog.outputs.changelog}}
 
+
+  test-server-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: release
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/test-server:$ONEUPTIME_VERSION --tag oneuptime/test-server:release --push -f ./TestServer/Dockerfile .
+
+
   workflow-docker-image-deploy:
     runs-on: ubuntu-latest
     env:
