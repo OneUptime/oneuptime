@@ -5,12 +5,16 @@ import Badge, { BadgeType } from '../../Components/Badge/Badge';
 
 describe('Badge', () => {
     test('it should render all props', () => {
-        render(<Badge id="badge" badgeCount={2} badgeType={BadgeType.SUCCESS} />);
+        render(
+            <Badge id="badge" badgeCount={2} badgeType={BadgeType.SUCCESS} />
+        );
         const badge: HTMLElement = screen.getByTestId('badge');
         expect(badge).toBeInTheDocument();
     });
     test('it should show badge when badgetype is equal to success', () => {
-        render(<Badge id="badge" badgeCount={1} badgeType={BadgeType.SUCCESS} />);
+        render(
+            <Badge id="badge" badgeCount={1} badgeType={BadgeType.SUCCESS} />
+        );
         const badge: HTMLElement = screen.getByTestId('badge');
         expect(badge).toBeInTheDocument();
         const testId: HTMLElement = screen.getByText(1);
