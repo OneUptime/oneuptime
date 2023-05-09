@@ -5,6 +5,7 @@ import { PROBE_API_URL, PROBE_KEY } from '../Config';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import URL from 'Common/Types/API/URL';
 import logger from 'CommonServer/Utils/Logger';
+import Register from '../Services/Register';
 
 RunCron(
     'Basic:Monitor',
@@ -18,7 +19,8 @@ RunCron(
         // for each monitor, ping and then report back to probe-api
 
         if (!LocalCache.getString('PROBE', 'PROBE_ID')) {
-            logger.warn('Probe is not registered yet. Skipping alive check.');
+            logger.warn('Probe is not registered yet. Skipping alive check. Trying to register probe again...');
+            await Register.registerProbe();
             return;
         }
 
