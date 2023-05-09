@@ -30,6 +30,7 @@ export default class ProbeMonitorResponseService {
     ): Promise<ProbeApiIngestResponse> {
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
+            criteriaMetId: undefined,
         };
 
         // fetch monitor
@@ -101,6 +102,27 @@ export default class ProbeMonitorResponseService {
             probeApiIngestResponse: response,
         });
 
+        // if no criteria is met then update monitor to default state.
+        if (
+            !response.criteriaMetId &&
+            monitorSteps.data.defaultMonitorStatusId &&
+            monitor.currentMonitorStatusId?.toString() !==
+                monitorSteps.data.defaultMonitorStatusId.toString()
+        ) {
+            const monitorStatusTimeline: MonitorStatusTimeline =
+                new MonitorStatusTimeline();
+            monitorStatusTimeline.monitorId = monitor.id!;
+            monitorStatusTimeline.monitorStatusId =
+                monitorSteps.data.defaultMonitorStatusId!;
+            monitorStatusTimeline.projectId = monitor.projectId!;
+            await MonitorStatusTimelineService.create({
+                data: monitorStatusTimeline,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+
         return response;
     }
 
@@ -132,6 +154,8 @@ export default class ProbeMonitorResponseService {
                 });
 
             if (isCriteriaFilterMet) {
+                input.probeApiIngestResponse.criteriaMetId =
+                    criteriaInstance.data?.id;
                 break;
             }
         }
@@ -162,7 +186,9 @@ export default class ProbeMonitorResponseService {
 
             if (
                 input.criteriaInstance.data?.changeMonitorStatus &&
-                input.criteriaInstance.data?.monitorStatusId && input.criteriaInstance.data?.monitorStatusId.toString() !== input.monitor.currentMonitorStatusId?.toString()
+                input.criteriaInstance.data?.monitorStatusId &&
+                input.criteriaInstance.data?.monitorStatusId.toString() !==
+                    input.monitor.currentMonitorStatusId?.toString()
             ) {
                 // change monitor status
 
@@ -186,25 +212,22 @@ export default class ProbeMonitorResponseService {
             }
 
             if (input.criteriaInstance.data?.createIncidents) {
-
-                // check active incidents and if there are open incidents, do not cretae anothr incident. 
-                const openIncidentsCount: PositiveNumber = await IncidentService.countBy({
-                    query: {
-                        monitors: QueryHelper.in([input.monitor.id!]),
-                        currentIncidentState: {
-                            isResolvedState: false
-                        }
-                    },
-                    props: {
-                        isRoot: true,
-                    }
-                });
-
+                // check active incidents and if there are open incidents, do not cretae anothr incident.
+                const openIncidentsCount: PositiveNumber =
+                    await IncidentService.countBy({
+                        query: {
+                            monitors: QueryHelper.in([input.monitor.id!]),
+                            currentIncidentState: {
+                                isResolvedState: false,
+                            },
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
                 // if there are no open incidents, create incidents.
                 if (openIncidentsCount.toNumber() === 0) {
-
-
                     // create incidents
 
                     for (const criteriaIncident of input.criteriaInstance.data
@@ -256,7 +279,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.Any ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 criteriaResult === true
             ) {
                 return true;
@@ -264,7 +287,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 criteriaResult === false
             ) {
                 return false;
@@ -318,7 +341,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs >
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -329,7 +352,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs <
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -340,7 +363,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs ===
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -351,7 +374,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs !==
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -365,7 +388,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs >=
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -378,7 +401,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs <=
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -387,7 +410,7 @@ export default class ProbeMonitorResponseService {
         }
 
         //check reponse code
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseCode) {
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
             if (!value) {
                 return false;
             }
@@ -409,7 +432,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode >
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -420,7 +443,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode <
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -431,7 +454,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode ===
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -442,7 +465,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode !==
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -456,7 +479,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode >=
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }
@@ -469,7 +492,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode <=
-                    (input.criteriaFilter.value as number)
+                        (input.criteriaFilter.value as number)
                 ) {
                     return true;
                 }

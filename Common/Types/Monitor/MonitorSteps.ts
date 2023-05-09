@@ -32,6 +32,23 @@ export default class MonitorSteps extends DatabaseProperty {
         };
     }
 
+    public static getDefaultMonitorSteps(arg: {
+        defaultMonitorStatusId: ObjectID;
+        monitorType: MonitorType;
+        onlineMonitorStatusId: ObjectID;
+        offlineMonitorStatusId: ObjectID;
+        defaultIncidentSeverityId: ObjectID;
+    }): MonitorSteps {
+        const monitorSteps: MonitorSteps = new MonitorSteps();
+
+        monitorSteps.data = {
+            monitorStepsInstanceArray: [MonitorStep.getDefaultMoniorStep(arg)],
+            defaultMonitorStatusId: arg.defaultMonitorStatusId,
+        };
+
+        return monitorSteps;
+    }
+
     public setMonitorStepsInstanceArray(
         monitorSteps: Array<MonitorStep>
     ): void {

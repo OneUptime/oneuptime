@@ -3,7 +3,12 @@ import DatabaseProperty from '../Database/DatabaseProperty';
 import { JSONObject, ObjectType } from '../JSON';
 import ObjectID from '../ObjectID';
 import { CriteriaIncident } from './CriteriaIncident';
-import { CheckOn, CriteriaFilter, FilterCondition } from './CriteriaFilter';
+import {
+    CheckOn,
+    CriteriaFilter,
+    FilterCondition,
+    FilterType,
+} from './CriteriaFilter';
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
 import Typeof from '../Typeof';
@@ -36,10 +41,114 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                     value: undefined,
                 },
             ],
+            createIncidents: false,
+            changeMonitorStatus: false,
             incidents: [],
             name: '',
             description: '',
         };
+    }
+
+    public static getDefaultOnlineMonitorCriteriaInstance(arg: {
+        monitorType: MonitorType;
+        monitorStatusId: ObjectID;
+    }): MonitorCriteriaInstance {
+        const monitorCriteriaInstance: MonitorCriteriaInstance =
+            new MonitorCriteriaInstance();
+
+        monitorCriteriaInstance.data = {
+            id: ObjectID.generate().toString(),
+            monitorStatusId: arg.monitorStatusId,
+            filterCondition: FilterCondition.All,
+            filters: [
+                {
+                    checkOn: CheckOn.IsOnline,
+                    filterType: FilterType.True,
+                    value: undefined,
+                },
+            ],
+            incidents: [],
+            changeMonitorStatus: true,
+            createIncidents: false,
+            name: 'Check if online',
+            description: 'This criteria cheks if the monitor is online',
+        };
+
+        return monitorCriteriaInstance;
+    }
+
+    public static getDefaultOfflineMonitorCriteriaInstance(arg: {
+        monitorType: MonitorType;
+        monitorStatusId: ObjectID;
+        incidentSeverityId: ObjectID;
+    }): MonitorCriteriaInstance {
+        const monitorCriteriaInstance: MonitorCriteriaInstance =
+            new MonitorCriteriaInstance();
+
+        if (
+            arg.monitorType === MonitorType.Ping ||
+            arg.monitorType === MonitorType.IP
+        ) {
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.All,
+                filters: [
+                    {
+                        checkOn: CheckOn.IsOnline,
+                        filterType: FilterType.False,
+                        value: undefined,
+                    },
+                ],
+                incidents: [
+                    {
+                        title: `${arg.monitorType} monitor is offline`,
+                        description: `${arg.monitorType} monitor is currently offline.`,
+                        incidentSeverityId: arg.incidentSeverityId,
+                    },
+                ],
+                changeMonitorStatus: true,
+                createIncidents: true,
+                name: 'Check if offline',
+                description: 'This criteria cheks if the monitor is offline',
+            };
+        }
+
+        if (
+            arg.monitorType === MonitorType.API ||
+            arg.monitorType === MonitorType.Website
+        ) {
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.Any,
+                filters: [
+                    {
+                        checkOn: CheckOn.IsOnline,
+                        filterType: FilterType.False,
+                        value: undefined,
+                    },
+                    {
+                        checkOn: CheckOn.ResponseStatusCode,
+                        filterType: FilterType.NotEqualTo,
+                        value: 200,
+                    },
+                ],
+                incidents: [
+                    {
+                        title: `${arg.monitorType} monitor is offline`,
+                        description: `${arg.monitorType} monitor is currently offline.`,
+                        incidentSeverityId: arg.incidentSeverityId,
+                    },
+                ],
+                changeMonitorStatus: true,
+                createIncidents: true,
+                name: 'Check if offline',
+                description: 'This criteria cheks if the monitor is offline',
+            };
+        }
+
+        return monitorCriteriaInstance;
     }
 
     public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
@@ -50,13 +159,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filters: [
                 {
                     checkOn: CheckOn.IsOnline,
-                    filterType: undefined,
+                    filterType: FilterType.True,
                     value: undefined,
                 },
             ],
             incidents: [],
             name: '',
             description: '',
+            createIncidents: false,
+            changeMonitorStatus: false,
         };
     }
 

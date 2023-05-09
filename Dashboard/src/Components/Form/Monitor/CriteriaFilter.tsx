@@ -95,7 +95,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             });
         }
 
-        if (criteriaFilter?.checkOn === CheckOn.ResponseCode) {
+        if (criteriaFilter?.checkOn === CheckOn.ResponseStatusCode) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === FilterType.GreaterThan ||

@@ -17,6 +17,7 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import ObjectID from 'Common/Types/ObjectID';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export interface ComponentProps extends CustomElementProps {
     error?: string | undefined;
@@ -56,6 +57,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     0,
                     {
                         name: true,
+                        isOperationalState: true,
+                        isOfflineState: true,
                     },
                     {},
                     {}
@@ -80,8 +83,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     0,
                     {
                         name: true,
+                        order: true,
                     },
-                    {},
+                    {
+                        order: SortOrder.Ascending,
+                    },
                     {}
                 );
 
@@ -95,6 +101,33 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     })
                 );
             }
+
+            // if there is no initial value then....
+
+            if (!monitorSteps) {
+                setMonitorSteps(
+                    MonitorSteps.getDefaultMonitorSteps({
+                        monitorType: props.monitorType,
+                        defaultMonitorStatusId: monitorStatusList.data.find(
+                            (i: MonitorStatus) => {
+                                return i.isOperationalState;
+                            }
+                        )!.id!,
+                        onlineMonitorStatusId: monitorStatusList.data.find(
+                            (i: MonitorStatus) => {
+                                return i.isOperationalState;
+                            }
+                        )!.id!,
+                        offlineMonitorStatusId: monitorStatusList.data.find(
+                            (i: MonitorStatus) => {
+                                return i.isOfflineState;
+                            }
+                        )!.id!,
+                        defaultIncidentSeverityId:
+                            incidentSeverityList.data[0]!.id!,
+                    })
+                );
+            }
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -105,9 +138,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         fetchDropdownOptions().catch();
     }, []);
 
-    const [monitorSteps, setMonitorSteps] = React.useState<MonitorSteps>(
-        props.initialValue || new MonitorSteps()
-    );
+    const [monitorSteps, setMonitorSteps] = React.useState<
+        MonitorSteps | undefined
+    >(props.initialValue);
 
     useEffect(() => {
         if (monitorSteps && props.onChange) {
@@ -135,7 +168,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             ) : (
                 <></>
             )}
-            {monitorSteps.data?.monitorStepsInstanceArray.map(
+            {monitorSteps?.data?.monitorStepsInstanceArray.map(
                 (i: MonitorStep, index: number) => {
                     return (
                         <MonitorStepElement
@@ -245,10 +278,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     onChange={(
                         value: DropdownValue | Array<DropdownValue> | null
                     ) => {
-                        monitorSteps.setDefaultMonitorStatusId(
+                        monitorSteps?.setDefaultMonitorStatusId(
                             value ? new ObjectID(value.toString()) : undefined
                         );
-                        setMonitorSteps(MonitorSteps.clone(monitorSteps));
+                        setMonitorSteps(
+                            MonitorSteps.clone(
+                                monitorSteps || new MonitorSteps()
+                            )
+                        );
                     }}
                 />
             </div>

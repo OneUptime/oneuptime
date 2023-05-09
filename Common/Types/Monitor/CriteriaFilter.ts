@@ -1,6 +1,6 @@
 export enum CheckOn {
     ResponseTime = 'Response Time (in ms)',
-    ResponseCode = 'Response Code',
+    ResponseStatusCode = 'Response Staus Code',
     ResponseHeader = 'Response Header',
     ResponseHeaderValue = 'Response Header Value',
     ResponseBody = 'Response Body',

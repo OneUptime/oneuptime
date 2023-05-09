@@ -35,6 +35,26 @@ export default class MonitorStep extends DatabaseProperty {
         };
     }
 
+    public static getDefaultMoniorStep(arg: {
+        monitorType: MonitorType;
+        onlineMonitorStatusId: ObjectID;
+        offlineMonitorStatusId: ObjectID;
+        defaultIncidentSeverityId: ObjectID;
+    }): MonitorStep {
+        const monitorStep: MonitorStep = new MonitorStep();
+
+        monitorStep.data = {
+            id: ObjectID.generate().toString(),
+            monitorDestination: undefined,
+            monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
+            requestType: HTTPMethod.GET,
+            requestHeaders: undefined,
+            requestBody: undefined,
+        };
+
+        return monitorStep;
+    }
+
     public get id(): ObjectID {
         return new ObjectID(this.data?.id!);
     }

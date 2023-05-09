@@ -206,7 +206,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: true,
                     },
                 },
-                
+
                 {
                     name: 'IPv4 Monitoring',
                     plans: {
@@ -234,7 +234,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: 'Coming Soon',
                     },
                 },
-                
+
                 {
                     name: 'VM or Server Monitoring',
                     plans: {

@@ -5,6 +5,8 @@ import API from 'Common/Utils/API';
 import Protocol from 'Common/Types/API/Protocol';
 import { JSONObject } from 'Common/Types/JSON';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export interface APIResponse {
     url: URL;
@@ -20,15 +22,22 @@ export interface APIResponse {
 
 export default class ApiMonitor {
     public static async ping(
-        url: URL, options: {
-            requestHeaders?: Headers | undefined,
-            requestBody?: JSONObject | undefined
-            requestType?: HTTPMethod | undefined
+        url: URL,
+        options: {
+            requestHeaders?: Headers | undefined;
+            requestBody?: JSONObject | undefined;
+            requestType?: HTTPMethod | undefined;
         }
     ): Promise<APIResponse> {
         try {
             const startTime: [number, number] = process.hrtime();
-            const result = await API.fetch(options.requestType || HTTPMethod.GET, url, options.requestBody || undefined, options.requestHeaders || undefined);
+            const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                await API.fetch(
+                    options.requestType || HTTPMethod.GET,
+                    url,
+                    options.requestBody || undefined,
+                    options.requestHeaders || undefined
+                );
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
@@ -43,9 +52,8 @@ export default class ApiMonitor {
                 statusCode: result.statusCode,
                 responseBody: result.data.toString(),
                 responseHeaders: result.headers,
-                requestBody: options.requestBody || {}
-
-            }
+                requestBody: options.requestBody || {},
+            };
         } catch (err) {
             return {
                 url: url,
@@ -56,9 +64,8 @@ export default class ApiMonitor {
                 responseTimeInMS: new PositiveNumber(0),
                 statusCode: 0,
                 responseBody: '',
-                responseHeaders: {}
-            }
+                responseHeaders: {},
+            };
         }
     }
 }
-

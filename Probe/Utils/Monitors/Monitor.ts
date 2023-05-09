@@ -87,21 +87,26 @@ export default class MonitorUtil {
             result.responseBody = response.responseBody;
             result.responseHeaders = response.responseHeaders;
             result.responseCode = response.statusCode;
-
         }
 
         if (monitor.monitorType === MonitorType.API) {
-
             let requestBody: JSONObject | undefined = undefined;
-            if(monitorStep.data?.requestBody && typeof monitorStep.data?.requestBody === 'string'){
-                requestBody = JSONFunctions.parse(monitorStep.data?.requestBody);
+            if (
+                monitorStep.data?.requestBody &&
+                typeof monitorStep.data?.requestBody === 'string'
+            ) {
+                requestBody = JSONFunctions.parse(
+                    monitorStep.data?.requestBody
+                );
             }
 
             const response: APIResponse = await ApiMonitor.ping(
-                monitorStep.data?.monitorDestination as URL,{
+                monitorStep.data?.monitorDestination as URL,
+                {
                     requestHeaders: monitorStep.data?.requestHeaders || {},
                     requestBody: requestBody || undefined,
-                    requestType: monitorStep.data?.requestType || HTTPMethod.GET
+                    requestType:
+                        monitorStep.data?.requestType || HTTPMethod.GET,
                 }
             );
 

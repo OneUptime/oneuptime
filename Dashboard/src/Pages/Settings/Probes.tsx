@@ -134,12 +134,13 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
 
-
                 <Banner
                     openInNewTab={true}
                     title="Need help with setting up Custom Probes?"
                     description="Here is a guide which will help you get set up"
-                    link={URL.fromString('https://github.com/OneUptime/oneuptime/blob/master/Docs/Probe/CustomProbe.md')}
+                    link={URL.fromString(
+                        'https://github.com/OneUptime/oneuptime/blob/master/Docs/Probe/CustomProbe.md'
+                    )}
                 />
 
                 <ModelTable<Probe>

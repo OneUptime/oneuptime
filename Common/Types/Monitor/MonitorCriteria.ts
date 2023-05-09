@@ -4,6 +4,7 @@ import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorCriteriaInstance from './MonitorCriteriaInstance';
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
+import ObjectID from '../ObjectID';
 
 export interface MonitorCriteriaType {
     monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
@@ -17,6 +18,35 @@ export default class MonitorCriteria extends DatabaseProperty {
         this.data = {
             monitorCriteriaInstanceArray: [new MonitorCriteriaInstance()],
         };
+    }
+
+    public static getDefaultMonitorCriteria(arg: {
+        monitorType: MonitorType;
+        onlineMonitorStatusId: ObjectID;
+        offlineMonitorStatusId: ObjectID;
+        defaultIncidentSeverityId: ObjectID;
+    }): MonitorCriteria {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+
+        monitorCriteria.data = {
+            monitorCriteriaInstanceArray: [
+                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
+                    {
+                        monitorType: arg.monitorType,
+                        monitorStatusId: arg.onlineMonitorStatusId,
+                    }
+                ),
+                MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance(
+                    {
+                        monitorType: arg.monitorType,
+                        monitorStatusId: arg.offlineMonitorStatusId,
+                        incidentSeverityId: arg.defaultIncidentSeverityId,
+                    }
+                ),
+            ],
+        };
+
+        return monitorCriteria;
     }
 
     public static getValidationError(
