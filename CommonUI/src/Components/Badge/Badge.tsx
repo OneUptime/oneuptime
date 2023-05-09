@@ -9,6 +9,7 @@ export enum BadgeType {
 export interface ComponentProps {
     badgeCount: number;
     badgeType?: undefined | BadgeType;
+    id?: string | undefined;
 }
 
 const Badge: FunctionComponent<ComponentProps> = (
@@ -34,7 +35,8 @@ const Badge: FunctionComponent<ComponentProps> = (
     if (props.badgeCount) {
         return (
             <span
-                role="badge"
+                id={props.id}
+                data-testid={props.id}
                 className={`${className} ml-auto w-11 min-w-max whitespace-nowrap rounded-full  px-2.5 py-0.5 text-center text-sm font-medium leading-5 `}
                 aria-hidden="true"
             >
