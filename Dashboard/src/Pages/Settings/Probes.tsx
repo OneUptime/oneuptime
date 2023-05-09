@@ -21,6 +21,7 @@ import { Green, Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
 
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -131,6 +132,14 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                         },
                     ]}
+                />
+
+
+                <Banner
+                    openInNewTab={true}
+                    title="Need help with setting up Custom Probes?"
+                    description="Here is a guide which will help you get set up"
+                    link={URL.fromString('https://github.com/OneUptime/oneuptime/blob/master/Docs/Probe/CustomProbe.md')}
                 />
 
                 <ModelTable<Probe>
