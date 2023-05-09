@@ -73,8 +73,7 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         statusCode: number,
-        body: JSONObject | string,
-
+        body: JSONObject | string
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;

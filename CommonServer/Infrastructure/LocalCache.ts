@@ -21,7 +21,6 @@ export default abstract class LocalCache {
         this.cache[namespace + '.' + key] = value;
     }
 
-
     public static setNumber(
         namespace: string,
         key: string,
