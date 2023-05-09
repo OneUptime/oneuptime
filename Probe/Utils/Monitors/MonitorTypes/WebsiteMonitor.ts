@@ -1,10 +1,7 @@
 import URL from 'Common/Types/API/URL';
 import Headers from 'Common/Types/API/Headers';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import StatusCode from 'Common/Types/API/StatusCode';
-import HTML from 'Common/Types/Html';
 import API from 'Common/Utils/API';
-import { HttpProtocol } from 'CommonServer/Config';
 import Protocol from 'Common/Types/API/Protocol';
 
 export interface WebsiteResponse {
@@ -18,7 +15,7 @@ export interface WebsiteResponse {
     isOnline: boolean;
 }
 
-export default class PingMonitor {
+export default class WebsiteMonitor {
     public static async ping(
         url: URL
     ): Promise<WebsiteResponse> {

@@ -9,6 +9,9 @@ import URL from 'Common/Types/API/URL';
 import { PROBE_API_URL } from '../../Config';
 import ProbeAPIRequest from '../ProbeAPIRequest';
 import { JSONObject } from 'Common/Types/JSON';
+import WebsiteMonitor, { WebsiteResponse } from './MonitorTypes/WebsiteMonitor';
+import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -75,12 +78,38 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Website) {
-            const response: PingResponse = await PingMonitor.ping(
-                monitorStep.data?.monitorDestination
+            const response: WebsiteResponse = await WebsiteMonitor.ping(
+                monitorStep.data?.monitorDestination as URL
             );
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+            result.responseBody = response.responseBody;
+            result.responseHeaders = response.responseHeaders;
+            result.responseCode = response.statusCode;
+
+        }
+
+        if (monitor.monitorType === MonitorType.API) {
+
+            let requestBody: JSONObject | undefined = undefined;
+            if(monitorStep.data?.requestBody && typeof monitorStep.data?.requestBody === 'string'){
+                requestBody = JSONFunctions.parse(monitorStep.data?.requestBody);
+            }
+
+            const response: APIResponse = await ApiMonitor.ping(
+                monitorStep.data?.monitorDestination as URL,{
+                    requestHeaders: monitorStep.data?.requestHeaders || {},
+                    requestBody: requestBody || undefined,
+                    requestType: monitorStep.data?.requestType || HTTPMethod.GET
+                }
+            );
+
+            result.isOnline = response.isOnline;
+            result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+            result.responseBody = response.responseBody;
+            result.responseHeaders = response.responseHeaders;
+            result.responseCode = response.statusCode;
         }
 
         return result;

@@ -1,33 +1,64 @@
 import URL from 'Common/Types/API/URL';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import Headers from 'Common/Types/API/Headers';
-import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import StatusCode from 'Common/Types/API/StatusCode';
-import { SslResponse } from './SslMonitor';
+import API from 'Common/Utils/API';
+import Protocol from 'Common/Types/API/Protocol';
 import { JSONObject } from 'Common/Types/JSON';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
 
 export interface APIResponse {
+    url: URL;
+    requestHeaders: Headers;
+    requestBody: JSONObject;
     isSecure: boolean;
-    reponseTimeInMS: PositiveNumber;
-    statusCode: StatusCode;
+    responseTimeInMS: PositiveNumber;
+    statusCode: number;
     responseBody: string;
     responseHeaders: Headers;
     isOnline: boolean;
-    SSL: SslResponse;
-    url: URL;
-    requestHeaders: Headers;
-    requestBody: string;
-    method: HTTPMethod;
 }
 
-export default class API {
-    public static async fetch(
-        _method: HTTPMethod,
-        _url: URL,
-        _requestHeaders: Headers,
-        _requestBody: string | JSONObject
+export default class ApiMonitor {
+    public static async ping(
+        url: URL, options: {
+            requestHeaders?: Headers | undefined,
+            requestBody?: JSONObject | undefined
+            requestType?: HTTPMethod | undefined
+        }
     ): Promise<APIResponse> {
-        throw new NotImplementedException();
+        try {
+            const startTime: [number, number] = process.hrtime();
+            const result = await API.fetch(options.requestType || HTTPMethod.GET, url, options.requestBody || undefined, options.requestHeaders || undefined);
+            const endTime: [number, number] = process.hrtime(startTime);
+            const responseTimeInMS: PositiveNumber = new PositiveNumber(
+                (endTime[0] * 1000000000 + endTime[1]) / 1000000
+            );
+
+            return {
+                url: url,
+                requestHeaders: options.requestHeaders || {},
+                isOnline: true,
+                isSecure: url.protocol === Protocol.HTTPS,
+                responseTimeInMS: responseTimeInMS,
+                statusCode: result.statusCode,
+                responseBody: result.data.toString(),
+                responseHeaders: result.headers,
+                requestBody: options.requestBody || {}
+
+            }
+        } catch (err) {
+            return {
+                url: url,
+                isOnline: false,
+                requestBody: options.requestBody || {},
+                requestHeaders: options.requestHeaders || {},
+                isSecure: url.protocol === Protocol.HTTPS,
+                responseTimeInMS: new PositiveNumber(0),
+                statusCode: 0,
+                responseBody: '',
+                responseHeaders: {}
+            }
+        }
     }
 }
+
