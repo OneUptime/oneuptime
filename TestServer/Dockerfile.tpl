@@ -1,5 +1,5 @@
 #
-# OneUptime-probe-api Dockerfile
+# OneUptime-test-server-api Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -59,7 +59,7 @@ COPY ./TestServer/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3800: OneUptime-probe-api
+#   - 3800: OneUptime-test-server-api
 EXPOSE 3800
 
 {{ if eq .Env.ENVIRONMENT "development" }}
