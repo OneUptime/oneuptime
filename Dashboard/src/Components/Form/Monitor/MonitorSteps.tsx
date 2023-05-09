@@ -265,11 +265,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 />
 
                 <Dropdown
-                    initialValue={monitorStatusDropdownOptions.find(
+                    value={monitorStatusDropdownOptions.find(
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                    props.initialValue?.data?.defaultMonitorStatusId?.id.toString() ||
+                                    monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
                                 undefined
                             );
                         }
