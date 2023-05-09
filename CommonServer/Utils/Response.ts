@@ -69,6 +69,27 @@ export default class Response {
         return this.logResponse(req, res, undefined);
     }
 
+    public static sendCustomResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        statusCode: number,
+        body: JSONObject | string,
+
+    ): void {
+        const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        oneUptimeResponse.set(
+            'ExpressRequest-Id',
+            oneUptimeRequest.id.toString()
+        );
+        oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+        oneUptimeResponse.status(statusCode).send(body);
+
+        return this.logResponse(req, res, undefined);
+    }
+
     public static async sendFileResponse(
         req: ExpressRequest | ExpressRequest,
         res: ExpressResponse,

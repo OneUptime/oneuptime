@@ -646,6 +646,29 @@ services:
             - /usr/src/Model/node_modules/
         {{ end }}
 
+
+    {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "test")  }}
+    test-server:
+        ports:
+            - '3800:3800'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9141:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./TestServer/Dockerfile
+        {{ else }}
+        image:  oneuptime/test-server:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./TestServer/.env
+    {{ end }}
+
     nginx:
         depends_on:
             - identity
