@@ -3,6 +3,7 @@ import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
 import Port from '../Port';
 import Typeof from '../Typeof';
+import { JSONObject, ObjectType } from '../JSON';
 
 export default class Hostname extends DatabaseProperty {
     private _route: string = '';
@@ -48,6 +49,21 @@ export default class Hostname extends DatabaseProperty {
         } else if (typeof port === Typeof.Number) {
             this.port = new Port(port as number);
         }
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Hostname,
+            value: (this as Hostname).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Hostname {
+        if (json['_type'] === ObjectType.Hostname) {
+            return new Hostname((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public override toString(): string {

@@ -45,10 +45,10 @@ import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
 } from 'CommonServer/Services/WorkflowVariableService';
 
-import Probe from 'Model/Models/Probe';
-import ProbeService, {
-    Service as ProbeServiceType,
-} from 'CommonServer/Services/ProbeService';
+import MonitorProbe from 'Model/Models/MonitorProbe';
+import MonitorProbeService, {
+    Service as MonitorProbeServiceType,
+} from 'CommonServer/Services/MonitorProbeService';
 
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPagePrivateUserService, {
@@ -209,6 +209,8 @@ import StatusPageDomainService, {
 
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 
+import ProbeAPI from 'CommonServer/API/ProbeAPI';
+
 import StatusPageSubscriberAPI from 'CommonServer/API/StatusPageSubscriberAPI';
 
 // Custom Fields API
@@ -248,9 +250,13 @@ app.use(
         ProjectService
     ).getRouter()
 );
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter()
+    new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
+        MonitorProbe,
+        MonitorProbeService
+    ).getRouter()
 );
 
 app.use(
@@ -504,6 +510,9 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new StatusPageSubscriberAPI().getRouter()

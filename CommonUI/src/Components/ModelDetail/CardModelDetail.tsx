@@ -18,16 +18,18 @@ import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 import { FormStep } from '../Forms/Types/FormStep';
+import { ModalWidth } from '../Modal/Modal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
     editButtonText?: undefined | string;
-    formSteps?: undefined | Array<FormStep>;
+    formSteps?: undefined | Array<FormStep<TBaseModel>>;
     formFields?: undefined | Fields<TBaseModel>;
     className?: string | undefined;
     name: string;
+    createEditModalWidth?: ModalWidth | undefined;
 }
 
 const CardModelDetail: Function = <TBaseModel extends BaseModel>(
@@ -87,6 +89,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
             {showModel ? (
                 <ModelFormModal<TBaseModel>
                     title={`Edit ${model.singularName}`}
+                    modalWidth={props.createEditModalWidth}
                     onClose={() => {
                         setShowModal(false);
                     }}

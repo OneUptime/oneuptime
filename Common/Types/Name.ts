@@ -1,5 +1,7 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
+import { JSONObject, ObjectType } from './JSON';
+import BadDataException from './Exception/BadDataException';
 
 export default class Name extends DatabaseProperty {
     private _title: string = '';
@@ -53,6 +55,21 @@ export default class Name extends DatabaseProperty {
         }
 
         return null;
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Name,
+            value: (this as Name).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Name {
+        if (json['_type'] === ObjectType.Name) {
+            return new Name((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public static override fromDatabase(_value: string): Name | null {

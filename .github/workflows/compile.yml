@@ -1,0 +1,334 @@
+name: Compile
+
+on:
+  pull_request: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+
+
+jobs:
+
+  compile-accounts:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install --force
+      - run: cd Accounts && npm install && npm run compile
+
+  compile-alert:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Alert && npm install && npm run compile
+
+  compile-api-reference:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd ApiReference && npm install && npm run compile
+
+  compile-common-server:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install && npm run compile
+
+  compile-common-ui:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonUI && npm install --force && npm run compile
+
+  compile-common:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install && npm run compile
+
+  compile-dashboard-api:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install --force
+      - run: cd DashboardAPI && npm install && npm run compile
+
+  compile-dashboard:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install --force
+      - run: cd Dashboard && npm install && npm run compile
+
+  compile-file:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd File && npm install && npm run compile
+
+  compile-helm-chart:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd HelmChart && npm install && npm run compile
+
+  compile-home:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Home && npm install && npm run compile
+
+  compile-identity:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Identity && npm install && npm run compile
+
+  compile-integrations:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Integration && npm install && npm run compile
+
+  compile-licensing:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Licensing && npm install && npm run compile
+
+  compile-mail:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Mail && npm install && npm run compile
+
+  compile-model:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd Model && npm install && npm run compile
+
+  compile-probe:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Probe && npm install && npm run compile
+
+  compile-probe-api:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd ProbeAPI && npm install && npm run compile
+  
+
+  compile-realtime:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Realtime && npm install && npm run compile
+
+  compile-status-page:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install --force
+      - run: cd StatusPage && npm install && npm run compile
+
+  compile-workers:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install --force
+      - run: cd Workers && npm install && npm run compile
+
+  compile-workflow:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Workflow && npm install && npm run compile
+
+  compile-test-server:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd TestServer && npm install && npm run compile

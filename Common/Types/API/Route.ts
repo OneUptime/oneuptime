@@ -1,5 +1,9 @@
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
-export default class Route {
+import { JSONObject, ObjectType } from '../JSON';
+
+export default class Route extends DatabaseProperty {
     private _route: string = '';
     public get route(): string {
         return this._route;
@@ -14,6 +18,7 @@ export default class Route {
     }
 
     public constructor(route?: string | Route) {
+        super();
         if (route && route instanceof Route) {
             route = route.toString();
         }
@@ -21,6 +26,21 @@ export default class Route {
         if (route) {
             this.route = route;
         }
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Route,
+            value: (this as Route).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Route {
+        if (json['_type'] === ObjectType.Route) {
+            return new Route((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public addRoute(route: Route | string): Route {
@@ -36,7 +56,7 @@ export default class Route {
         return this;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.route;
     }
 
@@ -47,5 +67,23 @@ export default class Route {
     public addRouteParam(paramName: string, value: string): Route {
         this.route = this.route.replace(paramName, value);
         return this;
+    }
+
+    public static override toDatabase(
+        value: Route | FindOperator<Route>
+    ): string | null {
+        if (value) {
+            return value.toString();
+        }
+
+        return value;
+    }
+
+    public static override fromDatabase(_value: string): Route | null {
+        if (_value) {
+            return new Route(_value);
+        }
+
+        return null;
     }
 }

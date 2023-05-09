@@ -87,7 +87,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     true
                                                 )
                                             ) : (
-                                                ''
+                                                column.noValueMessage || ''
                                             )
                                         ) : column.type ===
                                           FieldType.DateTime ? (
@@ -99,7 +99,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     false
                                                 )
                                             ) : (
-                                                ''
+                                                column.noValueMessage || ''
                                             )
                                         ) : column.type ===
                                           FieldType.Boolean ? (
@@ -125,7 +125,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 props.item,
                                                 column.key,
                                                 ''
-                                            )?.toString() || ''
+                                            )?.toString() ||
+                                            column.noValueMessage ||
+                                            ''
                                         )
                                     ) : (
                                         <></>

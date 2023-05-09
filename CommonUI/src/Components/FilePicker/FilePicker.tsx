@@ -109,7 +109,12 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                         (await ModelAPI.create<FileModel>(
                             fileModel,
                             FileModel,
-                            CommonURL.fromURL(FILE_URL).addRoute('/file')
+                            {
+                                overrideRequestUrl:
+                                    CommonURL.fromURL(FILE_URL).addRoute(
+                                        '/file'
+                                    ),
+                            }
                         )) as HTTPResponse<FileModel>;
                     filesResult.push(result.data as FileModel);
                 }

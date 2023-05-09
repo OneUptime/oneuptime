@@ -375,7 +375,76 @@ services:
         {{ end }}
     
 
+    {{ if .Env.GLOBAL_PROBE_1_NAME }}
+    probe-1:   
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Probe/Dockerfile
+        {{ else }}
+        image:  oneuptime/probe:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Probe/.env
+        environment:
+            - PROBE_NAME={{ .Env.GLOBAL_PROBE_1_NAME }}
+            - PROBE_DESCRIPTION={{ .Env.GLOBAL_PROBE_1_DESCRIPTION }}
+            - PROBE_KEY={{ .Env.GLOBAL_PROBE_1_KEY }}
+            - PROBE_API_URL=http://probe-api:3400
+        depends_on:
+            - probe-api
+        links:
+            - probe-api
+        volumes:
+            - ./Certs:/usr/src/Certs
+        {{ if eq .Env.ENVIRONMENT "development" }}
+            - ./Probe:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    {{ end }}
 
+
+    {{ if .Env.GLOBAL_PROBE_2_NAME }}
+    probe-2:   
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Probe/Dockerfile
+        {{ else }}
+        image:  oneuptime/probe:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Probe/.env
+        environment:
+            - PROBE_NAME={{ .Env.GLOBAL_PROBE_2_NAME }}
+            - PROBE_DESCRIPTION={{ .Env.GLOBAL_PROBE_2_DESCRIPTION }}
+            - PROBE_KEY={{ .Env.GLOBAL_PROBE_2_KEY }}
+            - PROBE_API_URL=http://probe-api:3400
+        depends_on:
+            - probe-api
+        links:
+            - probe-api
+        volumes:
+            - ./Certs:/usr/src/Certs
+    {{ end }}
 
     identity:
         ports:
@@ -422,7 +491,49 @@ services:
         {{ end }}
     
 
-    
+    probe-api:
+        ports:
+            - '3400:3400'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9932:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./ProbeAPI/Dockerfile
+        {{ else }}
+        image:  oneuptime/probe-api:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./ProbeAPI/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./ProbeAPI:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
 
     file:
         ports:
@@ -534,6 +645,42 @@ services:
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
         {{ end }}
+
+
+    {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "test")  }}
+    test-server:
+        ports:
+            - '3800:3800'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9141:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./TestServer/Dockerfile
+        {{ else }}
+        image:  oneuptime/test-server:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./TestServer/.env
+        volumes:
+            - ./TestServer:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+    {{ end }}
 
     nginx:
         depends_on:

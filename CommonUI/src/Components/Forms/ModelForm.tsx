@@ -55,15 +55,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
           ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     onFormStepChange?: undefined | ((stepId: string) => void);
-    steps?: undefined | Array<FormStep>;
+    steps?: undefined | Array<FormStep<TBaseModel>>;
     submitButtonText?: undefined | string;
     requestHeaders?: undefined | Dictionary<string>;
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
+    disableAutofocus?: undefined | boolean;
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     name: string;
+    onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
     onSuccess?:
         | undefined
         | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
@@ -451,11 +453,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 tBaseModel as TBaseModel,
                 props.modelType,
                 props.formType,
-                props.apiUrl,
                 miscDataProps,
                 {
                     ...props.saveRequestOptions,
                     requestHeaders: props.requestHeaders,
+                    overrideRequestUrl: props.apiUrl,
                 }
             );
 
@@ -490,6 +492,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             <BasicModelForm<TBaseModel>
                 title={props.title}
                 description={props.description}
+                disableAutofocus={props.disableAutofocus}
                 model={model}
                 id={props.id}
                 name={props.name}
@@ -497,6 +500,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 onIsLastFormStep={props.onIsLastFormStep}
                 fields={fields}
                 steps={props.steps}
+                onChange={(values: FormValues<TBaseModel>) => {
+                    if (!isLoading) {
+                        props.onChange && props.onChange(values);
+                    }
+                }}
                 showAsColumns={props.showAsColumns}
                 footer={props.footer}
                 isLoading={isLoading}

@@ -18,6 +18,7 @@ export enum ButtonStyleType {
     WARNING_OUTLINE,
     ICON_LIGHT,
     LINK,
+    SECONDARY_LINK,
     ICON,
 }
 
@@ -114,6 +115,14 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.LINK) {
         buttonStyleCssClass = `text-indigo-600 hover:text-indigo-900  space-x-2`;
+
+        if (icon) {
+            buttonStyleCssClass += ` flex`;
+        }
+    }
+
+    if (buttonStyle === ButtonStyleType.SECONDARY_LINK) {
+        buttonStyleCssClass = `text-sm text-gray-400 hover:text-gray-500 space-x-2`;
 
         if (icon) {
             buttonStyleCssClass += ` flex`;

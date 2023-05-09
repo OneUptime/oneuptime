@@ -17,6 +17,7 @@ enum FormFieldSchemaType {
     LongText = 'LongText',
     Color = 'Color',
     Dropdown = 'Dropdown',
+    Radio = 'Radio',
     File = 'File',
     MultiSelectDropdown = 'MultiSelectDropdown',
     Toggle = 'Boolean',
@@ -29,6 +30,7 @@ enum FormFieldSchemaType {
     RadioButton = 'RadioButton',
     JSON = 'JSON',
     Query = 'Query',
+    CustomComponent = 'CustomComponent',
 }
 
 export default FormFieldSchemaType;

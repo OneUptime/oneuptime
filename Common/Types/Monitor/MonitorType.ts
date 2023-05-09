@@ -35,7 +35,7 @@ export class MonitorTypeHelper {
             },
             {
                 monitorType: MonitorType.Website,
-                title: 'Webiste',
+                title: 'Website',
                 description:
                     'This monitor type lets you monitor landing pages like home page of your company / blog or more.',
             },
@@ -45,24 +45,24 @@ export class MonitorTypeHelper {
                 description:
                     'This monitor types does the basic ping test of an endpoint.',
             },
-            {
-                monitorType: MonitorType.Kubernetes,
-                title: 'Kubenretes',
-                description:
-                    'This monitor types lets you monitor kuberetes clusters.',
-            },
+            // {
+            //     monitorType: MonitorType.Kubernetes,
+            //     title: 'Kubenretes',
+            //     description:
+            //         'This monitor types lets you monitor kuberetes clusters.',
+            // },
             {
                 monitorType: MonitorType.IP,
                 title: 'IP',
                 description:
                     'This monitor types lets you monitor any IPv4 or IPv6 addresses.',
             },
-            {
-                monitorType: MonitorType.IncomingRequest,
-                title: 'Incoming Request',
-                description:
-                    'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
-            },
+            // {
+            //     monitorType: MonitorType.IncomingRequest,
+            //     title: 'Incoming Request',
+            //     description:
+            //         'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
+            // },
         ];
 
         return monitorTypeProps;

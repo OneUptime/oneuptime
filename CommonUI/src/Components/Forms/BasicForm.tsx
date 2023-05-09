@@ -17,7 +17,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
-import Link from '../Link/Link';
 import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
@@ -43,9 +42,10 @@ import URL from 'Common/Types/API/URL';
 import RadioButtons from '../RadioButtons/RadioButtons';
 import UiAnalytics from '../../Utils/Analytics';
 import Dictionary from 'Common/Types/Dictionary';
-import Field from './Types/Field';
+import Field, { FormFieldStyleType } from './Types/Field';
 import { FormStep } from './Types/FormStep';
 import Steps from './Steps/Steps';
+import FieldLabelElement from './Fields/FieldLabel';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -62,7 +62,7 @@ export interface ComponentProps<T extends Object> {
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
     fields: Fields<T>;
-    steps?: undefined | Array<FormStep>;
+    steps?: undefined | Array<FormStep<T>>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
     description?: undefined | string;
@@ -73,6 +73,7 @@ export interface ComponentProps<T extends Object> {
     cancelButtonText?: undefined | string | null;
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
+    disableAutofocus?: undefined | boolean;
     hideSubmitButton?: undefined | boolean;
     onFormStepChange?: undefined | ((stepId: string) => void);
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
@@ -138,9 +139,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 props.steps &&
                 props.steps.length > 0 &&
                 (
-                    (props.steps as Array<FormStep>)[
+                    (props.steps as Array<FormStep<T>>)[
                         props.steps.length - 1
-                    ] as FormStep
+                    ] as FormStep<T>
                 ).id === currentFormStepId
             ) {
                 setSubmitButtonText(props.submitButtonText || 'Submit');
@@ -184,9 +185,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         useEffect(() => {
             validate(currentValue);
-            if (props.onChange) {
-                props.onChange(currentValue);
-            }
         }, [currentValue]);
 
         useImperativeHandle(
@@ -243,6 +241,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             refCurrentValue.current = updatedValue;
 
             setCurrentValue(refCurrentValue.current);
+
+            if (props.onChange && isInitialValuesSet.current) {
+                props.onChange(refCurrentValue.current);
+            }
         };
 
         const submitForm: Function = (): void => {
@@ -267,9 +269,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 (props.steps &&
                     props.steps.length > 0 &&
                     (
-                        (props.steps as Array<FormStep>)[
+                        (props.steps as Array<FormStep<T>>)[
                             props.steps.length - 1
-                        ] as FormStep
+                        ] as FormStep<T>
                     ).id === currentFormStepId) ||
                 currentFormStepId === null
             ) {
@@ -302,13 +304,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 props.onSubmit(values);
             } else if (props.steps && props.steps.length > 0) {
                 const currentStepIndex: number = props.steps.findIndex(
-                    (step: FormStep) => {
+                    (step: FormStep<T>) => {
                         return step.id === currentFormStepId;
                     }
                 );
                 if (currentStepIndex > -1) {
                     setCurrentFormStepId(
-                        (props.steps[currentStepIndex + 1] as FormStep).id
+                        (
+                            props.steps.filter((step: FormStep<T>) => {
+                                if (!step.showIf) {
+                                    return true;
+                                }
+
+                                return step.showIf(refCurrentValue.current);
+                            })[currentStepIndex + 1] as FormStep<T>
+                        ).id
                     );
                 }
             }
@@ -355,34 +365,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
             return (
                 <div className="sm:col-span-4 mt-0 mb-2" key={fieldName}>
-                    <label className="block text-sm font-medium text-gray-700 flex justify-between">
-                        <span>
-                            {field.title}{' '}
-                            <span className="text-gray-400 text-xs">
-                                {field.required ? '' : '(Optional)'}
-                            </span>
-                        </span>
-                        {field.sideLink &&
-                            field.sideLink?.text &&
-                            field.sideLink?.url && (
-                                <span data-testid="login-forgot-password">
-                                    <Link
-                                        to={field.sideLink?.url}
-                                        className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-                                    >
-                                        {field.sideLink?.text}
-                                    </Link>
-                                </span>
-                            )}
-                    </label>
+                    <FieldLabelElement
+                        title={field.title || ''}
+                        description={field.description}
+                        sideLink={field.sideLink}
+                        required={field.required}
+                        isHeading={
+                            field.styleType === FormFieldStyleType.Heading
+                        }
+                    />
 
-                    {field.description && (
-                        <p className="mt-1 text-sm text-gray-500">
-                            {field.description}
-                        </p>
-                    )}
-
-                    <div className="mt-1">
+                    <div className="mt-2">
                         {field.fieldType === FormFieldSchemaType.Color && (
                             <ColorPicker
                                 error={
@@ -467,7 +460,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                         {field.fieldType === FormFieldSchemaType.LongText && (
                             <TextArea
-                                autoFocus={index === 1}
+                                autoFocus={
+                                    !props.disableAutofocus && index === 1
+                                }
                                 error={
                                     touched[fieldName] && errors[fieldName]
                                         ? errors[fieldName]
@@ -548,6 +543,32 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 placeholder={field.placeholder || ''}
                             />
                         )}
+
+                        {field.fieldType ===
+                            FormFieldSchemaType.CustomComponent &&
+                            field.getCustomElement &&
+                            field.getCustomElement(refCurrentValue.current, {
+                                error:
+                                    touched[fieldName] && errors[fieldName]
+                                        ? errors[fieldName]
+                                        : undefined,
+                                tabIndex: index,
+                                onChange: async (value: string) => {
+                                    field.onChange && field.onChange(value);
+                                    setFieldValue(fieldName, value);
+                                },
+                                onBlur: async () => {
+                                    setFieldTouched(fieldName, true);
+                                },
+
+                                initialValue:
+                                    currentValue &&
+                                    (currentValue as any)[fieldName]
+                                        ? (currentValue as any)[fieldName]
+                                        : '',
+
+                                placeholder: field.placeholder || '',
+                            })}
 
                         {(field.fieldType === FormFieldSchemaType.HTML ||
                             field.fieldType === FormFieldSchemaType.CSS ||
@@ -687,7 +708,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             field.fieldType ===
                                 FormFieldSchemaType.PositveNumber) && (
                             <Input
-                                autoFocus={index === 1}
+                                autoFocus={
+                                    !props.disableAutofocus && index === 1
+                                }
                                 tabIndex={index}
                                 disabled={isDisabled || field.disabled}
                                 error={
@@ -1000,6 +1023,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     if (resultMaxMinValue) {
                         errors[name] = resultMaxMinValue;
                     }
+
+                    if (field.customValidation) {
+                        // check for length of content
+                        const resultCustomValidation: string | null =
+                            field.customValidation({ ...values });
+
+                        if (resultCustomValidation) {
+                            errors[name] = resultCustomValidation;
+                        }
+                    }
                 } else if (field.required) {
                     errors[name] = `${field.title || name} is required.`;
                 }
@@ -1121,7 +1154,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     <Steps
                                         currentFormStepId={currentFormStepId}
                                         steps={props.steps}
-                                        onClick={(step: FormStep) => {
+                                        formValues={refCurrentValue.current}
+                                        onClick={(step: FormStep<T>) => {
                                             setCurrentFormStepId(step.id);
                                         }}
                                     />

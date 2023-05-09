@@ -31,6 +31,7 @@ import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MonitorStatus from './MonitorStatus';
 import { JSONObject } from 'Common/Types/JSON';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -174,7 +175,7 @@ export default class Monitor extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Name',
-        description: 'Any friendly name of this object',
+        description: 'Any friendly name for this monitor',
         canReadOnPopulate: true,
     })
     @Column({
@@ -506,6 +507,74 @@ export default class Monitor extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public currentMonitorStatusId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.JSON,
+        required: false,
+        title: 'Monitor Steps',
+        description: 'What would you like to monitor and whats the criteria?',
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        transformer: MonitorSteps.getDatabaseTransformer(),
+    })
+    public monitorSteps?: MonitorSteps = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'Monitoring Interval',
+        description:
+            'How often would you like OneUptime to monitor this resource?',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public monitoringInterval?: string = undefined;
 
     @ColumnAccessControl({
         create: [

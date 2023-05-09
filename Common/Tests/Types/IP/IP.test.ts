@@ -38,11 +38,7 @@ describe('IP()', () => {
     });
 
     test('should return a string', () => {
-        expect(IP.toDatabase('127.0.0.1')).toBe('127.0.0.1');
-    });
-
-    test('should return null', () => {
-        expect(IP.toDatabase('')).toBeNull();
+        expect(IP.toDatabase(new IP('127.0.0.1'))).toBe('127.0.0.1');
     });
 
     test('should be an instance IP', () => {

@@ -16,6 +16,16 @@ import Route from 'Common/Types/API/Route';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
+import MonitorTypeUtil from '../../Utils/MonitorType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import MonitorSteps from '../Form/Monitor/MonitorSteps';
+import {
+    CustomElementProps,
+    FormFieldStyleType,
+} from 'CommonUI/src/Components/Forms/Types/Field';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import MonitoringIntrerval from '../../Utils/MonitorIntervalDropdownOptions';
+import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -39,14 +49,25 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             isCreateable={true}
             isViewable={true}
             query={props.query}
-            onBeforeCreate={async (item: Monitor) => {
-                item.monitorType = MonitorType.Manual;
-                return item;
-            }}
+            createEditModalWidth={ModalWidth.Large}
             formSteps={[
                 {
                     title: 'Monitor Info',
                     id: 'monitor-info',
+                },
+                {
+                    title: 'Criteria',
+                    id: 'criteria',
+                    showIf: (values: FormValues<Monitor>) => {
+                        return values.monitorType !== MonitorType.Manual;
+                    },
+                },
+                {
+                    title: 'Interval',
+                    id: 'monitoring-interval',
+                    showIf: (values: FormValues<Monitor>) => {
+                        return values.monitorType !== MonitorType.Manual;
+                    },
                 },
                 {
                     title: 'Labels',
@@ -85,17 +106,62 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     required: true,
                     placeholder: 'Description',
                 },
-                // {
-                //     field: {
-                //         monitorType: true,
-                //     },
-                //     title: 'Monitor Type',
-                //     fieldType: FormFieldSchemaType.Dropdown,
-                //     required: true,
-                //     placeholder: 'Select Monitor Type',
-                //     dropdownOptions:
-                //         MonitorTypeUtil.monitorTypesAsDropdownOptions(),
-                // },
+                {
+                    field: {
+                        monitorType: true,
+                    },
+                    title: 'Monitor Type',
+                    stepId: 'monitor-info',
+                    fieldType: FormFieldSchemaType.Dropdown,
+                    required: true,
+                    placeholder: 'Select Monitor Type',
+                    dropdownOptions:
+                        MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+                },
+                {
+                    field: {
+                        monitorSteps: true,
+                    },
+                    stepId: 'criteria',
+                    styleType: FormFieldStyleType.Heading,
+                    title: 'Monitor Details',
+                    fieldType: FormFieldSchemaType.CustomComponent,
+                    required: true,
+                    customValidation: (values: FormValues<Monitor>) => {
+                        const error: string | null =
+                            MonitorStepsType.getValidationError(
+                                values.monitorSteps as MonitorStepsType,
+                                values.monitorType as MonitorType
+                            );
+
+                        return error;
+                    },
+                    getCustomElement: (
+                        value: FormValues<Monitor>,
+                        props: CustomElementProps
+                    ) => {
+                        return (
+                            <MonitorSteps
+                                {...props}
+                                monitorType={
+                                    value.monitorType || MonitorType.Manual
+                                }
+                                error={''}
+                            />
+                        );
+                    },
+                },
+                {
+                    field: {
+                        monitoringInterval: true,
+                    },
+                    stepId: 'monitoring-interval',
+                    title: 'Monitoring Interval',
+                    fieldType: FormFieldSchemaType.Dropdown,
+                    required: true,
+                    dropdownOptions: MonitoringIntrerval,
+                    placeholder: 'Select Monitoring Interval',
+                },
                 {
                     field: {
                         labels: true,
@@ -126,14 +192,16 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     type: FieldType.Text,
                     isFilterable: true,
                 },
-                // {
-                //     field: {
-                //         monitorType: true,
-                //     },
-                //     title: 'Monitor Type',
-                //     type: FieldType.Text,
-                //     isFilterable: true,
-                // },
+                {
+                    field: {
+                        monitorType: true,
+                    },
+                    title: 'Monitor Type',
+                    type: FieldType.Text,
+                    isFilterable: true,
+                    filterDropdownField:
+                        MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+                },
                 {
                     field: {
                         currentMonitorStatus: {

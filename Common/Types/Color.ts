@@ -1,6 +1,7 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
 
 export interface RGB {
     red: number;
@@ -24,6 +25,21 @@ export default class Color extends DatabaseProperty {
 
     public override toString(): string {
         return this.color;
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Color,
+            value: (this as Color).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Color {
+        if (json['_type'] === ObjectType.Color) {
+            return new Color((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public static override toDatabase(

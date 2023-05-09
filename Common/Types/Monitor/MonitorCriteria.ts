@@ -1,33 +1,104 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONArray, JSONObject } from '../JSON';
+import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorCriteriaInstance from './MonitorCriteriaInstance';
 import BadDataException from '../Exception/BadDataException';
+import MonitorType from './MonitorType';
+import ObjectID from '../ObjectID';
 
 export interface MonitorCriteriaType {
     monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
 }
 
 export default class MonitorCriteria extends DatabaseProperty {
-    public monitorCriteria: MonitorCriteriaType | undefined = undefined;
+    public data: MonitorCriteriaType | undefined = undefined;
 
     public constructor() {
         super();
+        this.data = {
+            monitorCriteriaInstanceArray: [new MonitorCriteriaInstance()],
+        };
     }
 
-    public toJSON(): JSONObject {
-        if (!this.monitorCriteria) {
-            return {
-                _type: 'MonitorCriteria',
-                value: {},
-            };
+    public static getDefaultMonitorCriteria(arg: {
+        monitorType: MonitorType;
+        onlineMonitorStatusId: ObjectID;
+        offlineMonitorStatusId: ObjectID;
+        defaultIncidentSeverityId: ObjectID;
+    }): MonitorCriteria {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+
+        monitorCriteria.data = {
+            monitorCriteriaInstanceArray: [
+                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
+                    {
+                        monitorType: arg.monitorType,
+                        monitorStatusId: arg.onlineMonitorStatusId,
+                    }
+                ),
+                MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance(
+                    {
+                        monitorType: arg.monitorType,
+                        monitorStatusId: arg.offlineMonitorStatusId,
+                        incidentSeverityId: arg.defaultIncidentSeverityId,
+                    }
+                ),
+            ],
+        };
+
+        return monitorCriteria;
+    }
+
+    public static getValidationError(
+        value: MonitorCriteria,
+        monitorType: MonitorType
+    ): string | null {
+        if (!value.data) {
+            return 'Monitor Criteria is required';
         }
 
+        if (value.data.monitorCriteriaInstanceArray.length === 0) {
+            return 'Monitor Criteria is required';
+        }
+
+        for (const criteria of value.data.monitorCriteriaInstanceArray) {
+            if (
+                MonitorCriteriaInstance.getValidationError(
+                    criteria,
+                    monitorType
+                )
+            ) {
+                return MonitorCriteriaInstance.getValidationError(
+                    criteria,
+                    monitorType
+                );
+            }
+        }
+
+        return null;
+    }
+
+    public static getNewMonitorCriteriaAsJSON(): JSONObject {
         return {
             _type: 'MonitorCriteria',
             value: {
+                monitorCriteriaInstanceArray: [
+                    new MonitorCriteriaInstance().toJSON(),
+                ],
+            },
+        };
+    }
+
+    public override toJSON(): JSONObject {
+        if (!this.data) {
+            return MonitorCriteria.getNewMonitorCriteriaAsJSON();
+        }
+
+        return {
+            _type: ObjectType.MonitorCriteria,
+            value: {
                 monitorCriteriaInstanceArray:
-                    this.monitorCriteria.monitorCriteriaInstanceArray.map(
+                    this.data.monitorCriteriaInstanceArray.map(
                         (criteria: MonitorCriteriaInstance) => {
                             return criteria.toJSON();
                         }
@@ -36,8 +107,12 @@ export default class MonitorCriteria extends DatabaseProperty {
         };
     }
 
-    public fromJSON(json: JSONObject): MonitorCriteria {
-        if (!json || json['_type'] !== 'MonitorCriteria') {
+    public static override fromJSON(json: JSONObject): MonitorCriteria {
+        if (json instanceof MonitorCriteria) {
+            return json;
+        }
+
+        if (!json || json['_type'] !== ObjectType.MonitorCriteria) {
             throw new BadDataException('Invalid monitor criteria');
         }
 
@@ -57,15 +132,17 @@ export default class MonitorCriteria extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorCriteriaInstanceArray'] as JSONArray;
 
-        this.monitorCriteria = {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+
+        monitorCriteria.data = {
             monitorCriteriaInstanceArray: monitorCriteriaInstanceArray.map(
                 (json: JSONObject) => {
-                    return new MonitorCriteriaInstance().fromJSON(json);
+                    return MonitorCriteriaInstance.fromJSON(json);
                 }
             ),
         };
 
-        return this;
+        return monitorCriteria;
     }
 
     public static isValid(_json: JSONObject): boolean {
@@ -86,7 +163,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         value: JSONObject
     ): MonitorCriteria | null {
         if (value) {
-            return new MonitorCriteria().fromJSON(value);
+            return MonitorCriteria.fromJSON(value);
         }
 
         return null;

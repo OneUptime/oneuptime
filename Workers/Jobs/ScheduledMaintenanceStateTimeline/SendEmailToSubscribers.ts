@@ -1,4 +1,4 @@
-import { EVERY_MINUTE } from '../../Utils/CronTime';
+import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscriberService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';

@@ -68,6 +68,11 @@ enum Permission {
     CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
     CanReadScheduledMaintenanceCustomField = 'CanReadScheduledMaintenanceCustomField',
 
+    CanCreateMonitorProbe = 'CanCreateMonitorProbe',
+    CanDeleteMonitorProbe = 'CanDeleteMonitorProbe',
+    CanEditMonitorProbe = 'CanEditMonitorProbe',
+    CanReadMonitorProbe = 'CanReadMonitorProbe',
+
     CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
     CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
     CanEditStatusPageCustomField = 'CanEditStatusPageCustomField',
@@ -1619,6 +1624,39 @@ export class PermissionHelper {
                 title: 'Can Read Scheduled Maintenance Custom Field',
                 description:
                     'This permission  can read Scheduled Maintenance Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateMonitorProbe,
+                title: 'Can Create Monitor Probe',
+                description:
+                    'This permission can create Monitor Probe this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorProbe,
+                title: 'Can Delete Monitor Probe',
+                description:
+                    'This permission  can delete Monitor Probe of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorProbe,
+                title: 'Can Edit Monitor Probe',
+                description:
+                    'This permission can edit Monitor Probe of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorProbe,
+                title: 'Can Read Monitor Probe',
+                description:
+                    'This permission  can read Monitor Probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

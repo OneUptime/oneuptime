@@ -121,6 +121,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     acceptSuggestionOnCommitCharacter: true,
                     acceptSuggestionOnEnter: 'on',
                     accessibilitySupport: 'auto',
+                    fontSize: 14,
                     automaticLayout: true,
                     codeLens: false,
                     colorDecorators: true,

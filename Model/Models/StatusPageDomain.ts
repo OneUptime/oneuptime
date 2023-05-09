@@ -21,6 +21,7 @@ import StatusPage from './StatusPage';
 import Domain from './Domain';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
@@ -437,7 +438,7 @@ export default class StatusPageDomain extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public greenlockConfig?: JSON = undefined;
+    public greenlockConfig?: JSONObject = undefined;
 
     // This token is used by the Worker.
     // worker pings the status page of customers - eg: status.company.com/verify-token/:id

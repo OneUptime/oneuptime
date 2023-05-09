@@ -1,4 +1,4 @@
-import { EVERY_MINUTE } from '../../Utils/CronTime';
+import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';

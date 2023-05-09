@@ -34,9 +34,10 @@ const VerifyEmail: FunctionComponent = () => {
                 emailverificationToken,
                 EmailVerificationToken,
                 FormType.Create,
-                apiUrl,
                 {},
-                {}
+                {
+                    overrideRequestUrl: apiUrl,
+                }
             );
         } catch (err) {
             setError(API.getFriendlyMessage(err));

@@ -2,7 +2,7 @@ import {
     EVERY_FIVE_MINUTE,
     EVERY_HOUR,
     EVERY_MINUTE,
-} from '../../Utils/CronTime';
+} from 'Common/Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/Config';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';

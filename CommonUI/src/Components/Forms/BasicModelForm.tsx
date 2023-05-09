@@ -16,6 +16,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
+    onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
     onValidate?:
         | undefined
         | ((
@@ -25,12 +26,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
     name: string;
-    steps?: undefined | Array<FormStep>;
+    steps?: undefined | Array<FormStep<TBaseModel>>;
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormStepChange?: undefined | ((stepId: string) => void);
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
+    disableAutofocus?: undefined | boolean;
     footer: ReactElement;
     isLoading?: undefined | boolean;
     onCancel?: undefined | (() => void);
@@ -93,9 +95,11 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             isLoading={props.isLoading || false}
             fields={formFields}
             id={props.id}
+            onChange={props.onChange}
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
             }
+            disableAutofocus={props.disableAutofocus}
             steps={props.steps}
             name={props.name}
             onFormStepChange={props.onFormStepChange}

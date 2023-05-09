@@ -27,6 +27,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/incidents`
     ),
 
+    [PageMap.MONITOR_VIEW_PROBES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/probes`
+    ),
+
+    [PageMap.MONITOR_VIEW_CRITERIA]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/criteria`
+    ),
+
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents`
     ),
@@ -211,6 +219,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}`
     ),
 
+    [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/interval`
+    ),
+
     [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
     ),
@@ -300,6 +312,11 @@ const RouteMap: Dictionary<Route> = {
     // labels.
     [PageMap.SETTINGS_LABELS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/labels`
+    ),
+
+    // Probes.
+    [PageMap.SETTINGS_PROBES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/probes`
     ),
 
     // workflows.

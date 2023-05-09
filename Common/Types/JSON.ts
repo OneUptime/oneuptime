@@ -21,11 +21,16 @@ import NotNull from './Database/NotNull';
 import { BaseEntity } from 'typeorm';
 import EqualToOrNull from './Database/EqualToOrNull';
 import NotEqual from './Database/NotEqual';
+import { CheckOn, FilterType } from './Monitor/CriteriaFilter';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',
     Name = 'Name',
     EqualToOrNull = 'EqualToOrNull',
+    MonitorSteps = 'MonitorSteps',
+    MonitorStep = 'MonitorStep',
+    MonitorCriteria = 'MonitorCriteria',
+    MonitorCriteriaInstance = 'MonitorCriteriaInstance',
     NotEqual = 'NotEqual',
     Email = 'Email',
     Phone = 'Phone',
@@ -83,6 +88,10 @@ export type JSONValue =
     | Buffer
     | Permission
     | Array<Permission>
+    | CheckOn
+    | Array<CheckOn>
+    | FilterType
+    | Array<FilterType>
     | Search
     | Domain
     | Array<Domain>

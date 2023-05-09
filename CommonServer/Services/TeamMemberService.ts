@@ -179,7 +179,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             select: {
                 userId: true,
                 projectId: true,
-                team: true,
                 teamId: true,
                 hasAcceptedInvitation: true,
             },

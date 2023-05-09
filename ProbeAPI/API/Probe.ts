@@ -2,39 +2,48 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    NextFunction,
 } from 'CommonServer/Utils/Express';
-
-import ProbeAuthorization from 'CommonServer/Middleware/ProbeAuthorization';
 import Response from 'CommonServer/Utils/Response';
-import Exception from 'Common/Types/Exception/Exception';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import ProbeAuthorization from '../Middleware/ProbeAuthorization';
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
+import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ProbeMonitorResponseService from '../Service/ProbeMonitorResponse';
 
 const router: ExpressRouter = Express.getRouter();
 
-router.get(
-    '/monitors',
-    ProbeAuthorization.isAuthorizedProbeMiddleware,
-    async (req: ExpressRequest, res: ExpressResponse) => {
+router.post(
+    '/probe/response/ingest',
+    ProbeAuthorization.isAuthorizedServiceMiddleware,
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
         try {
-            // const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-            // const limit: PositiveNumber = new PositiveNumber(
-            //     parseInt((req.query['limit'] as string) || '10')
-            // );
+            const probeResponse: ProbeMonitorResponse =
+                req.body['probeMonitorResponse'];
 
-            // const monitors: Array<Monitor> =
-            //     await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
-            //         (oneUptimeRequest.probe as ProbeRequest).id,
-            //         limit
-            //     );
+            if (!probeResponse) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('ProbeMonitorResponse not found')
+                );
+            }
 
-            return Response.sendJsonArrayResponse(
-                req,
-                res,
-                [],
-                new PositiveNumber(0)
-            );
-        } catch (error) {
-            return Response.sendErrorResponse(req, res, error as Exception);
+            // process probe response here.
+            const probeApiIngestResponse: ProbeApiIngestResponse =
+                await ProbeMonitorResponseService.processProbeResponse(
+                    probeResponse
+                );
+
+            return Response.sendJsonObjectResponse(req, res, {
+                probeApiIngestResponse: probeApiIngestResponse,
+            } as any);
+        } catch (err) {
+            return next(err);
         }
     }
 );

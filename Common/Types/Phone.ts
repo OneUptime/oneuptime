@@ -1,6 +1,7 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
 
 export default class Phone extends DatabaseProperty {
     private _phone: string = '';
@@ -33,6 +34,21 @@ export default class Phone extends DatabaseProperty {
 
     public override toString(): string {
         return this.phone;
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Phone,
+            value: (this as Phone).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Phone {
+        if (json['_type'] === ObjectType.Phone) {
+            return new Phone((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     protected static override toDatabase(

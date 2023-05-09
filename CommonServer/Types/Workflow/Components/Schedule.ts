@@ -30,7 +30,7 @@ export default class WebhookTrigger extends TriggerCode {
     public override async init(props: InitProps): Promise<void> {
         const workflows: Array<Workflow> = await WorkflowService.findBy({
             query: {
-                triggerId: ComponentID.Schedule,
+                triggerId: ComponentID.Schedule as string,
                 triggerArguments: QueryHelper.notNull(),
             },
             select: {

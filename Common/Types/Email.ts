@@ -2,6 +2,7 @@ import { FindOperator } from 'typeorm';
 import Hostname from './API/Hostname';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
 
 const nonBusinessEmailDomains: Array<string> = [
     'gmail',
@@ -53,6 +54,21 @@ export default class Email extends DatabaseProperty {
             return false;
         }
         return true;
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Email,
+            value: (this as Email).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Email {
+        if (json['_type'] === ObjectType.Email) {
+            return new Email((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public override toString(): string {

@@ -1,0 +1,430 @@
+name: Test Image Deploy to DockerHub
+
+on:
+  push:
+    branches:
+      - "master"
+
+jobs:
+
+  test-server-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/test-server:$ONEUPTIME_VERSION-test --tag oneuptime/test-server:test --push -f ./TestServer/Dockerfile .
+
+  workflow-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workflow:$ONEUPTIME_VERSION-test --tag oneuptime/workflow:test --push -f ./Workflow/Dockerfile .
+
+  workers-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy workers.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workers:$ONEUPTIME_VERSION-test --tag oneuptime/workers:test --push -f ./Workers/Dockerfile .
+
+  staus-page-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy status-page.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:$ONEUPTIME_VERSION-test --tag oneuptime/status-page:test --push -f ./StatusPage/Dockerfile .
+
+  realtime-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy realtime.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:$ONEUPTIME_VERSION-test --tag oneuptime/realtime:test --push -f ./Realtime/Dockerfile .
+      
+
+  probe-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy probe-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:$ONEUPTIME_VERSION-test --tag oneuptime/probe:test --push -f ./Probe/Dockerfile .
+
+  probe-api-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy probe-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:$ONEUPTIME_VERSION-test --tag oneuptime/probe-api:test --push -f ./ProbeAPI/Dockerfile .
+
+  nginx-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:$ONEUPTIME_VERSION-test --tag oneuptime/nginx:test --push -f ./Nginx/Dockerfile .
+      
+
+  mail-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:$ONEUPTIME_VERSION-test --tag oneuptime/mail:test --push -f ./Mail/Dockerfile .
+      
+
+  licensing-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:$ONEUPTIME_VERSION-test --tag oneuptime/licensing:test --push -f ./Licensing/Dockerfile .
+
+  integrations-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/integrations:$ONEUPTIME_VERSION-test --tag oneuptime/integrations:test --push -f ./Integration/Dockerfile .
+      
+      
+
+
+  identity-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/identity:$ONEUPTIME_VERSION-test --tag oneuptime/identity:test --push -f ./Identity/Dockerfile .
+      
+
+  home-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/home:$ONEUPTIME_VERSION-test --tag oneuptime/home:test --push -f ./Home/Dockerfile .
+      
+
+  helm-chart-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:$ONEUPTIME_VERSION-test --tag oneuptime/helm-chart:test --push -f ./HelmChart/Dockerfile .
+      
+
+  haraka-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:$ONEUPTIME_VERSION-test --tag oneuptime/haraka:test --push -f ./Haraka/Dockerfile .
+
+  file-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy file.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/file:$ONEUPTIME_VERSION-test --tag oneuptime/file:test --push -f ./File/Dockerfile .
+      
+      
+
+  dashboard-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy dashboard-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard:$ONEUPTIME_VERSION-test --tag oneuptime/dashboard:test --push -f ./Dashboard/Dockerfile .
+      
+      
+
+
+  dashboard-api-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy dashboard-api.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard-api:$ONEUPTIME_VERSION-test --tag oneuptime/dashboard-api:test --push -f ./DashboardAPI/Dockerfile .
+      
+      
+
+
+  api-reference-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy api-reference.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:$ONEUPTIME_VERSION-test --tag oneuptime/api-reference:test --push -f ./ApiReference/Dockerfile .
+      
+      
+
+
+  alert-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/alert:$ONEUPTIME_VERSION-test --tag oneuptime/alert:test --push -f ./Alert/Dockerfile .
+      
+      
+
+
+  accounts-test-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+     
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:$ONEUPTIME_VERSION-test --tag oneuptime/accounts:test --push -f ./Accounts/Dockerfile .
+      
+      

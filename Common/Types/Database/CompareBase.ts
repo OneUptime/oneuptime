@@ -1,7 +1,8 @@
 import BadDataException from '../Exception/BadDataException';
+import SerializableObject from '../SerializableObject';
 import Typeof from '../Typeof';
 
-export default class CompareBase {
+export default class CompareBase extends SerializableObject {
     private _value!: number | Date;
     public get value(): number | Date {
         return this._value;
@@ -11,10 +12,11 @@ export default class CompareBase {
     }
 
     public constructor(value: number | Date) {
+        super();
         this.value = value;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.value.toString();
     }
 

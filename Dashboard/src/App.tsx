@@ -79,6 +79,7 @@ import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
 import SettingsApiKeyView from './Pages/Settings/APIKeyView';
 import SettingLabels from './Pages/Settings/Labels';
+import SettingProbes from './Pages/Settings/Probes';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
@@ -109,10 +110,13 @@ import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
 import MonitorPage from './Pages/Monitor/Monitors';
 import MonitorView from './Pages/Monitor/View/Index';
 import MonitorViewDelete from './Pages/Monitor/View/Delete';
+import MonitorViewCriteria from './Pages/Monitor/View/Criteria';
 import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
 import MonitorIncidents from './Pages/Monitor/View/Incidents';
 import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
 import MonitorViewCustomFields from './Pages/Monitor/View/CustomFields';
+import MonitorViewInterval from './Pages/Monitor/View/Interval';
+import MonitorViewProbes from './Pages/Monitor/View/Probes';
 
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
@@ -398,6 +402,21 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={
+                        RouteMap[PageMap.MONITOR_VIEW_CRITERIA]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <MonitorViewCriteria
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
                         RouteMap[PageMap.MONITOR_VIEW_INCIDENTS]?.toString() ||
                         ''
                     }
@@ -425,6 +444,35 @@ const App: FunctionComponent = () => {
                                 RouteMap[
                                     PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                                 ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.MONITOR_VIEW_INTERVAL]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <MonitorViewInterval
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.MONITOR_VIEW_PROBES]?.toString() || ''
+                    }
+                    element={
+                        <MonitorViewProbes
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route
                             }
                             currentProject={selectedProject}
                         />
@@ -1472,6 +1520,18 @@ const App: FunctionComponent = () => {
                         <SettingLabels
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_LABELS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_PROBES]?.toString() || ''}
+                    element={
+                        <SettingProbes
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_PROBES] as Route
                             }
                             currentProject={selectedProject}
                         />
