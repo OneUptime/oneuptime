@@ -113,6 +113,19 @@ export default class QueryHelper {
         );
     }
 
+
+    public static greaterThanEqualToOrNull(value: number | Date): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} >= :${rid} or ${alias} IS NULL`;
+            },
+            {
+                [rid]: value,
+            }
+        );
+    }
+
     public static lessThanEqualTo(value: number | Date): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(
@@ -143,6 +156,19 @@ export default class QueryHelper {
         return Raw(
             (alias: string) => {
                 return `${alias} > :${rid}`;
+            },
+            {
+                [rid]: value,
+            }
+        );
+    }
+
+
+    public static greaterThanOrNull(value: number | Date): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} <= :${rid} or ${alias} IS NULL`;
             },
             {
                 [rid]: value,
