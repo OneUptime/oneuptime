@@ -38,6 +38,7 @@ import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
 import UpdateBy from '../Types/Database/UpdateBy';
+import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -152,7 +153,9 @@ export class Service extends DatabaseService<Model> {
                         id: string;
                         trialEndsAt?: Date | undefined;
                     } = await BillingService.changePlan(
+                        project.id!, 
                         project.paymentProviderSubscriptionId as string,
+                        [new ActiveMonitoringMeteredPlan()],
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===

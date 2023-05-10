@@ -8,6 +8,7 @@ import Typeof from 'Common/Types/Typeof';
 import logger from '../Utils/Logger';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';
+import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 
 export interface PaymentMethod {
     id: string;
@@ -226,7 +227,9 @@ export class BillingService {
     }
 
     public static async changePlan(
+        projectId: ObjectID,
         subscriptionId: string,
+        serverMeteredPlans: Array<ServerMeteredPlan>,
         newPlan: SubscriptionPlan,
         quantity: number,
         isYearly: boolean,
@@ -274,6 +277,10 @@ export class BillingService {
             endTrialAt,
             paymentMethods[0]?.id
         );
+
+        for(const serverMeteredPlan of serverMeteredPlans) {
+            await serverMeteredPlan.updateCurrentQuantity(projectId);
+        }
 
         return {
             id: subscribetoPlan.id,
