@@ -1,12 +1,11 @@
 import React, { ReactElement } from 'react';
 import Field from './Field';
-import Link from '../Link/Link';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
 import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
-import _ from 'lodash';
+import _, { Dictionary } from 'lodash';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
@@ -15,6 +14,9 @@ import ColorViewer from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
 import AlignItem from '../../Types/AlignItem';
 import PlaceholderText from './PlaceholderText';
+import DictionaryOfStringsViewer from '../Dictionary/DictionaryOfStingsViewer';
+import { DropdownOption } from '../Dropdown/Dropdown';
+import FieldLabelElement from './FieldLabel';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -26,6 +28,40 @@ export interface ComponentProps {
 const Detail: Function = (props: ComponentProps): ReactElement => {
     const getMarkdownViewer: Function = (text: string): ReactElement => {
         return <MarkdownViewer text={text} />;
+    };
+
+    const getDropdownViewer: Function = (
+        data: string,
+        options: Array<DropdownOption>,
+        placeholder: string
+    ): ReactElement => {
+        if (!options) {
+            return <div>No options found</div>;
+        }
+
+        if (
+            !options.find((i: DropdownOption) => {
+                return i.value === data;
+            })
+        ) {
+            return <div>{placeholder}</div>;
+        }
+
+        return (
+            <div>
+                {
+                    options.find((i: DropdownOption) => {
+                        return i.value === data;
+                    })?.label as string
+                }
+            </div>
+        );
+    };
+
+    const getDictionaryOfStringsViewer: Function = (
+        data: Dictionary<string>
+    ): ReactElement => {
+        return <DictionaryOfStringsViewer value={data} />;
     };
 
     const getColorField: Function = (color: Color): ReactElement => {
@@ -71,6 +107,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = getColorField(data);
         }
 
+        if (data && field.fieldType === FieldType.DictionaryOfStrings) {
+            data = getDictionaryOfStringsViewer(props.item[field.key]);
+        }
+
         if (!data && field.fieldType === FieldType.Color && field.placeholder) {
             data = getColorField(new Color(field.placeholder));
         }
@@ -109,6 +149,14 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = getMarkdownViewer(data as string);
         }
 
+        if (field.fieldType === FieldType.Dropdown) {
+            data = getDropdownViewer(
+                data as string,
+                field.dropdownOptions,
+                field.placeholder as string
+            );
+        }
+
         if (data && field.fieldType === FieldType.HiddenText) {
             data = (
                 <HiddenText
@@ -122,12 +170,17 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data &&
             (field.fieldType === FieldType.HTML ||
                 field.fieldType === FieldType.CSS ||
+                field.fieldType === FieldType.JSON ||
                 field.fieldType === FieldType.JavaScript)
         ) {
             let codeType: CodeType = CodeType.HTML;
 
             if (field.fieldType === FieldType.CSS) {
                 codeType = CodeType.CSS;
+            }
+
+            if (field.fieldType === FieldType.JSON) {
+                codeType = CodeType.JSON;
             }
 
             if (field.fieldType === FieldType.JavaScript) {
@@ -178,28 +231,13 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : { width: '100%' }
                 }
             >
-                {field.title && (
-                    <label className="text-sm font-medium text-gray-500">
-                        <span className={alignClassName}>{field.title}</span>
-                        {field.sideLink &&
-                            field.sideLink?.text &&
-                            field.sideLink?.url && (
-                                <span>
-                                    <Link
-                                        to={field.sideLink?.url}
-                                        className="underline-on-hover"
-                                    >
-                                        {field.sideLink?.text}
-                                    </Link>
-                                </span>
-                            )}
-                    </label>
-                )}
-                {field.description && (
-                    <p className={`${alignClassName} text-sm text-gray-400`}>
-                        {field.description}
-                    </p>
-                )}
+                <FieldLabelElement
+                    size={field.fieldTitleSize}
+                    title={field.title}
+                    description={field.description}
+                    sideLink={field.sideLink}
+                    alignClassName={alignClassName}
+                />
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
                     {data && (
@@ -216,7 +254,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        <div className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2`}>
+        <div
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+                props.showDetailsInNumberOfColumns || 1
+            }`}
+        >
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

@@ -1,6 +1,6 @@
 import { IsDevelopment } from 'CommonServer/Config';
 import RunCron from '../../Utils/Cron';
-import { EVERY_DAY, EVERY_MINUTE } from '../../Utils/CronTime';
+import { EVERY_DAY, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import Services from 'CommonServer/Services/Index';
 import DatabaseService from 'CommonServer/Services/DatabaseService';
 import OneUptimeDate from 'Common/Types/Date';

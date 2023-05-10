@@ -11,6 +11,7 @@ export default interface Column {
     tooltipText?: ((item: JSONObject) => string) | undefined;
     type: FieldType;
     colSpan?: number | undefined;
+    noValueMessage?: string | undefined;
     isFilterable?: boolean;
     contentClassName?: string | undefined;
     alignItem?: AlignItem | undefined;

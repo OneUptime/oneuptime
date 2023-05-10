@@ -9,6 +9,7 @@ enum FieldType {
     Route = 'Route',
     Number = 'Number',
     Password = 'Password',
+    Dropdown = 'Dropdown',
     Text = 'Text',
     Email = 'Email',
     Date = 'Date',
@@ -25,6 +26,8 @@ enum FieldType {
     HTML = 'HTML',
     CSS = 'CSS',
     JavaScript = 'JavaScript',
+    DictionaryOfStrings = 'DictionaryOfStrings',
+    JSON = 'JSON',
 }
 
 export default FieldType;

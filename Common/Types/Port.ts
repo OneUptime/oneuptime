@@ -3,6 +3,7 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 import PositiveNumber from './PositiveNumber';
 import Typeof from './Typeof';
+import { JSONObject, ObjectType } from './JSON';
 
 export default class Port extends DatabaseProperty {
     private _port: PositiveNumber = new PositiveNumber(0);
@@ -16,6 +17,21 @@ export default class Port extends DatabaseProperty {
         } else {
             throw new BadDataException('Port is not in valid format.');
         }
+    }
+
+    public override toJSON(): JSONObject {
+        return {
+            _type: ObjectType.Port,
+            value: (this as Port).toString(),
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): Port {
+        if (json['_type'] === ObjectType.Port) {
+            return new Port((json['value'] as string) || '');
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }
 
     public static isValid(port: number | string | PositiveNumber): boolean {

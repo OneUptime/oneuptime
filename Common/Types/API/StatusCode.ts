@@ -30,7 +30,10 @@ export default class StatusCode {
                 statusCode = parseInt(statusCode as string);
             }
 
-            if (statusCode >= 100 && statusCode <= 599) {
+            if (
+                (statusCode as number) >= 100 &&
+                (statusCode as number) <= 599
+            ) {
                 return true;
             }
 

@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <CountModelSideMenuItem<Incident>
                     link={{
-                        title: 'Unresolved Incidents',
+                        title: 'Active Incidents',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
                         ),

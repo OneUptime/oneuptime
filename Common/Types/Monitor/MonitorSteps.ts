@@ -1,43 +1,106 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONArray, JSONObject } from '../JSON';
+import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import MonitorStep from './MonitorStep';
 import BadDataException from '../Exception/BadDataException';
+import MonitorType from './MonitorType';
+import ObjectID from '../ObjectID';
 
 export interface MonitorStepsType {
     monitorStepsInstanceArray: Array<MonitorStep>;
+    defaultMonitorStatusId?: ObjectID | undefined;
 }
 
 export default class MonitorSteps extends DatabaseProperty {
-    public monitorSteps: MonitorStepsType | undefined = undefined;
+    public data: MonitorStepsType | undefined = undefined;
 
     public constructor() {
         super();
+        this.data = {
+            monitorStepsInstanceArray: [new MonitorStep()],
+            defaultMonitorStatusId: undefined,
+        };
     }
 
-    public toJSON(): JSONObject {
-        if (!this.monitorSteps) {
-            return {
-                _type: 'MonitorSteps',
-                value: {},
-            };
-        }
-
+    public static getNewMonitorStepsAsJSON(): JSONObject {
         return {
-            _type: 'MonitorSteps',
+            _type: ObjectType.MonitorSteps,
             value: {
-                monitorStepsInstanceArray:
-                    this.monitorSteps.monitorStepsInstanceArray.map(
-                        (step: MonitorStep) => {
-                            return step.toJSON();
-                        }
-                    ),
+                monitorStepsInstanceArray: [new MonitorStep().toJSON()],
+                defaultMonitorStatusId: undefined,
             },
         };
     }
 
-    public fromJSON(json: JSONObject): MonitorSteps {
+    public static getDefaultMonitorSteps(arg: {
+        defaultMonitorStatusId: ObjectID;
+        monitorType: MonitorType;
+        onlineMonitorStatusId: ObjectID;
+        offlineMonitorStatusId: ObjectID;
+        defaultIncidentSeverityId: ObjectID;
+    }): MonitorSteps {
+        const monitorSteps: MonitorSteps = new MonitorSteps();
+
+        monitorSteps.data = {
+            monitorStepsInstanceArray: [MonitorStep.getDefaultMoniorStep(arg)],
+            defaultMonitorStatusId: arg.defaultMonitorStatusId,
+        };
+
+        return monitorSteps;
+    }
+
+    public setMonitorStepsInstanceArray(
+        monitorSteps: Array<MonitorStep>
+    ): void {
+        if (this.data) {
+            this.data.monitorStepsInstanceArray = monitorSteps;
+        }
+    }
+
+    public static clone(monitorSteps: MonitorSteps): MonitorSteps {
+        return MonitorSteps.fromJSON(monitorSteps.toJSON());
+    }
+
+    public setDefaultMonitorStatusId(
+        monitorStatusId: ObjectID | undefined
+    ): MonitorSteps {
+        if (this.data) {
+            this.data.defaultMonitorStatusId = monitorStatusId;
+        }
+
+        return this;
+    }
+
+    public override toJSON(): JSONObject {
+        if (!this.data) {
+            return MonitorSteps.getNewMonitorStepsAsJSON();
+        }
+
+        return {
+            _type: ObjectType.MonitorSteps,
+            value: {
+                monitorStepsInstanceArray:
+                    this.data.monitorStepsInstanceArray.map(
+                        (step: MonitorStep) => {
+                            return step.toJSON();
+                        }
+                    ),
+                defaultMonitorStatusId:
+                    this.data.defaultMonitorStatusId?.toString() || undefined,
+            },
+        };
+    }
+
+    public static override fromJSON(json: JSONObject): MonitorSteps {
+        if (json instanceof MonitorSteps) {
+            return json;
+        }
+
         if (!json) {
+            throw new BadDataException('Invalid monitor steps');
+        }
+
+        if (json['_type'] !== 'MonitorSteps') {
             throw new BadDataException('Invalid monitor steps');
         }
 
@@ -53,19 +116,51 @@ export default class MonitorSteps extends DatabaseProperty {
             json['value'] as JSONObject
         )['monitorStepsInstanceArray'] as JSONArray;
 
-        this.monitorSteps = {
+        const monitorSteps: MonitorSteps = new MonitorSteps();
+
+        monitorSteps.data = {
             monitorStepsInstanceArray: monitorStepsInstanceArray.map(
                 (json: JSONObject) => {
-                    return new MonitorStep().fromJSON(json);
+                    return MonitorStep.fromJSON(json);
                 }
             ),
+            defaultMonitorStatusId: (json['value'] as JSONObject)[
+                'defaultMonitorStatusId'
+            ]
+                ? new ObjectID(
+                      (json['value'] as JSONObject)[
+                          'defaultMonitorStatusId'
+                      ] as string
+                  )
+                : undefined,
         };
 
-        return this;
+        return monitorSteps;
     }
 
-    public static isValid(_json: JSONObject): boolean {
-        return true;
+    public static getValidationError(
+        value: MonitorSteps,
+        monitorType: MonitorType
+    ): string | null {
+        if (!value.data) {
+            return 'Monitor Steps is required';
+        }
+
+        if (value.data.monitorStepsInstanceArray.length === 0) {
+            return 'Monitor Steps is required';
+        }
+
+        if (!value.data.defaultMonitorStatusId) {
+            return 'Default Monitor Status is required';
+        }
+
+        for (const step of value.data.monitorStepsInstanceArray) {
+            if (MonitorStep.getValidationError(step, monitorType)) {
+                return MonitorStep.getValidationError(step, monitorType);
+            }
+        }
+
+        return null;
     }
 
     protected static override toDatabase(
@@ -82,7 +177,7 @@ export default class MonitorSteps extends DatabaseProperty {
         value: JSONObject
     ): MonitorSteps | null {
         if (value) {
-            return new MonitorSteps().fromJSON(value);
+            return MonitorSteps.fromJSON(value);
         }
 
         return null;

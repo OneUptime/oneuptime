@@ -30,29 +30,64 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Status Timeline',
+                        title: 'Criteria',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
-                            ] as Route,
+                            RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.List}
+                    icon={IconProp.Criteria}
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Incidents',
+                        title: 'Interval',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
+                            RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route,
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Alert}
+                    icon={IconProp.Clock}
                 />
+
+                <SideMenuSection title="Timeline and Incidents">
+                    <SideMenuItem
+                        link={{
+                            title: 'Status Timeline',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                ] as Route,
+                                props.modelId
+                            ),
+                        }}
+                        icon={IconProp.List}
+                    />
+                    <SideMenuItem
+                        link={{
+                            title: 'Incidents',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.MONITOR_VIEW_INCIDENTS
+                                ] as Route,
+                                props.modelId
+                            ),
+                        }}
+                        icon={IconProp.Alert}
+                    />
+                </SideMenuSection>
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
+                <SideMenuItem
+                    link={{
+                        title: 'Probes',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Signal}
+                />
                 <SideMenuItem
                     link={{
                         title: 'Custom Fields',

@@ -191,19 +191,38 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                 {
                     name: 'Website Monitoring',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
                     name: 'API Monitoring',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+
+                {
+                    name: 'IPv4 Monitoring',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'IPv6 Monitoring',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
@@ -215,33 +234,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: 'Coming Soon',
                     },
                 },
-                {
-                    name: 'IPv4 Monitoring',
-                    plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
-                    },
-                },
-                {
-                    name: 'IPv6 Monitoring',
-                    plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
-                    },
-                },
-                {
-                    name: 'IPv4 Monitoring',
-                    plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
-                    },
-                },
+
                 {
                     name: 'VM or Server Monitoring',
                     plans: {

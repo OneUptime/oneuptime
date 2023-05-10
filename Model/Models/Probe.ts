@@ -6,7 +6,6 @@ import Project from './Project';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
-import URL from 'Common/Types/API/URL';
 import User from './User';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -19,6 +18,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
+import File from './File';
 
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
@@ -64,21 +64,20 @@ export default class Probe extends BaseModel {
             Permission.ProjectMember,
             Permission.CanCreateProjectProbe,
         ],
-        read: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({
         required: true,
         unique: true,
-        type: TableColumnType.ObjectID,
+        type: TableColumnType.ShortText,
     })
     @Column({
-        type: ColumnType.ObjectID,
+        type: ColumnType.ShortText,
         nullable: false,
         unique: true,
-        transformer: ObjectID.getDatabaseTransformer(),
     })
-    public key?: ObjectID = undefined;
+    public key?: string = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -150,39 +149,6 @@ export default class Probe extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.Public],
-        update: [],
-    })
-    @TableColumn({ required: true, type: TableColumnType.Version })
-    @Column({
-        nullable: false,
-        type: ColumnType.Version,
-        length: ColumnLength.Version,
-        transformer: Version.getDatabaseTransformer(),
-    })
-    public probeVersion?: Version = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [Permission.Public],
-        update: [],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        required: true,
-        type: TableColumnType.Date,
-    })
-    @Column({
-        nullable: false,
-        default: () => {
-            return 'CURRENT_TIMESTAMP';
-        },
-        type: ColumnType.Date,
-    })
-    public lastAlive?: Date = undefined;
-
-    @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -197,14 +163,114 @@ export default class Probe extends BaseModel {
             Permission.CanEditProjectProbe,
         ],
     })
-    @TableColumn({ type: TableColumnType.ShortURL })
+    @TableColumn({ required: true, type: TableColumnType.Version })
     @Column({
-        type: ColumnType.ShortURL,
-        nullable: true,
-        length: ColumnLength.ShortURL,
-        transformer: URL.getDatabaseTransformer(),
+        nullable: false,
+        type: ColumnType.Version,
+        length: ColumnLength.Version,
+        transformer: Version.getDatabaseTransformer(),
     })
-    public iconUrl?: URL = undefined;
+    public probeVersion?: Version = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectProbe,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.Date,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.Date,
+    })
+    public lastAlive?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'iconFileId',
+        type: TableColumnType.Entity,
+        modelType: File,
+        title: 'Icon',
+        description: 'Probe Icon',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return File;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'delete',
+        }
+    )
+    @JoinColumn({ name: 'iconFileId' })
+    public iconFile?: File = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Icon',
+        description: 'Probe Page Icon File ID',
+        canReadOnPopulate: true,
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public iconFileId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -344,4 +410,55 @@ export default class Probe extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public createdByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isGlobalProbe?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
 }

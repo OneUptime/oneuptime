@@ -2,6 +2,13 @@
 # The backup will be in the format of db-(date of the month).backup
 # Before the backup, please make sure DATABASE_RESTORE_* ENV vars in config.env is set properly. 
 
+
+# IMPORTANT: Before restore, all database containers should be stopped. 
+# Restoring to a new database,
+# Delete existing db. 
+# Create a new db.
+# Make sure you have created the database and user before running this script. 
+
 export $(grep -v '^#' config.env | xargs)
 
 echo "Starting restore...."

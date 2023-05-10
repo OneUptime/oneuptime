@@ -57,9 +57,9 @@ const Home: FunctionComponent<ComponentProps> = (
                         isResolvedState: false,
                     },
                 }}
-                noItemsMessage="Nice work! No unresolved incidents so far."
-                title="Unresolved Incidents"
-                description="Here is a list of all the unresolved incidents for this project."
+                noItemsMessage="Nice work! No Active Incidents so far."
+                title="Active Incidents"
+                description="Here is a list of all the Active Incidents for this project."
             />
         </Page>
     );

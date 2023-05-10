@@ -35,6 +35,7 @@ export default interface Columns<TEntity> {
         | undefined;
     actionButtons?: Array<ActionButton>;
     alignItem?: AlignItem | undefined;
+    noValueMessage?: string | undefined;
     getElement?:
         | ((
               item: JSONObject,

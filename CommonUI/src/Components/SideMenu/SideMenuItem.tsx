@@ -19,39 +19,86 @@ export interface ComponentProps {
 const SideMenuItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
-    let badgeClasName: string = `bg-indigo-${
-        Navigation.isOnThisPage(props.link.to) ? '500' : '400'
-    } p-1 rounded-full pr-3 pl-3 text-white  text-sm`;
-    if (props.showWarning) {
-        badgeClasName =
-            'bg-yellow-500 p-1 rounded-full pr-2 pl-3 text-white  text-sm';
+    const badgeClasName: string = `p-1 rounded-full pr-3 pl-3 text-white  text-sm`;
+
+    let linkClassName: string = `text-gray-500 hover:text-gray-900 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+
+    if (Navigation.isOnThisPage(props.link.to)) {
+        linkClassName = `bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
     }
 
-    if (props.showAlert) {
-        badgeClasName =
-            'bg-red-500 p-1 rounded-full pr-3 pl-3 text-white  text-sm';
+    // if(props.badge && props.badge > 0){
+    //     if(props.badgeType === BadgeType.DANGER){
+    //         linkClassName = `text-red-400 hover:text-red-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             linkClassName = `bg-gray-100 text-red-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //         }
+
+    //     }
+
+    //     if(props.badgeType === BadgeType.WARNING){
+    //         linkClassName = `text-yellow-400 hover:text-yellow-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             linkClassName = `bg-gray-100 text-yellow-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //         }
+    //     }
+
+    //     if(props.badgeType === BadgeType.SUCCESS){
+    //         linkClassName = `text-emerald-400 hover:text-emerald-600 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             linkClassName = `bg-gray-100 text-emerald-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
+    //         }
+    //     }
+    // }
+
+    let iconClassName: string =
+        'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
+
+    if (Navigation.isOnThisPage(props.link.to)) {
+        iconClassName = 'text-indigo-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
     }
+
+    // if(props.badge && props.badge > 0){
+    //     if(props.badgeType === BadgeType.DANGER){
+    //         iconClassName = `text-red-400 group-hover:text-red-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             iconClassName = `text-red-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //         }
+
+    //     }
+
+    //     if(props.badgeType === BadgeType.WARNING){
+    //         iconClassName = `text-yellow-400 group-hover:text-yellow-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             iconClassName = `text-yellow-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //         }
+    //     }
+
+    //     if(props.badgeType === BadgeType.SUCCESS){
+    //         iconClassName = `text-emerald-400 group-hover:text-emerald-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+
+    //         if(Navigation.isOnThisPage(props.link.to)){
+    //             iconClassName = `text-emerald-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6`;
+    //         }
+    //     }
+    // }
 
     return (
         <UILink
-            className={`${props.className ? props.className : ''}  ${
-                Navigation.isOnThisPage(props.link.to)
-                    ? 'bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium'
-            } flex justify-between`}
+            className={`${
+                props.className ? props.className : ''
+            }  ${linkClassName} flex justify-between`}
             to={props.link.to}
         >
             <div className="flex">
                 {props.icon ? (
                     <>
-                        <Icon
-                            className={
-                                Navigation.isOnThisPage(props.link.to)
-                                    ? 'text-indigo-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6'
-                                    : 'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6'
-                            }
-                            icon={props.icon}
-                        />
+                        <Icon className={iconClassName} icon={props.icon} />
                     </>
                 ) : (
                     <></>

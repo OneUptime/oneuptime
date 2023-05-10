@@ -63,7 +63,7 @@ export default class ProjectMiddleware {
         const apiKey: ObjectID | null = this.getApiKey(req);
 
         if (!tenantId) {
-            throw new BadDataException('tenantId not found in the request');
+            throw new BadDataException('ProjectId not found in the request');
         }
 
         if (!apiKey) {

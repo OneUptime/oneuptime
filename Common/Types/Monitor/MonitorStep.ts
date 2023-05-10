@@ -1,43 +1,170 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONObject } from '../JSON';
+import { JSONObject, ObjectType } from '../JSON';
 import URL from '../API/URL';
 import IP from '../IP/IP';
 import MonitorCriteria from './MonitorCriteria';
 import BadDataException from '../Exception/BadDataException';
+import HTTPMethod from '../API/HTTPMethod';
+import Dictionary from '../Dictionary';
+import ObjectID from '../ObjectID';
+import MonitorType from './MonitorType';
 
 export interface MonitorStepType {
-    monitorDestination: URL | IP;
+    id: string;
+    monitorDestination?: URL | IP | undefined;
     monitorCriteria: MonitorCriteria;
+    requestType: HTTPMethod;
+    requestHeaders?: Dictionary<string> | undefined;
+    requestBody?: string | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
-    public monitorStep: MonitorStepType | undefined = undefined;
+    public data: MonitorStepType | undefined = undefined;
 
     public constructor() {
         super();
+
+        this.data = {
+            id: ObjectID.generate().toString(),
+            monitorDestination: undefined,
+            monitorCriteria: new MonitorCriteria(),
+            requestType: HTTPMethod.GET,
+            requestHeaders: undefined,
+            requestBody: undefined,
+        };
     }
 
-    public static isValid(_json: JSONObject): boolean {
-        return true;
+    public static getDefaultMoniorStep(arg: {
+        monitorType: MonitorType;
+        onlineMonitorStatusId: ObjectID;
+        offlineMonitorStatusId: ObjectID;
+        defaultIncidentSeverityId: ObjectID;
+    }): MonitorStep {
+        const monitorStep: MonitorStep = new MonitorStep();
+
+        monitorStep.data = {
+            id: ObjectID.generate().toString(),
+            monitorDestination: undefined,
+            monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
+            requestType: HTTPMethod.GET,
+            requestHeaders: undefined,
+            requestBody: undefined,
+        };
+
+        return monitorStep;
     }
 
-    public toJSON(): JSONObject {
-        if (this.monitorStep) {
+    public get id(): ObjectID {
+        return new ObjectID(this.data?.id!);
+    }
+
+    public set id(v: ObjectID) {
+        this.data!.id = v.toString();
+    }
+
+    public setRequestType(requestType: HTTPMethod): MonitorStep {
+        this.data!.requestType = requestType;
+        return this;
+    }
+
+    public setRequestHeaders(requestHeaders: Dictionary<string>): MonitorStep {
+        this.data!.requestHeaders = requestHeaders;
+        return this;
+    }
+
+    public static clone(monitorStep: MonitorStep): MonitorStep {
+        return MonitorStep.fromJSON(monitorStep.toJSON());
+    }
+
+    public setRequestBody(requestBody: string): MonitorStep {
+        this.data!.requestBody = requestBody;
+        return this;
+    }
+
+    public setMonitorDestination(monitorDestination: URL | IP): MonitorStep {
+        this.data!.monitorDestination = monitorDestination;
+        return this;
+    }
+
+    public setMonitorCriteria(monitorCriteria: MonitorCriteria): MonitorStep {
+        this.data!.monitorCriteria = monitorCriteria;
+        return this;
+    }
+
+    public static getNewMonitorStepAsJSON(): JSONObject {
+        return {
+            _type: ObjectType.MonitorStep,
+            value: {
+                id: ObjectID.generate().toString(),
+                monitorDestination: undefined,
+                monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
+                requestType: HTTPMethod.GET,
+                requestHeaders: undefined,
+                requestBody: undefined,
+            },
+        };
+    }
+
+    public static getValidationError(
+        value: MonitorStep,
+        monitorType: MonitorType
+    ): string | null {
+        if (!value.data) {
+            return 'Monitor Step is required';
+        }
+
+        if (!value.data.monitorDestination) {
+            return 'Monitor Destination is required';
+        }
+
+        if (!value.data.monitorCriteria) {
+            return 'Monitor Criteria is required';
+        }
+
+        if (
+            !MonitorCriteria.getValidationError(
+                value.data.monitorCriteria,
+                monitorType
+            )
+        ) {
+            return MonitorCriteria.getValidationError(
+                value.data.monitorCriteria,
+                monitorType
+            );
+        }
+
+        if (!value.data.requestType && monitorType === MonitorType.API) {
+            return 'Request Type is required';
+        }
+
+        return null;
+    }
+
+    public override toJSON(): JSONObject {
+        if (this.data) {
             return {
-                _type: 'MonitorStep',
+                _type: ObjectType.MonitorStep,
                 value: {
+                    id: this.data.id,
                     monitorDestination:
-                        this.monitorStep.monitorDestination.toJSON(),
-                    monitorCriteria: this.monitorStep.monitorCriteria.toJSON(),
+                        this.data?.monitorDestination?.toJSON() || undefined,
+                    monitorCriteria: this.data.monitorCriteria.toJSON(),
+                    requestType: this.data.requestType,
+                    requestHeaders: this.data.requestHeaders || undefined,
+                    requestBody: this.data.requestBody || undefined,
                 },
             };
         }
 
-        return {};
+        return MonitorStep.getNewMonitorStepAsJSON();
     }
 
-    public fromJSON(json: JSONObject): MonitorStep {
+    public static override fromJSON(json: JSONObject): MonitorStep {
+        if (json instanceof MonitorStep) {
+            return json;
+        }
+
         if (!json || json['_type'] !== 'MonitorStep') {
             throw new BadDataException('Invalid monitor step');
         }
@@ -70,10 +197,6 @@ export default class MonitorStep extends DatabaseProperty {
             );
         }
 
-        if (!monitorDestination) {
-            throw new BadDataException('Invalid monitor destination');
-        }
-
         if (!json['monitorCriteria']) {
             throw new BadDataException('Invalid monitor criteria');
         }
@@ -85,14 +208,21 @@ export default class MonitorStep extends DatabaseProperty {
             throw new BadDataException('Invalid monitor criteria');
         }
 
-        this.monitorStep = {
-            monitorDestination: monitorDestination,
-            monitorCriteria: new MonitorCriteria().fromJSON(
+        const monitorStep: MonitorStep = new MonitorStep();
+
+        monitorStep.data = {
+            id: json['id'] as string,
+            monitorDestination: monitorDestination || undefined,
+            monitorCriteria: MonitorCriteria.fromJSON(
                 json['monitorCriteria'] as JSONObject
             ),
+            requestType: (json['requestType'] as HTTPMethod) || HTTPMethod.GET,
+            requestHeaders:
+                (json['requestHeaders'] as Dictionary<string>) || undefined,
+            requestBody: (json['requestBody'] as string) || undefined,
         };
 
-        return this;
+        return monitorStep;
     }
 
     public isValid(): boolean {
@@ -113,7 +243,7 @@ export default class MonitorStep extends DatabaseProperty {
         value: JSONObject
     ): MonitorStep | null {
         if (value) {
-            return new MonitorStep().fromJSON(value);
+            return MonitorStep.fromJSON(value);
         }
 
         return null;

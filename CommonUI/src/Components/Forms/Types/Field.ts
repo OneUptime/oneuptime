@@ -9,6 +9,27 @@ import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/RadioButtons';
 import { ReactElement } from 'react';
 
+export enum FormFieldStyleType {
+    Default = 'Default',
+    Heading = 'Heading',
+    DividerBelow = 'DividerBelow',
+}
+
+export interface FormFieldSideLink {
+    text: string;
+    url: Route | URL;
+    openLinkInNewTab?: boolean;
+}
+
+export interface CustomElementProps {
+    error?: string | undefined;
+    tabIndex?: number | undefined;
+    onChange?: ((value: any) => void) | undefined;
+    onBlur?: () => void;
+    initialValue?: any;
+    placeholder?: string | undefined;
+}
+
 export default interface Field<TEntity> {
     title?: string;
     description?: string;
@@ -25,11 +46,7 @@ export default interface Field<TEntity> {
         valueField: string;
     };
     fileTypes?: Array<MimeType> | undefined;
-    sideLink?: {
-        text: string;
-        url: Route | URL;
-        openLinkInNewTab?: boolean;
-    };
+    sideLink?: FormFieldSideLink | undefined;
     validation?: {
         minLength?: number;
         maxLength?: number;
@@ -41,6 +58,10 @@ export default interface Field<TEntity> {
         maxValue?: number;
         dateShouldBeInTheFuture?: boolean;
     };
+    customValidation?:
+        | ((values: FormValues<TEntity>) => string | null)
+        | undefined;
+    styleType?: FormFieldStyleType | undefined;
     showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
     onChange?: ((value: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
@@ -48,4 +69,8 @@ export default interface Field<TEntity> {
     defaultValue?: boolean | string | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
+    getCustomElement?: (
+        values: FormValues<TEntity>,
+        props: CustomElementProps
+    ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
 }

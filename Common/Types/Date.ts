@@ -1,3 +1,5 @@
+import BadDataException from './Exception/BadDataException';
+import { JSONObject } from './JSON';
 import PositiveNumber from './PositiveNumber';
 import moment from 'moment-timezone';
 
@@ -264,6 +266,15 @@ export default class OneUptimeDate {
         return b.diff(a, 'days');
     }
 
+    public static getNumberOfMinutesBetweenDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        const a: moment.Moment = moment(startDate);
+        const b: moment.Moment = moment(endDate);
+        return b.diff(a, 'minutes');
+    }
+
     public static getNumberOfDaysBetweenDatesInclusive(
         startDate: Date,
         endDate: Date
@@ -363,8 +374,16 @@ export default class OneUptimeDate {
         return moment(date).isAfter(new Date());
     }
 
-    public static fromString(date: string): Date {
-        return moment(date).toDate();
+    public static fromString(date: string | JSONObject): Date {
+        if (typeof date === 'string') {
+            return moment(date).toDate();
+        }
+
+        if (date && date['value'] && typeof date['value'] === 'string') {
+            return moment(date['value']).toDate();
+        }
+
+        throw new BadDataException('Invalid date');
     }
 
     public static asDateForDatabaseQuery(date: string | Date): string {

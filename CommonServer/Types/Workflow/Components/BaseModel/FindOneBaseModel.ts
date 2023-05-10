@@ -114,21 +114,27 @@ export default class FindOneBaseModel<
                 );
             }
 
-            if (args['query']) {
-                args['query'] = JSONFunctions.deserialize(
+            let query: Query<TBaseModel> = args['query'] as Query<TBaseModel>;
+
+            if (query) {
+                query = JSONFunctions.deserialize(
                     args['query'] as JSONObject
                 ) as Query<TBaseModel>;
             }
 
-            if (args['select']) {
-                args['select'] = JSONFunctions.deserialize(
+            let select: Select<TBaseModel> = args[
+                'select'
+            ] as Select<TBaseModel>;
+
+            if (select) {
+                select = JSONFunctions.deserialize(
                     args['select'] as JSONObject
                 ) as Select<TBaseModel>;
             }
 
             const model: TBaseModel | null = await this.modelService.findOneBy({
-                query: (args['query'] as Query<TBaseModel>) || {},
-                select: args['select'] as Select<TBaseModel>,
+                query: query || {},
+                select: select,
                 props: {
                     isRoot: true,
                     tenantId: options.projectId,
