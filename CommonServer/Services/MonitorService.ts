@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Monitor';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';
@@ -15,10 +15,20 @@ import MonitorProbe from 'Model/Models/MonitorProbe';
 import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
+import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
+
+        if (onDelete.deleteBy.props.tenantId) {
+            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(onDelete.deleteBy.props.tenantId);
+        }
+
+        return onDelete;
     }
 
     protected override async onBeforeCreate(
@@ -89,6 +99,9 @@ export class Service extends DatabaseService<Model> {
                 createdItem.id
             );
         }
+
+
+        await ActiveMonitoringMeteredPlan.updateCurrentQuantity(createdItem.projectId);
 
         return createdItem;
     }

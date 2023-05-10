@@ -1,4 +1,5 @@
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -166,6 +167,59 @@ export class BillingService {
         });
     }
 
+    public static async addOrUpdateMeteredPricingOnSubscription(subscriptionId: string, meteredPlan: MeteredPlan, quantity: number): Promise<void> {
+
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+
+
+        // get subscription. 
+        const subscription: Stripe.Subscription = await this.getSubscription(subscriptionId.toString());
+
+        if (!subscription) {
+            throw new BadDataException("Subscription not found");
+        }
+
+
+        // check if this pricing exists
+
+        const pricingExists: boolean = subscription.items.data.some((item: Stripe.SubscriptionItem) => {
+            return item.price?.id === meteredPlan.getPriceId();
+        });
+
+        if (pricingExists) {
+            // update the quantity.
+            const subscriptionItemId: string | undefined =
+                subscription.items.data.find((item: Stripe.SubscriptionItem) => {
+                    return item.price?.id === meteredPlan.getPriceId();
+                }
+                )?.id;
+                
+            if (!subscriptionItemId) {
+                throw new BadDataException("Subscription Item not found");
+            }
+
+            await this.stripe.subscriptionItems.update(subscriptionItemId, {
+                quantity: quantity,
+            });
+
+        } else {
+
+            // add the pricing. 
+            await this.stripe.subscriptionItems.create({
+                subscription: subscriptionId,
+                price: meteredPlan.getPriceId(),
+                quantity: quantity
+            });
+        }
+
+        // complete.
+
+    }
+
     public static async changePlan(
         subscriptionId: string,
         newPlan: SubscriptionPlan,
@@ -240,6 +294,7 @@ export class BillingService {
                 "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account."
             );
         }
+        
 
         await this.stripe.paymentMethods.detach(paymentMethodId);
     }
@@ -352,6 +407,14 @@ export class BillingService {
     public static async getSubscriptionStatus(
         subscriptionId: string
     ): Promise<string> {
+        const subscription: Stripe.Subscription = await this.getSubscription(subscriptionId);
+        return subscription.status;
+    }
+
+
+    public static async getSubscription(
+        subscriptionId: string
+    ): Promise<Stripe.Subscription> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -361,7 +424,7 @@ export class BillingService {
         const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.retrieve(subscriptionId);
 
-        return subscription.status;
+        return subscription;
     }
 
     public static async getInvoices(

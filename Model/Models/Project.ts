@@ -535,4 +535,18 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public activeMonitorsLimit?: number = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+    })
+    public currentActiveMonitorsCount?: number = undefined;
 }
