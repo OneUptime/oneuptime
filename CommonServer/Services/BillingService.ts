@@ -135,7 +135,7 @@ export class BillingService {
             await this.stripe.subscriptions.create(subscriptionParams);
 
         for (const serverMeteredPlan of serverMeteredPlans) {
-            await serverMeteredPlan.updateCurrentQuantity(projectId, subscription.id);
+            await serverMeteredPlan.updateCurrentQuantity(projectId, { subscriptionId: subscription.id, isYearlyPlan: isYearly });
         }
 
         return {

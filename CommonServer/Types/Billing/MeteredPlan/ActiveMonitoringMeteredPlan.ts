@@ -18,7 +18,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         return meteredPlan;
     }
 
-    public static override async updateCurrentQuantity(projectId: ObjectID, subscriptionId?: string | undefined): Promise<PositiveNumber> {
+    public static override async updateCurrentQuantity(projectId: ObjectID, options: { subscriptionId?: string | undefined, isYearlyPlan?: boolean} ): Promise<PositiveNumber> {
 
 
         const count: PositiveNumber = await MonitorService.countBy({
@@ -57,7 +57,17 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         });
 
         if(project && project.paymentProviderSubscriptionId && project.paymentProviderPlanId) {
-            await BillingService.addOrUpdateMeteredPricingOnSubscription(subscriptionId || project?.paymentProviderSubscriptionId, ActiveMonitoringMeteredPlan.getMeteredPlan(), count.toNumber(), SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId));
+
+            let isYearlyPlan = false; 
+
+            if(options.isYearlyPlan !== undefined) {
+                isYearlyPlan = options.isYearlyPlan;
+            }else{
+                isYearlyPlan = SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId);
+            }
+
+
+            await BillingService.addOrUpdateMeteredPricingOnSubscription(options.subscriptionId || project?.paymentProviderSubscriptionId, ActiveMonitoringMeteredPlan.getMeteredPlan(), count.toNumber(), isYearlyPlan);
         }
         
         return count;
