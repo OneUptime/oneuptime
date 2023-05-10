@@ -229,7 +229,7 @@ export class BillingService {
     public static async changePlan(
         projectId: ObjectID,
         subscriptionId: string,
-        serverMeteredPlans: Array<ServerMeteredPlan>,
+        serverMeteredPlans: Array<typeof ServerMeteredPlan>,
         newPlan: SubscriptionPlan,
         quantity: number,
         isYearly: boolean,

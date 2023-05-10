@@ -13,17 +13,12 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 
 export class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
 
-
-    public constructor() {
-        super();
-        this.meteredPlan = MeteredPlanUtil.getMeteredPlan("ACTIVE_MONITORING");
+    public static getMeteredPlan(): MeteredPlan {
+        const meteredPlan: MeteredPlan = MeteredPlanUtil.getMeteredPlan("ACTIVE_MONITORING");
+        return meteredPlan;
     }
 
-    public getMeteredPlan(): MeteredPlan {
-       return this.meteredPlan!;
-    }
-
-    public override async updateCurrentQuantity(projectId: ObjectID): Promise<PositiveNumber> {
+    public static override async updateCurrentQuantity(projectId: ObjectID): Promise<PositiveNumber> {
 
 
         const count: PositiveNumber = await MonitorService.countBy({
@@ -62,7 +57,7 @@ export class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         });
 
         if(project && project.paymentProviderSubscriptionId && project.paymentProviderPlanId) {
-            await BillingService.addOrUpdateMeteredPricingOnSubscription(project?.paymentProviderSubscriptionId, this.getMeteredPlan(), count.toNumber(), SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId));
+            await BillingService.addOrUpdateMeteredPricingOnSubscription(project?.paymentProviderSubscriptionId, ActiveMonitoringMeteredPlan.getMeteredPlan(), count.toNumber(), SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId));
         }
         
         return count;

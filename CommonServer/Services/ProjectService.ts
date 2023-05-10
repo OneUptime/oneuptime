@@ -155,7 +155,7 @@ export class Service extends DatabaseService<Model> {
                     } = await BillingService.changePlan(
                         project.id!, 
                         project.paymentProviderSubscriptionId as string,
-                        [new ActiveMonitoringMeteredPlan()],
+                        [ActiveMonitoringMeteredPlan],
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===
