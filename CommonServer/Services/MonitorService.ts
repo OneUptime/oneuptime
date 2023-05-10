@@ -16,6 +16,7 @@ import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
+import { IsBillingEnabled } from '../Config';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -24,7 +25,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
 
-        if (onDelete.deleteBy.props.tenantId) {
+        if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
             await ActiveMonitoringMeteredPlan.updateCurrentQuantity(onDelete.deleteBy.props.tenantId);
         }
 
@@ -100,8 +101,9 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-
-        await ActiveMonitoringMeteredPlan.updateCurrentQuantity(createdItem.projectId);
+        if (IsBillingEnabled) {
+            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(createdItem.projectId);
+        }
 
         return createdItem;
     }
