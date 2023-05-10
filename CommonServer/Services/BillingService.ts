@@ -167,7 +167,7 @@ export class BillingService {
         });
     }
 
-    public static async addOrUpdateMeteredPricingOnSubscription(subscriptionId: string, meteredPlan: MeteredPlan, quantity: number): Promise<void> {
+    public static async addOrUpdateMeteredPricingOnSubscription(subscriptionId: string, meteredPlan: MeteredPlan, quantity: number, isYearly: boolean): Promise<void> {
 
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
@@ -187,14 +187,14 @@ export class BillingService {
         // check if this pricing exists
 
         const pricingExists: boolean = subscription.items.data.some((item: Stripe.SubscriptionItem) => {
-            return item.price?.id === meteredPlan.getPriceId();
+            return item.price?.id === (isYearly ? meteredPlan.getYearlyPriceId() : meteredPlan.getMonthlyPriceId());
         });
 
         if (pricingExists) {
             // update the quantity.
             const subscriptionItemId: string | undefined =
                 subscription.items.data.find((item: Stripe.SubscriptionItem) => {
-                    return item.price?.id === meteredPlan.getPriceId();
+                    return item.price?.id === (isYearly ? meteredPlan.getYearlyPriceId() : meteredPlan.getMonthlyPriceId());
                 }
                 )?.id;
                 
@@ -202,16 +202,21 @@ export class BillingService {
                 throw new BadDataException("Subscription Item not found");
             }
 
-            await this.stripe.subscriptionItems.update(subscriptionItemId, {
-                quantity: quantity,
+            // use stripe usage based api to update the quantity.
+            await this.stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
+                quantity: quantity
             });
 
         } else {
 
             // add the pricing. 
-            await this.stripe.subscriptionItems.create({
+            const subscriptionItem: Stripe.SubscriptionItem = await this.stripe.subscriptionItems.create({
                 subscription: subscriptionId,
-                price: meteredPlan.getPriceId(),
+                price: (isYearly ? meteredPlan.getYearlyPriceId() : meteredPlan.getMonthlyPriceId()),
+            });
+
+            // use stripe usage based api to update the quantity.
+            await this.stripe.subscriptionItems.createUsageRecord(subscriptionItem.id, {
                 quantity: quantity
             });
         }

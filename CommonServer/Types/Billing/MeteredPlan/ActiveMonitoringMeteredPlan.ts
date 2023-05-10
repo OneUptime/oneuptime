@@ -9,6 +9,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProjectService from "../../../Services/ProjectService";
 import BillingService from "../../../Services/BillingService";
 import Project from "Model/Models/Project";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 
 export class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
 
@@ -47,15 +48,16 @@ export class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
          const project: Project | null = await ProjectService.findOneById({
             id: projectId,
             select: {
-                paymentProviderSubscriptionId: true
+                paymentProviderSubscriptionId: true,
+                paymentProviderPlanId: true
             },
             props: {
                 isRoot: true
             }
         });
 
-        if(project && project.paymentProviderSubscriptionId) {
-            await BillingService.addOrUpdateMeteredPricingOnSubscription(project?.paymentProviderSubscriptionId, ActiveMonitoringMeteredPlan.getMeteredPlan(), count.toNumber());
+        if(project && project.paymentProviderSubscriptionId && project.paymentProviderPlanId) {
+            await BillingService.addOrUpdateMeteredPricingOnSubscription(project?.paymentProviderSubscriptionId, ActiveMonitoringMeteredPlan.getMeteredPlan(), count.toNumber(), SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId));
         }
         
         return count;

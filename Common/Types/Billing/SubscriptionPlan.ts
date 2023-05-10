@@ -109,7 +109,7 @@ export default class SubscriptionPlan {
     }
 
     public static getSubscriptionPlans(
-        env: JSONObject
+        env?: JSONObject | undefined
     ): Array<SubscriptionPlan> {
         const plans: Array<SubscriptionPlan> = [];
 
@@ -144,7 +144,7 @@ export default class SubscriptionPlan {
 
     public static getSubscriptionPlanById(
         planId: string,
-        env: JSONObject
+        env?: JSONObject | undefined
     ): SubscriptionPlan | undefined {
         const plans: Array<SubscriptionPlan> = this.getSubscriptionPlans(env);
         return plans.find((plan: SubscriptionPlan) => {
@@ -155,11 +155,11 @@ export default class SubscriptionPlan {
         });
     }
 
-    public static isValidPlanId(planId: string, env: JSONObject): boolean {
+    public static isValidPlanId(planId: string, env?: JSONObject | undefined): boolean {
         return Boolean(this.getSubscriptionPlanById(planId, env));
     }
 
-    public static getPlanSelect(planId: string, env: JSONObject): PlanSelect {
+    public static getPlanSelect(planId: string, env?: JSONObject | undefined): PlanSelect {
         const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
             planId,
             env
@@ -173,7 +173,7 @@ export default class SubscriptionPlan {
 
     public static getSubscriptionPlanFromPlanSelect(
         planSelect: PlanSelect,
-        env: JSONObject
+        env?: JSONObject | undefined
     ): SubscriptionPlan {
         const plan: SubscriptionPlan | undefined = this.getSubscriptionPlans(
             env
@@ -191,7 +191,7 @@ export default class SubscriptionPlan {
     public static isFeatureAccessibleOnCurrentPlan(
         featurePlan: PlanSelect,
         currentPlan: PlanSelect,
-        env: JSONObject
+        env?: JSONObject | undefined
     ): boolean {
         const featureSubscriptionPlan: SubscriptionPlan | undefined =
             this.getSubscriptionPlanFromPlanSelect(featurePlan, env);
@@ -208,7 +208,7 @@ export default class SubscriptionPlan {
         return true;
     }
 
-    public static isYearlyPlan(planId: string, env: JSONObject): boolean {
+    public static isYearlyPlan(planId: string, env?: JSONObject | undefined): boolean {
         const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
             planId,
             env
