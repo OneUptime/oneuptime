@@ -149,6 +149,11 @@ export class Service extends DatabaseService<Model> {
                         throw new BadDataException('Invalid plan');
                     }
 
+
+                    if(!project.paymentProviderSubscriptionSeats){
+                        project.paymentProviderSubscriptionSeats = await TeamMemberService.getUniqueTeamMemberCountInProject(project.id!);
+                    }
+
                     const subscription: {
                         id: string;
                         trialEndsAt?: Date | undefined;
@@ -484,7 +489,6 @@ export class Service extends DatabaseService<Model> {
             data: ownerTeamMember,
             props: {
                 isRoot: true,
-                ignoreHooks: true,
             },
         });
 
@@ -499,7 +503,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerPermissions,
             props: {
                 isRoot: true,
-                ignoreHooks: true,
+                
             },
         });
 
@@ -529,7 +533,7 @@ export class Service extends DatabaseService<Model> {
             data: adminPermissions,
             props: {
                 isRoot: true,
-                ignoreHooks: true,
+                
             },
         });
 
@@ -558,9 +562,10 @@ export class Service extends DatabaseService<Model> {
             data: memberPermissions,
             props: {
                 isRoot: true,
-                ignoreHooks: true,
+                
             },
         });
+        
 
         return createdItem;
     }
@@ -635,7 +640,7 @@ export class Service extends DatabaseService<Model> {
             },
             props: {
                 isRoot: true,
-                ignoreHooks: true,
+                
             },
         });
 
