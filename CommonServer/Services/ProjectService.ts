@@ -284,6 +284,7 @@ export class Service extends DatabaseService<Model> {
                 data: {
                     paymentProviderCustomerId: customerId,
                     paymentProviderSubscriptionId: id,
+                    paymentProviderSubscriptionSeats: 1,
                     trialEndsAt: (trialEndsAt || null) as any,
                 },
                 props: {
