@@ -31,8 +31,6 @@ RunCron(
 
         const monitors: Array<Monitor> = result.data as Array<Monitor>;
 
-        console.log('Monitors: ', monitors);
-
         const monitoringPromises: Array<Promise<void>> = [];
 
         for (const monitor of monitors) {
