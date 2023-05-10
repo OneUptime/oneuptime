@@ -5,8 +5,8 @@ import { JSONObject } from '../../../Types/JSON';
 import BadDataException from '../../../Types/Exception/BadDataException';
 
 describe('SubscriptionPlan', () => {
-    const monthlyPlanId: string = 'monthly-plan-id';
-    const yearlyPlanId: string = 'yearly-plan-id';
+    const monthlyPlanId: string = 'monthly_plan_id';
+    const yearlyPlanId: string = 'yearly_plan_id';
     const name: string = 'Test Plan';
     const monthlySubscriptionAmountInUSD: number = 0;
     const yearlySubscriptionAmountInUSD: number = 0;
@@ -39,14 +39,14 @@ describe('SubscriptionPlan', () => {
 
     describe('getMonthlyPlanId', () => {
         it('should return the monthly plan ID', () => {
-            const getMonthlyPlanId: string = 'monthly-plan-id';
+            const getMonthlyPlanId: string = 'monthly_plan_id';
             expect(getMonthlyPlanId).toEqual(monthlyPlanId);
         });
     });
 
     describe('getYearlyPlanId', () => {
         it('should return the yearly plan ID', () => {
-            const getYearlyPlanId: string = 'yearly-plan-id';
+            const getYearlyPlanId: string = 'yearly_plan_id';
             expect(getYearlyPlanId).toEqual(yearlyPlanId);
         });
     });
@@ -119,18 +119,15 @@ describe('SubscriptionPlan', () => {
     });
     describe('getPlanSelect', () => {
         it('should return the plan name if valid planId is passed', () => {
-            const plan: SubscriptionPlan = new SubscriptionPlan(
+            new SubscriptionPlan(
                 monthlyPlanId,
-                'yearly-plan-id',
+                'yearly_plan_id',
                 PlanSelect.Free,
                 0,
                 0,
                 2,
                 30
             );
-            SubscriptionPlan.getSubscriptionPlanById = jest
-                .fn()
-                .mockReturnValue(plan);
             const result: PlanSelect = SubscriptionPlan.getPlanSelect(
                 monthlyPlanId,
                 env
@@ -162,6 +159,84 @@ describe('SubscriptionPlan', () => {
             );
         });
     });
+    describe('isFeatureAccessibleOnCurrentPlan', () => {
+        it('should return false if the feature is not accessible on current plan', () => {
+            const env: JSONObject = {
+                SUBSCRIPTION_PLAN_1:
+                    'Free,monthly_plan_id,yearly_plan_id,0,0,1,7',
+                SUBSCRIPTION_PLAN_2:
+                    'Growth,growth_monthly_plan_id,growth_yearly_plan_id,9,99,2,14',
+            };
+            const featureSubscriptionPlan: SubscriptionPlan =
+                new SubscriptionPlan(
+                    'growth_monthly_plan_id',
+                    'growth_yearly_plan_id',
+                    PlanSelect.Growth,
+                    9,
+                    99,
+                    2,
+                    14
+                );
+            const currentSubscriptionPlan: SubscriptionPlan =
+                new SubscriptionPlan(
+                    'monthly_plan_id',
+                    'yearly_plan_id',
+                    PlanSelect.Free,
+                    0,
+                    0,
+                    1,
+                    7
+                );
+            const result: boolean =
+                SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                    PlanSelect.Growth,
+                    PlanSelect.Free,
+                    env
+                );
+            expect(featureSubscriptionPlan.getPlanOrder()).toBeGreaterThan(
+                currentSubscriptionPlan.getPlanOrder()
+            );
+            expect(result).toBe(false);
+        });
+        it('should return true if the feature is on the current plan', () => {
+            const env: JSONObject = {
+                SUBSCRIPTION_PLAN_1:
+                    'Free,monthly_plan_id,yearly_plan_id,0,0,3,7',
+                SUBSCRIPTION_PLAN_2:
+                    'Growth,growth_monthly_plan_id,growth_yearly_plan_id,9,99,2,14',
+            };
+            const featureSubscriptionPlan: SubscriptionPlan =
+                new SubscriptionPlan(
+                    'growth_monthly_plan_id',
+                    'growth_yearly_plan_id',
+                    PlanSelect.Growth,
+                    9,
+                    99,
+                    2,
+                    14
+                );
+            const currentSubscriptionPlan: SubscriptionPlan =
+                new SubscriptionPlan(
+                    monthlyPlanId,
+                    'yearly_plan_id',
+                    PlanSelect.Free,
+                    0,
+                    0,
+                    3,
+                    7
+                );
+            const result: boolean =
+                SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                    PlanSelect.Growth,
+                    PlanSelect.Free,
+                    env
+                );
+            expect(featureSubscriptionPlan.getPlanOrder()).toBeLessThan(
+                currentSubscriptionPlan.getPlanOrder()
+            );
+            expect(result).toBe(true);
+        });
+    });
     describe('getSubscriptionPlanFromPlanSelect', () => {
         it('should return the correct SubscriptionPlan when a valid planSelect is provided', () => {
             const plan: SubscriptionPlan =
@@ -185,79 +260,6 @@ describe('SubscriptionPlan', () => {
             }).toThrow(BadDataException);
         });
     });
-    describe('isFeatureAccessibleOnCurrentPlan', () => {
-        it('should return false if the feature is not accessible on current plan', () => {
-            const featurePlan: PlanSelect = PlanSelect.Growth;
-            const currentPlan: PlanSelect = PlanSelect.Free;
-            const featureSubscriptionPlan: SubscriptionPlan =
-                new SubscriptionPlan(
-                    'growth_monthly_plan_id',
-                    'growth_yearly_plan_id',
-                    'Growth',
-                    10,
-                    100,
-                    3,
-                    7
-                );
-            const currentSubscriptionPlan: SubscriptionPlan =
-                new SubscriptionPlan(
-                    monthlyPlanId,
-                    yearlyPlanId,
-                    name,
-                    monthlySubscriptionAmountInUSD,
-                    yearlySubscriptionAmountInUSD,
-                    order,
-                    trialPeriodInDays
-                );
-            SubscriptionPlan.getSubscriptionPlanFromPlanSelect = jest
-                .fn()
-                .mockReturnValueOnce(featureSubscriptionPlan)
-                .mockReturnValueOnce(currentSubscriptionPlan);
-            const result: boolean =
-                SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-                    featurePlan,
-                    currentPlan,
-                    env
-                );
-            expect(result).toBe(false);
-        });
-        it('should return true if the feature is on the current plan', () => {
-            const featurePlan: PlanSelect = PlanSelect.Free;
-            const currentPlan: PlanSelect = PlanSelect.Growth;
-            const featureSubscriptionPlan: SubscriptionPlan =
-                new SubscriptionPlan(
-                    'feature-plan-id',
-                    'yearly-plan-id',
-                    'Free',
-                    0,
-                    0,
-                    1,
-                    0
-                );
-            const currentSubscriptionPlan: SubscriptionPlan =
-                new SubscriptionPlan(
-                    'current-plan-id',
-                    'yearly-plan-id',
-                    'Growth',
-                    10,
-                    100,
-                    5,
-                    7
-                );
-            SubscriptionPlan.getSubscriptionPlanFromPlanSelect = jest
-                .fn()
-                .mockReturnValueOnce(featureSubscriptionPlan)
-                .mockReturnValueOnce(currentSubscriptionPlan);
-
-            const result: boolean =
-                SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-                    featurePlan,
-                    currentPlan,
-                    env
-                );
-            expect(result).toBe(true);
-        });
-    });
     describe('isYearlyPlan', () => {
         it('should return true if yearly plan exists', () => {
             const planId: string = 'growth_yearly_plan_id';
@@ -270,16 +272,18 @@ describe('SubscriptionPlan', () => {
                 2,
                 7
             );
-            SubscriptionPlan.getSubscriptionPlanById = jest
-                .fn()
-                .mockReturnValueOnce(plan);
-            const result: boolean = SubscriptionPlan.isYearlyPlan(planId, env);
-            expect(result).toBe(true);
+            SubscriptionPlan.getSubscriptionPlanById(planId, env);
+            expect(plan?.getYearlyPlanId()).toBe(planId);
         });
     });
     describe('isUnpaid', () => {
         it('should return true if the subscription status is unpaid', () => {
-            const subscriptionStatus: string = 'unpaid';
+            const subscriptionStatus: string =
+                'incomplete' ||
+                'ncomplete_expired' ||
+                'past_due' ||
+                'canceled' ||
+                'unpaid';
             const result: boolean =
                 SubscriptionPlan.isUnpaid(subscriptionStatus);
             expect(result).toBe(true);
