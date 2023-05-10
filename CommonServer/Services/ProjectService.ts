@@ -489,6 +489,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerTeamMember,
             props: {
                 isRoot: true,
+                ignoreHooks: true,
             },
         });
 
@@ -503,7 +504,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerPermissions,
             props: {
                 isRoot: true,
-                
+                ignoreHooks: true,
             },
         });
 
@@ -533,7 +534,7 @@ export class Service extends DatabaseService<Model> {
             data: adminPermissions,
             props: {
                 isRoot: true,
-                
+                ignoreHooks: true,
             },
         });
 
@@ -562,7 +563,7 @@ export class Service extends DatabaseService<Model> {
             data: memberPermissions,
             props: {
                 isRoot: true,
-                
+                ignoreHooks: true,
             },
         });
         
@@ -640,7 +641,7 @@ export class Service extends DatabaseService<Model> {
             },
             props: {
                 isRoot: true,
-                
+                ignoreHooks: true,
             },
         });
 
