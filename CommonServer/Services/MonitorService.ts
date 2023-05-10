@@ -23,10 +23,14 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
-
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _itemIdsBeforeDelete: ObjectID[]
+    ): Promise<OnDelete<Model>> {
         if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
-            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(onDelete.deleteBy.props.tenantId);
+            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(
+                onDelete.deleteBy.props.tenantId
+            );
         }
 
         return onDelete;
@@ -102,7 +106,9 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (IsBillingEnabled) {
-            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(createdItem.projectId);
+            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(
+                createdItem.projectId
+            );
         }
 
         return createdItem;

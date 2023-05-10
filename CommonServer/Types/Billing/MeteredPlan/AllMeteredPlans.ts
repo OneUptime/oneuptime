@@ -1,5 +1,8 @@
-import ActiveMonitoringMeteredPlan from "./ActiveMonitoringMeteredPlan";
+import ActiveMonitoringMeteredPlan from './ActiveMonitoringMeteredPlan';
+import ServerMeteredPlan from './ServerMeteredPlan';
 
-const AllMeteredPlans = [ActiveMonitoringMeteredPlan];
+const AllMeteredPlans: Array<typeof ServerMeteredPlan> = [
+    ActiveMonitoringMeteredPlan,
+];
 
-export default AllMeteredPlans
+export default AllMeteredPlans;

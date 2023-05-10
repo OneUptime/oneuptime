@@ -4,20 +4,17 @@ export default class MeteredPlan {
     private unitName: string;
     private pricePerUnit: number;
 
-
     public constructor(
         monthlyPriceId: string,
         yearlyPriceId: string,
         pricePerUnit: number,
-        unitName: string,
-       
+        unitName: string
     ) {
         this.monthlyPriceId = monthlyPriceId;
         this.yearlyPriceId = yearlyPriceId;
 
         this.pricePerUnit = pricePerUnit;
         this.unitName = unitName;
-
     }
 
     public getMonthlyPriceId(): string {
@@ -35,8 +32,4 @@ export default class MeteredPlan {
     public getUnitName(): string {
         return this.unitName;
     }
-
-
-  
-
 }

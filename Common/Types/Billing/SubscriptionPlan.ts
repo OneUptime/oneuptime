@@ -155,11 +155,17 @@ export default class SubscriptionPlan {
         });
     }
 
-    public static isValidPlanId(planId: string, env?: JSONObject | undefined): boolean {
+    public static isValidPlanId(
+        planId: string,
+        env?: JSONObject | undefined
+    ): boolean {
         return Boolean(this.getSubscriptionPlanById(planId, env));
     }
 
-    public static getPlanSelect(planId: string, env?: JSONObject | undefined): PlanSelect {
+    public static getPlanSelect(
+        planId: string,
+        env?: JSONObject | undefined
+    ): PlanSelect {
         const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
             planId,
             env
@@ -208,7 +214,10 @@ export default class SubscriptionPlan {
         return true;
     }
 
-    public static isYearlyPlan(planId: string, env?: JSONObject | undefined): boolean {
+    public static isYearlyPlan(
+        planId: string,
+        env?: JSONObject | undefined
+    ): boolean {
         const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
             planId,
             env

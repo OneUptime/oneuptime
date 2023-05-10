@@ -235,7 +235,6 @@ export default class Model extends TenantModel {
     })
     public paymentProviderSubscriptionStatus?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [
@@ -512,7 +511,6 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public activeMonitorsLimit?: number = undefined;
-
 
     @ColumnAccessControl({
         create: [],

@@ -149,16 +149,18 @@ export class Service extends DatabaseService<Model> {
                         throw new BadDataException('Invalid plan');
                     }
 
-
-                    if(!project.paymentProviderSubscriptionSeats){
-                        project.paymentProviderSubscriptionSeats = await TeamMemberService.getUniqueTeamMemberCountInProject(project.id!);
+                    if (!project.paymentProviderSubscriptionSeats) {
+                        project.paymentProviderSubscriptionSeats =
+                            await TeamMemberService.getUniqueTeamMemberCountInProject(
+                                project.id!
+                            );
                     }
 
                     const subscription: {
                         id: string;
                         trialEndsAt?: Date | undefined;
                     } = await BillingService.changePlan(
-                        project.id!, 
+                        project.id!,
                         project.paymentProviderSubscriptionId as string,
                         AllMeteredPlans,
                         plan,
@@ -567,7 +569,6 @@ export class Service extends DatabaseService<Model> {
                 ignoreHooks: true,
             },
         });
-        
 
         return createdItem;
     }

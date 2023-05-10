@@ -11,26 +11,24 @@ RunCron(
     'PaymentProvider:UpdateTeamMembersIfNull',
     { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: true },
     async () => {
-
         const projects: Array<Project> = await ProjectService.findBy({
             query: {
                 paymentProviderSubscriptionSeats: QueryHelper.isNull(),
             },
             select: {
-                _id: true, 
+                _id: true,
             },
             props: {
                 isRoot: true,
             },
-            limit: LIMIT_MAX, 
+            limit: LIMIT_MAX,
             skip: 0,
         });
 
-        console.log('projects');
-        console.log(projects);
-
         for (const project of projects) {
-            await TeamMemberService.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(project.id!);
+            await TeamMemberService.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+                project.id!
+            );
         }
     }
 );
