@@ -18,7 +18,6 @@ import ProjectService from './ProjectService';
 import {
     DashboardRoute,
     Domain,
-    getAllEnvVars,
     HttpProtocol,
     IsBillingEnabled,
 } from '../Config';
@@ -289,35 +288,57 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             },
         });
 
+
+        console.log("Number of members");
+        console.log(numberOfMembers);
+
+
         if (
             project &&
             project.paymentProviderSubscriptionId &&
             project?.paymentProviderPlanId
         ) {
+            console.log("HERE!");
+            console.log(numberOfMembers);
+            console.log(project.paymentProviderPlanId);
+
             const plan: SubscriptionPlan | undefined =
                 SubscriptionPlan.getSubscriptionPlanById(
-                    project?.paymentProviderPlanId!,
-                    getAllEnvVars()
+                    project?.paymentProviderPlanId!
                 );
+
+            console.log("Plan");
+            console.log(plan);
 
             if (!plan) {
                 return;
             }
 
-            await BillingService.changeQuantity(
-                project.paymentProviderSubscriptionId,
-                numberOfMembers
-            );
+            try {
+                await BillingService.changeQuantity(
+                    project.paymentProviderSubscriptionId,
+                    numberOfMembers
+                );
 
-            await ProjectService.updateOneById({
-                id: projectId,
-                data: {
-                    paymentProviderSubscriptionSeats: numberOfMembers,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+                console.log("Here2");
+                console.log(numberOfMembers);
+
+                await ProjectService.updateOneById({
+                    id: projectId,
+                    data: {
+                        paymentProviderSubscriptionSeats: numberOfMembers,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                console.log("Updated!");
+                console.log(numberOfMembers);
+            } catch (err) {
+                console.log("Error Here!");
+                console.log(err);
+            }
         }
     }
 }

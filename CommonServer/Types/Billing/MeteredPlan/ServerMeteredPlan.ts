@@ -8,7 +8,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 export default class ServerMeteredPlan {
     public static meteredPlan: MeteredPlan | undefined = undefined;
 
-    public static async updateCurrentQuantity(_projectId: ObjectID): Promise<PositiveNumber> {
+    public static async updateCurrentQuantity(_projectId: ObjectID, _subscriptionId: string): Promise<PositiveNumber> {
         throw new NotImplementedException();
     }
 }

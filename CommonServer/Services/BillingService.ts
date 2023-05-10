@@ -82,7 +82,9 @@ export class BillingService {
     }
 
     public static async subscribeToPlan(
+        projectId: ObjectID,
         customerId: string,
+        serverMeteredPlans: Array<typeof ServerMeteredPlan>,
         plan: SubscriptionPlan,
         quantity: number,
         isYearly: boolean,
@@ -132,6 +134,10 @@ export class BillingService {
         const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.create(subscriptionParams);
 
+        for (const serverMeteredPlan of serverMeteredPlans) {
+            await serverMeteredPlan.updateCurrentQuantity(projectId, subscription.id);
+        }
+
         return {
             id: subscription.id,
             trialEndsAt:
@@ -154,6 +160,11 @@ export class BillingService {
 
         if (!subscription) {
             throw new BadDataException('Subscription not found');
+        }
+
+        if (subscription.status === 'canceled') {
+            // subscription is canceled.
+            return;
         }
 
         const subscriptionItemId: string | undefined =
@@ -198,7 +209,7 @@ export class BillingService {
                     return item.price?.id === (isYearly ? meteredPlan.getYearlyPriceId() : meteredPlan.getMonthlyPriceId());
                 }
                 )?.id;
-                
+
             if (!subscriptionItemId) {
                 throw new BadDataException("Subscription Item not found");
             }
@@ -270,7 +281,9 @@ export class BillingService {
             id: string;
             trialEndsAt: Date | null;
         } = await this.subscribeToPlan(
+            projectId,
             subscription.customer.toString(),
+            serverMeteredPlans,
             newPlan,
             quantity,
             isYearly,
@@ -278,9 +291,7 @@ export class BillingService {
             paymentMethods[0]?.id
         );
 
-        for(const serverMeteredPlan of serverMeteredPlans) {
-            await serverMeteredPlan.updateCurrentQuantity(projectId);
-        }
+
 
         return {
             id: subscribetoPlan.id,
@@ -306,7 +317,7 @@ export class BillingService {
                 "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account."
             );
         }
-        
+
 
         await this.stripe.paymentMethods.detach(paymentMethodId);
     }

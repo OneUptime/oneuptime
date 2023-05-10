@@ -5,8 +5,11 @@ import App from 'CommonServer/Utils/StartServer';
 import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
 import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 
+
+
 // Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
+import './Jobs/PaymentProvider/UpdateTeamMembersIfNull';
 
 // Announcements.
 import './Jobs/Announcement/SendEmailToSubscribers';
