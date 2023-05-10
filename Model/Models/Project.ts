@@ -235,29 +235,6 @@ export default class Model extends TenantModel {
     })
     public paymentProviderSubscriptionStatus?: string = undefined;
 
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProject,
-            Permission.UnAuthorizedSsoUser,
-            Permission.ProjectUser,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        type: TableColumnType.SmallPositiveNumber,
-        isDefaultValueColumn: true,
-    })
-    @Column({
-        type: ColumnType.SmallPositiveNumber,
-        nullable: false,
-        unique: false,
-        default: 1,
-    })
-    public numberOfLicensesIssued?: PositiveNumber = undefined;
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
