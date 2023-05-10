@@ -125,6 +125,19 @@ export default class QueryHelper {
         );
     }
 
+
+    public static lessThanEqualToOrNull(value: number | Date): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} <= :${rid} or ${alias} IS NULL`;
+            },
+            {
+                [rid]: value,
+            }
+        );
+    }
+
     public static greaterThan(value: number | Date): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(

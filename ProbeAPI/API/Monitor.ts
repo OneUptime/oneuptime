@@ -48,7 +48,7 @@ router.post(
                     query: {
                         probeId: (req as ProbeExpressRequest).probe!.id!,
                         isEnabled: true,
-                        nextPingAt: QueryHelper.lessThanEqualTo(
+                        nextPingAt: QueryHelper.lessThanEqualToOrNull(
                             OneUptimeDate.getCurrentDate()
                         ),
                     },

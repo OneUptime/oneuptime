@@ -4,6 +4,7 @@ import App from 'CommonServer/Utils/StartServer';
 import Register from './Services/Register';
 
 import './Jobs/Alive';
+import './Jobs/Monitor/FetchList';
 
 const APP_NAME: string = 'probe';
 
