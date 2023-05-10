@@ -32,7 +32,6 @@ export GLOBAL_PROBE_3_KEY=$GLOBAL_PROBE_3_KEY
 # Talk to the user
 echo "Welcome to the OneUptime 🟢 Runner"
 echo ""
-echo "⚠️  You really need 8gb or more of memory to run this stack ⚠️"
 echo ""
 echo ""
 
