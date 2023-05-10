@@ -108,6 +108,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             isEnabled: true,
                         },
                         title: 'Enabled',
+                        stepId: 'workflow-info',
                         fieldType: FormFieldSchemaType.Toggle,
                     },
                     {
