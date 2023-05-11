@@ -16,6 +16,7 @@ import CronTab from 'CommonServer/Utils/CronTab';
 import Monitor from 'Model/Models/Monitor';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { JSONObject } from 'Common/Types/JSON';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -51,6 +52,10 @@ router.post(
                         nextPingAt: QueryHelper.lessThanEqualToOrNull(
                             OneUptimeDate.getCurrentDate()
                         ),
+                        project: {
+                            // get only active projects
+                            paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([SubscriptionStatus.Active, SubscriptionStatus.Trialing])
+                        }
                     },
                     skip: 0,
                     limit: limit,

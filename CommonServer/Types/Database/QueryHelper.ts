@@ -2,6 +2,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { FindOperator, Raw } from 'typeorm';
 import Text from 'Common/Types/Text';
 import Typeof from 'Common/Types/Typeof';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class QueryHelper {
     public static findWithSameText(text: string | number): FindOperator<any> {
@@ -36,14 +37,41 @@ export default class QueryHelper {
         });
     }
 
-    public static equalToOrNull(value: string | ObjectID): FindOperator<any> {
-        const rid: string = Text.generateRandomText(10);
+    public static equalToOrNull(value: string | ObjectID | Array<string | ObjectID>): FindOperator<any> {
+
+        const rid: Array<string> = [];
+        const valuesObj: Dictionary<string> = {};
+
+        if (Array.isArray(value)) {
+            for (const item of value) {
+                const temp: string = Text.generateRandomText(10);
+                rid.push(temp);
+                valuesObj[temp] = item.toString();
+            }
+        } else {
+            const temp: string = Text.generateRandomText(10);
+            rid.push(temp);
+            valuesObj[temp] = value.toString();
+        }
+
+        // construct string
+
+        const constructQuery = (alias: string): string => {
+            let query: string = rid.map((item: string) => {
+                return `${alias} = :${item}`;
+            }).join(' or ');
+
+            query+=` or ${alias} IS NULL`
+
+            return query; 
+        }
+        
         return Raw(
             (alias: string) => {
-                return `${alias} = :${rid} or ${alias} IS NULL`;
+                return constructQuery(alias);
             },
             {
-                [rid]: value.toString(),
+                ...valuesObj
             }
         );
     }
