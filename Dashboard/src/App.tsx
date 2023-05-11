@@ -160,7 +160,7 @@ const App: FunctionComponent = () => {
 
     useAsyncEffect(async () => {
         if (selectedProject && selectedProject._id && BILLING_ENABLED) {
-            debugger;
+
             setPaymentMethodsCountLoading(true);
             const paymentMethodsCount: number = await ModelAPI.count(
                 BillingPaymentMethod,
@@ -221,7 +221,6 @@ const App: FunctionComponent = () => {
     const fetchProjects: Function = async (): Promise<void> => {
         setLoading(true);
 
-
         // get list of projects.
         try {
             const result: ListResult<Project> = await ModelAPI.getList<Project>(
@@ -257,7 +256,7 @@ const App: FunctionComponent = () => {
         currentProject: selectedProject,
         hasPaymentMethod: hasPaymentMethod,
         pageRoute: Navigation.getCurrentRoute(), // this will be overwritten by different pages
-    }
+    };
 
     return (
         <MasterPage
@@ -280,7 +279,6 @@ const App: FunctionComponent = () => {
                         <Init
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INIT] as Route}
-
                             projects={projects}
                             isLoadingProjects={isLoading}
                         />
@@ -293,7 +291,6 @@ const App: FunctionComponent = () => {
                         <Init
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
-
                             projects={projects}
                             isLoadingProjects={isLoading}
                         />
@@ -306,7 +303,6 @@ const App: FunctionComponent = () => {
                         <Welcome
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WELCOME] as Route}
-
                             onClickShowProjectModal={() => {
                                 setShowProjectModal(true);
                             }}
@@ -322,7 +318,6 @@ const App: FunctionComponent = () => {
                         <Home
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.HOME] as Route}
-
                             projects={projects}
                             isLoadingProjects={isLoading}
                         />
@@ -334,7 +329,6 @@ const App: FunctionComponent = () => {
                         <Sso
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.PROJECT_SSO] as Route}
-
                         />
                     }
                 />
@@ -350,10 +344,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -371,11 +364,10 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap
-                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                    PageMap
+                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -387,7 +379,6 @@ const App: FunctionComponent = () => {
                         <MonitorPage
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
-
                         />
                     }
                 />
@@ -402,10 +393,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITORS_INOPERATIONAL
+                                    PageMap.MONITORS_INOPERATIONAL
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -416,7 +406,6 @@ const App: FunctionComponent = () => {
                         <MonitorView
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
-
                         />
                     }
                 />
@@ -431,7 +420,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route
                             }
-
                         />
                     }
                 />
@@ -447,10 +435,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -466,7 +453,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route
                             }
-
                         />
                     }
                 />
@@ -481,10 +467,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITOR_VIEW_INCIDENTS
+                                    PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -500,10 +485,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                                    PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -519,7 +503,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route
                             }
-
                         />
                     }
                 />
@@ -534,7 +517,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route
                             }
-
                         />
                     }
                 />
@@ -547,7 +529,6 @@ const App: FunctionComponent = () => {
                         <Workflows
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
-
                         />
                     }
                 />
@@ -562,7 +543,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route
                             }
-
                         />
                     }
                 />
@@ -575,7 +555,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOWS_LOGS] as Route
                             }
-
                         />
                     }
                 />
@@ -590,7 +569,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_VARIABLES] as Route
                             }
-
                         />
                     }
                 />
@@ -603,7 +581,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_BUILDER] as Route
                             }
-
                         />
                     }
                 />
@@ -614,7 +591,6 @@ const App: FunctionComponent = () => {
                         <WorkflowOverview
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
-
                         />
                     }
                 />
@@ -625,7 +601,6 @@ const App: FunctionComponent = () => {
                         <WorkflowLogs
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
-
                         />
                     }
                 />
@@ -638,7 +613,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_DELETE] as Route
                             }
-
                         />
                     }
                 />
@@ -651,7 +625,6 @@ const App: FunctionComponent = () => {
                         <StatusPages
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-
                         />
                     }
                 />
@@ -666,7 +639,6 @@ const App: FunctionComponent = () => {
                         <StatusPageViewSubscriberSettings
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-
                         />
                     }
                 />
@@ -679,7 +651,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.STATUS_PAGE_VIEW] as Route
                             }
-
                         />
                     }
                 />
@@ -694,10 +665,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_DELETE
+                                    PageMap.STATUS_PAGE_VIEW_DELETE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -713,10 +683,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_BRANDING
+                                    PageMap.STATUS_PAGE_VIEW_BRANDING
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -732,10 +701,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -751,10 +719,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                    PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -770,10 +737,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -788,7 +754,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route
                             }
-
                         />
                     }
                 />
@@ -804,10 +769,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -823,11 +787,10 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap
-                                    .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                                    PageMap
+                                        .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -843,10 +806,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -862,10 +824,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                                    PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -881,10 +842,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -900,10 +860,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                    PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -919,10 +878,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                    PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -938,10 +896,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                    PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -957,10 +914,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -976,10 +932,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                    PageMap.STATUS_PAGE_VIEW_EMBEDDED
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -995,10 +950,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                    PageMap.STATUS_PAGE_VIEW_RESOURCES
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1014,10 +968,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                    PageMap.STATUS_PAGE_VIEW_DOMAINS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1032,10 +985,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_GROUPS
+                                    PageMap.STATUS_PAGE_VIEW_GROUPS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1051,10 +1003,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                    PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1067,7 +1018,6 @@ const App: FunctionComponent = () => {
                         <Incidents
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
-
                         />
                     }
                 />
@@ -1082,7 +1032,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
                             }
-
                         />
                     }
                 />
@@ -1093,7 +1042,6 @@ const App: FunctionComponent = () => {
                         <IncidentView
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
-
                         />
                     }
                 />
@@ -1108,7 +1056,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route
                             }
-
                         />
                     }
                 />
@@ -1124,10 +1071,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1142,10 +1088,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.INCIDENT_INTERNAL_NOTE
+                                    PageMap.INCIDENT_INTERNAL_NOTE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1161,10 +1106,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
+                                    PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1179,7 +1123,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route
                             }
-
                         />
                     }
                 />
@@ -1197,10 +1140,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1216,10 +1158,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1235,10 +1176,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1254,11 +1194,10 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap
-                                    .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                                    PageMap
+                                        .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1274,10 +1213,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1293,11 +1231,10 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap
-                                    .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                    PageMap
+                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1313,10 +1250,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1332,10 +1268,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1348,7 +1283,6 @@ const App: FunctionComponent = () => {
                         <Logs
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.LOGS] as Route}
-
                         />
                     }
                 />
@@ -1361,7 +1295,6 @@ const App: FunctionComponent = () => {
                         <ProjectSettings
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
-
                         />
                     }
                 />
@@ -1382,7 +1315,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                             }
-
                         />
                     }
                 />
@@ -1398,10 +1330,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_MONITORS_STATUS
+                                    PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1417,10 +1348,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_INCIDENTS_STATE
+                                    PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1436,10 +1366,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1450,7 +1379,6 @@ const App: FunctionComponent = () => {
                         <SettingsSSO
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
-
                         />
                     }
                 />
@@ -1466,10 +1394,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1482,7 +1409,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DOMAINS] as Route
                             }
-
                         />
                     }
                 />
@@ -1497,7 +1423,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
                             }
-
                         />
                     }
                 />
@@ -1510,7 +1435,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
-
                         />
                     }
                 />
@@ -1525,7 +1449,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
                             }
-
                         />
                     }
                 />
@@ -1541,10 +1464,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1560,10 +1482,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1579,11 +1500,10 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap
-                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1599,10 +1519,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1615,7 +1534,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_BILLING] as Route
                             }
-
                         />
                     }
                 />
@@ -1631,10 +1549,9 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_BILLING_INVOICES
+                                    PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             }
-
                         />
                     }
                 />
@@ -1647,7 +1564,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_LABELS] as Route
                             }
-
                         />
                     }
                 />
@@ -1660,7 +1576,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_PROBES] as Route
                             }
-
                         />
                     }
                 />
@@ -1673,7 +1588,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAMS] as Route
                             }
-
                         />
                     }
                 />
@@ -1688,7 +1602,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
                             }
-
                         />
                     }
                 />
@@ -1703,7 +1616,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
                             }
-
                         />
                     }
                 />
@@ -1715,7 +1627,6 @@ const App: FunctionComponent = () => {
                         <Logout
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.LOGOUT] as Route}
-
                         />
                     }
                 />
@@ -1731,7 +1642,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.USER_PROFILE_PICTURE] as Route
                             }
-
                         />
                     }
                 />
@@ -1747,7 +1657,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.USER_PROFILE_OVERVIEW] as Route
                             }
-
                         />
                     }
                 />
@@ -1763,7 +1672,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route
                             }
-
                         />
                     }
                 />
@@ -1778,7 +1686,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.PROJECT_INVITATIONS] as Route
                             }
-
                         />
                     }
                 />
@@ -1791,7 +1698,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.ACTIVE_INCIDENTS] as Route
                             }
-
                         />
                     }
                 />
@@ -1803,7 +1709,6 @@ const App: FunctionComponent = () => {
                         <PageNotFound
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.LOGOUT] as Route}
-
                         />
                     }
                 />

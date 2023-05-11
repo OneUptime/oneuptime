@@ -222,6 +222,7 @@ export default class ModelPermission {
                 // check query permissions.
                 this.checkQueryPermission(modelType, query, props);
 
+                // this is for labels.
                 if (model.getAccessControlColumn()) {
                     const accessControlIds: Array<ObjectID> =
                         this.getAccessControlIdsForQuery(
