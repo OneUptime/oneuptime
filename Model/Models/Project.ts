@@ -18,6 +18,7 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
@@ -233,7 +234,7 @@ export default class Model extends TenantModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderSubscriptionStatus?: string = undefined;
+    public paymentProviderSubscriptionStatus?: SubscriptionStatus = undefined;
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],

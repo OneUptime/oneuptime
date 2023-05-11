@@ -18,6 +18,7 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 export default class UserAPI extends BaseAPI<
     BillingInvoice,
@@ -134,7 +135,7 @@ export default class UserAPI extends BaseAPI<
                     });
 
                     // refresh subscription status.
-                    const subscriptionState: string =
+                    const subscriptionState: SubscriptionStatus =
                         await BillingService.getSubscriptionStatus(
                             project.paymentProviderSubscriptionId as string
                         );

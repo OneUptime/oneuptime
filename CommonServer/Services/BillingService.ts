@@ -9,6 +9,7 @@ import logger from '../Utils/Logger';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 export interface PaymentMethod {
     id: string;
@@ -452,11 +453,11 @@ export class BillingService {
 
     public static async getSubscriptionStatus(
         subscriptionId: string
-    ): Promise<string> {
+    ): Promise<SubscriptionStatus> {
         const subscription: Stripe.Subscription = await this.getSubscription(
             subscriptionId
         );
-        return subscription.status;
+        return subscription.status as SubscriptionStatus;
     }
 
     public static async getSubscription(
