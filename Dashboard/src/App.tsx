@@ -72,7 +72,7 @@ import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
-import { ACCOUNTS_URL } from 'CommonUI/src/Config';
+import { ACCOUNTS_URL, BILLING_ENABLED } from 'CommonUI/src/Config';
 // Settings Pages
 import ProjectSettings from './Pages/Settings/ProjectSettings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
@@ -129,6 +129,8 @@ import EventName from './Utils/EventName';
 
 import Sso from './Pages/Onboarding/SSO';
 import API from 'CommonUI/src/Utils/API/API';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
+import PageComponentProps from './Pages/PageComponentProps';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -147,6 +149,39 @@ const App: FunctionComponent = () => {
     const [selectedProject, setSelectedProject] = useState<Project | null>(
         null
     );
+
+    const [ispaymentMethodsCountLoading, setPaymentMethodsCountLoading] =
+        useState<boolean>(false);
+    const [paymentMethodsCount, setPaymentMethodsCount] = useState<
+        number | undefined
+    >(undefined);
+
+    const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
+
+    useAsyncEffect(async () => {
+        if (selectedProject && selectedProject._id && BILLING_ENABLED) {
+            debugger;
+            setPaymentMethodsCountLoading(true);
+            const paymentMethodsCount: number = await ModelAPI.count(
+                BillingPaymentMethod,
+                { projectId: selectedProject._id }
+            );
+
+            setPaymentMethodsCount(paymentMethodsCount);
+
+            if (paymentMethodsCount && paymentMethodsCount > 0) {
+                setHasPaymentMethod(true);
+            } else {
+                setHasPaymentMethod(false);
+            }
+        }
+
+        if (!BILLING_ENABLED) {
+            setHasPaymentMethod(true);
+        }
+
+        setPaymentMethodsCountLoading(false);
+    }, [selectedProject?._id]);
 
     const onProjectSelected: (project: Project) => void = (
         project: Project
@@ -186,6 +221,7 @@ const App: FunctionComponent = () => {
     const fetchProjects: Function = async (): Promise<void> => {
         setLoading(true);
 
+
         // get list of projects.
         try {
             const result: ListResult<Project> = await ModelAPI.getList<Project>(
@@ -217,11 +253,18 @@ const App: FunctionComponent = () => {
         fetchProjects();
     }, []);
 
+    const commonPageProps: PageComponentProps = {
+        currentProject: selectedProject,
+        hasPaymentMethod: hasPaymentMethod,
+        pageRoute: Navigation.getCurrentRoute(), // this will be overwritten by different pages
+    }
+
     return (
         <MasterPage
-            isLoading={isLoading}
+            isLoading={isLoading || ispaymentMethodsCountLoading}
             projects={projects}
             error={error}
+            paymentMethodsCount={paymentMethodsCount}
             onProjectSelected={onProjectSelected}
             showProjectModal={showProjectModal}
             onProjectModalClose={() => {
@@ -235,8 +278,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.INIT]?.toString() || ''}
                     element={
                         <Init
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INIT] as Route}
-                            currentProject={selectedProject}
+
                             projects={projects}
                             isLoadingProjects={isLoading}
                         />
@@ -247,8 +291,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.INIT_PROJECT]?.toString() || ''}
                     element={
                         <Init
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
-                            currentProject={selectedProject}
+
                             projects={projects}
                             isLoadingProjects={isLoading}
                         />
@@ -259,8 +304,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WELCOME]?.toString() || ''}
                     element={
                         <Welcome
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WELCOME] as Route}
-                            currentProject={selectedProject}
+
                             onClickShowProjectModal={() => {
                                 setShowProjectModal(true);
                             }}
@@ -274,8 +320,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.HOME]?.toString() || ''}
                     element={
                         <Home
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.HOME] as Route}
-                            currentProject={selectedProject}
+
                             projects={projects}
                             isLoadingProjects={isLoading}
                         />
@@ -285,8 +332,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PROJECT_SSO]?.toString() || ''}
                     element={
                         <Sso
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.PROJECT_SSO] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -299,12 +347,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <NotOperationalMonitors
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -319,13 +368,14 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <OngoingScheduledEvents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap
+                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -335,8 +385,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.MONITORS]?.toString() || ''}
                     element={
                         <MonitorPage
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -348,12 +399,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorInoperational
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITORS_INOPERATIONAL
+                                PageMap.MONITORS_INOPERATIONAL
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -362,8 +414,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.MONITOR_VIEW]?.toString() || ''}
                     element={
                         <MonitorView
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -374,10 +427,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorViewDelete
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -390,12 +444,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorViewStatusTimeline
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -407,10 +462,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorViewCriteria
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -422,12 +478,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorIncidents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_INCIDENTS
+                                PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -440,12 +497,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorViewCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                                PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -457,10 +515,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorViewInterval
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -471,10 +530,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorViewProbes
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -485,8 +545,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WORKFLOWS]?.toString() || ''}
                     element={
                         <Workflows
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -497,10 +558,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <WorkflowsVariables
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -509,10 +571,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WORKFLOWS_LOGS]?.toString() || ''}
                     element={
                         <WorkflowsLogs
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOWS_LOGS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -523,10 +586,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <WorkflowVariables
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_VARIABLES] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -535,10 +599,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WORKFLOW_BUILDER]?.toString() || ''}
                     element={
                         <WorkflowBuilder
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_BUILDER] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -547,8 +612,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WORKFLOW_VIEW]?.toString() || ''}
                     element={
                         <WorkflowOverview
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -557,8 +623,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WORKFLOW_LOGS]?.toString() || ''}
                     element={
                         <WorkflowLogs
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -567,10 +634,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.WORKFLOW_DELETE]?.toString() || ''}
                     element={
                         <WorkflowDelete
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_DELETE] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -581,8 +649,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.STATUS_PAGES]?.toString() || ''}
                     element={
                         <StatusPages
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -595,8 +664,9 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageViewSubscriberSettings
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -605,10 +675,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.STATUS_PAGE_VIEW]?.toString() || ''}
                     element={
                         <StatusPagesView
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.STATUS_PAGE_VIEW] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -620,12 +691,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewDelete
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_DELETE
+                                PageMap.STATUS_PAGE_VIEW_DELETE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -638,12 +710,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewBranding
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_BRANDING
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -656,12 +729,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewCustomHtmlCss
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -674,12 +748,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewAdvancedOptions
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -692,12 +767,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageViewCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -708,10 +784,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageViewSSO
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -724,12 +801,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewEmailSubscribers
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -742,13 +820,14 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageViewAuthenticationSettings
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                                PageMap
+                                    .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -761,12 +840,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageViewCustomSMTP
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -779,12 +859,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageViewPrivateUser
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                                PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -797,12 +878,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewSMSSubscribers
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -815,12 +897,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewHeaderStyle
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -833,12 +916,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewFooterStyle
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -851,12 +935,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewNavBarStyle
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -869,12 +954,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewWebhookSubscribers
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -887,12 +973,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewEmbedded
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -905,12 +992,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewResources
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -923,12 +1011,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewDomains
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                PageMap.STATUS_PAGE_VIEW_DOMAINS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -940,12 +1029,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewGroups
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_GROUPS
+                                PageMap.STATUS_PAGE_VIEW_GROUPS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -958,12 +1048,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPagesViewAnnouncement
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -974,8 +1065,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.INCIDENTS]?.toString() || ''}
                     element={
                         <Incidents
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -986,10 +1078,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <UnresolvedIncidents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -998,8 +1091,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.INCIDENT_VIEW]?.toString() || ''}
                     element={
                         <IncidentView
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1010,10 +1104,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <IncidentViewDelete
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1026,12 +1121,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <IncidentViewStateTimeline
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1043,12 +1139,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <IncidentInternalNote
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_INTERNAL_NOTE
+                                PageMap.INCIDENT_INTERNAL_NOTE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1061,12 +1158,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <IncidentViewCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
+                                PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1077,10 +1175,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <IncidentPublicNote
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1095,12 +1194,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEvents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap.SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1113,12 +1213,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <OngoingScheduledMaintenanceEvents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1131,12 +1232,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEventView
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1149,13 +1251,14 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEventsViewCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                                PageMap
+                                    .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1168,12 +1271,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEventViewDelete
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1186,13 +1290,14 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEventViewStateTimeline
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                PageMap
+                                    .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1205,12 +1310,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEventInternalNote
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1223,12 +1329,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceEventPublicNote
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                                PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1239,8 +1346,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.LOGS]?.toString() || ''}
                     element={
                         <Logs
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.LOGS] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1251,8 +1359,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS]?.toString() || ''}
                     element={
                         <ProjectSettings
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1269,10 +1378,11 @@ const App: FunctionComponent = () => {
                                 fetchProjects();
                                 Navigation.navigate(RouteMap[PageMap.INIT]!);
                             }}
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1285,12 +1395,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsMonitors
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
+                                PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1303,12 +1414,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsIncidents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1321,12 +1433,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsScheduledMaintenanceState
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1335,8 +1448,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_SSO]?.toString() || ''}
                     element={
                         <SettingsSSO
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1349,12 +1463,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsIncidentSeverity
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1363,10 +1478,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_DOMAINS]?.toString() || ''}
                     element={
                         <SettingsDomains
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DOMAINS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1377,10 +1493,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingCustomSMTP
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1389,10 +1506,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_APIKEYS]?.toString() || ''}
                     element={
                         <SettingsApiKeys
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1403,10 +1521,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsApiKeyView
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1419,12 +1538,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <MonitorCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1437,12 +1557,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <StatusPageCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1455,13 +1576,14 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ScheduledMaintenanceCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1474,12 +1596,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <IncidentCustomFields
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1488,10 +1611,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_BILLING]?.toString() || ''}
                     element={
                         <SettingsBilling
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_BILLING] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1504,12 +1628,13 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsInvoices
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_BILLING_INVOICES
+                                PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1518,10 +1643,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_LABELS]?.toString() || ''}
                     element={
                         <SettingLabels
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_LABELS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1530,10 +1656,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_PROBES]?.toString() || ''}
                     element={
                         <SettingProbes
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_PROBES] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1542,10 +1669,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_TEAMS]?.toString() || ''}
                     element={
                         <SettingsTeams
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAMS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1556,10 +1684,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <SettingsTeamView
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1570,10 +1699,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.ON_CALL_DUTY]?.toString() || ''}
                     element={
                         <OnCallDutyPage
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1583,8 +1713,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.LOGOUT]?.toString() || ''}
                     element={
                         <Logout
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.LOGOUT] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1596,10 +1727,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <UserProfilePicture
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.USER_PROFILE_PICTURE] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1611,10 +1743,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <UserProfileOverview
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.USER_PROFILE_OVERVIEW] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1626,10 +1759,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <UserProfilePassword
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1640,10 +1774,11 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ProjectInvitations
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.PROJECT_INVITATIONS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1652,10 +1787,11 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString() || ''}
                     element={
                         <ActiveIncidents
+                            {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.ACTIVE_INCIDENTS] as Route
                             }
-                            currentProject={selectedProject}
+
                         />
                     }
                 />
@@ -1665,8 +1801,9 @@ const App: FunctionComponent = () => {
                     path="*"
                     element={
                         <PageNotFound
+                            {...commonPageProps}
                             pageRoute={RouteMap[PageMap.LOGOUT] as Route}
-                            currentProject={selectedProject}
+
                         />
                     }
                 />

@@ -14,6 +14,7 @@ export interface ComponentProps {
     error: string;
     onProjectSelected: (project: Project) => void;
     showProjectModal: boolean;
+    paymentMethodsCount?: number | undefined;
     onProjectModalClose: () => void;
     selectedProject: Project | null;
     hideNavBarOn: Array<Route>;
@@ -40,6 +41,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     showProjectModal={props.showProjectModal}
                     onProjectModalClose={props.onProjectModalClose}
                     selectedProject={props.selectedProject || null}
+                    paymentMethodsCount={props.paymentMethodsCount}
                 />
             }
             navBar={

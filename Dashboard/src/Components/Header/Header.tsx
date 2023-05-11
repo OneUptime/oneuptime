@@ -13,9 +13,6 @@ import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
 import Logo from './Logo';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
-import useAsyncEffect from 'use-async-effect';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
@@ -40,35 +37,14 @@ export interface ComponentProps {
     showProjectModal: boolean;
     onProjectModalClose: () => void;
     selectedProject: Project | null;
+    paymentMethodsCount?: number | undefined;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
-        useState<boolean>(false);
-    const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
-        null
-    );
-
     const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
         useState<boolean>(true);
-
-    useAsyncEffect(async () => {
-        if (
-            props.selectedProject &&
-            props.selectedProject._id &&
-            BILLING_ENABLED
-        ) {
-            setPaymentMethodCountLoading(true);
-            const paymentMethodsCount: number = await ModelAPI.count(
-                BillingPaymentMethod,
-                { projectId: props.selectedProject?._id }
-            );
-            setPaymentMethodCount(paymentMethodsCount);
-            setPaymentMethodCountLoading(false);
-        }
-    }, [props.selectedProject]);
 
     const refreshIncidentCount: Function = () => {
         setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
@@ -203,8 +179,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             props.selectedProject.paymentProviderPlanId,
                             getAllEnvVars()
                         ) &&
-                        !isPaymentMethodCountLoading &&
-                        paymentMethodCount === 0 ? (
+                        props.paymentMethodsCount !== undefined &&
+                        props.paymentMethodsCount === 0 ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {
