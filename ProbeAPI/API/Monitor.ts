@@ -82,6 +82,10 @@ router.post(
             // update the lastMonitoredAt field of the monitors
 
             for (const monitorProbe of monitorProbes) {
+                if (!monitorProbe.monitor) {
+                    continue;
+                }
+
                 await MonitorProbeService.updateOneById({
                     id: monitorProbe.id!,
                     data: {
@@ -96,11 +100,13 @@ router.post(
                 });
             }
 
-            const monitors: Array<Monitor> = monitorProbes.map(
-                (monitorProbe: MonitorProbe) => {
+            const monitors: Array<Monitor> = monitorProbes
+                .map((monitorProbe: MonitorProbe) => {
                     return monitorProbe.monitor!;
-                }
-            );
+                })
+                .filter((monitor: Monitor) => {
+                    return Boolean(monitor);
+                });
 
             // return the list of monitors to be monitored
 

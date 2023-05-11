@@ -34,7 +34,6 @@ export default class ProbeMonitorResponseService {
         };
 
         // fetch monitor
-
         const monitor: Monitor | null = await MonitorService.findOneById({
             id: probeMonitorResponse.monitorId,
             select: {

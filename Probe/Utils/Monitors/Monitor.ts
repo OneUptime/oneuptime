@@ -44,7 +44,10 @@ export default class MonitorUtil {
                 URL.fromString(PROBE_API_URL.toString()).addRoute(
                     '/probe/response/ingest'
                 ),
-                ProbeAPIRequest.getDefaultRequestBody(),
+                {
+                    ...ProbeAPIRequest.getDefaultRequestBody(),
+                    probeMonitorResponse: result as any,
+                },
                 {},
                 {}
             );

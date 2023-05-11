@@ -10,6 +10,8 @@ import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import { JSONArray } from 'Common/Types/JSON';
 
 RunCron(
     'Monitor: Fetch List and monitor',
@@ -18,8 +20,8 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-        const result: HTTPResponse<Array<Monitor>> | HTTPErrorResponse =
-            await API.fetch<Array<Monitor>>(
+        const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+            await API.fetch<JSONArray>(
                 HTTPMethod.POST,
                 URL.fromString(PROBE_API_URL.toString()).addRoute(
                     '/monitor/list'
@@ -29,7 +31,10 @@ RunCron(
                 {}
             );
 
-        const monitors: Array<Monitor> = result.data as Array<Monitor>;
+        const monitors: Array<Monitor> = JSONFunctions.fromJSONArray(
+            result.data as JSONArray,
+            Monitor
+        );
 
         const monitoringPromises: Array<Promise<void>> = [];
 
