@@ -37,8 +37,9 @@ export default class QueryHelper {
         });
     }
 
-    public static equalToOrNull(value: string | ObjectID | Array<string | ObjectID>): FindOperator<any> {
-
+    public static equalToOrNull(
+        value: string | ObjectID | Array<string | ObjectID>
+    ): FindOperator<any> {
         const rid: Array<string> = [];
         const valuesObj: Dictionary<string> = {};
 
@@ -56,22 +57,24 @@ export default class QueryHelper {
 
         // construct string
 
-        const constructQuery = (alias: string): string => {
-            let query: string = rid.map((item: string) => {
-                return `${alias} = :${item}`;
-            }).join(' or ');
+        const constructQuery: Function = (alias: string): string => {
+            let query: string = rid
+                .map((item: string) => {
+                    return `${alias} = :${item}`;
+                })
+                .join(' or ');
 
-            query+=` or ${alias} IS NULL`
+            query += ` or ${alias} IS NULL`;
 
-            return query; 
-        }
-        
+            return query;
+        };
+
         return Raw(
             (alias: string) => {
                 return constructQuery(alias);
             },
             {
-                ...valuesObj
+                ...valuesObj,
             }
         );
     }

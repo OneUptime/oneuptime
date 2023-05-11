@@ -54,8 +54,12 @@ router.post(
                         ),
                         project: {
                             // get only active projects
-                            paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([SubscriptionStatus.Active, SubscriptionStatus.Trialing])
-                        }
+                            paymentProviderSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
+                        },
                     },
                     skip: 0,
                     limit: limit,

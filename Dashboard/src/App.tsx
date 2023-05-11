@@ -160,7 +160,6 @@ const App: FunctionComponent = () => {
 
     useAsyncEffect(async () => {
         if (selectedProject && selectedProject._id && BILLING_ENABLED) {
-
             setPaymentMethodsCountLoading(true);
             const paymentMethodsCount: number = await ModelAPI.count(
                 BillingPaymentMethod,
