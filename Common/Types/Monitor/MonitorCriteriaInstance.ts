@@ -416,7 +416,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             id: (json['id'] as string) || ObjectID.generate().toString(),
             monitorStatusId,
             filterCondition,
-            changeMonitorStatus: (json['changeMonitorStatus'] as boolean) || false,
+            changeMonitorStatus:
+                (json['changeMonitorStatus'] as boolean) || false,
             createIncidents: (json['createIncidents'] as boolean) || false,
             filters,
             incidents,

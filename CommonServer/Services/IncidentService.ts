@@ -29,7 +29,8 @@ export class Service extends DatabaseService<Model> {
         const incidentState: IncidentState | null =
             await IncidentStateService.findOneBy({
                 query: {
-                    projectId: createBy.props.tenantId || createBy.data.projectId!,
+                    projectId:
+                        createBy.props.tenantId || createBy.data.projectId!,
                     isCreatedState: true,
                 },
                 select: {

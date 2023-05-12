@@ -331,7 +331,6 @@ export default class OneUptimeDate {
     }
 
     public static hasExpired(expiratinDate: Date): boolean {
-        
         expiratinDate = this.fromString(expiratinDate);
         return !moment(this.getCurrentDate()).isBefore(expiratinDate);
     }
@@ -369,7 +368,6 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-
         date = this.fromString(date);
 
         let formatstring: string = 'MMM DD YYYY, HH:mm';
@@ -407,17 +405,21 @@ export default class OneUptimeDate {
     }
 
     public static fromString(date: string | JSONObject | Date): Date {
-
         if (date instanceof Date) {
             return date;
         }
-
 
         if (typeof date === 'string') {
             return moment(date).toDate();
         }
 
-        if (date && date['value'] && typeof date['value'] === 'string' && date['_type'] && (date['_type'] === 'Date' || date['_type'] === 'DateTime')) {
+        if (
+            date &&
+            date['value'] &&
+            typeof date['value'] === 'string' &&
+            date['_type'] &&
+            (date['_type'] === 'Date' || date['_type'] === 'DateTime')
+        ) {
             return moment(date['value']).toDate();
         }
 

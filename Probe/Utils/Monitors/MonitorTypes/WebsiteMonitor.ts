@@ -20,14 +20,12 @@ export interface ProbeWebsiteResponse {
 export default class WebsiteMonitor {
     public static async ping(url: URL): Promise<ProbeWebsiteResponse> {
         try {
-
             const startTime: [number, number] = process.hrtime();
             const result: WebsiteResponse = await WebsiteRequest.get(url, {});
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
             );
-
 
             return {
                 url: url,
@@ -40,7 +38,6 @@ export default class WebsiteMonitor {
                 responseHeaders: result.responseHeaders,
             };
         } catch (err) {
-
             logger.error(err);
 
             return {

@@ -82,9 +82,6 @@ router.post(
             // update the lastMonitoredAt field of the monitors
 
             for (const monitorProbe of monitorProbes) {
-
-
-
                 if (!monitorProbe.monitor) {
                     continue;
                 }

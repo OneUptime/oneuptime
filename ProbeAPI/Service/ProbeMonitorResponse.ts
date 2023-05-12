@@ -63,7 +63,8 @@ export default class ProbeMonitorResponseService {
             monitorSteps.data.monitorStepsInstanceArray.find(
                 (monitorStep: MonitorStep) => {
                     return (
-                        monitorStep.id.toString() === probeMonitorResponse.monitorStepId.toString()
+                        monitorStep.id.toString() ===
+                        probeMonitorResponse.monitorStepId.toString()
                     );
                 }
             );
@@ -131,8 +132,6 @@ export default class ProbeMonitorResponseService {
     }): Promise<ProbeApiIngestResponse> {
         // process monitor step here.
 
-        console.log("HERE!");
-
         const criteria: MonitorCriteria | undefined =
             input.monitorStep.data?.monitorCriteria;
 
@@ -180,10 +179,6 @@ export default class ProbeMonitorResponseService {
                 criteriaInstance: input.criteriaInstance,
             });
 
-        console.log("isCriteriaFiltersMet: "+isCriteriaFiltersMet);
-        console.log("input");
-        console.log(input);
-
         if (isCriteriaFiltersMet) {
             // criteria filters are met, now process the actions.
 
@@ -224,7 +219,7 @@ export default class ProbeMonitorResponseService {
                                 isResolvedState: false,
                             },
                         },
-                        select:{
+                        select: {
                             _id: true,
                         },
                         props: {
@@ -323,7 +318,6 @@ export default class ProbeMonitorResponseService {
             }
             return false;
         }
-
 
         if (
             input.criteriaFilter.checkOn === CheckOn.IsOnline &&

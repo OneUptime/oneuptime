@@ -9,7 +9,9 @@ import URL from 'Common/Types/API/URL';
 import { PROBE_API_URL } from '../../Config';
 import ProbeAPIRequest from '../ProbeAPIRequest';
 import { JSONObject } from 'Common/Types/JSON';
-import WebsiteMonitor, { ProbeWebsiteResponse } from './MonitorTypes/WebsiteMonitor';
+import WebsiteMonitor, {
+    ProbeWebsiteResponse,
+} from './MonitorTypes/WebsiteMonitor';
 import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import logger from 'CommonServer/Utils/Logger';
@@ -18,8 +20,6 @@ export default class MonitorUtil {
     public static async probeMonitor(
         monitor: Monitor
     ): Promise<Array<ProbeMonitorResponse>> {
-
-
         const results: Array<ProbeMonitorResponse> = [];
 
         if (
@@ -35,8 +35,6 @@ export default class MonitorUtil {
             if (!monitorStep) {
                 continue;
             }
-
-            console.log("Monitor destination: "+monitorStep.data?.monitorDestination?.toString())
 
             const result: ProbeMonitorResponse = await this.probeMonitorStep(
                 monitorStep,
