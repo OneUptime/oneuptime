@@ -28,7 +28,7 @@ export default class WebsiteMonitor {
             );
 
             console.log('Website monitor result');
-            console.log(result);
+            console.log(responseTimeInMS);
 
             return {
                 url: url,

@@ -9,7 +9,7 @@ import URL from 'Common/Types/API/URL';
 import { PROBE_API_URL } from '../../Config';
 import ProbeAPIRequest from '../ProbeAPIRequest';
 import { JSONObject } from 'Common/Types/JSON';
-import WebsiteMonitor, { WebsiteResponse } from './MonitorTypes/WebsiteMonitor';
+import WebsiteMonitor, { ProbeWebsiteResponse } from './MonitorTypes/WebsiteMonitor';
 import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
@@ -81,13 +81,13 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Website) {
-            const response: WebsiteResponse = await WebsiteMonitor.ping(
+            const response: ProbeWebsiteResponse = await WebsiteMonitor.ping(
                 monitorStep.data?.monitorDestination as URL
             );
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
-            result.responseBody = response.responseBody;
+            result.responseBody = response.responseBody?.toString();
             result.responseHeaders = response.responseHeaders;
             result.responseCode = response.statusCode;
         }
