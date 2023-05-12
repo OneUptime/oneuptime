@@ -65,7 +65,7 @@ export default class ProbeMonitorResponseService {
             monitorSteps.data.monitorStepsInstanceArray.find(
                 (monitorStep: MonitorStep) => {
                     return (
-                        monitorStep.id === probeMonitorResponse.monitorStepId
+                        monitorStep.id.toString() === probeMonitorResponse.monitorStepId.toString()
                     );
                 }
             );
@@ -83,7 +83,7 @@ export default class ProbeMonitorResponseService {
         const nextMonitorStepIndex: number =
             monitorSteps.data.monitorStepsInstanceArray.findIndex(
                 (step: MonitorStep) => {
-                    return step.id === monitorStep.id;
+                    return step.id.toString() === monitorStep.id.toString();
                 }
             );
 
@@ -133,6 +133,8 @@ export default class ProbeMonitorResponseService {
     }): Promise<ProbeApiIngestResponse> {
         // process monitor step here.
 
+        console.log("HERE!");
+
         const criteria: MonitorCriteria | undefined =
             input.monitorStep.data?.monitorCriteria;
 
@@ -179,6 +181,10 @@ export default class ProbeMonitorResponseService {
                 probeApiIngestResponse: input.probeApiIngestResponse,
                 criteriaInstance: input.criteriaInstance,
             });
+
+        console.log("isCriteriaFiltersMet: "+isCriteriaFiltersMet);
+        console.log("input");
+        console.log(input);
 
         if (isCriteriaFiltersMet) {
             // criteria filters are met, now process the actions.
@@ -312,6 +318,17 @@ export default class ProbeMonitorResponseService {
             input.criteriaFilter.filterType === FilterType.True
         ) {
             if (input.probeMonitorResponse.isOnline) {
+                return true;
+            }
+            return false;
+        }
+
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+            input.criteriaFilter.filterType === FilterType.False
+        ) {
+            if (!input.probeMonitorResponse.isOnline) {
                 return true;
             }
             return false;
