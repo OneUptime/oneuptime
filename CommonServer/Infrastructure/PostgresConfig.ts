@@ -23,7 +23,7 @@ export const dataSourceOptions: DataSourceOptions = {
     migrationsTableName: 'migrations',
     migrations: Migrations,
     entities: Entities,
-    //logging: 'all',
+    // logging: 'all',
     // synchronize: Env === AppEnvironment.Development,
     synchronize: true,
 };

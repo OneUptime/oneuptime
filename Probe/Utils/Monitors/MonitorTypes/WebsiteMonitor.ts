@@ -4,6 +4,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import Protocol from 'Common/Types/API/Protocol';
 import WebsiteRequest, { WebsiteResponse } from 'Common/Types/WebsiteRequest';
 import HTML from 'Common/Types/Html';
+import logger from 'CommonServer/Utils/Logger';
 
 export interface ProbeWebsiteResponse {
     url: URL;
@@ -27,8 +28,6 @@ export default class WebsiteMonitor {
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
             );
 
-            console.log('Website monitor result');
-            console.log(responseTimeInMS);
 
             return {
                 url: url,
@@ -41,6 +40,9 @@ export default class WebsiteMonitor {
                 responseHeaders: result.responseHeaders,
             };
         } catch (err) {
+
+            logger.error(err);
+
             return {
                 url: url,
                 isOnline: false,

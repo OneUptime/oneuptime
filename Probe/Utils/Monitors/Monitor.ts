@@ -12,17 +12,21 @@ import { JSONObject } from 'Common/Types/JSON';
 import WebsiteMonitor, { ProbeWebsiteResponse } from './MonitorTypes/WebsiteMonitor';
 import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import logger from 'CommonServer/Utils/Logger';
 
 export default class MonitorUtil {
     public static async probeMonitor(
         monitor: Monitor
     ): Promise<Array<ProbeMonitorResponse>> {
+
+
         const results: Array<ProbeMonitorResponse> = [];
 
         if (
             !monitor.monitorSteps ||
             monitor.monitorSteps.data?.monitorStepsInstanceArray.length === 0
         ) {
+            logger.info('No monitor steps found');
             return [];
         }
 
@@ -31,6 +35,8 @@ export default class MonitorUtil {
             if (!monitorStep) {
                 continue;
             }
+
+            console.log("Monitor destination: "+monitorStep.data?.monitorDestination?.toString())
 
             const result: ProbeMonitorResponse = await this.probeMonitorStep(
                 monitorStep,

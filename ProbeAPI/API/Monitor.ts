@@ -82,6 +82,9 @@ router.post(
             // update the lastMonitoredAt field of the monitors
 
             for (const monitorProbe of monitorProbes) {
+
+
+
                 if (!monitorProbe.monitor) {
                     continue;
                 }
@@ -105,7 +108,7 @@ router.post(
                     return monitorProbe.monitor!;
                 })
                 .filter((monitor: Monitor) => {
-                    return Boolean(monitor);
+                    return Boolean(monitor._id);
                 });
 
             // return the list of monitors to be monitored
