@@ -23,11 +23,21 @@ export default class WebsiteMonitor {
         try {
             const startTime: [number, number] = process.hrtime();
             const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.get(url, {}, {});
+                await API.get(url, {}, {
+                    'content-type': 'text/html',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Accept': '*/*',
+                    'User-Agent': 'OneUptime',
+                    
+                });
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
             );
+
+
+            console.log("Website monitor result");
+            console.log(result);
 
             return {
                 url: url,
