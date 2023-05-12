@@ -5,6 +5,7 @@ import MonitorStep from './MonitorStep';
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
 import ObjectID from '../ObjectID';
+import JSONFunctions from '../JSONFunctions';
 
 export interface MonitorStepsType {
     monitorStepsInstanceArray: Array<MonitorStep>;
@@ -76,7 +77,7 @@ export default class MonitorSteps extends DatabaseProperty {
             return MonitorSteps.getNewMonitorStepsAsJSON();
         }
 
-        return {
+        return JSONFunctions.serialize({
             _type: ObjectType.MonitorSteps,
             value: {
                 monitorStepsInstanceArray:
@@ -88,7 +89,7 @@ export default class MonitorSteps extends DatabaseProperty {
                 defaultMonitorStatusId:
                     this.data.defaultMonitorStatusId?.toString() || undefined,
             },
-        };
+        });
     }
 
     public static override fromJSON(json: JSONObject): MonitorSteps {
@@ -164,11 +165,15 @@ export default class MonitorSteps extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: MonitorSteps | FindOperator<MonitorSteps>
+        value: MonitorSteps | FindOperator<MonitorSteps>
     ): JSONObject | null {
-        if (_value) {
-            return (_value as MonitorSteps).toJSON();
+        if (value && value instanceof MonitorSteps) {
+            return (value as MonitorSteps).toJSON();
         }
+        else if(value) {
+            return JSONFunctions.serialize(value as any);
+        }
+
 
         return null;
     }
@@ -179,6 +184,7 @@ export default class MonitorSteps extends DatabaseProperty {
         if (value) {
             return MonitorSteps.fromJSON(value);
         }
+        
 
         return null;
     }
