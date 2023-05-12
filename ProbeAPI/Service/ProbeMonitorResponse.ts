@@ -21,8 +21,6 @@ import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
-import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -218,13 +216,16 @@ export default class ProbeMonitorResponseService {
 
             if (input.criteriaInstance.data?.createIncidents) {
                 // check active incidents and if there are open incidents, do not cretae anothr incident.
-                const openIncidentsCount: PositiveNumber =
-                    await IncidentService.countBy({
+                const openIncident: Incident | null =
+                    await IncidentService.findOneBy({
                         query: {
-                            monitors: QueryHelper.in([input.monitor.id!]),
+                            monitors: [input.monitor.id!] as any,
                             currentIncidentState: {
                                 isResolvedState: false,
                             },
+                        },
+                        select:{
+                            _id: true,
                         },
                         props: {
                             isRoot: true,
@@ -232,7 +233,7 @@ export default class ProbeMonitorResponseService {
                     });
 
                 // if there are no open incidents, create incidents.
-                if (openIncidentsCount.toNumber() === 0) {
+                if (!openIncident) {
                     // create incidents
 
                     for (const criteriaIncident of input.criteriaInstance.data
