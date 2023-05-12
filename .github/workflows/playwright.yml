@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     env:
-      BASE_URL: http://localhost:1444/
+      BASE_URL: https://test.oneuptime.com
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
