@@ -266,6 +266,14 @@ export default class ProbeMonitorResponseService {
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
     }): Promise<boolean> {
+        let finalResult: boolean = true;
+
+        if (
+            FilterCondition.Any === input.criteriaInstance.data?.filterCondition
+        ) {
+            finalResult = false; // set to false as we need to check if any of the filters are met.
+        }
+
         for (const criteriaFilter of input.criteriaInstance.data?.filters ||
             []) {
             const criteriaResult: boolean =
@@ -291,11 +299,12 @@ export default class ProbeMonitorResponseService {
                     input.criteriaInstance.data?.filterCondition &&
                 criteriaResult === false
             ) {
-                return false;
+                finalResult = false;
+                break;
             }
         }
 
-        return false;
+        return finalResult;
     }
 
     private static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -352,7 +361,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs >
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -363,7 +372,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs <
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -374,7 +383,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs ===
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -385,7 +394,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs !==
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -399,7 +408,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs >=
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -412,7 +421,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs <=
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -442,8 +451,7 @@ export default class ProbeMonitorResponseService {
             if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode >
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode > (value as number)
                 ) {
                     return true;
                 }
@@ -453,8 +461,7 @@ export default class ProbeMonitorResponseService {
             if (input.criteriaFilter.filterType === FilterType.LessThan) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode <
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode < (value as number)
                 ) {
                     return true;
                 }
@@ -465,7 +472,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode ===
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -476,7 +483,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode !==
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -489,8 +496,7 @@ export default class ProbeMonitorResponseService {
             ) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode >=
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode >= (value as number)
                 ) {
                     return true;
                 }
@@ -502,8 +508,7 @@ export default class ProbeMonitorResponseService {
             ) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode <=
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode <= (value as number)
                 ) {
                     return true;
                 }

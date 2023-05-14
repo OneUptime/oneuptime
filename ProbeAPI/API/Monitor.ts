@@ -109,8 +109,6 @@ router.post(
                 });
 
 
-                console.log("ITEMS LENGTH", monitors.length);
-
             // return the list of monitors to be monitored
 
             return Response.sendEntityArrayResponse(

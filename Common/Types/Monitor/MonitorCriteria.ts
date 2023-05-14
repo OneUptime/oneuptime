@@ -31,17 +31,17 @@ export default class MonitorCriteria extends DatabaseProperty {
 
         monitorCriteria.data = {
             monitorCriteriaInstanceArray: [
-                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
-                    {
-                        monitorType: arg.monitorType,
-                        monitorStatusId: arg.onlineMonitorStatusId,
-                    }
-                ),
                 MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance(
                     {
                         monitorType: arg.monitorType,
                         monitorStatusId: arg.offlineMonitorStatusId,
                         incidentSeverityId: arg.defaultIncidentSeverityId,
+                    }
+                ),
+                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
+                    {
+                        monitorType: arg.monitorType,
+                        monitorStatusId: arg.onlineMonitorStatusId,
                     }
                 ),
             ],
@@ -155,7 +155,7 @@ export default class MonitorCriteria extends DatabaseProperty {
     ): JSONObject | null {
         if (value && value instanceof MonitorCriteria) {
             return (value as MonitorCriteria).toJSON();
-        }else if (value){
+        } else if (value) {
             return JSONFunctions.serialize(value as any);
         }
 

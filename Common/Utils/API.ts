@@ -249,6 +249,7 @@ export default class API {
     }
 
     private static getErrorResponse(error: AxiosError): HTTPErrorResponse {
+        
         if (error.response) {
             return new HTTPErrorResponse(
                 error.response.status,

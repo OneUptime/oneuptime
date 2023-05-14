@@ -75,6 +75,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             description: 'This criteria cheks if the monitor is online',
         };
 
+        if (
+            arg.monitorType === MonitorType.Website ||
+            arg.monitorType === MonitorType.API
+        ) {
+            monitorCriteriaInstance.data.filters.push({
+                checkOn: CheckOn.ResponseStatusCode,
+                filterType: FilterType.EqualTo,
+                value: 200,
+            });
+        }
+
         return monitorCriteriaInstance;
     }
 
@@ -438,8 +449,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     ): JSONObject | null {
         if (value && value instanceof MonitorCriteriaInstance) {
             return (value as MonitorCriteriaInstance).toJSON();
-        }else if(value){
-                return JSONFunctions.serialize(value as any);  
+        } else if (value) {
+            return JSONFunctions.serialize(value as any);
         }
 
         return null;

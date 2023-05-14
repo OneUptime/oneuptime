@@ -58,8 +58,7 @@ export default class QueryHelper {
         // construct string
 
         const constructQuery: Function = (alias: string): string => {
-
-            let query: string = "(";
+            let query: string = '(';
 
             query += rid
                 .map((item: string) => {

@@ -20,7 +20,6 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-
         // run a set timeout function randomly between 1 to 5 seconds, so same probes do not hit the server at the same time
 
         setTimeout(async () => {
@@ -61,7 +60,5 @@ RunCron(
 
             await Promise.allSettled(monitoringPromises);
         }, Math.floor(Math.random() * 5000) + 1000);
-
-
     }
 );

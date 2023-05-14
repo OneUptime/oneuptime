@@ -235,12 +235,9 @@ export default class MonitorStep extends DatabaseProperty {
     ): JSONObject | null {
         if (value && value instanceof MonitorStep) {
             return (value as MonitorStep).toJSON();
-        }
-
-        else if(value) {
+        } else if (value) {
             return JSONFunctions.serialize(value as any);
         }
-
 
         return null;
     }
