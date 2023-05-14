@@ -16,6 +16,7 @@ import CronTab from 'CommonServer/Utils/CronTab';
 import Monitor from 'Model/Models/Monitor';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { JSONObject } from 'Common/Types/JSON';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -51,6 +52,14 @@ router.post(
                         nextPingAt: QueryHelper.lessThanEqualToOrNull(
                             OneUptimeDate.getCurrentDate()
                         ),
+                        project: {
+                            // get only active projects
+                            paymentProviderSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
+                        },
                     },
                     skip: 0,
                     limit: limit,
@@ -73,6 +82,10 @@ router.post(
             // update the lastMonitoredAt field of the monitors
 
             for (const monitorProbe of monitorProbes) {
+                if (!monitorProbe.monitor) {
+                    continue;
+                }
+
                 await MonitorProbeService.updateOneById({
                     id: monitorProbe.id!,
                     data: {
@@ -87,11 +100,13 @@ router.post(
                 });
             }
 
-            const monitors: Array<Monitor> = monitorProbes.map(
-                (monitorProbe: MonitorProbe) => {
+            const monitors: Array<Monitor> = monitorProbes
+                .map((monitorProbe: MonitorProbe) => {
                     return monitorProbe.monitor!;
-                }
-            );
+                })
+                .filter((monitor: Monitor) => {
+                    return Boolean(monitor._id);
+                });
 
             // return the list of monitors to be monitored
 

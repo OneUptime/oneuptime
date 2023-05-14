@@ -36,7 +36,9 @@ export default class PingMonitor {
                 } else if (host instanceof URL) {
                     connectionOptions = {
                         host: host.hostname.hostname,
-                        port: host.hostname.port.toNumber(),
+                        port:
+                            host.hostname.port?.toNumber() ||
+                            (host.isHttps() ? 443 : 80),
                         timeout,
                     };
                 } else {

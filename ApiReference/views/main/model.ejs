@@ -1,5 +1,5 @@
 <main class="py-16">
-   <article class="prose dark:prose-invert">
+   <article class="prose ">
       <h1>
          <%= pageData.title -%>
       </h1>
@@ -26,7 +26,7 @@
                          <dt class="sr-only">Name</dt>
                          <dd><code class="inline-code"> <%= pageData.tablePermissions.read[i].permission -%></code></dd>
                          <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.read[i].title -%></dd>
+                         <dd class="font-mono text-xs text-zinc-400 "><%= pageData.tablePermissions.read[i].title -%></dd>
                          <dt class="sr-only">Description</dt>
                          <dd class="w-full text-sm flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                             <p><%= pageData.tablePermissions.read[i].description -%></p>
@@ -57,7 +57,7 @@
                          <dt class="sr-only">Name</dt>
                          <dd><code class="inline-code"> <%= pageData.tablePermissions.create[i].permission -%></code></dd>
                          <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.create[i].title -%></dd>
+                         <dd class="font-mono text-xs text-zinc-400 "><%= pageData.tablePermissions.create[i].title -%></dd>
                          <dt class="sr-only">Description</dt>
                          <dd class="w-full text-sm flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                             <p><%= pageData.tablePermissions.create[i].description -%></p>
@@ -90,7 +90,7 @@
                          <dt class="sr-only">Name</dt>
                          <dd><code class="inline-code"> <%= pageData.tablePermissions.update[i].permission -%></code></dd>
                          <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.update[i].title -%></dd>
+                         <dd class="font-mono text-xs text-zinc-400 "><%= pageData.tablePermissions.update[i].title -%></dd>
                          <dt class="sr-only">Description</dt>
                          <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                             <p><%= pageData.tablePermissions.update[i].description -%></p>
@@ -122,7 +122,7 @@
                          <dt class="sr-only">Name</dt>
                          <dd><code class="inline-code"> <%= pageData.tablePermissions.delete[i].permission -%></code></dd>
                          <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.tablePermissions.delete[i].title -%></dd>
+                         <dd class="font-mono text-xs text-zinc-400 "><%= pageData.tablePermissions.delete[i].title -%></dd>
                          <dt class="sr-only">Description</dt>
                          <dd class="w-full text-sm flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                             <p><%= pageData.tablePermissions.delete[i].description -%></p>
@@ -146,14 +146,14 @@
       <h3>Properties</h3>
       <div class="my-6">
          <ul role="list"
-            class="m-0 w-full list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+            class="m-0 w-full list-none divide-y divide-zinc-900/5 p-0 ">
             <% for(var i=0; i<Object.keys(pageData.columns).length; i++) {%>
                <li class="m-0 px-0 py-4 first:pt-0 last:pb-0 mt-5">
                   <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                      <dt class="sr-only">Name</dt>
                      <dd><code class="inline-code"><%= Object.keys(pageData.columns)[i] -%></code></dd>
                      <dt class="sr-only">Type</dt>
-                     <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">
+                     <dd class="font-mono text-xs text-zinc-400 ">
 
                         <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
 
@@ -242,10 +242,10 @@
 <div class="mt-10">
       <hr>
       <div class="flex items-center gap-x-3 mt-10"><span
-            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400">GET</span> <span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300  bg-emerald-400/10 text-emerald-500 ">GET</span> <span
             class="font-mono text-xs text-zinc-400">or</span> <span
-            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300 dark:ring-sky-400/30 bg-sky-400/10 text-sky-500 dark:text-sky-400">POST</span><span
-            class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+            class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300  bg-sky-400/10 text-sky-500 ">POST</span><span
+            class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
            class="font-mono text-xs text-zinc-400"><%= pageData.apiPath -%>/get-list</span></div>
            <div class="-mt-20">
       <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><span class="group text-inherit no-underline hover:text-inherit">List</span></h2>
@@ -257,14 +257,14 @@
                      <h3>Optional Query Params</h3>
                   <div class="my-6">
                      <ul role="list"
-                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                         <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                            
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Limit</dt>
                               <dd><code class="inline-code">limit</code></dd>
                               <dt class="sr-only">Type</dt>
-                              <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">number</dd>
+                              <dd class="font-mono text-xs text-zinc-400 ">number</dd>
                               <dt class="sr-only">Description</dt>
                               <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                  <p>Number of objects to fetch. By default 10, you can increase this count up to 100</p>
@@ -276,7 +276,7 @@
                               <dt class="sr-only">Skip</dt>
                               <dd><code class="inline-code">skip</code></dd>
                               <dt class="sr-only">Type</dt>
-                              <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">number</dd>
+                              <dd class="font-mono text-xs text-zinc-400 ">number</dd>
                               <dt class="sr-only">Description</dt>
                               <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                  <p>Number of objects to skip. This can be useful in pagination</p>
@@ -288,13 +288,13 @@
                   <h3>Optional Request Body</h3>
                   <div class="my-6">
                      <ul role="list"
-                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                         <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Query</dt>
                               <dd><code class="inline-code">query</code></dd>
                               <dt class="sr-only">Type</dt>
-                              <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">query</dd>
+                              <dd class="font-mono text-xs text-zinc-400 ">query</dd>
                               <dt class="sr-only">Description</dt>
                               <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                  <p>If you would like to filter on <%= pageData.title -%>. You can specify include a query here. For more information, <a class="link" target="_blank" href="/reference/data-types#queries">please check out writing queries here.</a></p>
@@ -307,7 +307,7 @@
                            <dt class="sr-only">Select</dt>
                            <dd><code class="inline-code">select</code></dd>
                            <dt class="sr-only">Type</dt>
-                           <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">select</dd>
+                           <dd class="font-mono text-xs text-zinc-400 ">select</dd>
                            <dt class="sr-only">Description</dt>
                            <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                               <p> By default you will only retrieve ID of objects, to retrieve more fields you need to select them. For more information, <a class="link" target="_blank" href="/reference/data-types#select">please check how to select here.</a></p>
@@ -319,7 +319,7 @@
                            <dt class="sr-only">Sort</dt>
                            <dd><code class="inline-code">sort</code></dd>
                            <dt class="sr-only">Type</dt>
-                           <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">sort</dd>
+                           <dd class="font-mono text-xs text-zinc-400 ">sort</dd>
                            <dt class="sr-only">Description</dt>
                            <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                               <p> Objects will be sorted based on created date by default. You can change the sort order by passing  <a class="link" target="_blank" href="/reference/data-types#select">please check how to select here.</a></p>
@@ -341,10 +341,10 @@
          <div class="mt-10">
          <hr>
          <div class="flex items-center gap-x-3 mt-10"><span
-               class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400">GET</span> <span
+               class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300  bg-emerald-400/10 text-emerald-500 ">GET</span> <span
                class="font-mono text-xs text-zinc-400">or</span> <span
-               class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300 dark:ring-sky-400/30 bg-sky-400/10 text-sky-500 dark:text-sky-400">POST</span><span
-               class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+               class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300  bg-sky-400/10 text-sky-500 ">POST</span><span
+               class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
               class="font-mono text-xs text-zinc-400"><%= pageData.apiPath -%>/:id/get-item</span></div>
               <div class="-mt-20">
          <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><span class="group text-inherit no-underline hover:text-inherit"
@@ -356,14 +356,14 @@
                         <h3>Required Query Params</h3>
                      <div class="my-6">
                         <ul role="list"
-                           class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                           class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                            <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                               
                               <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                                  <dt class="sr-only">ID</dt>
                                  <dd><code class="inline-code">id</code></dd>
                                  <dt class="sr-only">Type</dt>
-                                 <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">text</dd>
+                                 <dd class="font-mono text-xs text-zinc-400 ">text</dd>
                                  <dt class="sr-only">Description</dt>
                                  <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                     <p>ID of the Object</p>
@@ -375,14 +375,14 @@
                      <h3>Optional Request Body</h3>
                      <div class="my-6">
                         <ul role="list"
-                           class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                           class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                            
                            <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Select</dt>
                               <dd><code class="inline-code">select</code></dd>
                               <dt class="sr-only">Type</dt>
-                              <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">select</dd>
+                              <dd class="font-mono text-xs text-zinc-400 ">select</dd>
                               <dt class="sr-only">Description</dt>
                               <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                  <p> By default you will only retrieve ID of objects, to retrieve more fields you need to select them. For more information, <a class="link" target="_blank" href="/reference/data-types#select">please check how to select here.</a></p>
@@ -408,8 +408,8 @@
             <div class="mt-10">
             <hr>
             <div class="flex items-center gap-x-3 mt-10"><span
-                  class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300 dark:ring-sky-400/30 bg-sky-400/10 text-sky-500 dark:text-sky-400">POST</span><span
-                  class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+                  class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300  bg-sky-400/10 text-sky-500 ">POST</span><span
+                  class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
                  class="font-mono text-xs text-zinc-400"><%= pageData.apiPath -%>/count</span></div>
                  <div class="-mt-20">
             <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><span class="group text-inherit no-underline hover:text-inherit"
@@ -423,13 +423,13 @@
                         <h3>Optional Request Body</h3>
                         <div class="my-6">
                            <ul role="list"
-                              class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                              class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                               <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                                  <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                                     <dt class="sr-only">Query</dt>
                                     <dd><code class="inline-code">query</code></dd>
                                     <dt class="sr-only">Type</dt>
-                                    <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">query</dd>
+                                    <dd class="font-mono text-xs text-zinc-400 ">query</dd>
                                     <dt class="sr-only">Description</dt>
                                     <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                        <p>If you would like to filter on <%= pageData.title -%>. You can specify include a query here. For more information, <a class="link" target="_blank" href="/reference/data-types#queries">please check out writing queries here.</a></p>
@@ -454,8 +454,8 @@
             <div class="mt-10">
                <hr>
                <div class="flex items-center gap-x-3 mt-10"><span
-                     class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300 dark:ring-sky-400/30 bg-sky-400/10 text-sky-500 dark:text-sky-400">POST</span><span
-                     class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+                     class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300  bg-sky-400/10 text-sky-500 ">POST</span><span
+                     class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
                     class="font-mono text-xs text-zinc-400"><%= pageData.apiPath -%></span></div>
                     <div class="-mt-20">
                <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><span class="group text-inherit no-underline hover:text-inherit"
@@ -469,13 +469,13 @@
                            <h3>Request Body</h3>
                            <div class="my-6">
                               <ul role="list"
-                                 class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                                 class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                                        <dt class="sr-only">Data</dt>
                                        <dd><code class="inline-code">data</code></dd>
                                        <dt class="sr-only">Type</dt>
-                                       <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">JSON</dd>
+                                       <dd class="font-mono text-xs text-zinc-400 ">JSON</dd>
                                        <dt class="sr-only">Description</dt>
                                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                           <p>Object to update as JSON</p>
@@ -501,8 +501,8 @@
             <div class="mt-10">
                <hr>
                <div class="flex items-center gap-x-3 mt-10"><span
-                     class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-amber-300 dark:ring-amber-400/30 bg-amber-400/10 text-amber-500 dark:text-amber-400">PUT</span><span
-                     class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+                     class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-amber-300  bg-amber-400/10 text-amber-500 ">PUT</span><span
+                     class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
                     class="font-mono text-xs text-zinc-400"><%= pageData.apiPath -%>/:id</span></div>
                     <div class="-mt-20">
                <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><span class="group text-inherit no-underline hover:text-inherit"
@@ -516,13 +516,13 @@
                            <h3>Request Body</h3>
                            <div class="my-6">
                               <ul role="list"
-                                 class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 dark:divide-white/5">
+                                 class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
                                  <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                                     <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                                        <dt class="sr-only">Data</dt>
                                        <dd><code class="inline-code">data</code></dd>
                                        <dt class="sr-only">Type</dt>
-                                       <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500">JSON</dd>
+                                       <dd class="font-mono text-xs text-zinc-400 ">JSON</dd>
                                        <dt class="sr-only">Description</dt>
                                        <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                                           <p>Object to update as JSON</p>
@@ -547,8 +547,8 @@
                <div class="mt-10">
                   <hr>
                   <div class="flex items-center gap-x-3 mt-10"><span
-                        class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-red-300 dark:ring-red-400/30 bg-red-400/10 text-red-500 dark:text-red-400">DELETE</span><span
-                        class="h-0.5 w-0.5 rounded-full bg-zinc-300 dark:bg-zinc-600"></span><span
+                        class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-red-300  bg-red-400/10 text-red-500 ">DELETE</span><span
+                        class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
                        class="font-mono text-xs text-zinc-400"><%= pageData.apiPath -%>/:id</span></div>
                        <div class="-mt-20">
                   <h2 id="list-all-contacts" class="mt-2 scroll-mt-32"><span class="group text-inherit no-underline hover:text-inherit"

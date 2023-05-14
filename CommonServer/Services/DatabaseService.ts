@@ -882,7 +882,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                 numberOfDocsAffected =
                     (
-                        await this.getRepository().softDelete(
+                        await this.getRepository().delete(
                             beforeDeleteBy.query as any
                         )
                     ).affected || 0;

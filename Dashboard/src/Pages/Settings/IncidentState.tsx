@@ -99,6 +99,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill
+                                    isMinimal={true}
                                     color={item['color'] as Color}
                                     text={item['name'] as string}
                                 />

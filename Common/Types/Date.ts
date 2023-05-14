@@ -29,6 +29,7 @@ export default class OneUptimeDate {
     }
 
     public static getSecondsTo(date: Date): number {
+        date = this.fromString(date);
         const dif: number = date.getTime() - this.getCurrentDate().getTime();
         const Seconds_from_T1_to_T2: number = dif / 1000;
         return Math.abs(Seconds_from_T1_to_T2);
@@ -45,10 +46,12 @@ export default class OneUptimeDate {
     }
 
     public static timezoneOffsetDate(date: Date): Date {
+        date = this.fromString(date);
         return this.addRemoveMinutes(date, date.getTimezoneOffset());
     }
 
     public static toDateTimeLocalString(date: Date): string {
+        date = this.fromString(date);
         const ten: Function = (i: number): string => {
                 return (i < 10 ? '0' : '') + i;
             },
@@ -63,6 +66,7 @@ export default class OneUptimeDate {
     }
 
     public static addRemoveMinutes(date: Date, minutes: number): Date {
+        date = this.fromString(date);
         return moment(date).add(minutes, 'minutes').toDate();
     }
 
@@ -95,6 +99,7 @@ export default class OneUptimeDate {
         date: Date,
         days: PositiveNumber | number
     ): Date {
+        date = this.fromString(date);
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
@@ -107,6 +112,7 @@ export default class OneUptimeDate {
         date: Date,
         days: PositiveNumber | number
     ): Date {
+        date = this.fromString(date);
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
@@ -117,6 +123,7 @@ export default class OneUptimeDate {
         date: Date,
         days: PositiveNumber | number
     ): Date {
+        date = this.fromString(date);
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
@@ -214,6 +221,8 @@ export default class OneUptimeDate {
     }
 
     public static getGreaterDate(a: Date, b: Date): Date {
+        a = this.fromString(a);
+        b = this.fromString(b);
         if (this.isAfter(a, b)) {
             return a;
         }
@@ -222,6 +231,8 @@ export default class OneUptimeDate {
     }
 
     public static getLesserDate(a: Date, b: Date): Date {
+        a = this.fromString(a);
+        b = this.fromString(b);
         if (this.isBefore(a, b)) {
             return a;
         }
@@ -230,6 +241,8 @@ export default class OneUptimeDate {
     }
 
     public static getSecondsBetweenDates(start: Date, end: Date): number {
+        start = this.fromString(start);
+        end = this.fromString(end);
         const duration: moment.Duration = moment.duration(
             moment(end).diff(moment(start))
         );
@@ -291,10 +304,12 @@ export default class OneUptimeDate {
     }
 
     public static getStartOfDay(date: Date): Date {
+        date = this.fromString(date);
         return moment(date).startOf('day').toDate();
     }
 
     public static getEndOfDay(date: Date): Date {
+        date = this.fromString(date);
         return moment(date).endOf('day').toDate();
     }
 
@@ -303,18 +318,26 @@ export default class OneUptimeDate {
         startDate: Date,
         endDate: Date
     ): boolean {
+        date = this.fromString(date);
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
         return moment(date).isBetween(startDate, endDate);
     }
 
     public static isAfter(date: Date, startDate: Date): boolean {
+        date = this.fromString(date);
+        startDate = this.fromString(startDate);
         return moment(date).isAfter(startDate);
     }
 
     public static hasExpired(expiratinDate: Date): boolean {
+        expiratinDate = this.fromString(expiratinDate);
         return !moment(this.getCurrentDate()).isBefore(expiratinDate);
     }
 
     public static isBefore(date: Date, endDate: Date): boolean {
+        date = this.fromString(date);
+        endDate = this.fromString(endDate);
         return moment(date).isBefore(endDate);
     }
 
@@ -326,6 +349,8 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
+        date = this.fromString(date);
+
         let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
@@ -343,6 +368,8 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
+        date = this.fromString(date);
+
         let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
@@ -363,23 +390,36 @@ export default class OneUptimeDate {
     }
 
     public static getDateString(date: Date): string {
+        date = this.fromString(date);
         return this.getDateAsLocalFormattedString(date, true);
     }
 
     public static isInThePast(date: string | Date): boolean {
+        date = this.fromString(date);
         return moment(date).isBefore(new Date());
     }
 
     public static isInTheFuture(date: string | Date): boolean {
+        date = this.fromString(date);
         return moment(date).isAfter(new Date());
     }
 
-    public static fromString(date: string | JSONObject): Date {
+    public static fromString(date: string | JSONObject | Date): Date {
+        if (date instanceof Date) {
+            return date;
+        }
+
         if (typeof date === 'string') {
             return moment(date).toDate();
         }
 
-        if (date && date['value'] && typeof date['value'] === 'string') {
+        if (
+            date &&
+            date['value'] &&
+            typeof date['value'] === 'string' &&
+            date['_type'] &&
+            (date['_type'] === 'Date' || date['_type'] === 'DateTime')
+        ) {
             return moment(date['value']).toDate();
         }
 
@@ -387,6 +427,7 @@ export default class OneUptimeDate {
     }
 
     public static asDateForDatabaseQuery(date: string | Date): string {
+        date = this.fromString(date);
         const formatstring: string = 'YYYY-MM-DD';
         return moment(date).local().format(formatstring);
     }

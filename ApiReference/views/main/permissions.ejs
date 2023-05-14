@@ -1,5 +1,5 @@
 <main class="py-16">
-    <article class="prose dark:prose-invert">
+    <article class="prose ">
        <h1>Permissions</h1>
        <p class="lead"> Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys. </p>
       
@@ -18,7 +18,7 @@
                          <dt class="sr-only">Name</dt>
                          <dd><code class="inline-code"> <%= pageData.permissions[i].permission -%></code></dd>
                          <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 dark:text-zinc-500"><%= pageData.permissions[i].title -%></dd>
+                         <dd class="font-mono text-xs text-zinc-400 "><%= pageData.permissions[i].title -%></dd>
                          <dt class="sr-only">Description</dt>
                          <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                             <p><%= pageData.permissions[i].description -%></p>

@@ -15,6 +15,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import FileModel from 'Common/Models/FileModel';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class Response {
     private static logResponse(
@@ -73,10 +74,17 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         statusCode: number,
-        body: JSONObject | string
+        body: JSONObject | string,
+        headers: Dictionary<string>
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        if (headers) {
+            for (const key in headers) {
+                oneUptimeResponse.set(key, headers[key]?.toString() || '');
+            }
+        }
 
         oneUptimeResponse.set(
             'ExpressRequest-Id',

@@ -21,8 +21,6 @@ import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
-import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -34,7 +32,6 @@ export default class ProbeMonitorResponseService {
         };
 
         // fetch monitor
-
         const monitor: Monitor | null = await MonitorService.findOneById({
             id: probeMonitorResponse.monitorId,
             select: {
@@ -66,7 +63,8 @@ export default class ProbeMonitorResponseService {
             monitorSteps.data.monitorStepsInstanceArray.find(
                 (monitorStep: MonitorStep) => {
                     return (
-                        monitorStep.id === probeMonitorResponse.monitorStepId
+                        monitorStep.id.toString() ===
+                        probeMonitorResponse.monitorStepId.toString()
                     );
                 }
             );
@@ -84,7 +82,7 @@ export default class ProbeMonitorResponseService {
         const nextMonitorStepIndex: number =
             monitorSteps.data.monitorStepsInstanceArray.findIndex(
                 (step: MonitorStep) => {
-                    return step.id === monitorStep.id;
+                    return step.id.toString() === monitorStep.id.toString();
                 }
             );
 
@@ -213,13 +211,16 @@ export default class ProbeMonitorResponseService {
 
             if (input.criteriaInstance.data?.createIncidents) {
                 // check active incidents and if there are open incidents, do not cretae anothr incident.
-                const openIncidentsCount: PositiveNumber =
-                    await IncidentService.countBy({
+                const openIncident: Incident | null =
+                    await IncidentService.findOneBy({
                         query: {
-                            monitors: QueryHelper.in([input.monitor.id!]),
+                            monitors: [input.monitor.id!] as any,
                             currentIncidentState: {
                                 isResolvedState: false,
                             },
+                        },
+                        select: {
+                            _id: true,
                         },
                         props: {
                             isRoot: true,
@@ -227,7 +228,7 @@ export default class ProbeMonitorResponseService {
                     });
 
                 // if there are no open incidents, create incidents.
-                if (openIncidentsCount.toNumber() === 0) {
+                if (!openIncident) {
                     // create incidents
 
                     for (const criteriaIncident of input.criteriaInstance.data
@@ -265,6 +266,14 @@ export default class ProbeMonitorResponseService {
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
     }): Promise<boolean> {
+        let finalResult: boolean = true;
+
+        if (
+            FilterCondition.Any === input.criteriaInstance.data?.filterCondition
+        ) {
+            finalResult = false; // set to false as we need to check if any of the filters are met.
+        }
+
         for (const criteriaFilter of input.criteriaInstance.data?.filters ||
             []) {
             const criteriaResult: boolean =
@@ -290,11 +299,12 @@ export default class ProbeMonitorResponseService {
                     input.criteriaInstance.data?.filterCondition &&
                 criteriaResult === false
             ) {
-                return false;
+                finalResult = false;
+                break;
             }
         }
 
-        return false;
+        return finalResult;
     }
 
     private static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -313,6 +323,16 @@ export default class ProbeMonitorResponseService {
             input.criteriaFilter.filterType === FilterType.True
         ) {
             if (input.probeMonitorResponse.isOnline) {
+                return true;
+            }
+            return false;
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+            input.criteriaFilter.filterType === FilterType.False
+        ) {
+            if (!input.probeMonitorResponse.isOnline) {
                 return true;
             }
             return false;
@@ -341,7 +361,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs >
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -352,7 +372,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs <
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -363,7 +383,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs ===
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -374,7 +394,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs !==
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -388,7 +408,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs >=
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -401,7 +421,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseTimeInMs &&
                     input.probeMonitorResponse.responseTimeInMs <=
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -431,8 +451,7 @@ export default class ProbeMonitorResponseService {
             if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode >
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode > (value as number)
                 ) {
                     return true;
                 }
@@ -442,8 +461,7 @@ export default class ProbeMonitorResponseService {
             if (input.criteriaFilter.filterType === FilterType.LessThan) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode <
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode < (value as number)
                 ) {
                     return true;
                 }
@@ -454,7 +472,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode ===
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -465,7 +483,7 @@ export default class ProbeMonitorResponseService {
                 if (
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode !==
-                        (input.criteriaFilter.value as number)
+                        (value as number)
                 ) {
                     return true;
                 }
@@ -478,8 +496,7 @@ export default class ProbeMonitorResponseService {
             ) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode >=
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode >= (value as number)
                 ) {
                     return true;
                 }
@@ -491,8 +508,7 @@ export default class ProbeMonitorResponseService {
             ) {
                 if (
                     input.probeMonitorResponse.responseCode &&
-                    input.probeMonitorResponse.responseCode <=
-                        (input.criteriaFilter.value as number)
+                    input.probeMonitorResponse.responseCode <= (value as number)
                 ) {
                     return true;
                 }

@@ -46,11 +46,12 @@ export default class ApiMonitor {
             return {
                 url: url,
                 requestHeaders: options.requestHeaders || {},
+                // if server is responding, it is online.
                 isOnline: true,
                 isSecure: url.protocol === Protocol.HTTPS,
                 responseTimeInMS: responseTimeInMS,
                 statusCode: result.statusCode,
-                responseBody: result.data.toString(),
+                responseBody: JSON.stringify(result.data || {}),
                 responseHeaders: result.headers,
                 requestBody: options.requestBody || {},
             };

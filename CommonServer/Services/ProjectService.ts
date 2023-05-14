@@ -39,6 +39,8 @@ import SubscriptionPlan, {
 } from 'Common/Types/Billing/SubscriptionPlan';
 import UpdateBy from '../Types/Database/UpdateBy';
 import AllMeteredPlans from '../Types/Billing/MeteredPlan/AllMeteredPlans';
+import AccessTokenService from './AccessTokenService';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -570,6 +572,10 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
+        await AccessTokenService.refreshUserAllPermissions(
+            createdItem.createdByUserId!
+        );
+
         return createdItem;
     }
 
@@ -666,7 +672,8 @@ export class Service extends DatabaseService<Model> {
                 plan === PlanSelect.Free
                     ? false
                     : SubscriptionPlan.isUnpaid(
-                          project.paymentProviderSubscriptionStatus || 'active'
+                          project.paymentProviderSubscriptionStatus ||
+                              SubscriptionStatus.Active
                       ),
         };
     }

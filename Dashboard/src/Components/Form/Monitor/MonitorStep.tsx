@@ -79,9 +79,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 'Whats the URL of the website you want to monitor?'
             );
         } else if (props.monitorType === MonitorType.Ping) {
-            setDestinationFieldTitle('Ping URL');
+            setDestinationFieldTitle('Ping URL or IP address');
             setDestinationFieldDescription(
-                'Whats the URL of the resource you want to ping?'
+                'Whats the URL or IP address of the resource you want to ping?'
             );
         } else if (props.monitorType === MonitorType.IP) {
             setDestinationFieldTitle('IP Address');

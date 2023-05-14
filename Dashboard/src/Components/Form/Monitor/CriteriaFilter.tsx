@@ -38,7 +38,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         let options: Array<DropdownOption> =
             DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
 
-        if (props.monitorType === MonitorType.Ping) {
+        if (
+            props.monitorType === MonitorType.Ping ||
+            props.monitorType === MonitorType.IP
+        ) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === CheckOn.IsOnline ||

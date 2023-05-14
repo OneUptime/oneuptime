@@ -9,6 +9,7 @@ import HTTPMethod from '../API/HTTPMethod';
 import Dictionary from '../Dictionary';
 import ObjectID from '../ObjectID';
 import MonitorType from './MonitorType';
+import JSONFunctions from '../JSONFunctions';
 
 export interface MonitorStepType {
     id: string;
@@ -143,7 +144,7 @@ export default class MonitorStep extends DatabaseProperty {
 
     public override toJSON(): JSONObject {
         if (this.data) {
-            return {
+            return JSONFunctions.serialize({
                 _type: ObjectType.MonitorStep,
                 value: {
                     id: this.data.id,
@@ -154,7 +155,7 @@ export default class MonitorStep extends DatabaseProperty {
                     requestHeaders: this.data.requestHeaders || undefined,
                     requestBody: this.data.requestBody || undefined,
                 },
-            };
+            });
         }
 
         return MonitorStep.getNewMonitorStepAsJSON();
@@ -210,7 +211,7 @@ export default class MonitorStep extends DatabaseProperty {
 
         const monitorStep: MonitorStep = new MonitorStep();
 
-        monitorStep.data = {
+        monitorStep.data = JSONFunctions.deserialize({
             id: json['id'] as string,
             monitorDestination: monitorDestination || undefined,
             monitorCriteria: MonitorCriteria.fromJSON(
@@ -220,7 +221,7 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders:
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
-        };
+        }) as any;
 
         return monitorStep;
     }
@@ -230,10 +231,12 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: MonitorStep | FindOperator<MonitorStep>
+        value: MonitorStep | FindOperator<MonitorStep>
     ): JSONObject | null {
-        if (_value) {
-            return (_value as MonitorStep).toJSON();
+        if (value && value instanceof MonitorStep) {
+            return (value as MonitorStep).toJSON();
+        } else if (value) {
+            return JSONFunctions.serialize(value as any);
         }
 
         return null;

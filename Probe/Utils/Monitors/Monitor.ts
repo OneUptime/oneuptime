@@ -9,9 +9,12 @@ import URL from 'Common/Types/API/URL';
 import { PROBE_API_URL } from '../../Config';
 import ProbeAPIRequest from '../ProbeAPIRequest';
 import { JSONObject } from 'Common/Types/JSON';
-import WebsiteMonitor, { WebsiteResponse } from './MonitorTypes/WebsiteMonitor';
+import WebsiteMonitor, {
+    ProbeWebsiteResponse,
+} from './MonitorTypes/WebsiteMonitor';
 import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import logger from 'CommonServer/Utils/Logger';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -23,6 +26,7 @@ export default class MonitorUtil {
             !monitor.monitorSteps ||
             monitor.monitorSteps.data?.monitorStepsInstanceArray.length === 0
         ) {
+            logger.info('No monitor steps found');
             return [];
         }
 
@@ -44,7 +48,10 @@ export default class MonitorUtil {
                 URL.fromString(PROBE_API_URL.toString()).addRoute(
                     '/probe/response/ingest'
                 ),
-                ProbeAPIRequest.getDefaultRequestBody(),
+                {
+                    ...ProbeAPIRequest.getDefaultRequestBody(),
+                    probeMonitorResponse: result as any,
+                },
                 {},
                 {}
             );
@@ -68,7 +75,10 @@ export default class MonitorUtil {
             return result;
         }
 
-        if (monitor.monitorType === MonitorType.Ping) {
+        if (
+            monitor.monitorType === MonitorType.Ping ||
+            monitor.monitorType === MonitorType.IP
+        ) {
             const response: PingResponse = await PingMonitor.ping(
                 monitorStep.data?.monitorDestination
             );
@@ -78,13 +88,13 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Website) {
-            const response: WebsiteResponse = await WebsiteMonitor.ping(
+            const response: ProbeWebsiteResponse = await WebsiteMonitor.ping(
                 monitorStep.data?.monitorDestination as URL
             );
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
-            result.responseBody = response.responseBody;
+            result.responseBody = response.responseBody?.toString();
             result.responseHeaders = response.responseHeaders;
             result.responseCode = response.statusCode;
         }

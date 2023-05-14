@@ -7,6 +7,7 @@ import BillingService from 'CommonServer/Services/BillingService';
 import { IsBillingEnabled, IsDevelopment } from 'CommonServer/Config';
 import logger from 'CommonServer/Utils/Logger';
 import Sleep from 'Common/Types/Sleep';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 RunCron(
     'PaymentProvider:CheckSubscriptionStatus',
@@ -36,7 +37,7 @@ RunCron(
             try {
                 if (project.paymentProviderSubscriptionId) {
                     // get subscription detail.
-                    const subscriptionState: string =
+                    const subscriptionState: SubscriptionStatus =
                         await BillingService.getSubscriptionStatus(
                             project.paymentProviderSubscriptionId as string
                         );

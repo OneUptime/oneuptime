@@ -186,6 +186,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                             if (item['currentIncidentState']) {
                                 return (
                                     <Pill
+                                        isMinimal={true}
                                         color={
                                             (
                                                 item[
@@ -237,6 +238,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
+                                        isMinimal={true}
                                         text={
                                             (
                                                 item[

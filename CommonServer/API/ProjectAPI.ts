@@ -1,11 +1,11 @@
-import User from 'Model/Models/User';
-import UserService, {
-    Service as UserServiceType,
-} from '../Services/UserService';
+import Project from 'Model/Models/Project';
+import ProjectService, {
+    Service as ProjectServiceType,
+} from '../Services/ProjectService';
 import BaseAPI from './BaseAPI';
 
-export default class UserAPI extends BaseAPI<User, UserServiceType> {
+export default class UserAPI extends BaseAPI<Project, ProjectServiceType> {
     public constructor() {
-        super(User, UserService);
+        super(Project, ProjectService);
     }
 }

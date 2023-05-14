@@ -5,6 +5,7 @@ import MonitorCriteriaInstance from './MonitorCriteriaInstance';
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
 import ObjectID from '../ObjectID';
+import JSONFunctions from '../JSONFunctions';
 
 export interface MonitorCriteriaType {
     monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
@@ -30,17 +31,17 @@ export default class MonitorCriteria extends DatabaseProperty {
 
         monitorCriteria.data = {
             monitorCriteriaInstanceArray: [
-                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
-                    {
-                        monitorType: arg.monitorType,
-                        monitorStatusId: arg.onlineMonitorStatusId,
-                    }
-                ),
                 MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance(
                     {
                         monitorType: arg.monitorType,
                         monitorStatusId: arg.offlineMonitorStatusId,
                         incidentSeverityId: arg.defaultIncidentSeverityId,
+                    }
+                ),
+                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
+                    {
+                        monitorType: arg.monitorType,
+                        monitorStatusId: arg.onlineMonitorStatusId,
                     }
                 ),
             ],
@@ -94,7 +95,7 @@ export default class MonitorCriteria extends DatabaseProperty {
             return MonitorCriteria.getNewMonitorCriteriaAsJSON();
         }
 
-        return {
+        return JSONFunctions.serialize({
             _type: ObjectType.MonitorCriteria,
             value: {
                 monitorCriteriaInstanceArray:
@@ -104,7 +105,7 @@ export default class MonitorCriteria extends DatabaseProperty {
                         }
                     ),
             },
-        };
+        });
     }
 
     public static override fromJSON(json: JSONObject): MonitorCriteria {
@@ -150,10 +151,12 @@ export default class MonitorCriteria extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: MonitorCriteria | FindOperator<MonitorCriteria>
+        value: MonitorCriteria | FindOperator<MonitorCriteria>
     ): JSONObject | null {
-        if (_value) {
-            return (_value as MonitorCriteria).toJSON();
+        if (value && value instanceof MonitorCriteria) {
+            return (value as MonitorCriteria).toJSON();
+        } else if (value) {
+            return JSONFunctions.serialize(value as any);
         }
 
         return null;

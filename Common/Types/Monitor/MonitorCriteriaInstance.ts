@@ -12,6 +12,7 @@ import {
 import BadDataException from '../Exception/BadDataException';
 import MonitorType from './MonitorType';
 import Typeof from '../Typeof';
+import JSONFunctions from '../JSONFunctions';
 
 export interface MonitorCriteriaInstanceType {
     monitorStatusId: ObjectID | undefined;
@@ -73,6 +74,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             name: 'Check if online',
             description: 'This criteria cheks if the monitor is online',
         };
+
+        if (
+            arg.monitorType === MonitorType.Website ||
+            arg.monitorType === MonitorType.API
+        ) {
+            monitorCriteriaInstance.data.filters.push({
+                checkOn: CheckOn.ResponseStatusCode,
+                filterType: FilterType.EqualTo,
+                value: 200,
+            });
+        }
 
         return monitorCriteriaInstance;
     }
@@ -316,7 +328,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
         }
 
-        return {
+        return JSONFunctions.serialize({
             _type: ObjectType.MonitorCriteriaInstance,
             value: {
                 id: this.data.id,
@@ -324,10 +336,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 filterCondition: this.data.filterCondition,
                 filters: this.data.filters,
                 incidents: this.data.incidents,
+                changeMonitorStatus: this.data.changeMonitorStatus,
+                createIncidents: this.data.createIncidents,
                 name: this.data.name,
                 description: this.data.description,
             } as any,
-        };
+        });
     }
 
     public static override fromJSON(json: JSONObject): MonitorCriteriaInstance {
@@ -410,15 +424,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         const monitorCriteriaInstance: MonitorCriteriaInstance =
             new MonitorCriteriaInstance();
 
-        monitorCriteriaInstance.data = {
+        monitorCriteriaInstance.data = JSONFunctions.deserialize({
             id: (json['id'] as string) || ObjectID.generate().toString(),
             monitorStatusId,
             filterCondition,
-            filters,
-            incidents,
+            changeMonitorStatus:
+                (json['changeMonitorStatus'] as boolean) || false,
+            createIncidents: (json['createIncidents'] as boolean) || false,
+            filters: filters as any,
+            incidents: incidents as any,
             name: (json['name'] as string) || '',
             description: (json['description'] as string) || '',
-        };
+        }) as any;
 
         return monitorCriteriaInstance;
     }
@@ -428,10 +445,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: MonitorCriteriaInstance | FindOperator<MonitorCriteriaInstance>
+        value: MonitorCriteriaInstance | FindOperator<MonitorCriteriaInstance>
     ): JSONObject | null {
-        if (_value) {
-            return (_value as MonitorCriteriaInstance).toJSON();
+        if (value && value instanceof MonitorCriteriaInstance) {
+            return (value as MonitorCriteriaInstance).toJSON();
+        } else if (value) {
+            return JSONFunctions.serialize(value as any);
         }
 
         return null;

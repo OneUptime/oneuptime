@@ -2,6 +2,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { FindOperator, Raw } from 'typeorm';
 import Text from 'Common/Types/Text';
 import Typeof from 'Common/Types/Typeof';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class QueryHelper {
     public static findWithSameText(text: string | number): FindOperator<any> {
@@ -15,8 +16,8 @@ export default class QueryHelper {
         return Raw(
             (alias: string) => {
                 return isString
-                    ? `LOWER(${alias}) = :${rid}`
-                    : `${alias} = :${rid}`;
+                    ? `(LOWER(${alias}) = :${rid})`
+                    : `(${alias} = :${rid})`;
             },
             {
                 [rid]: `${text}`,
@@ -26,24 +27,56 @@ export default class QueryHelper {
 
     public static isNull(): any {
         return Raw((alias: string) => {
-            return `${alias} IS NULL`;
+            return `(${alias} IS NULL)`;
         });
     }
 
     public static notNull(): any {
         return Raw((alias: string) => {
-            return `${alias} IS NOT NULL`;
+            return `(${alias} IS NOT NULL)`;
         });
     }
 
-    public static equalToOrNull(value: string | ObjectID): FindOperator<any> {
-        const rid: string = Text.generateRandomText(10);
+    public static equalToOrNull(
+        value: string | ObjectID | Array<string | ObjectID>
+    ): FindOperator<any> {
+        const rid: Array<string> = [];
+        const valuesObj: Dictionary<string> = {};
+
+        if (Array.isArray(value)) {
+            for (const item of value) {
+                const temp: string = Text.generateRandomText(10);
+                rid.push(temp);
+                valuesObj[temp] = item.toString();
+            }
+        } else {
+            const temp: string = Text.generateRandomText(10);
+            rid.push(temp);
+            valuesObj[temp] = value.toString();
+        }
+
+        // construct string
+
+        const constructQuery: Function = (alias: string): string => {
+            let query: string = '(';
+
+            query += rid
+                .map((item: string) => {
+                    return `${alias} = :${item}`;
+                })
+                .join(' or ');
+
+            query += ` or ${alias} IS NULL)`;
+
+            return query;
+        };
+
         return Raw(
             (alias: string) => {
-                return `${alias} = :${rid} or ${alias} IS NULL`;
+                return constructQuery(alias);
             },
             {
-                [rid]: value.toString(),
+                ...valuesObj,
             }
         );
     }
@@ -52,7 +85,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} != :${rid}`;
+                return `(${alias} != :${rid})`;
             },
             {
                 [rid]: value.toString(),
@@ -65,7 +98,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `LOWER(${alias}) LIKE (:${rid})`;
+                return `(LOWER(${alias}) LIKE (:${rid}))`;
             },
             {
                 [rid]: `%${name}%`,
@@ -81,7 +114,7 @@ export default class QueryHelper {
 
         return Raw(
             (alias: string) => {
-                return `${alias} IN (:...${rid})`;
+                return `(${alias} IN (:...${rid}))`;
             },
             {
                 [rid]: values,
@@ -93,7 +126,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} = :${rid}`;
+                return `(${alias} = :${rid})`;
             },
             {
                 [rid]: value.toString(),
@@ -105,7 +138,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} >= :${rid}`;
+                return `(${alias} >= :${rid})`;
             },
             {
                 [rid]: value,
@@ -119,7 +152,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} >= :${rid} or ${alias} IS NULL`;
+                return `(${alias} >= :${rid} or ${alias} IS NULL)`;
             },
             {
                 [rid]: value,
@@ -131,7 +164,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} <= :${rid}`;
+                return `(${alias} <= :${rid})`;
             },
             {
                 [rid]: value,
@@ -145,7 +178,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} <= :${rid} or ${alias} IS NULL`;
+                return `(${alias} <= :${rid} or ${alias} IS NULL)`;
             },
             {
                 [rid]: value,
@@ -157,7 +190,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} > :${rid}`;
+                return `(${alias} > :${rid})`;
             },
             {
                 [rid]: value,
@@ -169,7 +202,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} <= :${rid} or ${alias} IS NULL`;
+                return `(${alias} <= :${rid} or ${alias} IS NULL)`;
             },
             {
                 [rid]: value,
@@ -185,7 +218,7 @@ export default class QueryHelper {
         const rid2: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} >= :${rid1} and ${alias} <= :${rid2}`;
+                return `(${alias} >= :${rid1} and ${alias} <= :${rid2})`;
             },
             {
                 [rid1]: startValue,
@@ -198,7 +231,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} < :${rid}`;
+                return `(${alias} < :${rid})`;
             },
             {
                 [rid]: value,
