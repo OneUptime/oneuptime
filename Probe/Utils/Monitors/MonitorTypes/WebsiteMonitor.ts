@@ -4,7 +4,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import Protocol from 'Common/Types/API/Protocol';
 import WebsiteRequest, { WebsiteResponse } from 'Common/Types/WebsiteRequest';
 import HTML from 'Common/Types/Html';
-import logger from 'CommonServer/Utils/Logger';
+import { AxiosError } from 'axios';
 
 export interface ProbeWebsiteResponse {
     url: URL;
@@ -38,7 +38,19 @@ export default class WebsiteMonitor {
                 responseHeaders: result.responseHeaders,
             };
         } catch (err) {
-            logger.error(err);
+            
+            if(err instanceof AxiosError){
+                return {
+                    url: url,
+                    isOnline: true,
+                    requestHeaders: {},
+                    isSecure: url.protocol === Protocol.HTTPS,
+                    responseTimeInMS: new PositiveNumber(0),
+                    statusCode: err.response?.status,
+                    responseBody: err.response?.data,
+                    responseHeaders: err.response?.headers as Headers || {},
+                };
+            }
 
             return {
                 url: url,

@@ -2,7 +2,6 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 import Headers from './API/Headers';
 import URL from './API/URL';
 import HTML from './Html';
-import WebsiteRequestException from './Exception/WebsiteRequestException';
 
 export interface WebsiteResponse {
     url: URL;
@@ -38,9 +37,7 @@ export default class WebsiteRequest {
                 isOnline: true,
             };
         } catch (err) {
-            throw new WebsiteRequestException(
-                (err as Error | AxiosError).message
-            );
+            throw err;
         }
     }
 }

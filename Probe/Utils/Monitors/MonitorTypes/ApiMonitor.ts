@@ -51,7 +51,7 @@ export default class ApiMonitor {
                 isSecure: url.protocol === Protocol.HTTPS,
                 responseTimeInMS: responseTimeInMS,
                 statusCode: result.statusCode,
-                responseBody: result.data.toString(),
+                responseBody: JSON.stringify(result.data || {}),
                 responseHeaders: result.headers,
                 requestBody: options.requestBody || {},
             };
