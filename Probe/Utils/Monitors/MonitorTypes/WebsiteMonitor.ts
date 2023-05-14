@@ -38,17 +38,16 @@ export default class WebsiteMonitor {
                 responseHeaders: result.responseHeaders,
             };
         } catch (err) {
-
-            if(err instanceof AxiosError){
+            if (err instanceof AxiosError) {
                 return {
                     url: url,
-                    isOnline: !!err.response,
+                    isOnline: Boolean(err.response),
                     requestHeaders: {},
                     isSecure: url.protocol === Protocol.HTTPS,
                     responseTimeInMS: new PositiveNumber(0),
                     statusCode: err.response?.status,
                     responseBody: err.response?.data,
-                    responseHeaders: err.response?.headers as Headers || {},
+                    responseHeaders: (err.response?.headers as Headers) || {},
                 };
             }
 

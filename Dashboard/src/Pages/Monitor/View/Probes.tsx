@@ -41,7 +41,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = useState<string>('');
 
-
     const [probes, setProbes] = useState<Array<Probe>>([]);
 
     const fetchItem: Function = async (): Promise<void> => {
@@ -65,25 +64,39 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 return;
             }
 
-            const projectProbeList: ListResult<Probe>  = await ModelAPI.getList(Probe, {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
-               
-            }, LIMIT_PER_PROJECT, 0, {
-                name: true, 
-                _id: true
-            }, {}, {}, {});
+            const projectProbeList: ListResult<Probe> = await ModelAPI.getList(
+                Probe,
+                {
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                },
+                LIMIT_PER_PROJECT,
+                0,
+                {
+                    name: true,
+                    _id: true,
+                },
+                {},
+                {},
+                {}
+            );
 
-            const globalProbeList: ListResult<Probe>  = await ModelAPI.getList(Probe, {
-               
-               
-            }, LIMIT_PER_PROJECT, 0, {
-                name: true, 
-                _id: true
-            }, {}, {}, {
-                overrideRequestUrl: URL.fromString(
-                    DASHBOARD_API_URL.toString()
-                ).addRoute('/probe/global-probes'),
-            });
+            const globalProbeList: ListResult<Probe> = await ModelAPI.getList(
+                Probe,
+                {},
+                LIMIT_PER_PROJECT,
+                0,
+                {
+                    name: true,
+                    _id: true,
+                },
+                {},
+                {},
+                {
+                    overrideRequestUrl: URL.fromString(
+                        DASHBOARD_API_URL.toString()
+                    ).addRoute('/probe/global-probes'),
+                }
+            );
 
             setProbes([...projectProbeList.data, ...globalProbeList.data]);
             setMonitorType(item.monitorType);

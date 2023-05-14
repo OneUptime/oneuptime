@@ -33,9 +33,9 @@ router.post(
                 | string
                 | undefined;
 
-            const responseHeaders: JSONObject | undefined = data['responseHeaders'] as
-                | JSONObject
-                | undefined;
+            const responseHeaders: JSONObject | undefined = data[
+                'responseHeaders'
+            ] as JSONObject | undefined;
 
             LocalCache.setJSON(
                 'TestServer',

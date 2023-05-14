@@ -108,7 +108,6 @@ router.post(
                     return Boolean(monitor._id);
                 });
 
-
             // return the list of monitors to be monitored
 
             return Response.sendEntityArrayResponse(

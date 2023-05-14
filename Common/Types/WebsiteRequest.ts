@@ -20,24 +20,20 @@ export default class WebsiteRequest {
             timeout?: number | undefined;
         }
     ): Promise<WebsiteResponse> {
-        try {
-            // use axios to fetch an HTML page
-            const response: AxiosResponse = await axios.get(url.toString(), {
-                headers: options.headers || {},
-                timeout: options.timeout || 5000,
-            });
+        // use axios to fetch an HTML page
+        const response: AxiosResponse = await axios.get(url.toString(), {
+            headers: options.headers || {},
+            timeout: options.timeout || 5000,
+        });
 
-            // return the response
-            return {
-                url: url,
-                requestHeaders: options.headers || {},
-                responseHeaders: response.headers,
-                responseStatusCode: response.status,
-                responseBody: new HTML(response.data),
-                isOnline: true,
-            };
-        } catch (err) {
-            throw err;
-        }
+        // return the response
+        return {
+            url: url,
+            requestHeaders: options.headers || {},
+            responseHeaders: response.headers,
+            responseStatusCode: response.status,
+            responseBody: new HTML(response.data),
+            isOnline: true,
+        };
     }
 }

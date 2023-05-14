@@ -29,8 +29,7 @@ router.get(
             let responseHeaders: JSONValue | undefined =
                 LocalCache.getJSON('TestServer', 'responseHeaders') || {};
 
-            
-            if(responseHeaders && typeof responseHeaders === Typeof.String) {
+            if (responseHeaders && typeof responseHeaders === Typeof.String) {
                 responseHeaders = JSON.parse(responseHeaders.toString());
             }
 
@@ -45,7 +44,7 @@ router.get(
                 res,
                 responseCode,
                 responseBody,
-                responseHeaders ? responseHeaders as any : {}
+                responseHeaders ? (responseHeaders as any) : {}
             );
         } catch (err) {
             return next(err);
