@@ -75,10 +75,12 @@ export default class MonitorUtil {
             return result;
         }
 
-        if (monitor.monitorType === MonitorType.Ping) {
+        if (monitor.monitorType === MonitorType.Ping || monitor.monitorType === MonitorType.IP) {
             const response: PingResponse = await PingMonitor.ping(
                 monitorStep.data?.monitorDestination
             );
+
+            console.log(response);
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
