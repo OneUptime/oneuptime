@@ -21,7 +21,7 @@ RunCron(
     },
     async () => {
 
-        // run a set timeout function randomly between 1 to 5 seconds
+        // run a set timeout function randomly between 1 to 5 seconds, so same probes do not hit the server at the same time
 
         setTimeout(async () => {
             const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
