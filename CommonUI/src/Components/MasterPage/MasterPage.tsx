@@ -40,7 +40,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             <div className={props.className}>
                 <div
                     className={
-                        props.makeTopSectionUnstick ? '' : 'sticky top-0'
+                        props.makeTopSectionUnstick ? '' : 'sticky top-0 z-10'
                     }
                 >
                     <TopSection
