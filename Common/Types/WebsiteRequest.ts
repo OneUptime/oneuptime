@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import Headers from './API/Headers';
 import URL from './API/URL';
 import HTML from './Html';

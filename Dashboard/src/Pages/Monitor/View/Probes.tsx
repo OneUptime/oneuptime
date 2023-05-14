@@ -17,7 +17,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -28,6 +28,9 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ProbeElement from '../../../Components/Probe/Probe';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import URL from 'Common/Types/API/URL';
+import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -37,6 +40,9 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [error, setError] = useState<string>('');
+
+
+    const [probes, setProbes] = useState<Array<Probe>>([]);
 
     const fetchItem: Function = async (): Promise<void> => {
         // get item.
@@ -59,6 +65,27 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 return;
             }
 
+            const projectProbeList: ListResult<Probe>  = await ModelAPI.getList(Probe, {
+                projectId: DashboardNavigation.getProjectId()?.toString(),
+               
+            }, LIMIT_PER_PROJECT, 0, {
+                name: true, 
+                _id: true
+            }, {}, {}, {});
+
+            const globalProbeList: ListResult<Probe>  = await ModelAPI.getList(Probe, {
+               
+               
+            }, LIMIT_PER_PROJECT, 0, {
+                name: true, 
+                _id: true
+            }, {}, {}, {
+                overrideRequestUrl: URL.fromString(
+                    DASHBOARD_API_URL.toString()
+                ).addRoute('/probe/global-probes'),
+            });
+
+            setProbes([...projectProbeList.data, ...globalProbeList.data]);
             setMonitorType(item.monitorType);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
@@ -138,11 +165,12 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         stepId: 'incident-details',
                         description: 'Which probe do you want to use?',
                         fieldType: FormFieldSchemaType.Dropdown,
-                        dropdownModal: {
-                            type: Probe,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
+                        dropdownOptions: probes.map((probe: Probe) => {
+                            return {
+                                label: probe.name,
+                                value: probe._id,
+                            };
+                        }),
                         required: true,
                         placeholder: 'Probe',
                     },

@@ -38,11 +38,11 @@ export default class WebsiteMonitor {
                 responseHeaders: result.responseHeaders,
             };
         } catch (err) {
-            
+
             if(err instanceof AxiosError){
                 return {
                     url: url,
-                    isOnline: true,
+                    isOnline: !!err.response,
                     requestHeaders: {},
                     isSecure: url.protocol === Protocol.HTTPS,
                     responseTimeInMS: new PositiveNumber(0),
