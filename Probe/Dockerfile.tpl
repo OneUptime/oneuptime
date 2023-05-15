@@ -1,5 +1,5 @@
 #
-# OneUptime-identity Dockerfile
+# OneUptime-Probe Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -55,7 +55,7 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Identity/package*.json /usr/src/app/
+COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
@@ -67,7 +67,7 @@ EXPOSE 3087
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Identity /usr/src/app
+COPY ./Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
