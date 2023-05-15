@@ -73,6 +73,40 @@ enum Permission {
     CanEditMonitorProbe = 'CanEditMonitorProbe',
     CanReadMonitorProbe = 'CanReadMonitorProbe',
 
+    CanCreateIncidentOwnerTeam = 'CanCreateIncidentOwnerTeam',
+    CanDeleteIncidentOwnerTeam = 'CanDeleteIncidentOwnerTeam',
+    CanEditIncidentOwnerTeam = 'CanEditIncidentOwnerTeam',
+    CanReadIncidentOwnerTeam = 'CanReadIncidentOwnerTeam',
+
+    CanCreateIncidentOwnerUser = 'CanCreateIncidentOwner',
+    CanDeleteIncidentOwnerUser = 'CanDeleteIncidentOwnerUser',
+    CanEditIncidentOwnerUser = 'CanEditIncidentOwnerUser',
+    CanReadIncidentOwnerUser = 'CanReadIncidentOwnerUser',
+
+
+    CanCreateStatusPageOwnerTeam = 'CanCreateStatusPageOwnerTeam',
+    CanDeleteStatusPageOwnerTeam = 'CanDeleteStatusPageOwnerTeam',
+    CanEditStatusPageOwnerTeam = 'CanEditStatusPageOwnerTeam',
+    CanReadStatusPageOwnerTeam = 'CanReadStatusPageOwnerTeam',
+
+    CanCreateStatusPageOwnerUser = 'CanCreateStatusPageOwner',
+    CanDeleteStatusPageOwnerUser = 'CanDeleteStatusPageOwnerUser',
+    CanEditStatusPageOwnerUser = 'CanEditStatusPageOwnerUser',
+    CanReadStatusPageOwnerUser = 'CanReadStatusPageOwnerUser',
+
+
+
+    CanCreateMonitorOwnerTeam = 'CanCreateMonitorOwnerTeam',
+    CanDeleteMonitorOwnerTeam = 'CanDeleteMonitorOwnerTeam',
+    CanEditMonitorOwnerTeam = 'CanEditMonitorOwnerTeam',
+    CanReadMonitorOwnerTeam = 'CanReadMonitorOwnerTeam',
+
+    CanCreateMonitorOwnerUser = 'CanCreateMonitorOwner',
+    CanDeleteMonitorOwnerUser = 'CanDeleteMonitorOwnerUser',
+    CanEditMonitorOwnerUser = 'CanEditMonitorOwnerUser',
+    CanReadMonitorOwnerUser = 'CanReadMonitorOwnerUser',
+
+
     CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
     CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
     CanEditStatusPageCustomField = 'CanEditStatusPageCustomField',
@@ -1660,6 +1694,217 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+            {
+                permission: Permission.CanCreateIncidentOwnerTeam,
+                title: 'Can Create Incident Team Owner',
+                description:
+                    'This permission can create Incident Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentOwnerTeam,
+                title: 'Can Delete Incident Team Owner',
+                description:
+                    'This permission  can delete Incident Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentOwnerTeam,
+                title: 'Can Edit Incident Team Owner',
+                description:
+                    'This permission can edit Incident Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentOwnerTeam,
+                title: 'Can Read Incident Team Owner',
+                description:
+                    'This permission  can read Incident Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateIncidentOwnerUser,
+                title: 'Can Create Incident User Owner',
+                description:
+                    'This permission can create Incident User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentOwnerUser,
+                title: 'Can Delete Incident User Owner',
+                description:
+                    'This permission  can delete Incident User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentOwnerUser,
+                title: 'Can Edit Incident User Owner',
+                description:
+                    'This permission can edit Incident User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentOwnerUser,
+                title: 'Can Read Incident User Owner',
+                description:
+                    'This permission  can read Incident User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageOwnerTeam,
+                title: 'Can Create Status Page Team Owner',
+                description:
+                    'This permission can create Status Page Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageOwnerTeam,
+                title: 'Can Delete Status Page Team Owner',
+                description:
+                    'This permission  can delete Status Page Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageOwnerTeam,
+                title: 'Can Edit Status Page Team Owner',
+                description:
+                    'This permission can edit Status Page Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageOwnerTeam,
+                title: 'Can Read Status Page Team Owner',
+                description:
+                    'This permission  can read Status Page Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateStatusPageOwnerUser,
+                title: 'Can Create Status Page User Owner',
+                description:
+                    'This permission can create Status Page User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageOwnerUser,
+                title: 'Can Delete Status Page User Owner',
+                description:
+                    'This permission  can delete Status Page User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageOwnerUser,
+                title: 'Can Edit Status Page User Owner',
+                description:
+                    'This permission can edit Status Page User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageOwnerUser,
+                title: 'Can Read Status Page User Owner',
+                description:
+                    'This permission  can read Status Page User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+
+
+            {
+                permission: Permission.CanCreateMonitorOwnerTeam,
+                title: 'Can Create Monitor Team Owner',
+                description:
+                    'This permission can create Monitor Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorOwnerTeam,
+                title: 'Can Delete Monitor Team Owner',
+                description:
+                    'This permission  can delete Monitor Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorOwnerTeam,
+                title: 'Can Edit Monitor Team Owner',
+                description:
+                    'This permission can edit Monitor Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorOwnerTeam,
+                title: 'Can Read Monitor Team Owner',
+                description:
+                    'This permission  can read Monitor Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateMonitorOwnerUser,
+                title: 'Can Create Monitor User Owner',
+                description:
+                    'This permission can create Monitor User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorOwnerUser,
+                title: 'Can Delete Monitor User Owner',
+                description:
+                    'This permission  can delete Monitor User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorOwnerUser,
+                title: 'Can Edit Monitor User Owner',
+                description:
+                    'This permission can edit Monitor User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorOwnerUser,
+                title: 'Can Read Monitor User Owner',
+                description:
+                    'This permission  can read Monitor User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
 
             {
                 permission: Permission.CanCreateProjectIncident,
