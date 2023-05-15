@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  generate_build_number:
+  buildnumber:
     runs-on: ubuntu-latest
     outputs:
       build_number: ${{ steps.buildnumber.outputs.build_number }}
@@ -23,12 +23,12 @@ jobs:
     permissions:
       contents: write
     env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
           ref: release
-      - run: echo "${{env.ONEUPTIME_VERSION}}.${{needs.generate_build_number.outputs.build_number}}"
+      - run: echo "${{needs.buildnumber.outputs.build_number}}"
       - name: "Build Changelog"
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v3.7.1
@@ -45,7 +45,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -67,7 +67,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -88,7 +88,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -109,7 +109,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -130,7 +130,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -152,7 +152,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -173,7 +173,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -195,7 +195,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -216,7 +216,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -237,7 +237,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -259,7 +259,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -280,7 +280,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -302,7 +302,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -324,7 +324,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -346,7 +346,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -367,7 +367,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -389,7 +389,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -413,7 +413,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -437,7 +437,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -461,7 +461,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -485,7 +485,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate_build_number.outputs.build_number}}"
+      ONEUPTIME_VERSION: "7.0.${{needs.buildnumber.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
