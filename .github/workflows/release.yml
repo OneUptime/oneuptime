@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: release
-      - run: echo ${{env.ONEUPTIME_VERSION}}.${{needs.generate_build_number.outputs.build_number}}
+      - run: echo "${{env.ONEUPTIME_VERSION}}.${{needs.generate_build_number.outputs.build_number}}"
       - name: "Build Changelog"
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v3.7.1
