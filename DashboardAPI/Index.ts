@@ -25,7 +25,6 @@ import IncidentOwnerTeamService, {
     Service as IncidentOwnerTeamServiceType,
 } from 'CommonServer/Services/IncidentOwnerTeamService';
 
-
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
 import MonitorOwnerTeamService, {
     Service as MonitorOwnerTeamServiceType,
@@ -35,7 +34,6 @@ import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
 import StatusPageOwnerTeamService, {
     Service as StatusPageOwnerTeamServiceType,
 } from 'CommonServer/Services/StatusPageOwnerTeamService';
-
 
 import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
 import ScheduledMaintenanceOwnerTeamService, {
@@ -47,7 +45,6 @@ import IncidentOwnerUserService, {
     Service as IncidentOwnerUserServiceType,
 } from 'CommonServer/Services/IncidentOwnerUserService';
 
-
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import MonitorOwnerUserService, {
     Service as MonitorOwnerUserServiceType,
@@ -58,13 +55,10 @@ import StatusPageOwnerUserService, {
     Service as StatusPageOwnerUserServiceType,
 } from 'CommonServer/Services/StatusPageOwnerUserService';
 
-
 import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwnerUser';
 import ScheduledMaintenanceOwnerUserService, {
     Service as ScheduledMaintenanceOwnerUserServiceType,
 } from 'CommonServer/Services/ScheduledMaintenanceOwnerUserService';
-
-
 
 import Workflow from 'Model/Models/Workflow';
 import WorkflowService, {
@@ -502,7 +496,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentOwnerUser, IncidentOwnerUserServiceType>(
@@ -510,7 +503,6 @@ app.use(
         IncidentOwnerUserService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -520,8 +512,6 @@ app.use(
     ).getRouter()
 );
 
-
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<MonitorOwnerUser, MonitorOwnerUserServiceType>(
@@ -529,7 +519,6 @@ app.use(
         MonitorOwnerUserService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -539,27 +528,27 @@ app.use(
     ).getRouter()
 );
 
-
-
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<ScheduledMaintenanceOwnerUser, ScheduledMaintenanceOwnerUserServiceType>(
+    new BaseAPI<
+        ScheduledMaintenanceOwnerUser,
+        ScheduledMaintenanceOwnerUserServiceType
+    >(
         ScheduledMaintenanceOwnerUser,
         ScheduledMaintenanceOwnerUserService
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<ScheduledMaintenanceOwnerTeam, ScheduledMaintenanceOwnerTeamServiceType>(
+    new BaseAPI<
+        ScheduledMaintenanceOwnerTeam,
+        ScheduledMaintenanceOwnerTeamServiceType
+    >(
         ScheduledMaintenanceOwnerTeam,
         ScheduledMaintenanceOwnerTeamService
     ).getRouter()
 );
-
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -569,7 +558,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageOwnerTeam, StatusPageOwnerTeamServiceType>(
@@ -577,10 +565,6 @@ app.use(
         StatusPageOwnerTeamService
     ).getRouter()
 );
-
-
-
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -697,7 +681,6 @@ app.use(
         OnCallDutyService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

@@ -65,6 +65,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
     ),
 
+    [PageMap.INCIDENT_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/owners`
+    ),
+
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),
@@ -76,6 +80,8 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.INCIDENT_INTERNAL_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/internal-notes`
     ),
+
+    
 
     [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
@@ -91,6 +97,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/owners`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: new Route(
@@ -123,6 +133,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.STATUS_PAGE_VIEW_BRANDING]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/branding`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/owners`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_GROUPS]: new Route(
@@ -223,6 +237,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/interval`
     ),
 
+    [PageMap.MONITOR_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/owners`
+    ),
+
     [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
     ),
@@ -284,6 +302,8 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_INCIDENTS_SEVERITY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-severity`
     ),
+
+    
 
     [PageMap.SETTINGS_DOMAINS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/domains`
