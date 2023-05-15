@@ -7,12 +7,25 @@ on:
 
 jobs:
 
+  generate-build-number:
+    runs-on: ubuntu-latest
+    outputs:
+      build_number: ${{ steps.buildnumber.outputs.build_number }}
+    steps:
+    - name: Generate build number
+      id: buildnumber
+      uses: onyxmueller/build-tag-number@v1.0.2
+      with:
+        token: ${{secrets.github_token}}
+    - run: echo "Build number is ${{ steps.buildnumber.outputs.build_number }}"
+
   test-server-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -27,11 +40,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/test-server:$ONEUPTIME_VERSION-test --tag oneuptime/test-server:test --push -f ./TestServer/Dockerfile .
 
   workflow-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -46,11 +60,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workflow:$ONEUPTIME_VERSION-test --tag oneuptime/workflow:test --push -f ./Workflow/Dockerfile .
 
   workers-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -65,11 +80,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workers:$ONEUPTIME_VERSION-test --tag oneuptime/workers:test --push -f ./Workers/Dockerfile .
 
   staus-page-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -84,11 +100,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:$ONEUPTIME_VERSION-test --tag oneuptime/status-page:test --push -f ./StatusPage/Dockerfile .
 
   realtime-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -104,11 +121,12 @@ jobs:
       
 
   probe-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -123,11 +141,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:$ONEUPTIME_VERSION-test --tag oneuptime/probe:test --push -f ./Probe/Dockerfile .
 
   probe-api-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -142,11 +161,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:$ONEUPTIME_VERSION-test --tag oneuptime/probe-api:test --push -f ./ProbeAPI/Dockerfile .
 
   nginx-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -162,11 +182,12 @@ jobs:
       
 
   mail-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -181,11 +202,12 @@ jobs:
       
 
   licensing-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -200,11 +222,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:$ONEUPTIME_VERSION-test --tag oneuptime/licensing:test --push -f ./Licensing/Dockerfile .
 
   integrations-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -222,11 +245,12 @@ jobs:
 
 
   identity-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -242,11 +266,12 @@ jobs:
       
 
   home-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -262,11 +287,12 @@ jobs:
       
 
   helm-chart-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -282,11 +308,12 @@ jobs:
       
 
   haraka-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -301,11 +328,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:$ONEUPTIME_VERSION-test --tag oneuptime/haraka:test --push -f ./Haraka/Dockerfile .
 
   file-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -321,11 +349,12 @@ jobs:
       
 
   dashboard-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -343,11 +372,12 @@ jobs:
 
 
   dashboard-api-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -365,11 +395,12 @@ jobs:
 
 
   api-reference-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -387,11 +418,12 @@ jobs:
 
 
   alert-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -409,11 +441,12 @@ jobs:
 
 
   accounts-test-docker-image-deploy:
+    needs: generate-build-number
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
