@@ -26,4 +26,29 @@ export default class ArrayUtil {
             return 0;
         };
     }
+
+    public static distinctByFieldName(
+        array: Array<any>,
+        fieldName: string
+    ): Array<any> {
+        // Get the distinct values by field name of the array
+        const distinctValues: Array<any> = array
+            .map((item: any) => {
+                return item[fieldName];
+            })
+            .filter((value: any, index: number, self: Array<any>) => {
+                return self.indexOf(value) === index;
+            });
+
+        // Create a new array with the distinct values
+        const distinctArray: Array<any> = [];
+        for (const value of distinctValues) {
+            const item: any = array.find((item: any) => {
+                return item[fieldName] === value;
+            });
+            distinctArray.push(item);
+        }
+
+        return distinctArray;
+    }
 }

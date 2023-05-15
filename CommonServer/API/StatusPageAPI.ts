@@ -61,6 +61,7 @@ import StatusPageSubscriberService from '../Services/StatusPageSubscriberService
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPageSsoService from '../Services/StatusPageSsoService';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
+import ArrayUtil from 'Common/Types/ArrayUtil';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -1639,6 +1640,50 @@ export default class StatusPageAPI extends BaseAPI<
                     isRoot: true,
                 },
             });
+
+            const activeIncidents: Array<Incident> =
+                await IncidentService.findBy({
+                    query: {
+                        monitors: monitorsOnStatusPage as any,
+                        currentIncidentState: {
+                            isResolvedState: false,
+                        } as any,
+                        projectId: statusPage.projectId!,
+                    },
+                    select: {
+                        createdAt: true,
+                        title: true,
+                        description: true,
+                        _id: true,
+                    },
+                    sort: {
+                        createdAt: SortOrder.Descending,
+                    },
+                    populate: {
+                        incidentSeverity: {
+                            name: true,
+                            color: true,
+                        },
+                        currentIncidentState: {
+                            name: true,
+                            color: true,
+                        },
+                        monitors: {
+                            _id: true,
+                        },
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+            incidents = [...activeIncidents, ...incidents];
+
+            // get distinct by id.
+
+            incidents = ArrayUtil.distinctByFieldName(incidents, '_id');
         }
 
         const incidentsOnStausPage: Array<ObjectID> = incidents.map(
