@@ -27,6 +27,8 @@ import StatusPageHeaderLink from './StatusPageHeaderLink';
 import StatusPagePrivateUser from './StatusPagePrivateUser';
 import StatusPageCustomField from './StatusPageCustomField';
 import StatusPageSSO from './StatusPageSso';
+import StatusPageOwnerTeam from './StatusPageOwnerTeam';
+import StatusPageOwnerUser from './StatusPageOwnerUser';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -37,6 +39,8 @@ import MonitorStatus from './MonitorStatus';
 import MonitorStatusTimeline from './MonitorStatusTimeline';
 import MonitorCustomField from './MonitorCustomField';
 import MonitorProbe from './MonitorProbe';
+import MonitorOwnerTeam from './MonitorOwnerTeam';
+import MonitorOwnerUser from './MonitorOwnerUser';
 
 // Incidents
 import Incident from './Incident';
@@ -46,6 +50,8 @@ import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
 import IncidentSeverity from './IncidentSeverity';
 import IncidentCustomField from './IncidentCustomField';
+import IncidentOwnerTeam from './IncidentOwnerTeam';
+import IncidentOwnerUser from './IncidentOwnerUser';
 
 // ScheduledMaintenances
 import ScheduledMaintenance from './ScheduledMaintenance';
@@ -54,6 +60,8 @@ import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeli
 import ScheduledMaintenancePublicNote from './ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceInternalNote from './ScheduledMaintenanceInternalNote';
 import ScheduledMaintenanceCustomField from './ScheduledMaintenanceCustomField';
+import ScheduledMaintenanceOwnerTeam from './ScheduledMaintenanceOwnerTeam';
+import ScheduledMaintenanceOwnerUser from './ScheduledMaintenanceOwnerUser';
 
 import BillingPaymentMethods from './BillingPaymentMethod';
 
@@ -136,4 +144,16 @@ export default [
     StatusPageSSO,
 
     MonitorProbe,
+
+    MonitorOwnerTeam,
+    MonitorOwnerUser,
+
+    IncidentOwnerTeam,
+    IncidentOwnerUser,
+
+    ScheduledMaintenanceOwnerTeam,
+    ScheduledMaintenanceOwnerUser,
+
+    StatusPageOwnerTeam,
+    StatusPageOwnerUser,
 ];

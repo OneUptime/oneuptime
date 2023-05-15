@@ -84,6 +84,18 @@ enum Permission {
     CanReadIncidentOwnerUser = 'CanReadIncidentOwnerUser',
 
 
+
+    CanCreateScheduledMaintenanceOwnerTeam = 'CanCreateScheduledMaintenanceOwnerTeam',
+    CanDeleteScheduledMaintenanceOwnerTeam = 'CanDeleteScheduledMaintenanceOwnerTeam',
+    CanEditScheduledMaintenanceOwnerTeam = 'CanEditScheduledMaintenanceOwnerTeam',
+    CanReadScheduledMaintenanceOwnerTeam = 'CanReadScheduledMaintenanceOwnerTeam',
+
+    CanCreateScheduledMaintenanceOwnerUser = 'CanCreateScheduledMaintenanceOwner',
+    CanDeleteScheduledMaintenanceOwnerUser = 'CanDeleteScheduledMaintenanceOwnerUser',
+    CanEditScheduledMaintenanceOwnerUser = 'CanEditScheduledMaintenanceOwnerUser',
+    CanReadScheduledMaintenanceOwnerUser = 'CanReadScheduledMaintenanceOwnerUser',
+
+
     CanCreateStatusPageOwnerTeam = 'CanCreateStatusPageOwnerTeam',
     CanDeleteStatusPageOwnerTeam = 'CanDeleteStatusPageOwnerTeam',
     CanEditStatusPageOwnerTeam = 'CanEditStatusPageOwnerTeam',
@@ -93,7 +105,6 @@ enum Permission {
     CanDeleteStatusPageOwnerUser = 'CanDeleteStatusPageOwnerUser',
     CanEditStatusPageOwnerUser = 'CanEditStatusPageOwnerUser',
     CanReadStatusPageOwnerUser = 'CanReadStatusPageOwnerUser',
-
 
 
     CanCreateMonitorOwnerTeam = 'CanCreateMonitorOwnerTeam',
@@ -1691,6 +1702,74 @@ export class PermissionHelper {
                 title: 'Can Read Monitor Probe',
                 description:
                     'This permission  can read Monitor Probe of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateScheduledMaintenanceOwnerTeam,
+                title: 'Can Create Scheduled Maintenance Team Owner',
+                description:
+                    'This permission can create Scheduled Maintenance Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenanceOwnerTeam,
+                title: 'Can Delete Scheduled Maintenance Team Owner',
+                description:
+                    'This permission  can delete Scheduled Maintenance Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceOwnerTeam,
+                title: 'Can Edit Scheduled Maintenance Team Owner',
+                description:
+                    'This permission can edit Scheduled Maintenance Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceOwnerTeam,
+                title: 'Can Read Scheduled Maintenance Team Owner',
+                description:
+                    'This permission  can read Scheduled Maintenance Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateScheduledMaintenanceOwnerUser,
+                title: 'Can Create Scheduled Maintenance User Owner',
+                description:
+                    'This permission can create Scheduled Maintenance User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenanceOwnerUser,
+                title: 'Can Delete Scheduled Maintenance User Owner',
+                description:
+                    'This permission  can delete Scheduled Maintenance User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceOwnerUser,
+                title: 'Can Edit Scheduled Maintenance User Owner',
+                description:
+                    'This permission can edit Scheduled Maintenance User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceOwnerUser,
+                title: 'Can Read Scheduled Maintenance User Owner',
+                description:
+                    'This permission  can read Scheduled Maintenance User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
