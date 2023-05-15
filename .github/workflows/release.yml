@@ -7,12 +7,23 @@ on:
 
 jobs:
 
+  generate_build_number:
+    runs-on: ubuntu-latest
+    outputs:
+      build_number: ${{ steps.buildnumber.outputs.build_number }}
+    steps:
+    - name: Generate build number
+      id: buildnumber
+      uses: onyxmueller/build-tag-number@v1
+      with:
+        token: ${{secrets.github_token}}
+
   github-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -33,7 +44,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -55,7 +66,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -76,7 +87,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -97,7 +108,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -118,7 +129,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -140,7 +151,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -161,7 +172,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -183,7 +194,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -204,7 +215,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -225,7 +236,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -247,7 +258,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -268,7 +279,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -290,7 +301,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -312,7 +323,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -334,7 +345,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -355,7 +366,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -377,7 +388,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -401,7 +412,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -425,7 +436,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -449,7 +460,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -473,7 +484,7 @@ jobs:
     env:
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: 6.0.${{github.run_number}}
+      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
     steps:
       - uses: actions/checkout@v3
         with:
