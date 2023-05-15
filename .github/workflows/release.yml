@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: write
     env:
-      ONEUPTIME_VERSION: 7.0.${{needs.generate_build_number.outputs.build_number}}
+      ONEUPTIME_VERSION: 7.0
     steps:
       - uses: actions/checkout@v3
         with:
@@ -33,7 +33,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v3.7.1
       - uses: ncipollo/release-action@v1
         with:
-          tag: ${{env.ONEUPTIME_VERSION}}
+          tag: ${{env.ONEUPTIME_VERSION}}.${{needs.generate_build_number.outputs.build_number}}
           artifactErrorsFailBuild: true
           body: |
             ${{steps.build_changelog.outputs.changelog}}
