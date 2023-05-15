@@ -259,8 +259,6 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
     })
     public scheduledMaintenanceId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +376,4 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

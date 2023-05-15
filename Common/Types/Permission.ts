@@ -83,8 +83,6 @@ enum Permission {
     CanEditIncidentOwnerUser = 'CanEditIncidentOwnerUser',
     CanReadIncidentOwnerUser = 'CanReadIncidentOwnerUser',
 
-
-
     CanCreateScheduledMaintenanceOwnerTeam = 'CanCreateScheduledMaintenanceOwnerTeam',
     CanDeleteScheduledMaintenanceOwnerTeam = 'CanDeleteScheduledMaintenanceOwnerTeam',
     CanEditScheduledMaintenanceOwnerTeam = 'CanEditScheduledMaintenanceOwnerTeam',
@@ -94,7 +92,6 @@ enum Permission {
     CanDeleteScheduledMaintenanceOwnerUser = 'CanDeleteScheduledMaintenanceOwnerUser',
     CanEditScheduledMaintenanceOwnerUser = 'CanEditScheduledMaintenanceOwnerUser',
     CanReadScheduledMaintenanceOwnerUser = 'CanReadScheduledMaintenanceOwnerUser',
-
 
     CanCreateStatusPageOwnerTeam = 'CanCreateStatusPageOwnerTeam',
     CanDeleteStatusPageOwnerTeam = 'CanDeleteStatusPageOwnerTeam',
@@ -106,7 +103,6 @@ enum Permission {
     CanEditStatusPageOwnerUser = 'CanEditStatusPageOwnerUser',
     CanReadStatusPageOwnerUser = 'CanReadStatusPageOwnerUser',
 
-
     CanCreateMonitorOwnerTeam = 'CanCreateMonitorOwnerTeam',
     CanDeleteMonitorOwnerTeam = 'CanDeleteMonitorOwnerTeam',
     CanEditMonitorOwnerTeam = 'CanEditMonitorOwnerTeam',
@@ -116,7 +112,6 @@ enum Permission {
     CanDeleteMonitorOwnerUser = 'CanDeleteMonitorOwnerUser',
     CanEditMonitorOwnerUser = 'CanEditMonitorOwnerUser',
     CanReadMonitorOwnerUser = 'CanReadMonitorOwnerUser',
-
 
     CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
     CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
@@ -1706,7 +1701,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateScheduledMaintenanceOwnerTeam,
                 title: 'Can Create Scheduled Maintenance Team Owner',
@@ -1739,7 +1733,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateScheduledMaintenanceOwnerUser,
@@ -1774,7 +1767,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateIncidentOwnerTeam,
                 title: 'Can Create Incident Team Owner',
@@ -1807,7 +1799,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateIncidentOwnerUser,
@@ -1842,9 +1833,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
             {
                 permission: Permission.CanCreateStatusPageOwnerTeam,
                 title: 'Can Create Status Page Team Owner',
@@ -1877,7 +1865,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateStatusPageOwnerUser,
@@ -1912,10 +1899,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
-
             {
                 permission: Permission.CanCreateMonitorOwnerTeam,
                 title: 'Can Create Monitor Team Owner',
@@ -1949,7 +1932,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateMonitorOwnerUser,
                 title: 'Can Create Monitor User Owner',
@@ -1982,8 +1964,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateProjectIncident,

@@ -56,8 +56,7 @@ import Team from './Team';
     singularName: 'Status Page Team Owner',
     pluralName: 'Status Page Team Owners',
     icon: IconProp.Signal,
-    tableDescription:
-        'Add teams as owners to your Status Page.',
+    tableDescription: 'Add teams as owners to your Status Page.',
 })
 @Entity({
     name: 'StatusPageOwnerTeam',
@@ -259,8 +258,6 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
     })
     public statusPageId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +375,4 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

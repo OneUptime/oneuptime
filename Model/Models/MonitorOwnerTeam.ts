@@ -56,8 +56,7 @@ import Team from './Team';
     singularName: 'Monitor Team Owner',
     pluralName: 'Monitor Team Owners',
     icon: IconProp.Signal,
-    tableDescription:
-        'Add teams as owners to your monitors.',
+    tableDescription: 'Add teams as owners to your monitors.',
 })
 @Entity({
     name: 'MonitorOwnerTeam',
@@ -259,8 +258,6 @@ export default class MonitorOwnerTeam extends AccessControlModel {
     })
     public monitorId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +375,4 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

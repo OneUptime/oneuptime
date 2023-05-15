@@ -18,7 +18,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import ScheduledMaintenance from './ScheduledMaintenance';
 
-
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -259,8 +258,6 @@ export default class ScheduledMaintenanceOwnerUser extends AccessControlModel {
     })
     public scheduledMaintenanceId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +375,4 @@ export default class ScheduledMaintenanceOwnerUser extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

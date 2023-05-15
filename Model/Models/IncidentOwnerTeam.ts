@@ -56,8 +56,7 @@ import Team from './Team';
     singularName: 'Incident Team Owner',
     pluralName: 'Incident Team Owners',
     icon: IconProp.Signal,
-    tableDescription:
-        'Add teams as owners to your incidents.',
+    tableDescription: 'Add teams as owners to your incidents.',
 })
 @Entity({
     name: 'IncidentOwnerTeam',
@@ -259,8 +258,6 @@ export default class IncidentOwnerTeam extends AccessControlModel {
     })
     public incidentId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +375,4 @@ export default class IncidentOwnerTeam extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

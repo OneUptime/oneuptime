@@ -18,7 +18,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import Incident from './Incident';
 
-
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -56,8 +55,7 @@ import Incident from './Incident';
     singularName: 'Incident User Owner',
     pluralName: 'Incident User Owners',
     icon: IconProp.Signal,
-    tableDescription:
-        'Add users as owners to your incidents.',
+    tableDescription: 'Add users as owners to your incidents.',
 })
 @Entity({
     name: 'IncidentOwnerUser',
@@ -259,8 +257,6 @@ export default class IncidentOwnerUser extends AccessControlModel {
     })
     public incidentId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +374,4 @@ export default class IncidentOwnerUser extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

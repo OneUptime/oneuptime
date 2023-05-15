@@ -18,7 +18,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import Monitor from './Monitor';
 
-
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -56,8 +55,7 @@ import Monitor from './Monitor';
     singularName: 'Monitor User Owner',
     pluralName: 'Monitor User Owners',
     icon: IconProp.Signal,
-    tableDescription:
-        'Add users as owners to your monitors.',
+    tableDescription: 'Add users as owners to your monitors.',
 })
 @Entity({
     name: 'MonitorOwnerUser',
@@ -259,8 +257,6 @@ export default class MonitorOwnerUser extends AccessControlModel {
     })
     public monitorId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +374,4 @@ export default class MonitorOwnerUser extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

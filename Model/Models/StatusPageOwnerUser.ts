@@ -18,7 +18,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import StatusPage from './StatusPage';
 
-
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -56,8 +55,7 @@ import StatusPage from './StatusPage';
     singularName: 'Status Page User Owner',
     pluralName: 'Status Page User Owners',
     icon: IconProp.Signal,
-    tableDescription:
-        'Add users as owners to your Status Page.',
+    tableDescription: 'Add users as owners to your Status Page.',
 })
 @Entity({
     name: 'StatusPageOwnerUser',
@@ -259,8 +257,6 @@ export default class StatusPageOwnerUser extends AccessControlModel {
     })
     public statusPageId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -378,5 +374,4 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }
