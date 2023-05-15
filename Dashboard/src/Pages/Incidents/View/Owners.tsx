@@ -18,6 +18,9 @@ import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import TeamElement from '../../../Components/Team/Team';
+import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
+import User from 'Model/Models/User';
+import UserElement from '../../../Components/User/User';
 
 const IncidentOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -62,7 +65,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
+
 
             <ModelTable<IncidentOwnerTeam>
                 modelType={IncidentOwnerTeam}
@@ -79,7 +82,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: IncidentOwnerTeam
                 ): Promise<IncidentOwnerTeam> => {
-                   
+
                     item.incidentId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
@@ -131,7 +134,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
 
                             return (
                                 <TeamElement
-                                   team={item['team'] as Team}
+                                    team={item['team'] as Team}
                                 />
                             );
                         },
@@ -140,12 +143,97 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owned from',
+                        title: 'Owned since',
                         type: FieldType.DateTime,
                     },
                 ]}
             />
-            
+
+
+
+
+            <ModelTable<IncidentOwnerUser>
+                modelType={IncidentOwnerUser}
+                id="table-incident-owner-team"
+                name="Incident > Owner Team"
+                isDeleteable={true}
+                isCreateable={true}
+                isViewable={false}
+                showViewIdButton={true}
+                query={{
+                    incidentId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                onBeforeCreate={(
+                    item: IncidentOwnerUser
+                ): Promise<IncidentOwnerUser> => {
+
+                    item.incidentId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.Team,
+                    title: 'Owners - User',
+                    description:
+                        'Here is list of users that own this incident. They will be alerted when this incident is created or updated.',
+                }}
+                noItemsMessage={
+                    'No users associated with this incident so far.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            user: true,
+                        },
+                        title: 'User',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Select User',
+                        dropdownModal: {
+                            type: User,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                    },
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                columns={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                            },
+                        },
+                        title: 'User',
+                        type: FieldType.Entity,
+                        isFilterable: true,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (!item['user']) {
+                                throw new BadDataException(
+                                    'User not found'
+                                );
+                            }
+
+                            return (
+                                <UserElement
+                                    user={item['user'] as User}
+                                />
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owned since',
+                        type: FieldType.DateTime,
+                    },
+                ]}
+            />
+
         </ModelPage>
     );
 };
