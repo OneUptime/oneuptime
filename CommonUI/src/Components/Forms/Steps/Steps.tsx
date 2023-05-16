@@ -13,45 +13,48 @@ export interface ComponentProps<T> {
 const Steps: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
+    const steps: Array<FormStep<T>> = props.steps.filter(
+        (step: FormStep<T>) => {
+            if (!step.showIf) {
+                return true;
+            }
+
+            return step.showIf(props.formValues);
+        }
+    );
+
     return (
         <div className="pr-4 py-6 sm:pr-6 lg:pr-8">
             <nav className="flex" aria-label="Progress">
                 <ol role="list" className="space-y-6">
-                    {props.steps
-                        .filter((step: FormStep<T>) => {
-                            if (!step.showIf) {
-                                return true;
+                    {steps.map((step: FormStep<T>, index: number) => {
+                        const indexOfCurrentState: number = steps.findIndex(
+                            (step: FormStep<T>) => {
+                                return step.id === props.currentFormStepId;
                             }
+                        );
 
-                            return step.showIf(props.formValues);
-                        })
-                        .map((step: FormStep<T>, index: number) => {
-                            const indexOfCurrentState: number =
-                                props.steps.findIndex((step: FormStep<T>) => {
-                                    return step.id === props.currentFormStepId;
-                                });
+                        let state: FormStepState = FormStepState.INACTIVE;
 
-                            let state: FormStepState = FormStepState.INACTIVE;
+                        if (indexOfCurrentState > index) {
+                            state = FormStepState.COMPLETED;
+                        } else if (indexOfCurrentState === index) {
+                            state = FormStepState.ACTIVE;
+                        } else {
+                            state = FormStepState.INACTIVE;
+                        }
 
-                            if (indexOfCurrentState > index) {
-                                state = FormStepState.COMPLETED;
-                            } else if (indexOfCurrentState === index) {
-                                state = FormStepState.ACTIVE;
-                            } else {
-                                state = FormStepState.INACTIVE;
-                            }
-
-                            return (
-                                <Step
-                                    state={state}
-                                    step={step}
-                                    key={index}
-                                    onClick={(step: FormStep<T>) => {
-                                        props.onClick(step);
-                                    }}
-                                />
-                            );
-                        })}
+                        return (
+                            <Step
+                                state={state}
+                                step={step}
+                                key={index}
+                                onClick={(step: FormStep<T>) => {
+                                    props.onClick(step);
+                                }}
+                            />
+                        );
+                    })}
                 </ol>
             </nav>
         </div>

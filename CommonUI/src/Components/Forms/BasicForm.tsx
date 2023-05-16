@@ -288,22 +288,25 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 props.onSubmit(values);
             } else if (props.steps && props.steps.length > 0) {
-                const currentStepIndex: number = props.steps.findIndex(
+                const steps: Array<FormStep<T>> = props.steps.filter(
+                    (step: FormStep<T>) => {
+                        if (!step.showIf) {
+                            return true;
+                        }
+
+                        return step.showIf(refCurrentValue.current);
+                    }
+                );
+
+                const currentStepIndex: number = steps.findIndex(
                     (step: FormStep<T>) => {
                         return step.id === currentFormStepId;
                     }
                 );
+
                 if (currentStepIndex > -1) {
                     setCurrentFormStepId(
-                        (
-                            props.steps.filter((step: FormStep<T>) => {
-                                if (!step.showIf) {
-                                    return true;
-                                }
-
-                                return step.showIf(refCurrentValue.current);
-                            })[currentStepIndex + 1] as FormStep<T>
-                        ).id
+                        (steps[currentStepIndex + 1] as FormStep<T>).id
                     );
                 }
             }
