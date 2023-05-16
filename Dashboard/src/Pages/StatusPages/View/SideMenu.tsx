@@ -41,7 +41,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Anouncement}
                 />
-                 <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(

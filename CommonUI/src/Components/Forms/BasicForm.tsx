@@ -61,8 +61,6 @@ export interface ComponentProps<T extends Object> {
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
-
-
 const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     <T extends Object>(
         props: ComponentProps<T>,
@@ -98,7 +96,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 props.steps.length > 0 &&
                 (
                     (props.steps as Array<FormStep<T>>)[
-                    props.steps.length - 1
+                        props.steps.length - 1
                     ] as FormStep<T>
                 ).id === currentFormStepId
             ) {
@@ -144,16 +142,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         const validate: Function = (
             values: FormValues<T>
         ): Dictionary<string> => {
-           
-
-
-            const totalValidationErrors: Dictionary<string> = Validation.validate({
-                values,
-                formFields, 
-                currentFormStepId,
-                onValidate: props.onValidate || undefined,
-                
-            })
+            const totalValidationErrors: Dictionary<string> =
+                Validation.validate({
+                    values,
+                    formFields,
+                    currentFormStepId,
+                    onValidate: props.onValidate || undefined,
+                });
 
             if (props.onFormValidationErrorChanged) {
                 props.onFormValidationErrorChanged(
@@ -253,7 +248,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     props.steps.length > 0 &&
                     (
                         (props.steps as Array<FormStep<T>>)[
-                        props.steps.length - 1
+                            props.steps.length - 1
                         ] as FormStep<T>
                     ).id === currentFormStepId) ||
                 currentFormStepId === null
@@ -307,8 +302,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             }
         };
 
-
-
         useEffect(() => {
             if (isSubmitting.current) {
                 return;
@@ -345,7 +338,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 if (
                     field.fieldType ===
-                    FormFieldSchemaType.MultiSelectDropdown &&
+                        FormFieldSchemaType.MultiSelectDropdown &&
                     (values as any)[fieldName]
                 ) {
                     (values as any)[fieldName] = field.dropdownOptions?.filter(
@@ -411,10 +404,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 </div>
                             )}
                             <div
-                                className={`${props.steps && currentFormStepId
-                                    ? 'w-2/3 pt-6'
-                                    : 'w-full pt-1'
-                                    }`}
+                                className={`${
+                                    props.steps && currentFormStepId
+                                        ? 'w-2/3 pt-6'
+                                        : 'w-full pt-1'
+                                }`}
                             >
                                 {props.error && (
                                     <div className="mb-3">
@@ -427,8 +421,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                                 <div>
                                     <div
-                                        className={`grid md:grid-cols-${props.showAsColumns || 1
-                                            } grid-cols-1 gap-4`}
+                                        className={`grid md:grid-cols-${
+                                            props.showAsColumns || 1
+                                        } grid-cols-1 gap-4`}
                                     >
                                         {formFields &&
                                             formFields
@@ -453,21 +448,54 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                                     field
                                                                 )}
                                                             >
-                                                                {<FormField
-                                                                    field={field}
-                                                                    fieldName={getFieldName(
-                                                                        field
-                                                                    )}
-                                                                    index={i}
-                                                                    error={errors[getFieldName(field)] || ''}
-                                                                    touched={touched[getFieldName(field)] || false}
-                                                                    isDisabled={props.isLoading || false}
-                                                                    currentValues={refCurrentValue.current}
-                                                                    setFieldValue={setFieldValue}
-                                                                    setFieldTouched={setFieldTouched}
-                                                                    submitform={submitForm}
-                                                                    disableAutofocus={props.disableAutofocus || false}
-                                                                />
+                                                                {
+                                                                    <FormField
+                                                                        field={
+                                                                            field
+                                                                        }
+                                                                        fieldName={getFieldName(
+                                                                            field
+                                                                        )}
+                                                                        index={
+                                                                            i
+                                                                        }
+                                                                        error={
+                                                                            errors[
+                                                                                getFieldName(
+                                                                                    field
+                                                                                )
+                                                                            ] ||
+                                                                            ''
+                                                                        }
+                                                                        touched={
+                                                                            touched[
+                                                                                getFieldName(
+                                                                                    field
+                                                                                )
+                                                                            ] ||
+                                                                            false
+                                                                        }
+                                                                        isDisabled={
+                                                                            props.isLoading ||
+                                                                            false
+                                                                        }
+                                                                        currentValues={
+                                                                            refCurrentValue.current
+                                                                        }
+                                                                        setFieldValue={
+                                                                            setFieldValue
+                                                                        }
+                                                                        setFieldTouched={
+                                                                            setFieldTouched
+                                                                        }
+                                                                        submitform={
+                                                                            submitForm
+                                                                        }
+                                                                        disableAutofocus={
+                                                                            props.disableAutofocus ||
+                                                                            false
+                                                                        }
+                                                                    />
                                                                 }
                                                                 {
                                                                     field.footerElement

@@ -65,8 +65,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
-
             <ModelTable<IncidentOwnerTeam>
                 modelType={IncidentOwnerTeam}
                 id="table-incident-owner-team"
@@ -82,7 +80,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: IncidentOwnerTeam
                 ): Promise<IncidentOwnerTeam> => {
-
                     item.incidentId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
@@ -127,16 +124,10 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
-                                throw new BadDataException(
-                                    'Team not found'
-                                );
+                                throw new BadDataException('Team not found');
                             }
 
-                            return (
-                                <TeamElement
-                                    team={item['team'] as Team}
-                                />
-                            );
+                            return <TeamElement team={item['team'] as Team} />;
                         },
                     },
                     {
@@ -148,9 +139,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
-
-
 
             <ModelTable<IncidentOwnerUser>
                 modelType={IncidentOwnerUser}
@@ -167,7 +155,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: IncidentOwnerUser
                 ): Promise<IncidentOwnerUser> => {
-
                     item.incidentId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
@@ -212,16 +199,10 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
-                                throw new BadDataException(
-                                    'User not found'
-                                );
+                                throw new BadDataException('User not found');
                             }
 
-                            return (
-                                <UserElement
-                                    user={item['user'] as User}
-                                />
-                            );
+                            return <UserElement user={item['user'] as User} />;
                         },
                     },
                     {
@@ -233,7 +214,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
         </ModelPage>
     );
 };

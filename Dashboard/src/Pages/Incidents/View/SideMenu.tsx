@@ -40,7 +40,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.List}
                 />
-                
+
                 <SideMenuItem
                     link={{
                         title: 'Owners',

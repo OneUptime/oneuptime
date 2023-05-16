@@ -1,4 +1,3 @@
-
 import FormValues from './Types/FormValues';
 
 import { JSONObject } from 'Common/Types/JSON';
@@ -22,9 +21,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import Field from './Types/Field';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-
 export default class Validation {
-
     public static validateLength<T extends Object>(
         content: string | undefined,
         field: Field<T>
@@ -32,15 +29,17 @@ export default class Validation {
         if (content && field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${field.validation.minLength
-                        } characters.`;
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${field.validation.maxLength
-                        } characters.`;
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
                 }
             }
 
@@ -52,15 +51,15 @@ export default class Validation {
 
             if (field.validation.noSpecialCharacters) {
                 if (!content.match(/^[A-Za-z0-9]*$/)) {
-                    return `${field.title || name
-                        } should not have special characters.`;
+                    return `${
+                        field.title || name
+                    } should not have special characters.`;
                 }
             }
 
             if (field.validation.noNumbers) {
                 if (!content.match(/^[A-Za-z]*$/)) {
-                    return `${field.title || name
-                        } should not have numbers.`;
+                    return `${field.title || name} should not have numbers.`;
                 }
             }
         }
@@ -74,8 +73,7 @@ export default class Validation {
         if (content && field.validation) {
             if (field.validation.dateShouldBeInTheFuture) {
                 if (OneUptimeDate.isInThePast(content.trim())) {
-                    return `${field.title || name
-                        } should be a future date.`;
+                    return `${field.title || name} should be a future date.`;
                 }
             }
         }
@@ -97,17 +95,17 @@ export default class Validation {
 
             if (field.validation.maxValue) {
                 if (content > field.validation?.maxValue) {
-                    return `${field.title || name
-                        } should not be more than ${field.validation?.maxValue
-                        }.`;
+                    return `${field.title || name} should not be more than ${
+                        field.validation?.maxValue
+                    }.`;
                 }
             }
 
             if (field.validation.minValue) {
                 if (content < field.validation?.minValue) {
-                    return `${field.title || name
-                        } should not be less than ${field.validation?.minValue
-                        }.`;
+                    return `${field.title || name} should not be less than ${
+                        field.validation?.minValue
+                    }.`;
                 }
             }
         }
@@ -122,7 +120,7 @@ export default class Validation {
             return `${field.title} is required.`;
         }
         return null;
-    };
+    }
 
     public static validateMatchField<T extends Object>(
         content: string | undefined,
@@ -146,9 +144,6 @@ export default class Validation {
         content: string | undefined,
         field: Field<T>
     ): string | null {
-
-
-
         if (content && field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -229,29 +224,30 @@ export default class Validation {
     }
 
     public static validate<T extends Object>(args: {
-        formFields: Array<Field<T>> ,
-        values: FormValues<T>, 
-        onValidate: ((values: FormValues<T>) => JSONObject) | undefined, 
-        currentFormStepId?: string | null | undefined
-    }
-    ): Dictionary<string> {
+        formFields: Array<Field<T>>;
+        values: FormValues<T>;
+        onValidate: ((values: FormValues<T>) => JSONObject) | undefined;
+        currentFormStepId?: string | null | undefined;
+    }): Dictionary<string> {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...args.values } as JSONObject;
 
         for (const field of args.formFields) {
-            if (args.currentFormStepId && field.stepId !== args.currentFormStepId) {
+            if (
+                args.currentFormStepId &&
+                field.stepId !== args.currentFormStepId
+            ) {
                 continue;
             }
 
-            if(!field.name) {
-                throw new BadDataException('Field name is required.')
+            if (!field.name) {
+                throw new BadDataException('Field name is required.');
             }
 
             const name: string = field.name;
 
             if (name in entries) {
-                const content: string | undefined =
-                    entries[name]?.toString();
+                const content: string | undefined = entries[name]?.toString();
 
                 // Check Required fields.
                 const resultRequired: string | null = this.validateRequired(
@@ -301,7 +297,7 @@ export default class Validation {
 
                 // check for length of content
                 const resultMaxMinValue: string | null =
-                this.validateMaxValueAndMinValue(content, field);
+                    this.validateMaxValueAndMinValue(content, field);
 
                 if (resultMaxMinValue) {
                     errors[name] = resultMaxMinValue;
@@ -332,8 +328,6 @@ export default class Validation {
             ...customValidateResult,
         } as Dictionary<string>;
 
-       
-
         return totalValidationErrors;
-    };
+    }
 }

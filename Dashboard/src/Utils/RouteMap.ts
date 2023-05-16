@@ -81,8 +81,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/internal-notes`
     ),
 
-    
-
     [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
     ),
@@ -302,8 +300,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_INCIDENTS_SEVERITY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-severity`
     ),
-
-    
 
     [PageMap.SETTINGS_DOMAINS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/domains`

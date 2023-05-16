@@ -34,7 +34,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route,
+                            RouteMap[
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
+                            ] as Route,
                             props.modelId
                         ),
                     }}
@@ -53,7 +55,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.List}
                 />
-
             </SideMenuSection>
 
             <SideMenuSection title="Scheduled Maintenance Notes">
