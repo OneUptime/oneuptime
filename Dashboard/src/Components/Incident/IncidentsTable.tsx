@@ -20,6 +20,8 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import DashboardNavigation from '../../Utils/Navigation';
+import Team from 'Model/Models/Team';
+import ProjectUser from '../../Utils/ProjectUser';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -63,6 +65,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 {
                     title: 'Resources Affected',
                     id: 'resources-affected',
+                },
+                {
+                    title: 'Owners',
+                    id: 'owners',
                 },
                 {
                     title: 'Labels',
@@ -140,6 +146,40 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     required: false,
                     placeholder: 'Monitor Status',
+                },
+                {
+                    field: {
+                        ownerTeams: true,
+                    },
+                    forceShow: true,
+                    title: 'Owner - Teams',
+                    stepId: 'owners',
+                    description: 'Select teams who own this incident. They will be notified when the incident is created or updated.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    dropdownModal: {
+                        type: Team,
+                        labelField: 'name',
+                        valueField: '_id',
+                    },
+                    required: false,
+                    placeholder: 'Select Teams',
+                },
+                {
+                    field: {
+                        ownerUsers: true,
+                    },
+                    forceShow: true,
+                    title: 'Owner - Users',
+                    stepId: 'owners',
+                    description: 'Select users who own this incident. They will be notified when the incident is created or updated.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    fetchDropdownOptions: async () => {
+                        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                            DashboardNavigation.getProjectId()!
+                        );
+                    },
+                    required: false,
+                    placeholder: 'Select Users',
                 },
                 {
                     field: {
