@@ -26,6 +26,8 @@ import {
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringIntrerval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
+import Team from 'Model/Models/Team';
+import ProjectUser from '../../Utils/ProjectUser';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -68,6 +70,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     showIf: (values: FormValues<Monitor>) => {
                         return values.monitorType !== MonitorType.Manual;
                     },
+                },
+                {
+                    title: 'Owners',
+                    id: 'owners',
                 },
                 {
                     title: 'Labels',
@@ -161,6 +167,44 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     required: true,
                     dropdownOptions: MonitoringIntrerval,
                     placeholder: 'Select Monitoring Interval',
+                },
+                {
+                    field: {
+                        ownerTeams: true,
+                    },
+                    forceShow: true,
+                    title: 'Owner - Teams',
+                    stepId: 'owners',
+                    description:
+                        'Select teams who own this monitor. They will be notified when monitor status changes.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    dropdownModal: {
+                        type: Team,
+                        labelField: 'name',
+                        valueField: '_id',
+                    },
+                    required: false,
+                    placeholder: 'Select Teams',
+                    overideFieldKey: 'ownerTeams',
+                },
+                {
+                    field: {
+                        ownerUsers: true,
+                    },
+                    forceShow: true,
+                    title: 'Owner - Users',
+                    stepId: 'owners',
+                    description:
+                        'Select users who own this incident. They will be notified when monitor status changes.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    fetchDropdownOptions: async () => {
+                        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                            DashboardNavigation.getProjectId()!
+                        );
+                    },
+                    required: false,
+                    placeholder: 'Select Users',
+                    overideFieldKey: 'ownerUsers',
                 },
                 {
                     field: {

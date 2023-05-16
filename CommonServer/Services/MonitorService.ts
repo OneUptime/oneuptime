@@ -17,6 +17,11 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import ActiveMonitoringMeteredPlan from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
 import { IsBillingEnabled } from '../Config';
+import MonitorOwnerUserService from './MonitorOwnerUserService';
+import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
+import MonitorOwnerTeamService from './MonitorOwnerTeamService';
+import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
+import Typeof from 'Common/Types/Typeof';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -111,7 +116,65 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
+        // add owners.
+
+        if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps['ownerTeams'] ||
+                onCreate.createBy.miscDataProps['ownerUsers'])
+        ) {
+            await this.addOwners(
+                createdItem.projectId,
+                createdItem.id,
+                (onCreate.createBy.miscDataProps[
+                    'ownerUsers'
+                ] as Array<ObjectID>) || [],
+                (onCreate.createBy.miscDataProps[
+                    'ownerTeams'
+                ] as Array<ObjectID>) || [],
+                onCreate.createBy.props
+            );
+        }
+
         return createdItem;
+    }
+
+    public async addOwners(
+        projectId: ObjectID,
+        monitorId: ObjectID,
+        userIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        for (let teamId of teamIds) {
+            if (typeof teamId === Typeof.String) {
+                teamId = new ObjectID(teamId.toString());
+            }
+
+            const teamOwner: MonitorOwnerTeam = new MonitorOwnerTeam();
+            teamOwner.monitorId = monitorId;
+            teamOwner.projectId = projectId;
+            teamOwner.teamId = teamId;
+
+            await MonitorOwnerTeamService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
+
+        for (let userId of userIds) {
+            if (typeof userId === Typeof.String) {
+                userId = new ObjectID(userId.toString());
+            }
+            const teamOwner: MonitorOwnerUser = new MonitorOwnerUser();
+            teamOwner.monitorId = monitorId;
+            teamOwner.projectId = projectId;
+            teamOwner.userId = userId;
+            await MonitorOwnerUserService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
     }
 
     public async addDefaultProbesToMonitor(

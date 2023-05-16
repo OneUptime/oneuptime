@@ -12,6 +12,11 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import ScheduledMaintenanceOwnerUserService from './ScheduledMaintenanceOwnerUserService';
+import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwnerUser';
+import Typeof from 'Common/Types/Typeof';
+import ScheduledMaintenanceOwnerTeamService from './ScheduledMaintenanceOwnerTeamService';
+import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -52,7 +57,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onCreateSuccess(
-        _onCreate: OnCreate<Model>,
+        onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
         // create new scheduled maintenance state timeline.
@@ -72,7 +77,67 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
+        if (
+            createdItem.projectId &&
+            createdItem.id &&
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps['ownerTeams'] ||
+                onCreate.createBy.miscDataProps['ownerUsers'])
+        ) {
+            await this.addOwners(
+                createdItem.projectId!,
+                createdItem.id!,
+                (onCreate.createBy.miscDataProps[
+                    'ownerUsers'
+                ] as Array<ObjectID>) || [],
+                (onCreate.createBy.miscDataProps[
+                    'ownerTeams'
+                ] as Array<ObjectID>) || [],
+                onCreate.createBy.props
+            );
+        }
+
         return createdItem;
+    }
+
+    public async addOwners(
+        projectId: ObjectID,
+        scheduledMaintenanceId: ObjectID,
+        userIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        for (let teamId of teamIds) {
+            if (typeof teamId === Typeof.String) {
+                teamId = new ObjectID(teamId.toString());
+            }
+
+            const teamOwner: ScheduledMaintenanceOwnerTeam =
+                new ScheduledMaintenanceOwnerTeam();
+            teamOwner.scheduledMaintenanceId = scheduledMaintenanceId;
+            teamOwner.projectId = projectId;
+            teamOwner.teamId = teamId;
+
+            await ScheduledMaintenanceOwnerTeamService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
+
+        for (let userId of userIds) {
+            if (typeof userId === Typeof.String) {
+                userId = new ObjectID(userId.toString());
+            }
+            const teamOwner: ScheduledMaintenanceOwnerUser =
+                new ScheduledMaintenanceOwnerUser();
+            teamOwner.scheduledMaintenanceId = scheduledMaintenanceId;
+            teamOwner.projectId = projectId;
+            teamOwner.userId = userId;
+            await ScheduledMaintenanceOwnerUserService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
     }
 
     public async changeAttachedMonitorStates(

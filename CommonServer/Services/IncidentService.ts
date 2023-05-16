@@ -11,6 +11,11 @@ import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
+import IncidentOwnerTeamService from './IncidentOwnerTeamService';
+import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
+import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
+import IncidentOwnerUserService from './IncidentOwnerUserService';
+import Typeof from 'Common/Types/Typeof';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -90,7 +95,65 @@ export class Service extends DatabaseService<Model> {
             }
         );
 
+        // add owners.
+
+        if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps['ownerTeams'] ||
+                onCreate.createBy.miscDataProps['ownerUsers'])
+        ) {
+            await this.addOwners(
+                createdItem.projectId,
+                createdItem.id,
+                (onCreate.createBy.miscDataProps[
+                    'ownerUsers'
+                ] as Array<ObjectID>) || [],
+                (onCreate.createBy.miscDataProps[
+                    'ownerTeams'
+                ] as Array<ObjectID>) || [],
+                onCreate.createBy.props
+            );
+        }
+
         return createdItem;
+    }
+
+    public async addOwners(
+        projectId: ObjectID,
+        incidentId: ObjectID,
+        userIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        for (let teamId of teamIds) {
+            if (typeof teamId === Typeof.String) {
+                teamId = new ObjectID(teamId.toString());
+            }
+
+            const teamOwner: IncidentOwnerTeam = new IncidentOwnerTeam();
+            teamOwner.incidentId = incidentId;
+            teamOwner.projectId = projectId;
+            teamOwner.teamId = teamId;
+
+            await IncidentOwnerTeamService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
+
+        for (let userId of userIds) {
+            if (typeof userId === Typeof.String) {
+                userId = new ObjectID(userId.toString());
+            }
+            const teamOwner: IncidentOwnerUser = new IncidentOwnerUser();
+            teamOwner.incidentId = incidentId;
+            teamOwner.projectId = projectId;
+            teamOwner.userId = userId;
+            await IncidentOwnerUserService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
     }
 
     public async changeIncidentState(

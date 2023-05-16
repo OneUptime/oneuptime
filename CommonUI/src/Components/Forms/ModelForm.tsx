@@ -39,6 +39,7 @@ import { ButtonStyleType } from '../Button/Button';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from '../../Utils/API/API';
 import { FormStep } from './Types/FormStep';
+import Field from './Types/Field';
 
 export enum FormType {
     Create,
@@ -192,7 +193,15 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
                 const hasPermission: boolean = hasPermissionOnField(key);
 
-                if (field.forceShow || hasPermission) {
+                if (
+                    (field.forceShow || hasPermission) &&
+                    fieldsToSet.filter((i: Field<TBaseModel>) => {
+                        // check if field already exists. If it does, don't add it.
+                        const iKeys: Array<string> = Object.keys(i.field);
+                        const iFieldKey: string = iKeys[0] as string;
+                        return iFieldKey === key;
+                    }).length === 0
+                ) {
                     fieldsToSet.push(field);
                 }
             }
