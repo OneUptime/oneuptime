@@ -1,10 +1,12 @@
-import { test, expect, ElementHandle, Page } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import BASE_URL from '../../Utils/BaseURL';
 
 test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(BASE_URL);
 });
+
 test.describe('navigation bar', () => {
+
     test('product page', async ({ page }: { page: Page }) => {
         await page.getByRole('button', { name: 'Products' }).click();
         await page.getByRole('button', { name: 'Products' }).hover();
@@ -18,6 +20,7 @@ test.describe('navigation bar', () => {
             page.getByRole('button', { name: 'Products' })
         ).toBeInViewport();
     });
+
     test('pricing page', async ({ page }: { page: Page }) => {
         await page.getByRole('link', { name: 'Pricing' }).click();
         await page.getByRole('link', { name: 'Pricing' }).hover();
@@ -30,6 +33,7 @@ test.describe('navigation bar', () => {
         ).toBeInViewport();
         await expect(page).toHaveURL(/.*pricing/);
     });
+
     test('Enterprise', async ({ page }: { page: Page }) => {
         await page.getByRole('link', { name: 'Enterprise' }).click();
         await page.getByRole('link', { name: 'Enterprise' }).hover();
@@ -44,15 +48,11 @@ test.describe('navigation bar', () => {
         );
         await expect(page).toHaveURL(/.*enterprise\/overview/);
     });
-    test('Request Demo', async ({ page }: { page: Page }) => {
-        const requestDemo: ElementHandle<Element> | null = await page.$(
-            "[data-testid='Request-demo']"
-        );
 
-        if (requestDemo) {
-            await requestDemo.click();
-            await requestDemo.hover();
-            await expect(page).toHaveURL(/.*enterprise\/demo/);
-        }
+    test('Request Demo', async ({ page }: { page: Page }) => {
+
+        await page.getByTestId("request-demo-desktop-link").click()
+        await expect(page).toHaveURL(/.*enterprise\/demo/);
+
     });
 });
