@@ -6,7 +6,6 @@ test.beforeEach(async ({ page }: { page: Page }) => {
 });
 
 test.describe('navigation bar', () => {
-
     test('product page', async ({ page }: { page: Page }) => {
         await page.getByRole('button', { name: 'Products' }).click();
         await page.getByRole('button', { name: 'Products' }).hover();
@@ -50,9 +49,7 @@ test.describe('navigation bar', () => {
     });
 
     test('Request Demo', async ({ page }: { page: Page }) => {
-
-        await page.getByTestId("request-demo-desktop-link").click()
+        await page.getByTestId('request-demo-desktop-link').click();
         await expect(page).toHaveURL(/.*enterprise\/demo/);
-
     });
 });
