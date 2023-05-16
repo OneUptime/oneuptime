@@ -686,8 +686,8 @@ export default class StatusPageAPI extends BaseAPI<
                                 title: true,
                                 description: true,
                                 _id: true,
-                                showAnnouncementAt: true, 
-                                endAnnouncementAt: true
+                                showAnnouncementAt: true,
+                                endAnnouncementAt: true,
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
