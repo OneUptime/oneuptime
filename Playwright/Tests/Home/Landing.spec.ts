@@ -1,8 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-
-const BASE_URL: string =
-    process.env['BASE_URL' as keyof typeof process.env] ||
-    'https://test.oneuptime.com/';
+import BASE_URL from '../../Utils/BaseURL';
 
 test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(BASE_URL);
