@@ -15,6 +15,8 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import Team from 'Model/Models/Team';
+import ProjectUser from '../../Utils/ProjectUser';
 
 const StatusPages: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -58,6 +60,10 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         id: 'status-page-info',
                     },
                     {
+                        title: 'Owners',
+                        id: 'owners',
+                    },
+                    {
                         title: 'Labels',
                         id: 'labels',
                     },
@@ -86,6 +92,42 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+                    {
+                        field: {
+                            ownerTeams: true,
+                        },
+                        forceShow: true,
+                        title: 'Owner - Teams',
+                        stepId: 'owners',
+                        description: 'Select teams who own this status page. ',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Team,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Select Teams',
+                        overideFieldKey: 'ownerTeams',
+                    },
+                    {
+                        field: {
+                            ownerUsers: true,
+                        },
+                        forceShow: true,
+                        title: 'Owner - Users',
+                        stepId: 'owners',
+                        description: 'Select users who own this status page.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        fetchDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        required: false,
+                        placeholder: 'Select Users',
+                        overideFieldKey: 'ownerUsers',
                     },
                     {
                         field: {

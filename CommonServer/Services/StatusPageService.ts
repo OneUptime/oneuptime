@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnCreate } from './DatabaseService';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -13,10 +13,82 @@ import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import logger from '../Utils/Logger';
+import Typeof from 'Common/Types/Typeof';
+import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
+import StatusPageOwnerTeamService from './StatusPageOwnerTeamService';
+import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
+import StatusPageOwnerUserService from './StatusPageOwnerUserService';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(StatusPage, postgresDatabase);
+    }
+
+    protected override async onCreateSuccess(
+        onCreate: OnCreate<StatusPage>,
+        createdItem: StatusPage
+    ): Promise<StatusPage> {
+        // add owners.
+
+        if (
+            createdItem.projectId &&
+            createdItem.id &&
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps['ownerTeams'] ||
+                onCreate.createBy.miscDataProps['ownerUsers'])
+        ) {
+            await this.addOwners(
+                createdItem.projectId!,
+                createdItem.id!,
+                (onCreate.createBy.miscDataProps[
+                    'ownerUsers'
+                ] as Array<ObjectID>) || [],
+                (onCreate.createBy.miscDataProps[
+                    'ownerTeams'
+                ] as Array<ObjectID>) || [],
+                onCreate.createBy.props
+            );
+        }
+
+        return createdItem;
+    }
+
+    public async addOwners(
+        projectId: ObjectID,
+        statusPageId: ObjectID,
+        userIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        for (let teamId of teamIds) {
+            if (typeof teamId === Typeof.String) {
+                teamId = new ObjectID(teamId.toString());
+            }
+
+            const teamOwner: StatusPageOwnerTeam = new StatusPageOwnerTeam();
+            teamOwner.statusPageId = statusPageId;
+            teamOwner.projectId = projectId;
+            teamOwner.teamId = teamId;
+
+            await StatusPageOwnerTeamService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
+
+        for (let userId of userIds) {
+            if (typeof userId === Typeof.String) {
+                userId = new ObjectID(userId.toString());
+            }
+            const teamOwner: StatusPageOwnerUser = new StatusPageOwnerUser();
+            teamOwner.statusPageId = statusPageId;
+            teamOwner.projectId = projectId;
+            teamOwner.userId = userId;
+            await StatusPageOwnerUserService.create({
+                data: teamOwner,
+                props: props,
+            });
+        }
     }
 
     public async hasReadAccess(

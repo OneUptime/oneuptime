@@ -20,6 +20,8 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import OneUptimeDate from 'Common/Types/Date';
+import Team from 'Model/Models/Team';
+import ProjectUser from '../../Utils/ProjectUser';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
@@ -68,6 +70,10 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 {
                     title: 'Status Pages',
                     id: 'status-pages',
+                },
+                {
+                    title: 'Owners',
+                    id: 'owners',
                 },
                 {
                     title: 'Labels',
@@ -172,6 +178,44 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     required: false,
                     placeholder: 'Select Status Pages',
+                },
+                {
+                    field: {
+                        ownerTeams: true,
+                    },
+                    forceShow: true,
+                    title: 'Owner - Teams',
+                    stepId: 'owners',
+                    description:
+                        'Select teams who own this event. They will be notified when event status changes.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    dropdownModal: {
+                        type: Team,
+                        labelField: 'name',
+                        valueField: '_id',
+                    },
+                    required: false,
+                    placeholder: 'Select Teams',
+                    overideFieldKey: 'ownerTeams',
+                },
+                {
+                    field: {
+                        ownerUsers: true,
+                    },
+                    forceShow: true,
+                    title: 'Owner - Users',
+                    stepId: 'owners',
+                    description:
+                        'Select users who own this event. They will be notified when event status changes.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    fetchDropdownOptions: async () => {
+                        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                            DashboardNavigation.getProjectId()!
+                        );
+                    },
+                    required: false,
+                    placeholder: 'Select Users',
+                    overideFieldKey: 'ownerUsers',
                 },
                 {
                     field: {

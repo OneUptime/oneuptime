@@ -154,7 +154,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     forceShow: true,
                     title: 'Owner - Teams',
                     stepId: 'owners',
-                    description: 'Select teams who own this incident. They will be notified when the incident is created or updated.',
+                    description:
+                        'Select teams who own this incident. They will be notified when the incident is created or updated.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: Team,
@@ -163,6 +164,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     required: false,
                     placeholder: 'Select Teams',
+                    overideFieldKey: 'ownerTeams',
                 },
                 {
                     field: {
@@ -171,7 +173,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     forceShow: true,
                     title: 'Owner - Users',
                     stepId: 'owners',
-                    description: 'Select users who own this incident. They will be notified when the incident is created or updated.',
+                    description:
+                        'Select users who own this incident. They will be notified when the incident is created or updated.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     fetchDropdownOptions: async () => {
                         return await ProjectUser.fetchProjectUsersAsDropdownOptions(
@@ -180,6 +183,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     required: false,
                     placeholder: 'Select Users',
+                    overideFieldKey: 'ownerUsers',
                 },
                 {
                     field: {
