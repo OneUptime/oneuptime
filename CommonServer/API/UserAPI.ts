@@ -8,4 +8,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     public constructor() {
         super(User, UserService);
     }
+    
+
+    
 }
