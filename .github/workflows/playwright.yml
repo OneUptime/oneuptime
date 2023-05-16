@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     env:
-      BASE_URL: https://test.oneuptime.com
+      BASE_URL: http://localhost
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
@@ -17,6 +17,8 @@ jobs:
         node-version: 16
     - name: Install dependencies
       run: npm ci
+    - name: Run Server in Docker
+      run: npm run dev
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
