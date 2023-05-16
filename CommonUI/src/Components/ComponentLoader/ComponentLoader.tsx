@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, ReactElement } from 'react';
 import CompactLoader from './CompactLoader';
 

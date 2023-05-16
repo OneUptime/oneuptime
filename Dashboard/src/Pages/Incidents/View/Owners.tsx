@@ -182,9 +182,11 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Select User',
-                        fetchDropdownOptions: async ()=>{
-                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(DashboardNavigation.getProjectId()!)
-                        }
+                        fetchDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
                     },
                 ]}
                 showRefreshButton={true}
@@ -196,7 +198,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                             user: {
                                 name: true,
                                 email: true,
-                                profilePictureId: true
+                                profilePictureId: true,
                             },
                         },
                         title: 'User',

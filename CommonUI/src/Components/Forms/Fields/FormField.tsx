@@ -5,7 +5,10 @@ import FormFieldSchemaType from '../Types/FormFieldSchemaType';
 import ColorPicker from '../Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from '../../TextArea/TextArea';
-import Dropdown, { DropdownOption, DropdownValue } from '../../Dropdown/Dropdown';
+import Dropdown, {
+    DropdownOption,
+    DropdownValue,
+} from '../../Dropdown/Dropdown';
 import Toggle from '../../Toggle/Toggle';
 import Input, { InputType } from '../../Input/Input';
 import CodeEditor from '../../CodeEditor/CodeEditor';
@@ -37,27 +40,28 @@ export interface ComponentProps<T extends Object> {
 const FormField: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-
-    const [dropdownOptions, setDropdownOptions] = React.useState<Array<DropdownOption>>(props.field.dropdownOptions || []);
+    const [dropdownOptions, setDropdownOptions] = React.useState<
+        Array<DropdownOption>
+    >(props.field.dropdownOptions || []);
     const [isFieldLoading, setIsFieldLoading] = React.useState<boolean>(false);
 
     const fetchDropdownOptions: Function = async (): Promise<void> => {
-        if(!props.field.fetchDropdownOptions){
-            return; 
+        if (!props.field.fetchDropdownOptions) {
+            return;
         }
 
         setIsFieldLoading(true);
 
-        const options: Array<DropdownOption> = await props.field.fetchDropdownOptions();
+        const options: Array<DropdownOption> =
+            await props.field.fetchDropdownOptions();
 
         setDropdownOptions(options);
         setIsFieldLoading(false);
-    }
+    };
 
-    useEffect(()=>{
+    useEffect(() => {
         fetchDropdownOptions().catch();
-    }, [props.field])
-
+    }, [props.field]);
 
     const getFieldType: Function = (fieldType: FormFieldSchemaType): string => {
         switch (fieldType) {
@@ -527,9 +531,8 @@ const FormField: Function = <T extends Object>(
         );
     };
 
-
-    if(isFieldLoading){
-        return <ComponentLoader/>
+    if (isFieldLoading) {
+        return <ComponentLoader />;
     }
 
     return <>{getFormField()}</>;

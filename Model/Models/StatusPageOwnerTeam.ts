@@ -147,7 +147,8 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         type: TableColumnType.Entity,
         modelType: Team,
         title: 'Team',
-        description: 'Team that is the owner. All users in this team will receive notifications. ',
+        description:
+            'Team that is the owner. All users in this team will receive notifications. ',
     })
     @ManyToOne(
         (_type: string) => {
