@@ -178,7 +178,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         );
 
         useEffect(() => {
-            setFormFields([...props.fields]);
+            setFormFields([
+                ...props.fields.map((field: Field<T>) => {
+                    return {
+                        name: getFieldName(field),
+                        ...field,
+                    };
+                }),
+            ]);
         }, [props.fields]);
 
         const getFieldName: Function = (field: Field<T>): string => {
@@ -201,7 +208,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     continue;
                 }
 
-                touchedObj[getFieldName(field)] = true;
+                touchedObj[field.name!] = true;
             }
 
             setTouched({ ...touched, ...touchedObj });
@@ -257,14 +264,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 for (const field of formFields) {
                     if (field.fieldType === FormFieldSchemaType.Toggle) {
-                        const fieldName: string = getFieldName(field);
+                        const fieldName: string = field.name!;
                         if (!(values as any)[fieldName]) {
                             (values as any)[fieldName] = false;
                         }
                     }
 
                     if (field.fieldType === FormFieldSchemaType.Password) {
-                        const fieldName: string = getFieldName(field);
+                        const fieldName: string = field.name!;
                         if (
                             (values as any)[fieldName] &&
                             typeof (values as any)[fieldName] === Typeof.String
@@ -313,7 +320,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
             const values: FormValues<T> = { ...props.initialValues };
             for (const field of formFields) {
-                const fieldName: string = getFieldName(field);
+                const fieldName: string = field.name!;
 
                 if (
                     field.fieldType === FormFieldSchemaType.Date &&
