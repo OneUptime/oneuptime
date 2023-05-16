@@ -31,6 +31,7 @@ export interface CustomElementProps {
 }
 
 export default interface Field<TEntity> {
+    name?: string; // form field name, should be unique in thr form. If not provided, the field will be auto generated.
     title?: string;
     description?: string;
     field: SelectFormFields<TEntity>;
@@ -40,6 +41,7 @@ export default interface Field<TEntity> {
     stepId?: string | undefined;
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
+    fetchDropdownOptions?: (() => Promise<Array<DropdownOption>>) | undefined;
     dropdownModal?: {
         type: { new (): BaseModel };
         labelField: string;

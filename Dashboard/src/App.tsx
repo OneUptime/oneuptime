@@ -47,6 +47,7 @@ import StatusPageViewSubscriberSettings from './Pages/StatusPages/View/Subscribe
 import StatusPageViewCustomFields from './Pages/StatusPages/View/CustomFields';
 import StatusPageViewSSO from './Pages/StatusPages/View/SSO';
 import StatusPageViewPrivateUser from './Pages/StatusPages/View/PrivateUser';
+import StatusPageViewOwners from './Pages/StatusPages/View/Owners';
 import StatusPageViewAuthenticationSettings from './Pages/StatusPages/View/AuthenticationSettings';
 import StatusPageViewCustomSMTP from './Pages/StatusPages/View/CustomSMTP';
 
@@ -58,10 +59,12 @@ import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
 import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
 import UnresolvedIncidents from './Pages/Incidents/Unresolved';
 import IncidentViewCustomFields from './Pages/Incidents/View/CustomFields';
+import IncidentViewOwner from './Pages/Incidents/View/Owners';
 
 import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
 import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
 import ScheduledMaintenanceEventViewDelete from './Pages/ScheduledMaintenanceEvents/View/Delete';
+import ScheduledMaintenanceEventViewOwner from './Pages/ScheduledMaintenanceEvents/View/Owners';
 import ScheduledMaintenanceEventViewStateTimeline from './Pages/ScheduledMaintenanceEvents/View/StateTimeline';
 import ScheduledMaintenanceEventInternalNote from './Pages/ScheduledMaintenanceEvents/View/InternalNote';
 import ScheduledMaintenanceEventPublicNote from './Pages/ScheduledMaintenanceEvents/View/PublicNote';
@@ -117,6 +120,7 @@ import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
 import MonitorViewCustomFields from './Pages/Monitor/View/CustomFields';
 import MonitorViewInterval from './Pages/Monitor/View/Interval';
 import MonitorViewProbes from './Pages/Monitor/View/Probes';
+import MonitorViewOwner from './Pages/Monitor/View/Owners';
 
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
@@ -405,6 +409,20 @@ const App: FunctionComponent = () => {
                         <MonitorView
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.MONITOR_VIEW_OWNERS]?.toString() || ''
+                    }
+                    element={
+                        <MonitorViewOwner
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route
+                            }
                         />
                     }
                 />
@@ -737,6 +755,23 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <StatusPageViewOwners
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_OWNERS
                                 ] as Route
                             }
                         />
@@ -1126,6 +1161,20 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.INCIDENT_VIEW_OWNERS]?.toString() || ''
+                    }
+                    element={
+                        <IncidentViewOwner
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route
+                            }
+                        />
+                    }
+                />
+
                 {/* Scheduled Events */}
 
                 <PageRoute
@@ -1213,6 +1262,24 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ScheduledMaintenanceEventViewOwner
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
                                 ] as Route
                             }
                         />

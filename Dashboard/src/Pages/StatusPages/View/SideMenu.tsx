@@ -41,6 +41,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Anouncement}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Owners',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Team}
+                />
             </SideMenuSection>
 
             <SideMenuSection title="Resources">

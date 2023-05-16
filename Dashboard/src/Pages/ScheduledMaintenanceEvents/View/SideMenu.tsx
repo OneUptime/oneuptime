@@ -32,6 +32,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
                 <SideMenuItem
                     link={{
+                        title: 'Owners',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Team}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'State Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[

@@ -20,6 +20,46 @@ import ProjectService, {
     Service as ProjectServiceType,
 } from 'CommonServer/Services/ProjectService';
 
+import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
+import IncidentOwnerTeamService, {
+    Service as IncidentOwnerTeamServiceType,
+} from 'CommonServer/Services/IncidentOwnerTeamService';
+
+import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
+import MonitorOwnerTeamService, {
+    Service as MonitorOwnerTeamServiceType,
+} from 'CommonServer/Services/MonitorOwnerTeamService';
+
+import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
+import StatusPageOwnerTeamService, {
+    Service as StatusPageOwnerTeamServiceType,
+} from 'CommonServer/Services/StatusPageOwnerTeamService';
+
+import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
+import ScheduledMaintenanceOwnerTeamService, {
+    Service as ScheduledMaintenanceOwnerTeamServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceOwnerTeamService';
+
+import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
+import IncidentOwnerUserService, {
+    Service as IncidentOwnerUserServiceType,
+} from 'CommonServer/Services/IncidentOwnerUserService';
+
+import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
+import MonitorOwnerUserService, {
+    Service as MonitorOwnerUserServiceType,
+} from 'CommonServer/Services/MonitorOwnerUserService';
+
+import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
+import StatusPageOwnerUserService, {
+    Service as StatusPageOwnerUserServiceType,
+} from 'CommonServer/Services/StatusPageOwnerUserService';
+
+import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwnerUser';
+import ScheduledMaintenanceOwnerUserService, {
+    Service as ScheduledMaintenanceOwnerUserServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceOwnerUserService';
+
 import Workflow from 'Model/Models/Workflow';
 import WorkflowService, {
     Service as WorkflowServiceType,
@@ -458,6 +498,76 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<IncidentOwnerUser, IncidentOwnerUserServiceType>(
+        IncidentOwnerUser,
+        IncidentOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<IncidentOwnerTeam, IncidentOwnerTeamServiceType>(
+        IncidentOwnerTeam,
+        IncidentOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorOwnerUser, MonitorOwnerUserServiceType>(
+        MonitorOwnerUser,
+        MonitorOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorOwnerTeam, MonitorOwnerTeamServiceType>(
+        MonitorOwnerTeam,
+        MonitorOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        ScheduledMaintenanceOwnerUser,
+        ScheduledMaintenanceOwnerUserServiceType
+    >(
+        ScheduledMaintenanceOwnerUser,
+        ScheduledMaintenanceOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        ScheduledMaintenanceOwnerTeam,
+        ScheduledMaintenanceOwnerTeamServiceType
+    >(
+        ScheduledMaintenanceOwnerTeam,
+        ScheduledMaintenanceOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<StatusPageOwnerUser, StatusPageOwnerUserServiceType>(
+        StatusPageOwnerUser,
+        StatusPageOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<StatusPageOwnerTeam, StatusPageOwnerTeamServiceType>(
+        StatusPageOwnerTeam,
+        StatusPageOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter()
 );
 
@@ -561,6 +671,14 @@ app.use(
     new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
         IncidentInternalNote,
         IncidentInternalNoteService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
+        OnCallDuty,
+        OnCallDutyService
     ).getRouter()
 );
 

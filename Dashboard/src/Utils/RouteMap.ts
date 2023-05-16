@@ -65,6 +65,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
     ),
 
+    [PageMap.INCIDENT_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/owners`
+    ),
+
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),
@@ -91,6 +95,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/owners`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: new Route(
@@ -123,6 +131,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.STATUS_PAGE_VIEW_BRANDING]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/branding`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/owners`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_GROUPS]: new Route(
@@ -221,6 +233,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/interval`
+    ),
+
+    [PageMap.MONITOR_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/owners`
     ),
 
     [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
