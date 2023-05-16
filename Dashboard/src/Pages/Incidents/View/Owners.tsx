@@ -21,6 +21,7 @@ import TeamElement from '../../../Components/Team/Team';
 import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
 import User from 'Model/Models/User';
 import UserElement from '../../../Components/User/User';
+import ProjectUser from '../../../Utils/ProjectUser';
 
 const IncidentOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -56,9 +57,9 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Incident',
+                    title: 'Owners',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
                         modelId
                     ),
                 },
@@ -69,7 +70,9 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                 modelType={IncidentOwnerTeam}
                 id="table-incident-owner-team"
                 name="Incident > Owner Team"
+                singularName="Team"
                 isDeleteable={true}
+                createVerb={'Add'}
                 isCreateable={true}
                 isViewable={false}
                 showViewIdButton={true}
@@ -134,7 +137,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owned since',
+                        title: 'Owner from',
                         type: FieldType.DateTime,
                     },
                 ]}
@@ -145,9 +148,11 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                 id="table-incident-owner-team"
                 name="Incident > Owner Team"
                 isDeleteable={true}
+                singularName="User"
                 isCreateable={true}
                 isViewable={false}
                 showViewIdButton={true}
+                createVerb={'Add'}
                 query={{
                     incidentId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
@@ -177,11 +182,9 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Select User',
-                        dropdownModal: {
-                            type: User,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
+                        fetchDropdownOptions: async ()=>{
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(DashboardNavigation.getProjectId()!)
+                        }
                     },
                 ]}
                 showRefreshButton={true}
@@ -192,6 +195,8 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             user: {
                                 name: true,
+                                email: true,
+                                profilePictureId: true
                             },
                         },
                         title: 'User',
@@ -209,7 +214,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owned since',
+                        title: 'Owner from',
                         type: FieldType.DateTime,
                     },
                 ]}

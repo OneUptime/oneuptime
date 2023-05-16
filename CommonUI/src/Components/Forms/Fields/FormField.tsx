@@ -1,11 +1,11 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useEffect } from 'react';
 
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from '../Types/FormFieldSchemaType';
 import ColorPicker from '../Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from '../../TextArea/TextArea';
-import Dropdown, { DropdownValue } from '../../Dropdown/Dropdown';
+import Dropdown, { DropdownOption, DropdownValue } from '../../Dropdown/Dropdown';
 import Toggle from '../../Toggle/Toggle';
 import Input, { InputType } from '../../Input/Input';
 import CodeEditor from '../../CodeEditor/CodeEditor';
@@ -18,6 +18,7 @@ import Field, { FormFieldStyleType } from '../Types/Field';
 import FieldLabelElement from '../Fields/FieldLabel';
 import FormValues from '../Types/FormValues';
 import { JSONValue } from 'Common/Types/JSON';
+import ComponentLoader from '../../ComponentLoader/ComponentLoader';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -36,6 +37,28 @@ export interface ComponentProps<T extends Object> {
 const FormField: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
+
+    const [dropdownOptions, setDropdownOptions] = React.useState<Array<DropdownOption>>(props.field.dropdownOptions || []);
+    const [isFieldLoading, setIsFieldLoading] = React.useState<boolean>(false);
+
+    const fetchDropdownOptions: Function = async (): Promise<void> => {
+        if(!props.field.fetchDropdownOptions){
+            return; 
+        }
+
+        setIsFieldLoading(true);
+
+        const options: Array<DropdownOption> = await props.field.fetchDropdownOptions();
+
+        setDropdownOptions(options);
+        setIsFieldLoading(false);
+    }
+
+    useEffect(()=>{
+        fetchDropdownOptions().catch();
+    }, [props.field])
+
+
     const getFieldType: Function = (fieldType: FormFieldSchemaType): string => {
         switch (fieldType) {
             case FormFieldSchemaType.Email:
@@ -152,7 +175,7 @@ const FormField: Function = <T extends Object>(
                                 props.field.fieldType ===
                                 FormFieldSchemaType.MultiSelectDropdown
                             }
-                            options={props.field.dropdownOptions || []}
+                            options={dropdownOptions}
                             placeholder={props.field.placeholder || ''}
                             initialValue={
                                 props.currentValues &&
@@ -503,6 +526,11 @@ const FormField: Function = <T extends Object>(
             </div>
         );
     };
+
+
+    if(isFieldLoading){
+        return <ComponentLoader/>
+    }
 
     return <>{getFormField()}</>;
 };

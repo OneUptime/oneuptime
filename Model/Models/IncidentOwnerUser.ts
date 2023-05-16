@@ -146,7 +146,7 @@ export default class IncidentOwnerUser extends AccessControlModel {
         type: TableColumnType.Entity,
         modelType: User,
         title: 'User',
-        description: 'Relation to User Resource in which this object belongs',
+        description: 'User that is the owner. This user will receive notifications. ',
     })
     @ManyToOne(
         (_type: string) => {
