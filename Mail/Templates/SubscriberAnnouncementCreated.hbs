@@ -6,57 +6,9 @@
                   {{> EmailTitle title="Announcement: {{announcementTitle}}" }}
                   
                   
-                  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
-                    width="600" style="min-width: 600px;">
-                    <tbody>
-                      <tr>
-                        <td class="st-Spacer st-Spacer--gutter"
-                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-                          width="64">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                       
-                        <td class="st-Spacer st-Spacer--gutter"
-                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-                          width="64">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12"
-                          style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
-                    width="600" style="min-width: 600px;">
-                    <tbody>
-                      <tr>
-                        <td class="st-Spacer st-Spacer--gutter"
-                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-                          width="64">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                        <td class="st-Font st-Font--body"
-                          style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-                          A new announcement has been created for {{statusPageName}}.
-                        </td>
-                        <td class="st-Spacer st-Spacer--gutter"
-                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-                          width="64">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12"
-                          style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  {{> InfoBlock info="A new announcement has been created for {{statusPageName}}."}}
+
+                
                 
 
                   <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
@@ -100,35 +52,8 @@
                   </table>
 
 
-                  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
-                    width="600" style="min-width: 600px;">
-                    <tbody>
-                      <tr>
-                        <td class="st-Spacer st-Spacer--gutter"
-                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-                          width="64">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                        <td class="st-Font st-Font--body"
-                          style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 20px;">
-
-                          This is an automated email sent to you because you are subscribed to {{statusPageName}}. You can visit the status page here: {{statusPageUrl}}
-
-                        </td>
-                        <td class="st-Spacer st-Spacer--gutter"
-                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-                          width="64">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12"
-                          style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-                          <div class="st-Spacer st-Spacer--filler"></div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+{{> InfoBlock info="This is an automated email sent to you because you are subscribed to {{statusPageName}}. You can visit the status page here: {{statusPageUrl}}"}}
+                  
 
                      {{> UnsubscribeBlock this}}
 
