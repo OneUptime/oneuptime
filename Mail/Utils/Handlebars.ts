@@ -46,7 +46,7 @@ Handlebars.registerHelper('ifCond', function (v1, v2, options) {
     return options.inverse(this);
 });
 
-Handlebars.registerHelper('concat', (v1, v2) => {
+Handlebars.registerHelper('concat', (v1: any, v2: any) => {
     // contact v1 and v2
     return v1 + v2;
 });
