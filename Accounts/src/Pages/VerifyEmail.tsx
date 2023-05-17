@@ -68,7 +68,7 @@ const VerifyEmail: FunctionComponent = () => {
                                 <div className="d-flex flex-column h-100">
                                     <div className="auth-content my-auto">
                                         <div
-                                            className="mt-4 text-center"
+                                            className="mt-4 text-center flex justify-center"
                                             style={{ marginBottom: '40px' }}
                                         >
                                             <img

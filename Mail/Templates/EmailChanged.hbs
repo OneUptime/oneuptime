@@ -6,15 +6,14 @@
 {{> EmailTitle title="You have changed your email. Please verify your email." }}
 {{> InfoBlock info="Next step would be to verify your email account. Can you please click on 'Verify Email' button which will help us to get your email verified. "}}
 
-{{> ButtonBlock buttonUrl="{{tokenVerifyUrl}}" buttonText="Verify Email"}}
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Verify Email"}}
 
 
-{{> InfoBlock info="You can also copy and paste this link: {{tokenVerifyUrl}} on any browser of your choice if the button above does not work."}}
-
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=tokenVerifyUrl}}
 
 {{> SupportBlock this }}
 
 {{> Footer this}}
-
 
 {{> End this}}

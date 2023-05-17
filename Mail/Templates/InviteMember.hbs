@@ -2,15 +2,16 @@
 
 {{> Logo this}}
 
-{{> EmailTitle title="You have been invited to {{projectName}}." }}
+{{> EmailTitle title=(concat "You have been invited to " projectName) }}
 
 {{> InfoBlock info="Please click on the 'Go to dashboard' button below to see all your invitations and manage them."}}
 
-{{> ButtonBlock buttonUrl="{{dashboardUrl}}" buttonText="Go to Dashboard"}}
+{{> ButtonBlock buttonUrl=dashboardUrl buttonText="Go to Dashboard"}}
 
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=dashboardUrl}}
 
-{{> InfoBlock info="You can also copy and paste this link: {{dashboardUrl}} on any browser of your choice if the button above does not work."}}
-{{> InfoBlock info="If you have not signed up so far. You'll be redirected to the account sign up page."}}
+{{> InfoBlock info="If you have not signed up to OneUptime so far. You'll be redirected to the account sign up page to sign up first."}}
 
 {{> SupportBlock this }}
 

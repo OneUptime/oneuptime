@@ -107,7 +107,7 @@ const RegisterPage: FunctionComponent = () => {
                             },
                             {
                                 field: {
-                                    password: true,
+                                    confirmPassword: true,
                                 },
                                 validation: {
                                     minLength: 6,
@@ -118,6 +118,7 @@ const RegisterPage: FunctionComponent = () => {
                                 title: 'Confirm Password',
                                 overideFieldKey: 'confirmPassword',
                                 required: true,
+                                forceShow: true
                             },
                         ]}
                         apiUrl={apiUrl}

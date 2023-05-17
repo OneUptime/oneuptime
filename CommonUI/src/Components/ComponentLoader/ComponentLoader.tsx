@@ -3,7 +3,7 @@ import CompactLoader from './CompactLoader';
 
 const ComponentLoader: FunctionComponent = (): ReactElement => {
     return (
-        <div className="my-15">
+        <div className="my-16">
             <CompactLoader />
         </div>
     );
