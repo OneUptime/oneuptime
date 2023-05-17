@@ -21,7 +21,15 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
