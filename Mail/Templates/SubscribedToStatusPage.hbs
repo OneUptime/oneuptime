@@ -1,17 +1,16 @@
 {{> Start this}}
 
-
-
 {{> CustomLogo this}}
-{{> EmailTitle title="You have been subscribed to {{statusPageName}}" }}
+{{> EmailTitle title=(concat "You have been subscribed to status page - " statusPageName) }}
 
-{{> InfoBlock info="You have been subscribed to {{statusPageName}}. You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events."}}
+{{> InfoBlock info=(concat "You have been subscribed to status page - " statusPageName)}}
+{{> InfoBlock info="You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events."}}
 
-
-{{#ifCond isPublicStatusPage "true"}}
-{{> InfoBlock info="You can also view the status page by visiting these link: {{statusPageUrl}}"}}
-{{/ifCond}}  
+{{> InfoBlock info="You can also view the status page by visiting these link:"}}
+{{> InfoBlock info=statusPageUrl}}
 
 {{> UnsubscribeBlock this}}
+
+{{> VerticalSpace this}}
 
 {{> End this}}

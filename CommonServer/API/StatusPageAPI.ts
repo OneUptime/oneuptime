@@ -713,6 +713,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 description: true,
                                 _id: true,
                                 endsAt: true,
+                                startsAt: true,
                             },
                             sort: {
                                 createdAt: SortOrder.Ascending,

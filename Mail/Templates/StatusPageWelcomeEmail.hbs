@@ -2,18 +2,22 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title="You have been invited to {{statusPageName}}" }}
+{{> EmailTitle title=(concat "You have been invited to status page - " statusPageName) }}
 
-{{> InfoBlock info="You have been invited to {{statusPageName}} - ({{statusPageUrl}}). Please click on the button below to set up your account. Please note, this email expires in 24 hours. "}}
+{{> InfoBlock info=(concat "You have been invited to status page -  " statusPageName)}}
 
+{{> InfoBlock info="Please click on the button below to set up your account. Please note, this email expires in 24 hours. "}}
 
 {{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Set up my account"}}
 
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=tokenVerifyUrl}}
 
 
 {{> InfoBlock info="Thanks, have a great day."}}
 
-{{> InfoBlock info="{{statusPageName}} Team."}}
+{{> InfoBlock info=(concat statusPageName " Team.")}}
 
+{{> VerticalSpace this}}
 
 {{> End this}}
