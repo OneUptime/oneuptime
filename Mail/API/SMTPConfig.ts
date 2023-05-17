@@ -65,8 +65,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
         templateType: EmailTemplateType.SMTPTest,
         toEmail: new Email(body['toEmail'] as string),
         subject: 'Test Email from OneUptime',
-        vars: {
-        },
+        vars: {},
         body: '',
     };
 
