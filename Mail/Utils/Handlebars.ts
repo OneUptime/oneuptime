@@ -1,9 +1,7 @@
-
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
 import Path from 'path';
 import logger from 'CommonServer/Utils/Logger';
-
 
 const loadPartials: Function = async (): Promise<void> => {
     // get all partials in the partial folder and comile then and register then as partials in handlebars.
@@ -48,9 +46,8 @@ Handlebars.registerHelper('ifCond', function (v1, v2, options) {
     return options.inverse(this);
 });
 
-
-Handlebars.registerHelper('concat', function (v1, v2) {
-   // contact v1 and v2
+Handlebars.registerHelper('concat', (v1, v2) => {
+    // contact v1 and v2
     return v1 + v2;
 });
 

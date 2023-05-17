@@ -118,7 +118,7 @@ const RegisterPage: FunctionComponent = () => {
                                 title: 'Confirm Password',
                                 overideFieldKey: 'confirmPassword',
                                 required: true,
-                                forceShow: true
+                                forceShow: true,
                             },
                         ]}
                         apiUrl={apiUrl}

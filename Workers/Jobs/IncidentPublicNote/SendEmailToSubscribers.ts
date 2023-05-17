@@ -256,7 +256,9 @@ RunCron(
                                         )
                                         .toString(),
                                 },
-                                subject: statusPageName + ' - New note has been added to an incident',
+                                subject:
+                                    statusPageName +
+                                    ' - New note has been added to an incident',
                             },
                             ProjectSmtpConfigService.toEmailServer(
                                 statuspage.smtpConfig

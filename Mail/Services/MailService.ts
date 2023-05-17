@@ -18,7 +18,6 @@ import { IsDevelopment } from 'CommonServer/Config';
 import { SendGridApiKey } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 
-
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
         if (!obj['SMTP_USERNAME']) {
