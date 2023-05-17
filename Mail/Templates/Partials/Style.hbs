@@ -1,0 +1,221 @@
+ <style>
+    /**
+  * IMPORTANT:
+  * Please read before changing anything, CSS involved in our HTML emails is
+  * extremely specific and written a certain way for a reason. It might not make
+  * sense in a normal setting but Outlook loves it this way.
+  *
+  * !!! [override] prevents Yahoo Mail breaking media queries. It must be used
+  * !!! at the beginning of every line of CSS inside a media query.
+  * !!! Do not remove.
+  *
+  * !!! div[style*="margin: 16px 0"] allows us to target a weird margin
+  * !!! bug in Android's email client.
+  * !!! Do not remove.
+  *
+  * Also, the img files are hosted on S3. Please don't break these URLs!
+  * The images are also versioned by date, so please update the URLs accordingly
+  * if you create new versions
+  *
+***/
+
+
+    /**
+  * # Root
+  * - CSS resets and general styles go here.
+**/
+
+    html,
+    body,
+    a,
+    span,
+    div[style*="margin: 16px 0"] {
+      border: 0 !important;
+      margin: 0 !important;
+      outline: 0 !important;
+      padding: 0 !important;
+      text-decoration: none !important;
+    }
+
+    a,
+    span,
+    td,
+    th {
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+    }
+
+    /**
+  * # Delink
+  * - Classes for overriding clients which creates links out of things like
+  *   emails, addresses, phone numbers, etc.
+**/
+
+    span.st-Delink a {
+      color: #000000 !important;
+      text-decoration: none !important;
+    }
+
+    /** Modifier: preheader */
+    span.st-Delink.st-Delink--preheader a {
+      color: white !important;
+      text-decoration: none !important;
+    }
+
+    /** */
+
+    /** Modifier: title */
+    span.st-Delink.st-Delink--title a {
+      color: #000000 !important;
+      text-decoration: none !important;
+    }
+
+    /** */
+
+    /** Modifier: footer */
+    span.st-Delink.st-Delink--footer a {
+      color: #8898aa !important;
+      text-decoration: none !important;
+    }
+
+    /** */
+
+    .ii a[href] {
+      color: #000000;
+    }
+
+    /**
+  * # Mobile
+  * - This affects emails views in clients less than 600px wide.
+**/
+
+    @media all and (max-width: 600px) {
+
+      /**
+    * # Wrapper
+  **/
+
+      body[override] table.st-Wrapper,
+      body[override] table.st-Width.st-Width--mobile {
+        min-width: 100% !important;
+        width: 100% !important;
+      }
+
+      /**
+    * # Spacer
+  **/
+
+      /** Modifier: gutter */
+      body[override] td.st-Spacer.st-Spacer--gutter {
+        width: 32px !important;
+      }
+
+      /** */
+
+      /** Modifier: kill */
+      body[override] td.st-Spacer.st-Spacer--kill {
+        width: 0 !important;
+      }
+
+      /** */
+
+      /** Modifier: emailEnd */
+      body[override] td.st-Spacer.st-Spacer--emailEnd {
+        height: 32px !important;
+      }
+
+      /** */
+
+      /**
+    * # Font
+  **/
+
+      /** Modifier: title */
+      body[override] td.st-Font.st-Font--title,
+      body[override] td.st-Font.st-Font--title span,
+      body[override] td.st-Font.st-Font--title a {
+        font-size: 28px !important;
+        line-height: 36px !important;
+      }
+
+      /** */
+
+      /** Modifier: header */
+      body[override] td.st-Font.st-Font--header,
+      body[override] td.st-Font.st-Font--header span,
+      body[override] td.st-Font.st-Font--header a {
+        font-size: 24px !important;
+        line-height: 32px !important;
+      }
+
+      /** */
+
+      /** Modifier: body */
+      body[override] td.st-Font.st-Font--body,
+      body[override] td.st-Font.st-Font--body span,
+      body[override] td.st-Font.st-Font--body a {
+        font-size: 18px !important;
+        line-height: 28px !important;
+      }
+
+      /** */
+
+      /** Modifier: caption */
+      body[override] td.st-Font.st-Font--caption,
+      body[override] td.st-Font.st-Font--caption span,
+      body[override] td.st-Font.st-Font--caption a {
+        font-size: 14px !important;
+        line-height: 20px !important;
+      }
+
+      /** */
+
+      /** Modifier: simplified */
+      body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
+        width: auto !important;
+      }
+
+      body[override] table.st-Header.st-Header--simplified td.st-Header-spacing {
+        width: 0 !important;
+      }
+
+      /**
+    * # Divider
+  **/
+
+      body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
+      body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
+        background-color: #000000;
+      }
+
+      /**
+    * # Blocks
+  **/
+
+      body[override] table.st-Blocks table.st-Blocks-inner {
+        border-radius: 0 !important;
+      }
+
+      body[override] table.st-Blocks table.st-Blocks-inner table.st-Blocks-item td.st-Blocks-item-cell {
+        display: block !important;
+      }
+
+      /**
+    * # Button
+  **/
+
+      body[override] table.st-Button {
+        margin: 0 auto !important;
+        width: 100% !important;
+      }
+
+      body[override] table.st-Button td.st-Button-area,
+      body[override] table.st-Button td.st-Button-area a.st-Button-link,
+      body[override] table.st-Button td.st-Button-area span.st-Button-internal {
+        height: 44px !important;
+        line-height: 44px !important;
+        font-size: 18px !important;
+        vertical-align: middle !important;
+      }
+    }
+  </style>
