@@ -1064,4 +1064,34 @@ export default class StatusPage extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public smtpConfigId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified Of Resource Creation?',
+        description: 'Are owners notified of when this resource is created?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotifiedOfResourceCreation?: ObjectID = undefined;
 }

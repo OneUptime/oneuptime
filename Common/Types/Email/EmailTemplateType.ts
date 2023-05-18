@@ -17,6 +17,20 @@ enum EmailTemplateType {
     StatusPageWelcomeEmail = 'StatusPageWelcomeEmail.hbs',
     SubscriberScheduledMaintenanceEventNoteCreated = 'SubscriberScheduledMaintenanceEventNoteCreated.hbs',
     SMTPTest = 'SMTPTest.hbs',
+    MonitorOwnerCreated = 'MonitorOwnerCreated.hbs',
+    MonitorOwnerResourceCreated = 'MonitorOwnerResourceCreated.hbs',
+    MonitorOwnerStatusChanged = 'MonitorOwnerStatusChanged.hbs',
+    IncidentOwnerCreated = 'IncidentOwnerCreated.hbs',
+    IncidentOwnerStateChanged = 'IncidentOwnerStateChanged.hbs',
+    IncidentOwnerNotePosted = 'IncidentOwnerNotePosted.hbs',
+    IncidentOwnerResourceCreated = 'IncidentOwnerResourceCreated.hbs',
+    ScheduledMaintenanceOwnerNotePosted = 'ScheduledMaintenanceOwnerNotePosted.hbs',
+    ScheduledMaintenanceOwnerCreated = 'ScheduledMaintenanceOwnerCreated.hbs',
+    ScheduledMaintenanceOwnerStateChanged = 'ScheduledMaintenanceOwnerStateChanged.hbs',
+    ScheduledMaintenanceOwnerResourceCreated = 'ScheduledMaintenanceOwnerResourceCreated.hbs',
+    StatusPageOwnerResourceCreated = 'StatusPageOwnerResourceCreated.hbs',
+    StatusPageOwnerCreated = 'StatusPageOwnerCreated.hbs',
+    StatusPageOwnerAnnouncementPosted = 'StatusPageOwnerAnnouncementPosted.hbs',
 }
 
 export default EmailTemplateType;

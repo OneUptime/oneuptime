@@ -677,7 +677,12 @@ export default class Incident extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
         update: [],
     })
     @TableColumn({
@@ -724,4 +729,34 @@ export default class Incident extends BaseModel {
         nullable: true,
     })
     public customFields?: JSONObject = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified Of Resource Creation?',
+        description: 'Are owners notified of when this resource is created?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotifiedOfResourceCreation?: ObjectID = undefined;
 }

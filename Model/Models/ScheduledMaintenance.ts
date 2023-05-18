@@ -713,7 +713,12 @@ export default class ScheduledMaintenance extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectScheduledMaintenance,
+        ],
         update: [],
     })
     @TableColumn({
@@ -760,4 +765,34 @@ export default class ScheduledMaintenance extends BaseModel {
         nullable: true,
     })
     public customFields?: JSONObject = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectScheduledMaintenance,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectScheduledMaintenance,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified Of Resource Creation?',
+        description: 'Are owners notified of when this resource is created?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotifiedOfResourceCreation?: ObjectID = undefined;
 }

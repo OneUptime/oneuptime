@@ -608,4 +608,34 @@ export default class Monitor extends BaseModel {
         nullable: true,
     })
     public customFields?: JSONObject = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified Of Resource Creation?',
+        description: 'Are owners notified of when this resource is created?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotifiedOfResourceCreation?: ObjectID = undefined;
 }

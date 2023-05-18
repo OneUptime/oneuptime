@@ -340,4 +340,34 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
         unique: false,
     })
     public note?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenanceInternalNote,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenanceInternalNote,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified',
+        description: 'Are owners notified of this resource ownership?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotified?: ObjectID = undefined;
 }

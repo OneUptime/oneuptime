@@ -343,7 +343,12 @@ export default class IncidentPublicNote extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -357,4 +362,34 @@ export default class IncidentPublicNote extends BaseModel {
         default: false,
     })
     public isStatusPageSubscribersNotifiedOnNoteCreated?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateIncidentPublicNote,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified',
+        description: 'Are owners notified of this resource ownership?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotified?: ObjectID = undefined;
 }

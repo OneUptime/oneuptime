@@ -376,4 +376,33 @@ export default class ScheduledMaintenanceOwnerUser extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateScheduledMaintenanceOwnerUser,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenanceOwnerUser,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified',
+        description: 'Are owners notified of this resource ownership?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public isOwnerNotified?: ObjectID = undefined;
 }

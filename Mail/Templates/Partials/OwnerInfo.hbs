@@ -1,0 +1,6 @@
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{#if isOwner}}
+{{> InfoBlock info="You are receiving this email because you are the owner of this resource."}}
+{{else}}
+{{> InfoBlock info="You are receiving this email because no owners have been added to this resource and you are the owner of the project."}}
+{{/if}}
