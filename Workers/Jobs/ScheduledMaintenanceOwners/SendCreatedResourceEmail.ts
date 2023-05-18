@@ -93,7 +93,7 @@ RunCron(
                     toEmail: user.email!,
                     templateType: EmailTemplateType.ScheduledMaintenanceOwnerResourceCreated,
                     vars: vars,
-                    subject: 'New scheduledMaintenance created - ' + scheduledMaintenance.title!,
+                    subject: 'New scheduled maintenance created - ' + scheduledMaintenance.title!,
                 }).catch((err: Error) => {
                     logger.error(err);
                 });

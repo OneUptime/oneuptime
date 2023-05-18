@@ -89,7 +89,7 @@ RunCron(
                     toEmail: user.email!,
                     templateType: EmailTemplateType.StatusPageOwnerResourceCreated,
                     vars: vars,
-                    subject: 'New Status Page created - ' + statusPage.name!,
+                    subject: 'New status page created - ' + statusPage.name!,
                 }).catch((err: Error) => {
                     logger.error(err);
                 });

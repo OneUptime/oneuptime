@@ -40,6 +40,16 @@ import JobDictonary from './Utils/JobDictionary';
 // Monitor Owners
 import './Jobs/MonitorOwners/SendCreatedResourceEmail';
 
+// Incident Owners
+import './Jobs/IncidentOwners/SendCreatedResourceEmail';
+
+// Scheduled Event Owners
+import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
+
+// Status Page Owners
+import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
+
+
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();
