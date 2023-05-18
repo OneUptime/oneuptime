@@ -52,9 +52,9 @@ RunCron(
             }
 
             for (const user of users) {
-                (statusPageOwnersMap[statusPageId.toString()] as Array<User>).push(
-                    user
-                );
+                (
+                    statusPageOwnersMap[statusPageId.toString()] as Array<User>
+                ).push(user);
             }
 
             // mark this as notified.
@@ -123,7 +123,9 @@ RunCron(
                 continue;
             }
 
-            if ((statusPageOwnersMap[statusPageId] as Array<User>).length === 0) {
+            if (
+                (statusPageOwnersMap[statusPageId] as Array<User>).length === 0
+            ) {
                 continue;
             }
 
@@ -132,8 +134,8 @@ RunCron(
             ] as Array<User>;
 
             // get all scheduled events of all the projects.
-            const statusPage: StatusPage | null = await StatusPageService.findOneById(
-                {
+            const statusPage: StatusPage | null =
+                await StatusPageService.findOneById({
                     id: new ObjectID(statusPageId),
                     props: {
                         isRoot: true,
@@ -150,8 +152,7 @@ RunCron(
                             name: true,
                         },
                     },
-                }
-            );
+                });
 
             if (!statusPage) {
                 continue;
@@ -163,10 +164,11 @@ RunCron(
                 statusPageDescription: Markdown.convertToHTML(
                     statusPage.description! || ''
                 ),
-                statusPageViewLink: StatusPageService.getStatusPageLinkInDashboard(
-                    statusPage.projectId!,
-                    statusPage.id!
-                ).toString(),
+                statusPageViewLink:
+                    StatusPageService.getStatusPageLinkInDashboard(
+                        statusPage.projectId!,
+                        statusPage.id!
+                    ).toString(),
             };
 
             for (const user of users) {

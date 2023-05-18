@@ -100,9 +100,7 @@ RunCron(
                 monitorOwnersMap[monitorId.toString()] = [];
             }
 
-            (monitorOwnersMap[monitorId.toString()] as Array<User>).push(
-                user
-            );
+            (monitorOwnersMap[monitorId.toString()] as Array<User>).push(user);
 
             // mark this as notified.
             await MonitorOwnerUserService.updateOneById({
@@ -132,29 +130,27 @@ RunCron(
             ] as Array<User>;
 
             // get all scheduled events of all the projects.
-            const monitor: Monitor | null = await MonitorService.findOneById(
-                {
-                    id: new ObjectID(monitorId),
-                    props: {
-                        isRoot: true,
-                    },
+            const monitor: Monitor | null = await MonitorService.findOneById({
+                id: new ObjectID(monitorId),
+                props: {
+                    isRoot: true,
+                },
 
-                    select: {
-                        _id: true,
+                select: {
+                    _id: true,
+                    name: true,
+                    description: true,
+                    projectId: true,
+                },
+                populate: {
+                    project: {
                         name: true,
-                        description: true,
-                        projectId: true,
                     },
-                    populate: {
-                        project: {
-                            name: true,
-                        },
-                        currentMonitorStatus: {
-                            name: true,
-                        },
+                    currentMonitorStatus: {
+                        name: true,
                     },
-                }
-            );
+                },
+            });
 
             if (!monitor) {
                 continue;
@@ -178,8 +174,7 @@ RunCron(
                     toEmail: user.email!,
                     templateType: EmailTemplateType.MonitorOwnerAdded,
                     vars: vars,
-                    subject:
-                        'You have been added as the owner of the monitor.',
+                    subject: 'You have been added as the owner of the monitor.',
                 }).catch((err: Error) => {
                     logger.error(err);
                 });

@@ -40,21 +40,30 @@ RunCron(
         const scheduledMaintenanceOwnersMap: Dictionary<Array<User>> = {};
 
         for (const scheduledMaintenanceOwnerTeam of scheduledMaintenanceOwnerTeams) {
-            const scheduledMaintenanceId: ObjectID = scheduledMaintenanceOwnerTeam.scheduledMaintenanceId!;
+            const scheduledMaintenanceId: ObjectID =
+                scheduledMaintenanceOwnerTeam.scheduledMaintenanceId!;
             const teamId: ObjectID = scheduledMaintenanceOwnerTeam.teamId!;
 
             const users: Array<User> = await TeamMemberService.getUsersInTeams([
                 teamId,
             ]);
 
-            if (scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] === undefined) {
-                scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] = [];
+            if (
+                scheduledMaintenanceOwnersMap[
+                    scheduledMaintenanceId.toString()
+                ] === undefined
+            ) {
+                scheduledMaintenanceOwnersMap[
+                    scheduledMaintenanceId.toString()
+                ] = [];
             }
 
             for (const user of users) {
-                (scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] as Array<User>).push(
-                    user
-                );
+                (
+                    scheduledMaintenanceOwnersMap[
+                        scheduledMaintenanceId.toString()
+                    ] as Array<User>
+                ).push(user);
             }
 
             // mark this as notified.
@@ -93,16 +102,25 @@ RunCron(
             });
 
         for (const scheduledMaintenanceOwnerUser of scheduledMaintenanceOwnerUsers) {
-            const scheduledMaintenanceId: ObjectID = scheduledMaintenanceOwnerUser.scheduledMaintenanceId!;
+            const scheduledMaintenanceId: ObjectID =
+                scheduledMaintenanceOwnerUser.scheduledMaintenanceId!;
             const user: User = scheduledMaintenanceOwnerUser.user!;
 
-            if (scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] === undefined) {
-                scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] = [];
+            if (
+                scheduledMaintenanceOwnersMap[
+                    scheduledMaintenanceId.toString()
+                ] === undefined
+            ) {
+                scheduledMaintenanceOwnersMap[
+                    scheduledMaintenanceId.toString()
+                ] = [];
             }
 
-            (scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] as Array<User>).push(
-                user
-            );
+            (
+                scheduledMaintenanceOwnersMap[
+                    scheduledMaintenanceId.toString()
+                ] as Array<User>
+            ).push(user);
 
             // mark this as notified.
             await ScheduledMaintenanceOwnerUserService.updateOneById({
@@ -123,7 +141,13 @@ RunCron(
                 continue;
             }
 
-            if ((scheduledMaintenanceOwnersMap[scheduledMaintenanceId] as Array<User>).length === 0) {
+            if (
+                (
+                    scheduledMaintenanceOwnersMap[
+                        scheduledMaintenanceId
+                    ] as Array<User>
+                ).length === 0
+            ) {
                 continue;
             }
 
@@ -132,8 +156,8 @@ RunCron(
             ] as Array<User>;
 
             // get all scheduled events of all the projects.
-            const scheduledMaintenance: ScheduledMaintenance | null = await ScheduledMaintenanceService.findOneById(
-                {
+            const scheduledMaintenance: ScheduledMaintenance | null =
+                await ScheduledMaintenanceService.findOneById({
                     id: new ObjectID(scheduledMaintenanceId),
                     props: {
                         isRoot: true,
@@ -153,8 +177,7 @@ RunCron(
                             name: true,
                         },
                     },
-                }
-            );
+                });
 
             if (!scheduledMaintenance) {
                 continue;
@@ -163,20 +186,24 @@ RunCron(
             const vars: Dictionary<string> = {
                 scheduledMaintenanceTitle: scheduledMaintenance.title!,
                 projectName: scheduledMaintenance.project!.name!,
-                currentState: scheduledMaintenance.currentScheduledMaintenanceState!.name!,
+                currentState:
+                    scheduledMaintenance.currentScheduledMaintenanceState!
+                        .name!,
                 scheduledMaintenanceDescription: Markdown.convertToHTML(
                     scheduledMaintenance.description! || ''
                 ),
-                scheduledMaintenanceViewLink: ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-                    scheduledMaintenance.projectId!,
-                    scheduledMaintenance.id!
-                ).toString(),
+                scheduledMaintenanceViewLink:
+                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                        scheduledMaintenance.projectId!,
+                        scheduledMaintenance.id!
+                    ).toString(),
             };
 
             for (const user of users) {
                 MailService.sendMail({
                     toEmail: user.email!,
-                    templateType: EmailTemplateType.ScheduledMaintenanceOwnerAdded,
+                    templateType:
+                        EmailTemplateType.ScheduledMaintenanceOwnerAdded,
                     vars: vars,
                     subject:
                         'You have been added as the owner of the scheduledMaintenance.',
