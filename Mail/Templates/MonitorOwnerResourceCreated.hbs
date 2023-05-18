@@ -4,12 +4,12 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Monitor: " monitorName) }}
 
-{{> InfoBlock info=title=(concat "A new monitor has been created in the project - " projectName)}}
+{{> InfoBlock info=(concat "A new monitor has been created in the project - " projectName)}}
 
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title=monitorName text="" }}
+{{> DetailBoxField title="Monitor Name:" text=monitorName }}
 {{> DetailBoxField title="Current Status: " text=currentStatus  }}
 {{> DetailBoxField title="Description: " text=""  }}
 {{> DetailBoxField title="" text=monitorDescription  }}
@@ -26,5 +26,7 @@
 {{> InfoBlock info="You will be notified when the status of this monitor changes."}}
 
 {{> OwnerInfo this }}
+
+{{> Footer this }}
 
 {{> End this}}
