@@ -5,6 +5,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
+import URL from 'Common/Types/API/URL';
 
 export const getAllEnvVars: Function = (): JSONObject => {
     return process.env;
@@ -163,3 +164,5 @@ export const SubscriptionPlans: Array<SubscriptionPlan> =
 
 export const AnalyticsKey: string = process.env['ANALYTICS_KEY'] || '';
 export const AnalyticsHost: string = process.env['ANALYTICS_HOST'] || '';
+
+export const DashboardUrl: URL = new URL(HttpProtocol, Domain, DashboardRoute);

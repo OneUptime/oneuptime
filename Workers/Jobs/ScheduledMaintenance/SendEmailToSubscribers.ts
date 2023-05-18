@@ -217,7 +217,7 @@ RunCron(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',
-                                    eventDescription: Markdown.convertToHTMML(
+                                    eventDescription: Markdown.convertToHTML(
                                         event.description || ''
                                     ),
                                     unsubscribeUrl: new URL(

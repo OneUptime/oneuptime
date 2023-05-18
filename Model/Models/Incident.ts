@@ -758,5 +758,5 @@ export default class Incident extends BaseModel {
         nullable: false,
         default: false,
     })
-    public isOwnerNotifiedOfResourceCreation?: ObjectID = undefined;
+    public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
 }

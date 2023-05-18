@@ -637,5 +637,5 @@ export default class Monitor extends BaseModel {
         nullable: false,
         default: false,
     })
-    public isOwnerNotifiedOfResourceCreation?: ObjectID = undefined;
+    public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
 }

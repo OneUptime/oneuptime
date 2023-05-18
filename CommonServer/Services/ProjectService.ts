@@ -41,6 +41,7 @@ import UpdateBy from '../Types/Database/UpdateBy';
 import AllMeteredPlans from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import AccessTokenService from './AccessTokenService';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import User from 'Model/Models/User';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -577,6 +578,37 @@ export class Service extends DatabaseService<Model> {
         );
 
         return createdItem;
+    }
+
+    public async getOwners(projectId: ObjectID): Promise<Array<User>> {
+        // get teams with project owner permissions.
+        const teamPermissions: Array<TeamPermission> =
+            await TeamPermissionService.findBy({
+                query: {
+                    projectId: projectId,
+                    permission: Permission.ProjectOwner,
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    teamId: true,
+                },
+            });
+
+        if (teamPermissions.length === 0) {
+            return [];
+        }
+
+        const teamIds: Array<ObjectID> = teamPermissions.map(
+            (item: TeamPermission) => {
+                return item.teamId!;
+            }
+        );
+
+        return TeamMemberService.getUsersInTeams(teamIds);
     }
 
     protected override async onBeforeFind(

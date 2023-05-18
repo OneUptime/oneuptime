@@ -429,7 +429,6 @@ export default class StatusPageAnnouncement extends BaseModel {
     })
     public isStatusPageSubscribersNotified?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -443,9 +442,7 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @Index()
     @TableColumn({
@@ -453,8 +450,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         required: true,
         isDefaultValueColumn: true,
         title: 'Are Owners Notified',
-        description:
-            'Are owners notified of this announcement?',
+        description: 'Are owners notified of this announcement?',
     })
     @Column({
         type: ColumnType.Boolean,

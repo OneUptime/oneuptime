@@ -212,10 +212,9 @@ RunCron(
                                         incident.incidentSeverity?.name ||
                                         ' - ',
                                     incidentTitle: incident.title || '',
-                                    incidentDescription:
-                                        Markdown.convertToHTMML(
-                                            incident.description || ''
-                                        ),
+                                    incidentDescription: Markdown.convertToHTML(
+                                        incident.description || ''
+                                    ),
                                     unsubscribeUrl: new URL(
                                         HttpProtocol,
                                         Domain

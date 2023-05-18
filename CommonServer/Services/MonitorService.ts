@@ -16,12 +16,15 @@ import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import ActiveMonitoringMeteredPlan from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
-import { IsBillingEnabled } from '../Config';
+import { DashboardUrl, IsBillingEnabled } from '../Config';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import MonitorOwnerTeamService from './MonitorOwnerTeamService';
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
 import Typeof from 'Common/Types/Typeof';
+import TeamMemberService from './TeamMemberService';
+import User from 'Model/Models/User';
+import URL from 'Common/Types/API/URL';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -137,6 +140,85 @@ export class Service extends DatabaseService<Model> {
         }
 
         return createdItem;
+    }
+
+    public getMonitorLinkInDashboard(
+        projectId: ObjectID,
+        monitorId: ObjectID
+    ): URL {
+        return URL.fromString(DashboardUrl.toString()).addRoute(
+            `/${projectId.toString()}/monitors/${monitorId.toString()}`
+        );
+    }
+
+    public async findOwners(monitorId: ObjectID): Promise<Array<User>> {
+        const ownerUsers: Array<MonitorOwnerUser> =
+            await MonitorOwnerUserService.findBy({
+                query: {
+                    monitorId: monitorId,
+                },
+                select: {
+                    _id: true,
+                },
+                populate: {
+                    user: {
+                        _id: true,
+                        email: true,
+                        name: true,
+                    },
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+            });
+
+        const ownerTeams: Array<MonitorOwnerTeam> =
+            await MonitorOwnerTeamService.findBy({
+                query: {
+                    monitorId: monitorId,
+                },
+                select: {
+                    _id: true,
+                    teamId: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const users: Array<User> =
+            ownerUsers.map((ownerUser: MonitorOwnerUser) => {
+                return ownerUser.user!;
+            }) || [];
+
+        if (ownerTeams.length > 0) {
+            const teamIds: Array<ObjectID> =
+                ownerTeams.map((ownerTeam: MonitorOwnerTeam) => {
+                    return ownerTeam.teamId!;
+                }) || [];
+
+            const teamUsers: Array<User> =
+                await TeamMemberService.getUsersInTeams(teamIds);
+
+            for (const teamUser of teamUsers) {
+                //check if the user is already added.
+                const isUserAlreadyAdded: User | undefined = users.find(
+                    (user: User) => {
+                        return user.id!.toString() === teamUser.id!.toString();
+                    }
+                );
+
+                if (!isUserAlreadyAdded) {
+                    users.push(teamUser);
+                }
+            }
+        }
+
+        return users;
     }
 
     public async addOwners(

@@ -37,6 +37,9 @@ import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import JobDictonary from './Utils/JobDictionary';
 
+// Monitor Owners
+import './Jobs/MonitorOwners/SendCreatedResourceEmail';
+
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();

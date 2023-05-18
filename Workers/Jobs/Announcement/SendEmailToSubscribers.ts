@@ -153,7 +153,7 @@ RunCron(
                                             : 'false',
                                     announcementTitle: announcement.title || '',
                                     announcementDescription:
-                                        Markdown.convertToHTMML(
+                                        Markdown.convertToHTML(
                                             announcement.description || ''
                                         ),
                                     unsubscribeUrl: new URL(

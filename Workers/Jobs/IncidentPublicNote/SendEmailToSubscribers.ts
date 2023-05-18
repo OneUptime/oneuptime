@@ -216,7 +216,7 @@ RunCron(
                                 templateType:
                                     EmailTemplateType.SubscriberIncidentNoteCreated,
                                 vars: {
-                                    note: Markdown.convertToHTMML(
+                                    note: Markdown.convertToHTML(
                                         incidentPublicNote.note!
                                     ),
                                     statusPageName: statusPageName,

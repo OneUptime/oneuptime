@@ -268,6 +268,35 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         return [...new Set(memberIds)].length; //get unique member ids.
     }
 
+    public async getUsersInTeams(
+        teamIds: Array<ObjectID>
+    ): Promise<Array<User>> {
+        const members: Array<TeamMember> = await this.findBy({
+            query: {
+                teamId: QueryHelper.in(teamIds),
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                _id: true,
+            },
+            populate: {
+                user: {
+                    _id: true,
+                    email: true,
+                    name: true,
+                },
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+        });
+
+        return members.map((member: TeamMember) => {
+            return member.user!;
+        });
+    }
+
     public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
         projectId: ObjectID
     ): Promise<void> {
