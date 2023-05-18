@@ -14,29 +14,28 @@ import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
 import IncidentOwnerUserService from 'CommonServer/Services/IncidentOwnerUserService';
+import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
 
 RunCron(
     'IncidentOwner:SendOwnerAddedEmail',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-
-
-        const incidentOwnerTeams = await IncidentOwnerTeamService.findBy({
-            query: {
-                isOwnerNotified: false
-            },
-            props: {
-                isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                incidentId: true,
-                teamId: true,
-            },
-        });
-
+        const incidentOwnerTeams: Array<IncidentOwnerTeam> =
+            await IncidentOwnerTeamService.findBy({
+                query: {
+                    isOwnerNotified: false,
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    incidentId: true,
+                    teamId: true,
+                },
+            });
 
         const incidentOwnersMap: Dictionary<Array<User>> = {};
 
@@ -44,52 +43,54 @@ RunCron(
             const incidentId: ObjectID = incidentOwnerTeam.incidentId!;
             const teamId: ObjectID = incidentOwnerTeam.teamId!;
 
-            const users: Array<User> = await TeamMemberService.getUsersInTeams([teamId]);
+            const users: Array<User> = await TeamMemberService.getUsersInTeams([
+                teamId,
+            ]);
 
             if (incidentOwnersMap[incidentId.toString()] === undefined) {
                 incidentOwnersMap[incidentId.toString()] = [];
             }
 
             for (const user of users) {
-                (incidentOwnersMap[incidentId.toString()] as Array<User>).push(user);
+                (incidentOwnersMap[incidentId.toString()] as Array<User>).push(
+                    user
+                );
             }
 
             // mark this as notified.
             await IncidentOwnerTeamService.updateOneById({
                 id: incidentOwnerTeam.id!,
                 data: {
-
                     isOwnerNotified: true,
                 },
                 props: {
                     isRoot: true,
                 },
             });
-
         }
 
-
-        const incidentOwnerUsers: Array<IncidentOwnerUser> = await IncidentOwnerUserService.findBy({
-            query: {
-                isOwnerNotified: false
-            },
-            props: {
-                isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                incidentId: true,
-                userId: true,
-            },
-            populate: {
-                user: {
-                    email: true,
-                    name: true,
-                }
-            }
-        });
+        const incidentOwnerUsers: Array<IncidentOwnerUser> =
+            await IncidentOwnerUserService.findBy({
+                query: {
+                    isOwnerNotified: false,
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    incidentId: true,
+                    userId: true,
+                },
+                populate: {
+                    user: {
+                        email: true,
+                        name: true,
+                    },
+                },
+            });
 
         for (const incidentOwnerUser of incidentOwnerUsers) {
             const incidentId: ObjectID = incidentOwnerUser.incidentId!;
@@ -99,7 +100,9 @@ RunCron(
                 incidentOwnersMap[incidentId.toString()] = [];
             }
 
-            (incidentOwnersMap[incidentId.toString()] as Array<User>).push(user);
+            (incidentOwnersMap[incidentId.toString()] as Array<User>).push(
+                user
+            );
 
             // mark this as notified.
             await IncidentOwnerUserService.updateOneById({
@@ -111,15 +114,12 @@ RunCron(
                     isRoot: true,
                 },
             });
-
         }
 
-
-        // send email to all of these users. 
+        // send email to all of these users.
 
         for (const incidentId in incidentOwnersMap) {
-
-            if (!incidentOwnersMap.hasOwnProperty(incidentId)) {
+            if (!incidentOwnersMap[incidentId]) {
                 continue;
             }
 
@@ -127,42 +127,41 @@ RunCron(
                 continue;
             }
 
-            const users = incidentOwnersMap[incidentId] as Array<User>;
-
+            const users: Array<User> = incidentOwnersMap[
+                incidentId
+            ] as Array<User>;
 
             // get all scheduled events of all the projects.
-            const incident: Incident | null = await IncidentService.findOneById({
-                id: new ObjectID(incidentId),
-                props: {
-                    isRoot: true,
-                },
-
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                    projectId: true,
-
-                },
-                populate: {
-                    project: {
-                        name: true,
+            const incident: Incident | null = await IncidentService.findOneById(
+                {
+                    id: new ObjectID(incidentId),
+                    props: {
+                        isRoot: true,
                     },
-                    currentIncidentState: {
-                        name: true,
+
+                    select: {
+                        _id: true,
+                        title: true,
+                        description: true,
+                        projectId: true,
                     },
-                    incidentSeverity: {
-                        name: true,
-                    }
-                },
-            });
+                    populate: {
+                        project: {
+                            name: true,
+                        },
+                        currentIncidentState: {
+                            name: true,
+                        },
+                        incidentSeverity: {
+                            name: true,
+                        },
+                    },
+                }
+            );
 
             if (!incident) {
                 continue;
             }
-
-
-
 
             const vars: Dictionary<string> = {
                 incidentTitle: incident.title!,
@@ -178,19 +177,17 @@ RunCron(
                 ).toString(),
             };
 
-
-
             for (const user of users) {
                 MailService.sendMail({
                     toEmail: user.email!,
                     templateType: EmailTemplateType.IncidentOwnerAdded,
                     vars: vars,
-                    subject: 'You have been added as the owner of the incident.',
+                    subject:
+                        'You have been added as the owner of the incident.',
                 }).catch((err: Error) => {
                     logger.error(err);
                 });
             }
         }
     }
-
 );

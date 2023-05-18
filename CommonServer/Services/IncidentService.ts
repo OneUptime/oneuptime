@@ -124,7 +124,6 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-
     public async findOwners(incidentId: ObjectID): Promise<Array<User>> {
         const ownerUsers: Array<IncidentOwnerUser> =
             await IncidentOwnerUserService.findBy({

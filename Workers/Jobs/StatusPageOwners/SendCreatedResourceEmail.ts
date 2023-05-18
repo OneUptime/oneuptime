@@ -74,10 +74,11 @@ RunCron(
                 statusPageDescription: Markdown.convertToHTML(
                     statusPage.description! || ''
                 ),
-                statusPageViewLink: StatusPageService.getStatusPageLinkInDashboard(
-                    statusPage.projectId!,
-                    statusPage.id!
-                ).toString(),
+                statusPageViewLink:
+                    StatusPageService.getStatusPageLinkInDashboard(
+                        statusPage.projectId!,
+                        statusPage.id!
+                    ).toString(),
             };
 
             if (doesResourceHasOwners === true) {
@@ -87,7 +88,8 @@ RunCron(
             for (const user of owners) {
                 MailService.sendMail({
                     toEmail: user.email!,
-                    templateType: EmailTemplateType.StatusPageOwnerResourceCreated,
+                    templateType:
+                        EmailTemplateType.StatusPageOwnerResourceCreated,
                     vars: vars,
                     subject: 'New status page created - ' + statusPage.name!,
                 }).catch((err: Error) => {

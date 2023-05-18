@@ -50,7 +50,6 @@ import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
 // Status Page Owners
 import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
 
-
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();

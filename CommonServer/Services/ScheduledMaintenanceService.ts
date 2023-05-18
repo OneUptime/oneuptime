@@ -97,7 +97,7 @@ export class Service extends DatabaseService<Model> {
                 (onCreate.createBy.miscDataProps[
                     'ownerTeams'
                 ] as Array<ObjectID>) || [],
-                false, 
+                false,
                 onCreate.createBy.props
             );
         }
@@ -157,7 +157,9 @@ export class Service extends DatabaseService<Model> {
         );
     }
 
-    public async findOwners(scheduledMaintenanceId: ObjectID): Promise<Array<User>> {
+    public async findOwners(
+        scheduledMaintenanceId: ObjectID
+    ): Promise<Array<User>> {
         const ownerUsers: Array<ScheduledMaintenanceOwnerUser> =
             await ScheduledMaintenanceOwnerUserService.findBy({
                 query: {

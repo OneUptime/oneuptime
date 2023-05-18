@@ -30,7 +30,6 @@ RunCron(
                 title: true,
                 description: true,
                 projectId: true,
-                
             },
             populate: {
                 project: {
@@ -41,7 +40,7 @@ RunCron(
                 },
                 incidentSeverity: {
                     name: true,
-                }
+                },
             },
         });
 
@@ -96,7 +95,8 @@ RunCron(
             for (const user of owners) {
                 MailService.sendMail({
                     toEmail: user.email!,
-                    templateType: EmailTemplateType.IncidentOwnerResourceCreated,
+                    templateType:
+                        EmailTemplateType.IncidentOwnerResourceCreated,
                     vars: vars,
                     subject: 'New incident created - ' + incident.title!,
                 }).catch((err: Error) => {

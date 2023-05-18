@@ -48,7 +48,7 @@ export class Service extends DatabaseService<StatusPage> {
                 (onCreate.createBy.miscDataProps[
                     'ownerTeams'
                 ] as Array<ObjectID>) || [],
-                false, 
+                false,
                 onCreate.createBy.props
             );
         }
