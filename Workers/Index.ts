@@ -39,6 +39,7 @@ import JobDictonary from './Utils/JobDictionary';
 
 // Monitor Owners
 import './Jobs/MonitorOwners/SendCreatedResourceEmail';
+import './Jobs/MonitorOwners/SendOwnerAddedEmail';
 
 // Incident Owners
 import './Jobs/IncidentOwners/SendCreatedResourceEmail';
@@ -46,9 +47,11 @@ import './Jobs/IncidentOwners/SendOwnerAddedEmail';
 
 // Scheduled Event Owners
 import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
+import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
 
 // Status Page Owners
 import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
+import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
 
 const APP_NAME: string = 'workers';
 

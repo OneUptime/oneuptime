@@ -46,7 +46,7 @@
         "fix": "npm run fix-lint",
         "start": "sudo docker compose up -d $npm_config_services",
         "ps": "sudo docker compose ps",
-        "save-logs": "sudo docker compose logs $npm_config_services > logs.txt",
+        "save-logs": "sudo docker compose logs --tail=100000 $npm_config_services > logs.txt",
         "logs": "sudo docker compose logs --tail=100 -f $npm_config_services",
         "write-logs": "sudo docker compose logs -f $npm_config_services > logs.txt",
         "build": "npm run prerun && sudo docker compose build $npm_config_services",
