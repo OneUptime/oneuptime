@@ -404,5 +404,5 @@ export default class IncidentOwnerTeam extends AccessControlModel {
         nullable: false,
         default: false,
     })
-    public isOwnerNotified?: ObjectID = undefined;
+    public isOwnerNotified?: boolean = undefined;
 }

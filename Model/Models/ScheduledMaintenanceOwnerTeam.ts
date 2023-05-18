@@ -405,5 +405,5 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         nullable: false,
         default: false,
     })
-    public isOwnerNotified?: ObjectID = undefined;
+    public isOwnerNotified?: boolean = undefined;
 }

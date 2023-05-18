@@ -1,0 +1,29 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Status Page: " statusPageName) }}
+
+{{> InfoBlock info="You have been added as the owner of this status page."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Status Page Name:" text=statusPageName }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=statusPageDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this Status Page by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=statusPageViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=statusPageViewLink}}
+
+{{> InfoBlock info="You will be notified when new announcements are posted on the status page."}}
+
+{{> Footer this }}
+
+{{> End this}}

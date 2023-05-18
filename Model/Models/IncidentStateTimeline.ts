@@ -438,5 +438,5 @@ export default class IncidentStateTimeline extends BaseModel {
         nullable: false,
         default: false,
     })
-    public isOwnerNotified?: ObjectID = undefined;
+    public isOwnerNotified?: boolean = undefined;
 }

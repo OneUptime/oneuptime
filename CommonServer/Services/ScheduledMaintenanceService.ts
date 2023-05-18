@@ -97,6 +97,7 @@ export class Service extends DatabaseService<Model> {
                 (onCreate.createBy.miscDataProps[
                     'ownerTeams'
                 ] as Array<ObjectID>) || [],
+                false, 
                 onCreate.createBy.props
             );
         }
@@ -109,6 +110,7 @@ export class Service extends DatabaseService<Model> {
         scheduledMaintenanceId: ObjectID,
         userIds: Array<ObjectID>,
         teamIds: Array<ObjectID>,
+        notifyOwners: boolean,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         for (let teamId of teamIds) {
@@ -121,6 +123,7 @@ export class Service extends DatabaseService<Model> {
             teamOwner.scheduledMaintenanceId = scheduledMaintenanceId;
             teamOwner.projectId = projectId;
             teamOwner.teamId = teamId;
+            teamOwner.isOwnerNotified = !notifyOwners;
 
             await ScheduledMaintenanceOwnerTeamService.create({
                 data: teamOwner,
@@ -136,6 +139,7 @@ export class Service extends DatabaseService<Model> {
                 new ScheduledMaintenanceOwnerUser();
             teamOwner.scheduledMaintenanceId = scheduledMaintenanceId;
             teamOwner.projectId = projectId;
+            teamOwner.isOwnerNotified = !notifyOwners;
             teamOwner.userId = userId;
             await ScheduledMaintenanceOwnerUserService.create({
                 data: teamOwner,

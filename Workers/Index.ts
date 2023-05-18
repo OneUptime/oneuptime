@@ -42,6 +42,7 @@ import './Jobs/MonitorOwners/SendCreatedResourceEmail';
 
 // Incident Owners
 import './Jobs/IncidentOwners/SendCreatedResourceEmail';
+import './Jobs/IncidentOwners/SendOwnerAddedEmail';
 
 // Scheduled Event Owners
 import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
