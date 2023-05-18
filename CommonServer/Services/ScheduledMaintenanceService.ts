@@ -17,6 +17,10 @@ import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwne
 import Typeof from 'Common/Types/Typeof';
 import ScheduledMaintenanceOwnerTeamService from './ScheduledMaintenanceOwnerTeamService';
 import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
+import TeamMemberService from './TeamMemberService';
+import User from 'Model/Models/User';
+import { DashboardUrl } from '../Config';
+import URL from 'Common/Types/API/URL';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -138,6 +142,85 @@ export class Service extends DatabaseService<Model> {
                 props: props,
             });
         }
+    }
+
+    public getScheduledMaintenanceLinkInDashboard(
+        projectId: ObjectID,
+        scheduledMaintenanceId: ObjectID
+    ): URL {
+        return URL.fromString(DashboardUrl.toString()).addRoute(
+            `/${projectId.toString()}/scheduled-maintenance-events//${scheduledMaintenanceId.toString()}`
+        );
+    }
+
+    public async findOwners(scheduledMaintenanceId: ObjectID): Promise<Array<User>> {
+        const ownerUsers: Array<ScheduledMaintenanceOwnerUser> =
+            await ScheduledMaintenanceOwnerUserService.findBy({
+                query: {
+                    scheduledMaintenanceId: scheduledMaintenanceId,
+                },
+                select: {
+                    _id: true,
+                },
+                populate: {
+                    user: {
+                        _id: true,
+                        email: true,
+                        name: true,
+                    },
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+            });
+
+        const ownerTeams: Array<ScheduledMaintenanceOwnerTeam> =
+            await ScheduledMaintenanceOwnerTeamService.findBy({
+                query: {
+                    scheduledMaintenanceId: scheduledMaintenanceId,
+                },
+                select: {
+                    _id: true,
+                    teamId: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const users: Array<User> =
+            ownerUsers.map((ownerUser: ScheduledMaintenanceOwnerUser) => {
+                return ownerUser.user!;
+            }) || [];
+
+        if (ownerTeams.length > 0) {
+            const teamIds: Array<ObjectID> =
+                ownerTeams.map((ownerTeam: ScheduledMaintenanceOwnerTeam) => {
+                    return ownerTeam.teamId!;
+                }) || [];
+
+            const teamUsers: Array<User> =
+                await TeamMemberService.getUsersInTeams(teamIds);
+
+            for (const teamUser of teamUsers) {
+                //check if the user is already added.
+                const isUserAlreadyAdded: User | undefined = users.find(
+                    (user: User) => {
+                        return user.id!.toString() === teamUser.id!.toString();
+                    }
+                );
+
+                if (!isUserAlreadyAdded) {
+                    users.push(teamUser);
+                }
+            }
+        }
+
+        return users;
     }
 
     public async changeAttachedMonitorStates(

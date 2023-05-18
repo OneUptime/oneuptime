@@ -8,7 +8,7 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import { Domain, HttpProtocol } from '../Config';
+import { DashboardUrl, Domain, HttpProtocol } from '../Config';
 import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
@@ -18,6 +18,8 @@ import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
 import StatusPageOwnerTeamService from './StatusPageOwnerTeamService';
 import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
 import StatusPageOwnerUserService from './StatusPageOwnerUserService';
+import User from 'Model/Models/User';
+import TeamMemberService from './TeamMemberService';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -51,6 +53,76 @@ export class Service extends DatabaseService<StatusPage> {
         }
 
         return createdItem;
+    }
+
+    public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
+        const ownerUsers: Array<StatusPageOwnerUser> =
+            await StatusPageOwnerUserService.findBy({
+                query: {
+                    statusPageId: statusPageId,
+                },
+                select: {
+                    _id: true,
+                },
+                populate: {
+                    user: {
+                        _id: true,
+                        email: true,
+                        name: true,
+                    },
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+            });
+
+        const ownerTeams: Array<StatusPageOwnerTeam> =
+            await StatusPageOwnerTeamService.findBy({
+                query: {
+                    statusPageId: statusPageId,
+                },
+                select: {
+                    _id: true,
+                    teamId: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const users: Array<User> =
+            ownerUsers.map((ownerUser: StatusPageOwnerUser) => {
+                return ownerUser.user!;
+            }) || [];
+
+        if (ownerTeams.length > 0) {
+            const teamIds: Array<ObjectID> =
+                ownerTeams.map((ownerTeam: StatusPageOwnerTeam) => {
+                    return ownerTeam.teamId!;
+                }) || [];
+
+            const teamUsers: Array<User> =
+                await TeamMemberService.getUsersInTeams(teamIds);
+
+            for (const teamUser of teamUsers) {
+                //check if the user is already added.
+                const isUserAlreadyAdded: User | undefined = users.find(
+                    (user: User) => {
+                        return user.id!.toString() === teamUser.id!.toString();
+                    }
+                );
+
+                if (!isUserAlreadyAdded) {
+                    users.push(teamUser);
+                }
+            }
+        }
+
+        return users;
     }
 
     public async addOwners(
@@ -89,6 +161,15 @@ export class Service extends DatabaseService<StatusPage> {
                 props: props,
             });
         }
+    }
+
+    public getStatusPageLinkInDashboard(
+        projectId: ObjectID,
+        statusPageId: ObjectID
+    ): URL {
+        return URL.fromString(DashboardUrl.toString()).addRoute(
+            `/${projectId.toString()}/status-pages/${statusPageId.toString()}`
+        );
     }
 
     public async hasReadAccess(

@@ -1,0 +1,33 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+
+{{> InfoBlock info=(concat "A new incident has been created in the project - " projectName)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title:" text=incidentTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=incidentDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this incident by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=incidentViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=incidentViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this incident changes."}}
+
+{{> OwnerInfo this }}
+
+{{> Footer this }}
+
+{{> End this}}

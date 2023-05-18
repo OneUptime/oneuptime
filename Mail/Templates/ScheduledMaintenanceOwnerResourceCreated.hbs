@@ -1,0 +1,33 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Scheduled Maintenance: " scheduledMaintenanceTitle) }}
+
+{{> InfoBlock info=(concat "A new scheduled maintenance has been created in the project - " projectName)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Scheduled Maintenance Title:" text=scheduledMaintenanceTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Severity: " text=scheduledMaintenanceSeverity  }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=scheduledMaintenanceDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this scheduled maintenance by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=scheduledMaintenanceViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=scheduledMaintenanceViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this scheduled maintenance changes."}}
+
+{{> OwnerInfo this }}
+
+{{> Footer this }}
+
+{{> End this}}

@@ -16,6 +16,11 @@ import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
 import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
 import IncidentOwnerUserService from './IncidentOwnerUserService';
 import Typeof from 'Common/Types/Typeof';
+import { DashboardUrl } from '../Config';
+import URL from 'Common/Types/API/URL';
+import User from 'Model/Models/User';
+import TeamMemberService from './TeamMemberService';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -118,6 +123,77 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
+
+    public async findOwners(incidentId: ObjectID): Promise<Array<User>> {
+        const ownerUsers: Array<IncidentOwnerUser> =
+            await IncidentOwnerUserService.findBy({
+                query: {
+                    incidentId: incidentId,
+                },
+                select: {
+                    _id: true,
+                },
+                populate: {
+                    user: {
+                        _id: true,
+                        email: true,
+                        name: true,
+                    },
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+            });
+
+        const ownerTeams: Array<IncidentOwnerTeam> =
+            await IncidentOwnerTeamService.findBy({
+                query: {
+                    incidentId: incidentId,
+                },
+                select: {
+                    _id: true,
+                    teamId: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const users: Array<User> =
+            ownerUsers.map((ownerUser: IncidentOwnerUser) => {
+                return ownerUser.user!;
+            }) || [];
+
+        if (ownerTeams.length > 0) {
+            const teamIds: Array<ObjectID> =
+                ownerTeams.map((ownerTeam: IncidentOwnerTeam) => {
+                    return ownerTeam.teamId!;
+                }) || [];
+
+            const teamUsers: Array<User> =
+                await TeamMemberService.getUsersInTeams(teamIds);
+
+            for (const teamUser of teamUsers) {
+                //check if the user is already added.
+                const isUserAlreadyAdded: User | undefined = users.find(
+                    (user: User) => {
+                        return user.id!.toString() === teamUser.id!.toString();
+                    }
+                );
+
+                if (!isUserAlreadyAdded) {
+                    users.push(teamUser);
+                }
+            }
+        }
+
+        return users;
+    }
+
     public async addOwners(
         projectId: ObjectID,
         incidentId: ObjectID,
@@ -154,6 +230,15 @@ export class Service extends DatabaseService<Model> {
                 props: props,
             });
         }
+    }
+
+    public getIncidentLinkInDashboard(
+        projectId: ObjectID,
+        incidentId: ObjectID
+    ): URL {
+        return URL.fromString(DashboardUrl.toString()).addRoute(
+            `/${projectId.toString()}/incidents/${incidentId.toString()}`
+        );
     }
 
     public async changeIncidentState(
