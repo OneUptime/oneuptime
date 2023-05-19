@@ -153,7 +153,7 @@ export class Service extends DatabaseService<Model> {
         scheduledMaintenanceId: ObjectID
     ): URL {
         return URL.fromString(DashboardUrl.toString()).addRoute(
-            `/${projectId.toString()}/scheduled-maintenance-events//${scheduledMaintenanceId.toString()}`
+            `/${projectId.toString()}/scheduled-maintenance-events/${scheduledMaintenanceId.toString()}`
         );
     }
 
