@@ -37,27 +37,27 @@ import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import JobDictonary from './Utils/JobDictionary';
 
-// Monitor Owners
-import './Jobs/MonitorOwners/SendCreatedResourceEmail';
-import './Jobs/MonitorOwners/SendOwnerAddedEmail';
-import './Jobs/MonitorOwners/SendStatusChangeEmail';
+// // Monitor Owners
+// import './Jobs/MonitorOwners/SendCreatedResourceEmail';
+// import './Jobs/MonitorOwners/SendOwnerAddedEmail';
+// import './Jobs/MonitorOwners/SendStatusChangeEmail';
 
-// Incident Owners
-import './Jobs/IncidentOwners/SendCreatedResourceEmail';
-import './Jobs/IncidentOwners/SendOwnerAddedEmail';
-import './Jobs/IncidentOwners/SendStateChangeEmail';
-import './Jobs/IncidentOwners/SendNotePostedEmail';
+// // Incident Owners
+// import './Jobs/IncidentOwners/SendCreatedResourceEmail';
+// import './Jobs/IncidentOwners/SendOwnerAddedEmail';
+// import './Jobs/IncidentOwners/SendStateChangeEmail';
+// import './Jobs/IncidentOwners/SendNotePostedEmail';
 
-// Scheduled Event Owners
-import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
-import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
-import './Jobs/ScheduledMaintenanceOwners/SendStateChangeEmail';
-import './Jobs/ScheduledMaintenanceOwners/SendNotePostedEmail';
+// // Scheduled Event Owners
+// import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
+// import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
+// import './Jobs/ScheduledMaintenanceOwners/SendStateChangeEmail';
+// import './Jobs/ScheduledMaintenanceOwners/SendNotePostedEmail';
 
-// Status Page Owners
-import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
-import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
-import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
+// // Status Page Owners
+// import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
+// import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
+// import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
 
 const APP_NAME: string = 'workers';
 
