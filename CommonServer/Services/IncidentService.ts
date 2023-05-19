@@ -86,6 +86,7 @@ export class Service extends DatabaseService<Model> {
                     return new ObjectID(monitor._id || '');
                 }) || [],
                 createdItem.changeMonitorStatusToId,
+                true, // notifyMonitorOwners
                 onCreate.createBy.props
             );
         }
