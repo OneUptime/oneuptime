@@ -20,6 +20,7 @@ import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
 import StatusPageOwnerUserService from './StatusPageOwnerUserService';
 import User from 'Model/Models/User';
 import TeamMemberService from './TeamMemberService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -57,6 +58,10 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
+        if (!statusPageId) {
+            throw new BadDataException('statusPageId is required');
+        }
+
         const ownerUsers: Array<StatusPageOwnerUser> =
             await StatusPageOwnerUserService.findBy({
                 query: {

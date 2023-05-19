@@ -154,6 +154,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     public async findOwners(monitorId: ObjectID): Promise<Array<User>> {
+        if (!monitorId) {
+            throw new BadDataException('monitorId is required');
+        }
+
         const ownerUsers: Array<MonitorOwnerUser> =
             await MonitorOwnerUserService.findBy({
                 query: {

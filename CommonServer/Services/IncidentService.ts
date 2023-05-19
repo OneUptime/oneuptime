@@ -127,6 +127,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     public async findOwners(incidentId: ObjectID): Promise<Array<User>> {
+        if (!incidentId) {
+            throw new BadDataException('incidentId is required');
+        }
+
         const ownerUsers: Array<IncidentOwnerUser> =
             await IncidentOwnerUserService.findBy({
                 query: {

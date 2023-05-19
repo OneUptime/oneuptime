@@ -32,6 +32,7 @@ RunCron(
                     title: true,
                     description: true,
                     statusPages: true,
+                    projectId: true,
                 },
                 populate: {
                     statusPages: {
@@ -69,7 +70,7 @@ RunCron(
 
                     // find project owners.
                     owners = await ProjectService.getOwners(
-                        statusPage.projectId!
+                        announcement.projectId!
                     );
                 }
 

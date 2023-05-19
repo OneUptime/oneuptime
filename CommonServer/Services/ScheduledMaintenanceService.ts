@@ -161,6 +161,10 @@ export class Service extends DatabaseService<Model> {
     public async findOwners(
         scheduledMaintenanceId: ObjectID
     ): Promise<Array<User>> {
+        if (!scheduledMaintenanceId) {
+            throw new BadDataException('scheduledMaintenanceId is required');
+        }
+
         const ownerUsers: Array<ScheduledMaintenanceOwnerUser> =
             await ScheduledMaintenanceOwnerUserService.findBy({
                 query: {

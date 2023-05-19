@@ -135,7 +135,9 @@ RunCron(
                 doesResourceHasOwners = false;
 
                 // find project owners.
-                owners = await ProjectService.getOwners(incident.projectId!);
+                owners = await ProjectService.getOwners(
+                    note.getColumnValue('projectId') as ObjectID
+                );
             }
 
             if (owners.length === 0) {
