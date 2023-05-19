@@ -46,11 +46,13 @@ import './Jobs/MonitorOwners/SendStatusChangeEmail';
 import './Jobs/IncidentOwners/SendCreatedResourceEmail';
 import './Jobs/IncidentOwners/SendOwnerAddedEmail';
 import './Jobs/IncidentOwners/SendStateChangeEmail';
+import './Jobs/IncidentOwners/SendStatusChangeEmail';
 
 // Scheduled Event Owners
 import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
 import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
 import './Jobs/ScheduledMaintenanceOwners/SendStateChangeEmail';
+import './Jobs/ScheduledMaintenanceOwners/SendStatusChangeEmail';
 
 // Status Page Owners
 import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
