@@ -1,0 +1,37 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+
+{{> InfoBlock info="A new note has been posted on this incident."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title:" text=incidentTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{#if isPrivateNote}}
+{{> DetailBoxField title="Private Note: " text=""  }}
+{{else}}
+{{> DetailBoxField title="Public Note: " text=""  }}
+{{/if}}
+{{> DetailBoxField title="" text=note  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this incident by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=incidentViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=incidentViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this incident changes."}}
+
+{{> OwnerInfo this }}
+
+{{> Footer this }}
+
+{{> End this}}
