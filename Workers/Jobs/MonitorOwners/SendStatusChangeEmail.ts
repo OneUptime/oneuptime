@@ -78,7 +78,7 @@ RunCron(
                 doesResourceHasOwners = false;
 
                 // find project owners.
-                owners = await ProjectService.getOwners(monitor.projectId!);
+                owners = await ProjectService.getOwners(monitorStatusTimeline.projectId!);
             }
 
             if (owners.length === 0) {

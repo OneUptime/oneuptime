@@ -81,7 +81,7 @@ RunCron(
 
                 // find project owners.
                 owners = await ProjectService.getOwners(
-                    scheduledMaintenance.projectId!
+                    scheduledMaintenanceStateTimeline.projectId!
                 );
             }
 
