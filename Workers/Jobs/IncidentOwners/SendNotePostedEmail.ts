@@ -14,6 +14,8 @@ import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteService';
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
+import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
+import IncidentInternalNoteService from 'CommonServer/Services/IncidentInternalNoteService';
 
 RunCron(
     'IncidentOwner:SendsNotePostedEmail',
@@ -37,8 +39,8 @@ RunCron(
                 },
             });
 
-        const privateNotes: Array<IncidentPublicNote> =
-            await IncidentPublicNoteService.findBy({
+        const privateNotes: Array<IncidentInternalNote> =
+            await IncidentInternalNoteService.findBy({
                 query: {
                     isOwnerNotified: false,
                 },
@@ -54,6 +56,12 @@ RunCron(
                     projectId: true,
                 },
             });
+
+        const privateNoteIds: Array<string> = privateNotes.map(
+            (note: IncidentInternalNote) => {
+                return note._id!;
+            }
+        );
 
         for (const note of publicNotes) {
             await IncidentPublicNoteService.updateOneById({
@@ -150,6 +158,10 @@ RunCron(
 
             if (doesResourceHasOwners === true) {
                 vars['isOwner'] = 'true';
+            }
+
+            if (privateNoteIds.includes(note._id!)) {
+                vars['isPrivateNote'] = 'true';
             }
 
             for (const user of owners) {

@@ -14,6 +14,8 @@ import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePub
 import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
+import ScheduledMaintenanceInternalNote from 'Model/Models/ScheduledMaintenanceInternalNote';
+import ScheduledMaintenanceInternalNoteService from 'CommonServer/Services/ScheduledMaintenanceInternalNoteService';
 
 RunCron(
     'ScheduledMaintenanceOwner:SendsNotePostedEmail',
@@ -37,8 +39,8 @@ RunCron(
                 },
             });
 
-        const privateNotes: Array<ScheduledMaintenancePublicNote> =
-            await ScheduledMaintenancePublicNoteService.findBy({
+        const privateNotes: Array<ScheduledMaintenanceInternalNote> =
+            await ScheduledMaintenanceInternalNoteService.findBy({
                 query: {
                     isOwnerNotified: false,
                 },
@@ -54,6 +56,12 @@ RunCron(
                     projectId: true,
                 },
             });
+
+        const privateNoteIds: Array<string> = privateNotes.map(
+            (note: ScheduledMaintenancePublicNote) => {
+                return note._id!;
+            }
+        );
 
         for (const note of publicNotes) {
             await ScheduledMaintenancePublicNoteService.updateOneById({
@@ -85,9 +93,11 @@ RunCron(
             const note: BaseModel = noteObject as BaseModel;
 
             // get all scheduled events of all the projects.
-            const scheduledMaintenance: ScheduledMaintenance | null = await ScheduledMaintenanceService.findOneById(
-                {
-                    id: note.getColumnValue('scheduledMaintenanceId')! as ObjectID,
+            const scheduledMaintenance: ScheduledMaintenance | null =
+                await ScheduledMaintenanceService.findOneById({
+                    id: note.getColumnValue(
+                        'scheduledMaintenanceId'
+                    )! as ObjectID,
                     props: {
                         isRoot: true,
                     },
@@ -105,8 +115,7 @@ RunCron(
                             name: true,
                         },
                     },
-                }
-            );
+                });
 
             if (!scheduledMaintenance) {
                 continue;
@@ -116,15 +125,18 @@ RunCron(
 
             let doesResourceHasOwners: boolean = true;
 
-            let owners: Array<User> = await ScheduledMaintenanceService.findOwners(
-                note.getColumnValue('scheduledMaintenanceId')! as ObjectID
-            );
+            let owners: Array<User> =
+                await ScheduledMaintenanceService.findOwners(
+                    note.getColumnValue('scheduledMaintenanceId')! as ObjectID
+                );
 
             if (owners.length === 0) {
                 doesResourceHasOwners = false;
 
                 // find project owners.
-                owners = await ProjectService.getOwners(scheduledMaintenance.projectId!);
+                owners = await ProjectService.getOwners(
+                    scheduledMaintenance.projectId!
+                );
             }
 
             if (owners.length === 0) {
@@ -134,26 +146,36 @@ RunCron(
             const vars: Dictionary<string> = {
                 scheduledMaintenanceTitle: scheduledMaintenance.title!,
                 projectName: scheduledMaintenance.project!.name!,
-                currentState: scheduledMaintenance.currentScheduledMaintenanceState!.name!,
+                currentState:
+                    scheduledMaintenance.currentScheduledMaintenanceState!
+                        .name!,
                 note: Markdown.convertToHTML(
                     (note.getColumnValue('note')! as string) || ''
                 ),
-                scheduledMaintenanceViewLink: ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-                    scheduledMaintenance.projectId!,
-                    scheduledMaintenance.id!
-                ).toString(),
+                scheduledMaintenanceViewLink:
+                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                        scheduledMaintenance.projectId!,
+                        scheduledMaintenance.id!
+                    ).toString(),
             };
 
             if (doesResourceHasOwners === true) {
                 vars['isOwner'] = 'true';
             }
 
+            if (privateNoteIds.includes(note._id!)) {
+                vars['isPrivateNote'] = 'true';
+            }
+
             for (const user of owners) {
                 MailService.sendMail({
                     toEmail: user.email!,
-                    templateType: EmailTemplateType.ScheduledMaintenanceOwnerNotePosted,
+                    templateType:
+                        EmailTemplateType.ScheduledMaintenanceOwnerNotePosted,
                     vars: vars,
-                    subject: 'New note posted on scheduled maintenance event - ' + scheduledMaintenance.title,
+                    subject:
+                        'New note posted on scheduled maintenance event - ' +
+                        scheduledMaintenance.title,
                 }).catch((err: Error) => {
                     logger.error(err);
                 });
