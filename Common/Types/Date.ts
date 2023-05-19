@@ -53,8 +53,8 @@ export default class OneUptimeDate {
     public static toDateTimeLocalString(date: Date): string {
         date = this.fromString(date);
         const ten: Function = (i: number): string => {
-            return (i < 10 ? '0' : '') + i;
-        },
+                return (i < 10 ? '0' : '') + i;
+            },
             YYYY: number = date.getFullYear(),
             MM: number = ten(date.getMonth() + 1),
             DD: number = ten(date.getDate()),
@@ -364,8 +364,10 @@ export default class OneUptimeDate {
         );
     }
 
-    public static getDateAsFormattedArrayInMultipleTimezones(date: string | Date,
-        onlyShowDate?: boolean): Array<string> {
+    public static getDateAsFormattedArrayInMultipleTimezones(
+        date: string | Date,
+        onlyShowDate?: boolean
+    ): Array<string> {
         date = this.fromString(date);
 
         let formatstring: string = 'MMM DD YYYY, HH:mm';
@@ -377,16 +379,31 @@ export default class OneUptimeDate {
         // convert this date into GMT, EST, PST, IST, ACT with moment
         const timezoneDates = [];
 
-        timezoneDates.push(moment(date).tz('UTC').format(formatstring) + ' ' +
-            (onlyShowDate ? '' : 'GMT'));
-        timezoneDates.push(moment(date).tz('America/New_York').format(formatstring) + ' ' +
-            (onlyShowDate ? '' : 'EST'));
-        timezoneDates.push(moment(date).tz('America/Los_Angeles').format(formatstring) + ' ' +
-            (onlyShowDate ? '' : 'PST'));
-        timezoneDates.push(moment(date).tz('Asia/Kolkata').format(formatstring) + ' ' +
-            (onlyShowDate ? '' : 'IST'));
-        timezoneDates.push(moment(date).tz('Australia/Sydney').format(formatstring) + ' ' +
-            (onlyShowDate ? '' : 'AEST'));
+        timezoneDates.push(
+            moment(date).tz('UTC').format(formatstring) +
+                ' ' +
+                (onlyShowDate ? '' : 'GMT')
+        );
+        timezoneDates.push(
+            moment(date).tz('America/New_York').format(formatstring) +
+                ' ' +
+                (onlyShowDate ? '' : 'EST')
+        );
+        timezoneDates.push(
+            moment(date).tz('America/Los_Angeles').format(formatstring) +
+                ' ' +
+                (onlyShowDate ? '' : 'PST')
+        );
+        timezoneDates.push(
+            moment(date).tz('Asia/Kolkata').format(formatstring) +
+                ' ' +
+                (onlyShowDate ? '' : 'IST')
+        );
+        timezoneDates.push(
+            moment(date).tz('Australia/Sydney').format(formatstring) +
+                ' ' +
+                (onlyShowDate ? '' : 'AEST')
+        );
 
         return timezoneDates;
     }
@@ -395,20 +412,20 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ) {
-        return (
-            this.getDateAsFormattedArrayInMultipleTimezones(date, onlyShowDate).join('<br/>')
-        );
+        return this.getDateAsFormattedArrayInMultipleTimezones(
+            date,
+            onlyShowDate
+        ).join('<br/>');
     }
-
 
     public static getDateAsFormattedStringInMultipleTimezones(
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-    
-        return (
-            this.getDateAsFormattedArrayInMultipleTimezones(date, onlyShowDate).join('\n')
-        );
+        return this.getDateAsFormattedArrayInMultipleTimezones(
+            date,
+            onlyShowDate
+        ).join('\n');
     }
 
     public static getDateAsLocalFormattedString(

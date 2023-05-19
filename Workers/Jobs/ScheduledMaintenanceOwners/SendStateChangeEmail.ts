@@ -52,11 +52,11 @@ RunCron(
             });
 
         for (const scheduledMaintenanceStateTimeline of scheduledMaintenanceStateTimelines) {
-            const scheduledMaintenance: ScheduledMaintenance = scheduledMaintenanceStateTimeline.scheduledMaintenance!;
+            const scheduledMaintenance: ScheduledMaintenance =
+                scheduledMaintenanceStateTimeline.scheduledMaintenance!;
             const scheduledMaintenanceState: ScheduledMaintenanceState =
                 scheduledMaintenanceStateTimeline.scheduledMaintenanceState!;
 
-    
             await ScheduledMaintenanceStateTimelineService.updateOneById({
                 id: scheduledMaintenanceStateTimeline.id!,
                 data: {
@@ -71,15 +71,18 @@ RunCron(
 
             let doesResourceHasOwners: boolean = true;
 
-            let owners: Array<User> = await ScheduledMaintenanceService.findOwners(
-                scheduledMaintenance.id!
-            );
+            let owners: Array<User> =
+                await ScheduledMaintenanceService.findOwners(
+                    scheduledMaintenance.id!
+                );
 
             if (owners.length === 0) {
                 doesResourceHasOwners = false;
 
                 // find project owners.
-                owners = await ProjectService.getOwners(scheduledMaintenance.projectId!);
+                owners = await ProjectService.getOwners(
+                    scheduledMaintenance.projectId!
+                );
             }
 
             if (owners.length === 0) {
@@ -93,13 +96,15 @@ RunCron(
                 scheduledMaintenanceDescription: Markdown.convertToHTML(
                     scheduledMaintenance.description! || ''
                 ),
-                stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-                    scheduledMaintenanceStateTimeline.createdAt!
-                ),
-                scheduledMaintenanceViewLink: ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-                    scheduledMaintenanceStateTimeline.projectId!,
-                    scheduledMaintenance.id!
-                ).toString(),
+                stateChangedAt:
+                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+                        scheduledMaintenanceStateTimeline.createdAt!
+                    ),
+                scheduledMaintenanceViewLink:
+                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                        scheduledMaintenanceStateTimeline.projectId!,
+                        scheduledMaintenance.id!
+                    ).toString(),
             };
 
             if (doesResourceHasOwners === true) {
@@ -109,10 +114,12 @@ RunCron(
             for (const user of owners) {
                 MailService.sendMail({
                     toEmail: user.email!,
-                    templateType: EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
+                    templateType:
+                        EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
                     vars: vars,
                     subject:
-                        'Scheduled maintenance event state changed to - ' + scheduledMaintenanceState!.name!,
+                        'Scheduled maintenance event state changed to - ' +
+                        scheduledMaintenanceState!.name!,
                 }).catch((err: Error) => {
                     logger.error(err);
                 });

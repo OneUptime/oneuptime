@@ -113,9 +113,10 @@ RunCron(
                 incidentDescription: Markdown.convertToHTML(
                     incident.description! || ''
                 ),
-                stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-                    incidentStateTimeline.createdAt!
-                ),
+                stateChangedAt:
+                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+                        incidentStateTimeline.createdAt!
+                    ),
                 incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
                 incidentViewLink: IncidentService.getIncidentLinkInDashboard(
                     incidentStateTimeline.projectId!,

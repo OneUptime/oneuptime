@@ -92,9 +92,10 @@ RunCron(
                 monitorDescription: Markdown.convertToHTML(
                     monitor.description! || ''
                 ),
-                statusChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-                    monitorStatusTimeline.createdAt!
-                ),
+                statusChangedAt:
+                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+                        monitorStatusTimeline.createdAt!
+                    ),
                 monitorViewLink: MonitorService.getMonitorLinkInDashboard(
                     monitorStatusTimeline.projectId!,
                     monitor.id!
