@@ -95,6 +95,7 @@ export class Service extends DatabaseService<Model> {
             createdItem.id,
             createdItem.currentIncidentStateId,
             false,
+            false,
             {
                 isRoot: true,
             }
@@ -249,6 +250,7 @@ export class Service extends DatabaseService<Model> {
         incidentId: ObjectID,
         incidentStateId: ObjectID,
         notifyStatusPageSubscribers: boolean,
+        notifyOwners: boolean,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         const statusTimeline: IncidentStateTimeline =
@@ -257,6 +259,7 @@ export class Service extends DatabaseService<Model> {
         statusTimeline.incidentId = incidentId;
         statusTimeline.incidentStateId = incidentStateId;
         statusTimeline.projectId = projectId;
+        statusTimeline.isOwnerNotified = !notifyOwners;
         statusTimeline.isStatusPageSubscribersNotified =
             !notifyStatusPageSubscribers;
 

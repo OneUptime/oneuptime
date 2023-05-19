@@ -377,7 +377,7 @@ export default class OneUptimeDate {
         }
 
         // convert this date into GMT, EST, PST, IST, ACT with moment
-        const timezoneDates = [];
+        const timezoneDates: Array<string> = [];
 
         timezoneDates.push(
             moment(date).tz('UTC').format(formatstring) +
@@ -411,7 +411,7 @@ export default class OneUptimeDate {
     public static getDateAsFormattedHTMLInMultipleTimezones(
         date: string | Date,
         onlyShowDate?: boolean
-    ) {
+    ): string {
         return this.getDateAsFormattedArrayInMultipleTimezones(
             date,
             onlyShowDate

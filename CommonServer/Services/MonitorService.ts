@@ -96,6 +96,7 @@ export class Service extends DatabaseService<Model> {
             createdItem.projectId,
             [createdItem.id],
             createdItem.currentMonitorStatusId,
+            false, // notifyOwners = false
             onCreate.createBy.props
         );
 
@@ -321,6 +322,7 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID,
         monitorIds: Array<ObjectID>,
         monitorStatusId: ObjectID,
+        notifyOwners: boolean,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         for (const monitorId of monitorIds) {
@@ -330,6 +332,7 @@ export class Service extends DatabaseService<Model> {
             statusTimeline.monitorId = monitorId;
             statusTimeline.monitorStatusId = monitorStatusId;
             statusTimeline.projectId = projectId;
+            statusTimeline.isOwnerNotified = !notifyOwners;
 
             await MonitorStatusTimelineService.create({
                 data: statusTimeline,

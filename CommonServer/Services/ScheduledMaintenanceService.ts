@@ -70,6 +70,7 @@ export class Service extends DatabaseService<Model> {
             new ScheduledMaintenanceStateTimeline();
         timeline.projectId = createdItem.projectId!;
         timeline.scheduledMaintenanceId = createdItem.id!;
+        timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, you dont have to notify them for timeline event.
         timeline.isStatusPageSubscribersNotified = true; // ignore notifying subscribers because you already notify for Scheduled Event, you dont have to notify them for timeline event.
         timeline.scheduledMaintenanceStateId =
             createdItem.currentScheduledMaintenanceStateId!;
@@ -249,6 +250,7 @@ export class Service extends DatabaseService<Model> {
                     return new ObjectID(monitor._id || '');
                 }) || [],
                 item.changeMonitorStatusToId,
+                true, // notify owners
                 props
             );
         }
@@ -259,6 +261,7 @@ export class Service extends DatabaseService<Model> {
         scheduledMaintenanceId: ObjectID,
         scheduledMaintenanceStateId: ObjectID,
         notifyStatusPageSubscribers: boolean,
+        notifyOwners: boolean,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         await this.updateBy({
@@ -283,6 +286,7 @@ export class Service extends DatabaseService<Model> {
         statusTimeline.scheduledMaintenanceStateId =
             scheduledMaintenanceStateId;
         statusTimeline.projectId = projectId;
+        statusTimeline.isOwnerNotified = !notifyOwners;
         statusTimeline.isStatusPageSubscribersNotified =
             !notifyStatusPageSubscribers;
 
