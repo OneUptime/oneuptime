@@ -213,7 +213,7 @@ RunCron(
                                             })
                                             .join(', ') || 'None',
                                     scheduledAt:
-                                        OneUptimeDate.getDateAsFormattedString(
+                                        OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',

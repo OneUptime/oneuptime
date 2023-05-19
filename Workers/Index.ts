@@ -37,21 +37,23 @@ import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import JobDictonary from './Utils/JobDictionary';
 
-// // Monitor Owners
-// import './Jobs/MonitorOwners/SendCreatedResourceEmail';
-// import './Jobs/MonitorOwners/SendOwnerAddedEmail';
+// Monitor Owners
+import './Jobs/MonitorOwners/SendCreatedResourceEmail';
+import './Jobs/MonitorOwners/SendOwnerAddedEmail';
+import './Jobs/MonitorOwners/SendStatusChangeEmail';
 
-// // Incident Owners
-// import './Jobs/IncidentOwners/SendCreatedResourceEmail';
-// import './Jobs/IncidentOwners/SendOwnerAddedEmail';
+// Incident Owners
+import './Jobs/IncidentOwners/SendCreatedResourceEmail';
+import './Jobs/IncidentOwners/SendOwnerAddedEmail';
+import './Jobs/IncidentOwners/SendStateChangeEmail';
 
-// // Scheduled Event Owners
-// import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
-// import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
+// Scheduled Event Owners
+import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
+import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
 
-// // Status Page Owners
-// import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
-// import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
+// Status Page Owners
+import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
+import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
 
 const APP_NAME: string = 'workers';
 

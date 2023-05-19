@@ -1,0 +1,35 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+
+{{> InfoBlock info=(concat "Incident state changed to - " currentState)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title:" text=incidentTitle }}
+{{> DetailBoxField title="New State: " text=currentState  }}
+{{> DetailBoxField title="State changed at: " text=""  }}
+{{> DetailBoxField title="" text=stateChangedAt  }}
+{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=incidentDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this incident by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=incidentViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=incidentViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this incident changes."}}
+
+{{> OwnerInfo this }}
+
+{{> Footer this }}
+
+{{> End this}}

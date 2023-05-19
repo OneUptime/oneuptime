@@ -1,0 +1,34 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Monitor: " monitorName) }}
+
+{{> InfoBlock info=(concat "Monitor status changed to - " currentStatus)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Monitor Name:" text=monitorName }}
+{{> DetailBoxField title="New Status: " text=currentStatus  }}
+{{> DetailBoxField title="Status changed at: " text=""  }}
+{{> DetailBoxField title="" text=statusChangedAt  }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=monitorDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this monitor by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=monitorViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=monitorViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this monitor changes."}}
+
+{{> OwnerInfo this }}
+
+{{> Footer this }}
+
+{{> End this}}
