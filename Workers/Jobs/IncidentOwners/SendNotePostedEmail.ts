@@ -76,7 +76,7 @@ RunCron(
         }
 
         for (const note of privateNotes) {
-            await IncidentPublicNoteService.updateOneById({
+            await IncidentInternalNoteService.updateOneById({
                 id: note.id!,
                 data: {
                     isOwnerNotified: true,

@@ -57,6 +57,7 @@ import './Jobs/ScheduledMaintenanceOwners/SendNotePostedEmail';
 // Status Page Owners
 import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
 import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
+import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
 
 const APP_NAME: string = 'workers';
 
