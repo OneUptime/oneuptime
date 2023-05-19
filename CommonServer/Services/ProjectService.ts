@@ -581,6 +581,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     public async getOwners(projectId: ObjectID): Promise<Array<User>> {
+        if (!projectId) {
+            throw new BadDataException('Project ID is required');
+        }
+
         // get teams with project owner permissions.
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
