@@ -78,7 +78,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         let data: string | ReactElement = '';
 
         if (_.get(props.item, fieldKey)) {
-            data = _.get(props.item, fieldKey, '')?.toString() || '';
+            data = _.get(props.item, fieldKey, '') as any || '';
         }
 
         if (field.fieldType === FieldType.Date) {

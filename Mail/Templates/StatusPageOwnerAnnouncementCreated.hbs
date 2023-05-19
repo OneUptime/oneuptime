@@ -1,0 +1,18 @@
+{{> Start this}}
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Announcement: " announcementTitle) }}
+
+{{> InfoBlock info=(concat "A new announcement has been created for : " statusPageName) }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=announcementTitle text="" }}
+{{> DetailBoxField title="" text=announcementDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> OwnerInfo this }}
+
+{{> Footer this }}
+
+{{> End this}}
