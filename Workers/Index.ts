@@ -50,6 +50,7 @@ import './Jobs/IncidentOwners/SendStateChangeEmail';
 // Scheduled Event Owners
 import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
 import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
+import './Jobs/ScheduledMaintenanceOwners/SendStateChangeEmail';
 
 // Status Page Owners
 import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
