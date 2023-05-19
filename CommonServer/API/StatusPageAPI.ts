@@ -1197,6 +1197,7 @@ export default class StatusPageAPI extends BaseAPI<
                 select: {
                     _id: true,
                     projectId: true,
+                    showScheduledEventHistoryInDays: true,
                 },
                 props: {
                     isRoot: true,
@@ -1236,10 +1237,12 @@ export default class StatusPageAPI extends BaseAPI<
 
         // check if status page has active scheduled events.
         const today: Date = OneUptimeDate.getCurrentDate();
-        const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
+        const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+            statusPage.showScheduledEventHistoryInDays || 14
+        );
 
         let query: Query<ScheduledMaintenance> = {
-            startsAt: QueryHelper.inBetween(last14Days, today),
+            startsAt: QueryHelper.inBetween(historyDays, today),
             statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
         };
@@ -1441,6 +1444,7 @@ export default class StatusPageAPI extends BaseAPI<
                 select: {
                     _id: true,
                     projectId: true,
+                    showAnnouncementHistoryInDays: true,
                 },
                 props: {
                     isRoot: true,
@@ -1455,11 +1459,13 @@ export default class StatusPageAPI extends BaseAPI<
         // check if status page has actuve announcement.
 
         const today: Date = OneUptimeDate.getCurrentDate();
-        const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
+        const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+            statusPage.showAnnouncementHistoryInDays || 14
+        );
 
         let query: Query<StatusPageAnnouncement> = {
             statusPages: [statusPageId] as any,
-            showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
+            showAnnouncementAt: QueryHelper.inBetween(historyDays, today),
             projectId: statusPage.projectId!,
         };
 
@@ -1549,6 +1555,7 @@ export default class StatusPageAPI extends BaseAPI<
                 select: {
                     _id: true,
                     projectId: true,
+                    showIncidentHistoryInDays: true,
                 },
                 props: {
                     isRoot: true,
@@ -1594,12 +1601,14 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         const today: Date = OneUptimeDate.getCurrentDate();
-        const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
+        const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+            statusPage.showIncidentHistoryInDays || 14
+        );
 
         let incidentQuery: Query<Incident> = {
             monitors: monitorsOnStatusPage as any,
             projectId: statusPage.projectId!,
-            createdAt: QueryHelper.inBetween(last14Days, today),
+            createdAt: QueryHelper.inBetween(historyDays, today),
         };
 
         if (incidentId) {

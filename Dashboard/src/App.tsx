@@ -50,6 +50,7 @@ import StatusPageViewPrivateUser from './Pages/StatusPages/View/PrivateUser';
 import StatusPageViewOwners from './Pages/StatusPages/View/Owners';
 import StatusPageViewAuthenticationSettings from './Pages/StatusPages/View/AuthenticationSettings';
 import StatusPageViewCustomSMTP from './Pages/StatusPages/View/CustomSMTP';
+import StatusPageViewSettings from './Pages/StatusPages/View/StatusPageSettings';
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -841,6 +842,24 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SETTINGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <StatusPageViewSettings
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_SETTINGS
                                 ] as Route
                             }
                         />

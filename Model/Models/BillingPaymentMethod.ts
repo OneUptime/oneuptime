@@ -20,22 +20,14 @@ import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessContr
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [
-        Permission.ProjectOwner,
-       
-        Permission.CanCreateBillingPaymentMethod,
-    ],
+    create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
     read: [
         Permission.ProjectOwner,
-       
+
         Permission.ProjectUser,
         Permission.CanReadBillingPaymentMethod,
     ],
-    delete: [
-        Permission.ProjectOwner,
-       
-        Permission.CanDeleteBillingPaymentMethod,
-    ],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteBillingPaymentMethod],
     update: [],
 })
 @CrudApiEndpoint(new Route('/billing-payment-methods'))
@@ -54,13 +46,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -91,13 +82,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -122,13 +112,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -159,13 +148,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -188,7 +176,7 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -220,7 +208,7 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -242,13 +230,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -267,7 +254,7 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -286,7 +273,7 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -304,13 +291,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],
@@ -328,13 +314,12 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-           
 
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
-           
+
             Permission.ProjectUser,
             Permission.CanReadBillingPaymentMethod,
         ],

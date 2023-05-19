@@ -1094,4 +1094,112 @@ export default class StatusPage extends BaseModel {
         default: false,
     })
     public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Number,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Show incident history in days',
+        description:
+            'How many days of incident history should be shown on the status page (in days)?',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        default: 14,
+    })
+    public showIncidentHistoryInDays?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Number,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Show announcement history in days',
+        description:
+            'How many days of announcement history should be shown on the status page (in days)?',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        default: 14,
+    })
+    public showAnnouncementHistoryInDays?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Number,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Show scheduled event history in days',
+        description:
+            'How many days of scheduled event history should be shown on the status page (in days)?',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        default: 14,
+    })
+    public showScheduledEventHistoryInDays?: number = undefined;
 }
