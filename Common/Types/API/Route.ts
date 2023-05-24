@@ -10,7 +10,7 @@ export default class Route extends DatabaseProperty {
     }
     public set route(v: string) {
         const matchRouteCharacters: RegExp =
-            /^[a-zA-Z_\d\-!#$&'()*+,./:;=?@[\]]*$/;
+            /^[a-zA-Z_\d\-!#$%&'()*+,./:;=?@[\]]*$/;
         if (v && !matchRouteCharacters.test(v)) {
             throw new BadDataException(`Invalid route: ${v}`);
         }
