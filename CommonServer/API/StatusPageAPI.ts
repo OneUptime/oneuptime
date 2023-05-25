@@ -415,6 +415,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 projectId: true,
                                 isPublicStatusPage: true,
+                                overviewPageDescription: true,
                             },
                             props: {
                                 isRoot: true,
@@ -897,6 +898,10 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentStateTimelines: JSONFunctions.toJSONArray(
                             incidentStateTimelines,
                             IncidentStateTimeline
+                        ),
+                        statusPage: JSONFunctions.toJSONObject(
+                            statusPage,
+                            StatusPage
                         ),
                         scheduledMaintenanceStateTimelines:
                             JSONFunctions.toJSONArray(

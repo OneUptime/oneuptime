@@ -151,6 +151,44 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Branding > Overview Page"
+                cardProps={{
+                    title: 'Overview Page',
+                    description:
+                        'Essential branding elements for overview page.',
+                    icon: IconProp.Text,
+                }}
+                isEditable={true}
+                editButtonText={'Edit Branding'}
+                formFields={[
+                    {
+                        field: {
+                            overviewPageDescription: true,
+                        },
+                        title: 'Overview Page Description.',
+                        fieldType: FormFieldSchemaType.Markdown,
+                        required: false,
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'overview-page-description',
+                    fields: [
+                        {
+                            field: {
+                                overviewPageDescription: true,
+                            },
+                            fieldType: FieldType.Markdown,
+                            title: 'Overview Page Description',
+                            placeholder: 'No description set.',
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
         </ModelPage>
     );
 };

@@ -48,6 +48,8 @@ import { getAnnouncementEventItem } from '../Announcement/Detail';
 import EmnptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
+import StatusPage from 'Model/Models/StatusPage';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -58,6 +60,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         scheduledMaintenanceEventsPublicNotes,
         setScheduledMaintenanceEventsPublicNotes,
     ] = useState<Array<ScheduledMaintenancePublicNote>>([]);
+    const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
     const [
         activeScheduledMaintenanceEvents,
         setActiveScheduledMaintenanceEvents,
@@ -186,6 +189,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
+
+            const statusPage: StatusPage = JSONFunctions.fromJSONObject(
+                (data['statusPage'] as JSONObject) || [],
+                StatusPage
+            );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
@@ -206,6 +214,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setMonitorStatusTimelines(monitorStatusTimelines);
             setResourceGroups(resourceGroups);
             setMonitorStatuses(monitorStatuses);
+            setStatusPage(statusPage);
             setStatusPageResources(statusPageResources);
             setIncidentStateTimelines(incidentStateTimelines);
             setScheduledMaintenanceStateTimelines(
@@ -525,6 +534,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             {!isLoading && !error ? (
                 <div>
+                    {/* Overview Page Description */}
+                    {statusPage && statusPage.overviewPageDescription && (
+                        <div className="bg-white p-5 my-5 rounded-xl shadow">
+                            <MarkdownViewer
+                                text={statusPage.overviewPageDescription}
+                            />
+                        </div>
+                    )}
+
                     {/* Load Active Anouncement */}
                     {activeAnnouncements.map(
                         (announcement: StatusPageAnnouncement, i: number) => {

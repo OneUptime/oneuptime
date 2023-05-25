@@ -1202,4 +1202,39 @@ export default class StatusPage extends BaseModel {
         default: 14,
     })
     public showScheduledEventHistoryInDays?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Markdown,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Overview Page Description',
+        description:
+            'Overview Page description for your status page. This is a markdown field.',
+    })
+    @Column({
+        type: ColumnType.Markdown,
+        nullable: true,
+    })
+    public overviewPageDescription?: string = undefined;
 }
