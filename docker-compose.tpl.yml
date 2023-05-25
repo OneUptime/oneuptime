@@ -377,6 +377,10 @@ services:
 
     {{ if .Env.GLOBAL_PROBE_1_NAME }}
     probe-1:   
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        ports:
+            - '9655:9229' # Debugging port.
+        {{ end }}
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host

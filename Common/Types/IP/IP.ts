@@ -77,7 +77,7 @@ export default class IP extends DatabaseProperty {
             throw new BadDataException('Invalid JSON for IP');
         }
 
-        if (json && json['value'] && typeof json['value'] === Typeof.String) {
+        if (json && json['value'] && typeof json['value'] !== Typeof.String) {
             throw new BadDataException('Invalid JSON for IP');
         }
 
