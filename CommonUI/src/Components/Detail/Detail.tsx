@@ -17,6 +17,7 @@ import PlaceholderText from './PlaceholderText';
 import DictionaryOfStringsViewer from '../Dictionary/DictionaryOfStingsViewer';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import FieldLabelElement from './FieldLabel';
+import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -214,6 +215,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             alignClassName = 'flex justify-center';
         } else if (field.alignItem === AlignItem.Left) {
             alignClassName = 'flex justify-start';
+        }
+
+        if (data instanceof DatabaseProperty) {
+            data = data.toString();
         }
 
         return (
