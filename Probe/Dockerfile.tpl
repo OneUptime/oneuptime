@@ -12,12 +12,15 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 RUN apk update && apk add bash && apk add curl
 
 
+
 # Install python
 RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install iputils
+RUN apk add iputils
 
 RUN mkdir /usr/src
 

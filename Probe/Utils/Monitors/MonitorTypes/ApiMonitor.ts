@@ -27,7 +27,8 @@ export default class ApiMonitor {
             requestHeaders?: Headers | undefined;
             requestBody?: JSONObject | undefined;
             requestType?: HTTPMethod | undefined;
-        }
+        },
+        retry?: number | undefined
     ): Promise<APIResponse> {
         try {
             const startTime: [number, number] = process.hrtime();
@@ -56,6 +57,15 @@ export default class ApiMonitor {
                 requestBody: options.requestBody || {},
             };
         } catch (err) {
+            if (!retry) {
+                retry = 0; // default value
+            }
+
+            if (retry < 5) {
+                retry++;
+                return await this.ping(url, options, retry);
+            }
+
             return {
                 url: url,
                 isOnline: false,

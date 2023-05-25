@@ -18,7 +18,10 @@ export interface ProbeWebsiteResponse {
 }
 
 export default class WebsiteMonitor {
-    public static async ping(url: URL): Promise<ProbeWebsiteResponse> {
+    public static async ping(
+        url: URL,
+        retry?: number | undefined
+    ): Promise<ProbeWebsiteResponse> {
         try {
             const startTime: [number, number] = process.hrtime();
             const result: WebsiteResponse = await WebsiteRequest.get(url, {});
@@ -38,6 +41,15 @@ export default class WebsiteMonitor {
                 responseHeaders: result.responseHeaders,
             };
         } catch (err) {
+            if (!retry) {
+                retry = 0; // default value
+            }
+
+            if (retry < 5) {
+                retry++;
+                return await this.ping(url, retry);
+            }
+
             if (err instanceof AxiosError) {
                 return {
                     url: url,

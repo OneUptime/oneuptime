@@ -3,12 +3,12 @@ import URL from 'Common/Types/API/URL';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import net, { Socket } from 'net';
+import ping from 'ping';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {
     isOnline: boolean;
-    responseTimeInMS?: PositiveNumber;
+    responseTimeInMS?: PositiveNumber | undefined;
 }
 
 export interface PingOptions {
@@ -18,62 +18,47 @@ export interface PingOptions {
 export default class PingMonitor {
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
-        pingOptions?: PingOptions
+        pingOptions?: PingOptions,
+        retry?: number | undefined
     ): Promise<PingResponse> {
-        return new Promise<PingResponse>(
-            (resolve: Function, _reject: Function) => {
-                const timeout: number =
-                    pingOptions?.timeout?.toNumber() || 5000;
-                const startTime: [number, number] = process.hrtime();
-                let responseTimeInMS: PositiveNumber;
-                let connectionOptions: net.NetConnectOpts;
-                if (host instanceof Hostname) {
-                    connectionOptions = {
-                        host: host.hostname,
-                        port: host.port.toNumber(),
-                        timeout,
-                    };
-                } else if (host instanceof URL) {
-                    connectionOptions = {
-                        host: host.hostname.hostname,
-                        port:
-                            host.hostname.port?.toNumber() ||
-                            (host.isHttps() ? 443 : 80),
-                        timeout,
-                    };
-                } else {
-                    connectionOptions = {
-                        host: host.toString(),
-                        port: 80,
-                        timeout,
-                    };
+        let hostAddress: string = '';
+        if (host instanceof Hostname) {
+            hostAddress = host.hostname;
+        } else if (host instanceof URL) {
+            hostAddress = host.hostname.hostname;
+        } else {
+            hostAddress = host.toString();
+        }
+
+        try {
+            const res: ping.PingResponse = await ping.promise.probe(
+                hostAddress,
+                {
+                    timeout: Math.ceil(
+                        (pingOptions?.timeout?.toNumber() || 5000) / 1000
+                    ),
                 }
-                const socket: Socket = net.connect(connectionOptions);
-                socket.on('connect', () => {
-                    const endTime: [number, number] = process.hrtime(startTime);
-                    responseTimeInMS = new PositiveNumber(
-                        (endTime[0] * 1000000000 + endTime[1]) / 1000000
-                    );
-                });
-                socket.on('timeout', () => {
-                    resolve({
-                        isOnline: false,
-                    });
-                });
-                socket.on('connect', () => {
-                    socket.end(() => {
-                        resolve({
-                            isOnline: true,
-                            responseTimeInMS,
-                        });
-                    });
-                });
-                socket.on('error', () => {
-                    resolve({
-                        isOnline: false,
-                    });
-                });
+            );
+
+            return {
+                isOnline: res.alive,
+                responseTimeInMS: res.time
+                    ? new PositiveNumber(Math.ceil(res.time as any))
+                    : undefined,
+            };
+        } catch (err) {
+            if (!retry) {
+                retry = 0; // default value
             }
-        );
+
+            if (retry < 5) {
+                retry++;
+                return await this.ping(host, pingOptions, retry);
+            }
+
+            return {
+                isOnline: false,
+            };
+        }
     }
 }

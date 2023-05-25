@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/ping": "^0.4.1",
     "axios": "^1.4.0",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
@@ -21,6 +22,7 @@
     "jsrsasign": "^10.6.1",
     "Model": "file:../Model",
     "node-cron": "^3.0.2",
+    "ping": "^0.4.4",
     "saml2-js": "^4.0.1",
     "ts-node": "^10.9.1"
   },
