@@ -54,6 +54,19 @@ import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer'
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+    if (LocalStorage.getItem('redirectUrl')) {
+        // const get item
+
+        const redirectUrl: string = LocalStorage.getItem(
+            'redirectUrl'
+        ) as string;
+
+        // clear local storage.
+        LocalStorage.removeItem('redirectUrl');
+
+        Navigation.navigate(new Route(redirectUrl));
+    }
+
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [

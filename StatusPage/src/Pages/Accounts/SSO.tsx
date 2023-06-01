@@ -8,6 +8,7 @@ import { DASHBOARD_API_URL, FILE_URL, IDENTITY_URL } from 'CommonUI/src/Config';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 
 export interface ComponentProps {
     statusPageId: ObjectID | null;
@@ -39,6 +40,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             new Route(
                 props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
             )
+        );
+    }
+
+    if (Navigation.getQueryStringByName('redirectUrl')) {
+        // save this to local storage, so in the overview page. We can redirect to this page.
+        LocalStorage.setItem(
+            'redirectUrl',
+            Navigation.getQueryStringByName('redirectUrl')
         );
     }
 
