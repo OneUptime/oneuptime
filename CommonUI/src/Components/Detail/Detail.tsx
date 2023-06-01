@@ -166,7 +166,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = (
                 <HiddenText
                     isCopyable={field.opts?.isCopyable || false}
-                    text={data as string}
+                    text={data.toString()}
                 />
             );
         }
