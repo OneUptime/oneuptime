@@ -96,9 +96,10 @@ export default class URL extends DatabaseProperty {
     }
 
     public override toString(): string {
-        let urlString: string = `${this.protocol}${this.hostname || this.email
-            }`;
-        if (!this.email && !urlString.startsWith("mailto:")) {
+        let urlString: string = `${this.protocol}${
+            this.hostname || this.email
+        }`;
+        if (!this.email && !urlString.startsWith('mailto:')) {
             if (this.route && this.route.toString().startsWith('/')) {
                 if (urlString.endsWith('/')) {
                     urlString = urlString.substring(0, urlString.length - 1);
