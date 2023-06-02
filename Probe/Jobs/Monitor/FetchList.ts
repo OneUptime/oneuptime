@@ -23,42 +23,49 @@ RunCron(
         // run a set timeout function randomly between 1 to 5 seconds, so same probes do not hit the server at the same time
 
         setTimeout(async () => {
-            const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-                await API.fetch<JSONArray>(
-                    HTTPMethod.POST,
-                    URL.fromString(PROBE_API_URL.toString()).addRoute(
-                        '/monitor/list'
-                    ),
-                    ProbeAPIRequest.getDefaultRequestBody(),
-                    {},
-                    {}
+            try {
+                const monitorListUrl: URL = URL.fromString(
+                    PROBE_API_URL.toString()
+                ).addRoute('/monitor/list');
+
+                const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+                    await API.fetch<JSONArray>(
+                        HTTPMethod.POST,
+                        monitorListUrl,
+                        ProbeAPIRequest.getDefaultRequestBody(),
+                        {},
+                        {}
+                    );
+
+                const monitors: Array<Monitor> = JSONFunctions.fromJSONArray(
+                    result.data as JSONArray,
+                    Monitor
                 );
 
-            const monitors: Array<Monitor> = JSONFunctions.fromJSONArray(
-                result.data as JSONArray,
-                Monitor
-            );
+                const monitoringPromises: Array<Promise<void>> = [];
 
-            const monitoringPromises: Array<Promise<void>> = [];
+                for (const monitor of monitors) {
+                    const promise: Promise<void> = new Promise<void>(
+                        (resolve: Function, reject: Function): void => {
+                            MonitorUtil.probeMonitor(monitor)
+                                .then(() => {
+                                    resolve();
+                                })
+                                .catch((err: Error) => {
+                                    logger.error(err);
+                                    reject(err);
+                                });
+                        }
+                    );
 
-            for (const monitor of monitors) {
-                const promise: Promise<void> = new Promise<void>(
-                    (resolve: Function, reject: Function): void => {
-                        MonitorUtil.probeMonitor(monitor)
-                            .then(() => {
-                                resolve();
-                            })
-                            .catch((err: Error) => {
-                                logger.error(err);
-                                reject(err);
-                            });
-                    }
-                );
+                    monitoringPromises.push(promise);
+                }
 
-                monitoringPromises.push(promise);
+                await Promise.allSettled(monitoringPromises);
+            } catch (err) {
+                logger.error('Error in fetching monitor list');
+                logger.error(err);
             }
-
-            await Promise.allSettled(monitoringPromises);
         }, Math.floor(Math.random() * 5000) + 1000);
     }
 );
