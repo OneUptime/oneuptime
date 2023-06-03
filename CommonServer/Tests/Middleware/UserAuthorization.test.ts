@@ -37,7 +37,7 @@ jest.mock('Common/Types/HashedString');
 type StringOrNull = string | null;
 
 describe('UserMiddleware', () => {
-    const mockedAccessToken: string = 'token';
+    const mockedAccessToken: string = ObjectID.generate().toString();
     const projectId: ObjectID = ObjectID.generate();
 
     beforeEach(() => {
