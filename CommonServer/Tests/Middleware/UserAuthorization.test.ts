@@ -33,12 +33,15 @@ jest.mock('../../Services/AccessTokenService');
 jest.mock('../../Utils/Response');
 jest.mock('../../Services/ProjectService');
 jest.mock('Common/Types/HashedString');
+jest.mock('Common/Types/JSONFunctions');
 
 type StringOrNull = string | null;
 
 describe('UserMiddleware', () => {
     const mockedAccessToken: string = ObjectID.generate().toString();
     const projectId: ObjectID = ObjectID.generate();
+    const userId: ObjectID = ObjectID.generate();
+    const mockedProject: Project = { _id: projectId.toString() } as Project;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -165,7 +168,6 @@ describe('UserMiddleware', () => {
 
     describe('doesSsoTokenForProjectExist', () => {
         const req: ExpressRequest = {} as ExpressRequest;
-        const userId: ObjectID = ObjectID.generate();
 
         beforeAll(() => {
             jest.spyOn(UserMiddleware, 'getSsoTokens').mockReturnValue({
@@ -262,14 +264,18 @@ describe('UserMiddleware', () => {
     describe('getUserMiddleware', () => {
         let req: ExpressRequest;
         let res: ExpressResponse;
-
         const next: NextFunction = jest.fn();
 
-        const mockedUserId: ObjectID = ObjectID.generate();
         const hashValue: string = 'hash-value';
+        const mockedTenantAccessPermission: UserTenantAccessPermission = {
+            projectId,
+        } as UserTenantAccessPermission;
+        const mockedGlobalAccessPermission: UserGlobalAccessPermission = {
+            projectIds: [projectId],
+        } as UserGlobalAccessPermission;
 
         const jwtTokenData: JSONWebTokenData = {
-            userId: mockedUserId,
+            userId,
             isMasterAdmin: true,
             email: new Email('test@gmail.com'),
         };
@@ -293,6 +299,10 @@ describe('UserMiddleware', () => {
             res.set = jest.fn();
         });
 
+        afterEach(() => {
+            jest.clearAllMocks();
+        });
+
         test('should call isValidProjectIdAndApiKeyMiddleware and return when hasApiKey returns true', async () => {
             jest.spyOn(ProjectMiddleware, 'hasApiKey').mockReturnValueOnce(
                 true
@@ -311,7 +321,7 @@ describe('UserMiddleware', () => {
             expect(spyGetAccessToken).not.toHaveBeenCalled();
         });
 
-        test("should call function 'next' and return, when getAccessToken returns a string value", async () => {
+        test("should call function 'next' and return, when getAccessToken returns a null value", async () => {
             const spyGetAccessToken: jest.SpyInstance = jest
                 .spyOn(UserMiddleware, 'getAccessToken')
                 .mockReturnValueOnce(null);
@@ -333,33 +343,23 @@ describe('UserMiddleware', () => {
                 });
 
             await UserMiddleware.getUserMiddleware(req, res, next);
+
             expect(next).toHaveBeenCalled();
             expect(spyJWTDecode).toHaveBeenCalledWith(mockedAccessToken);
             expect(UserService.updateOneBy).not.toHaveBeenCalled();
         });
 
         test('should set global-permissions and global-permissions-hash in the response header, when user has global access permission', async () => {
-            const mockedGlobalAccessPermission: UserGlobalAccessPermission =
-                {} as UserGlobalAccessPermission;
-
             jest.spyOn(ProjectMiddleware, 'getProjectId').mockReturnValueOnce(
                 null
             );
-            const spySerialize: jest.SpyInstance = jest
-                .spyOn(JSONFunctions, 'serialize')
-                .mockReturnValueOnce({});
+            jest.spyOn(JSONFunctions, 'serialize').mockReturnValueOnce({});
             const spyGetUserGlobalAccessPermission: jest.SpyInstance = jest
                 .spyOn(AccessTokenService, 'getUserGlobalAccessPermission')
                 .mockResolvedValueOnce(mockedGlobalAccessPermission);
 
             await UserMiddleware.getUserMiddleware(req, res, next);
 
-            expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(
-                jwtTokenData.userId
-            );
-            expect(spySerialize).toHaveBeenCalledWith(
-                mockedGlobalAccessPermission
-            );
             expect(res.set).toHaveBeenCalledWith(
                 'global-permissions',
                 JSON.stringify({})
@@ -369,6 +369,9 @@ describe('UserMiddleware', () => {
                 hashValue
             );
             expect(next).toHaveBeenCalled();
+            expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(
+                userId
+            );
         });
 
         test('should not set global-permissions and global-permissions-hash in the response header, when user does not have global access permission', async () => {
@@ -381,9 +384,6 @@ describe('UserMiddleware', () => {
 
             await UserMiddleware.getUserMiddleware(req, res, next);
 
-            expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(
-                jwtTokenData.userId
-            );
             expect(res.set).not.toHaveBeenCalledWith(
                 'global-permissions',
                 expect.anything()
@@ -393,20 +393,211 @@ describe('UserMiddleware', () => {
                 expect.anything()
             );
             expect(next).toHaveBeenCalled();
+            expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(
+                userId
+            );
         });
 
-        test('should return Invalid tenantId error, when tenantId is not null and project is not found', async () => {
-            const spyFindOneById: jest.SpyInstance = jest
-                .spyOn(ProjectService, 'findOneById')
-                .mockResolvedValueOnce(null);
+        test('should call Response.sendErrorResponse, when tenantId is passed in the header and getUserTenantAccessPermissionWithTenantId throws an exception', async () => {
+            const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
+                jest
+                    .spyOn(
+                        UserMiddleware,
+                        'getUserTenantAccessPermissionWithTenantId'
+                    )
+                    .mockRejectedValueOnce(new SsoAuthorizationException());
 
             await UserMiddleware.getUserMiddleware(req, res, next);
 
             expect(Response.sendErrorResponse).toHaveBeenCalledWith(
                 req,
                 res,
-                new BadDataException('Invalid tenantId')
+                new SsoAuthorizationException()
             );
+            expect(
+                spyGetUserTenantAccessPermissionWithTenantId
+            ).toHaveBeenCalledWith(req, projectId, userId);
+            expect(next).not.toBeCalled();
+        });
+
+        test('should set project-permissions and project-permissions-hash in the response header, when tenantId is passed in the header and user has tenant access permission', async () => {
+            jest.spyOn(JSONFunctions, 'serialize').mockReturnValueOnce({});
+            const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
+                jest
+                    .spyOn(
+                        UserMiddleware,
+                        'getUserTenantAccessPermissionWithTenantId'
+                    )
+                    .mockResolvedValueOnce(mockedTenantAccessPermission);
+
+            await UserMiddleware.getUserMiddleware(req, res, next);
+
+            expect(res.set).toHaveBeenCalledWith(
+                'project-permissions',
+                JSON.stringify({})
+            );
+            expect(res.set).toHaveBeenCalledWith(
+                'project-permissions-hash',
+                hashValue
+            );
+            expect(next).toHaveBeenCalled();
+
+            expect(
+                spyGetUserTenantAccessPermissionWithTenantId
+            ).toHaveBeenCalledWith(req, projectId, userId);
+        });
+
+        test("should not call getUserTenantAccessPermissionForMultiTenant, when is-multi-tenant-query is set in the request header and but userGlobalAccessPermission's projectIds length is zero", async () => {
+            const mockedRequest: Partial<ExpressRequest> = {
+                headers: { 'is-multi-tenant-query': 'yes' },
+            };
+
+            jest.spyOn(
+                AccessTokenService,
+                'getUserGlobalAccessPermission'
+            ).mockResolvedValueOnce({
+                ...mockedGlobalAccessPermission,
+                projectIds: [],
+            });
+            jest.spyOn(
+                UserMiddleware,
+                'getUserTenantAccessPermissionWithTenantId'
+            ).mockResolvedValueOnce(null);
+            const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
+                jest.spyOn(
+                    UserMiddleware,
+                    'getUserTenantAccessPermissionForMultiTenant'
+                );
+
+            await UserMiddleware.getUserMiddleware(
+                mockedRequest as ExpressRequest,
+                res,
+                next
+            );
+
+            expect(res.set).not.toHaveBeenCalledWith(
+                'project-permissions',
+                expect.anything()
+            );
+            expect(res.set).not.toHaveBeenCalledWith(
+                'project-permissions-hash',
+                expect.anything()
+            );
+            expect(next).toHaveBeenCalled();
+            expect(
+                spyGetUserTenantAccessPermissionForMultiTenant
+            ).not.toHaveBeenCalled();
+        });
+
+        test('should set project-permissions and project-permissions-hash in the response header, when is-multi-tenant-query is set in the request header and getUserTenantAccessPermissionForMultiTenant returned access permission', async () => {
+            const mockedRequest: Partial<ExpressRequest> = {
+                headers: { 'is-multi-tenant-query': 'yes' },
+            };
+
+            jest.spyOn(JSONFunctions, 'serialize').mockReturnValue({});
+            jest.spyOn(
+                AccessTokenService,
+                'getUserGlobalAccessPermission'
+            ).mockResolvedValueOnce(mockedGlobalAccessPermission);
+            jest.spyOn(
+                UserMiddleware,
+                'getUserTenantAccessPermissionWithTenantId'
+            ).mockResolvedValueOnce(null);
+            const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
+                jest
+                    .spyOn(
+                        UserMiddleware,
+                        'getUserTenantAccessPermissionForMultiTenant'
+                    )
+                    .mockResolvedValueOnce({
+                        [projectId.toString()]: mockedTenantAccessPermission,
+                    });
+
+            await UserMiddleware.getUserMiddleware(
+                mockedRequest as ExpressRequest,
+                res,
+                next
+            );
+
+            expect(res.set).toHaveBeenCalledWith(
+                'project-permissions',
+                JSON.stringify({})
+            );
+            expect(res.set).toHaveBeenCalledWith(
+                'project-permissions-hash',
+                hashValue
+            );
+            expect(next).toHaveBeenCalled();
+            expect(
+                spyGetUserTenantAccessPermissionForMultiTenant
+            ).toHaveBeenCalledWith(
+                mockedRequest,
+                userId,
+                mockedGlobalAccessPermission.projectIds
+            );
+        });
+
+        test('should not set project-permissions and project-permissions-hash in the response header, when the project-permissions-hash set in the request header equals the projectPermissionsHash computed from userTenantAccessPermission', async () => {
+            const mockedRequest: Partial<ExpressRequest> = {
+                headers: { 'project-permissions-hash': hashValue },
+            };
+
+            const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
+                jest
+                    .spyOn(
+                        UserMiddleware,
+                        'getUserTenantAccessPermissionWithTenantId'
+                    )
+                    .mockResolvedValueOnce(mockedTenantAccessPermission);
+
+            await UserMiddleware.getUserMiddleware(
+                mockedRequest as ExpressRequest,
+                res,
+                next
+            );
+
+            expect(res.set).not.toHaveBeenCalledWith(
+                'project-permissions',
+                expect.anything()
+            );
+            expect(res.set).not.toHaveBeenCalledWith(
+                'project-permissions-hash',
+                expect.anything()
+            );
+            expect(next).toHaveBeenCalled();
+
+            expect(
+                spyGetUserTenantAccessPermissionWithTenantId
+            ).toHaveBeenCalledWith(mockedRequest, projectId, userId);
+        });
+    });
+
+    describe('getUserTenantAccessPermissionWithTenantId', () => {
+        const req: ExpressRequest = {} as ExpressRequest;
+
+        const spyFindOneById: jest.SpyInstance = jest.spyOn(
+            ProjectService,
+            'findOneById'
+        );
+        const spyDoesSsoTokenForProjectExist: jest.SpyInstance = jest.spyOn(
+            UserMiddleware,
+            'doesSsoTokenForProjectExist'
+        );
+
+        afterEach(() => {
+            jest.clearAllMocks();
+        });
+
+        test("should throw 'Invalid tenantId' error, when project is not found for the tenantId", async () => {
+            spyFindOneById.mockResolvedValueOnce(null);
+
+            await expect(
+                UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                    req,
+                    projectId,
+                    userId
+                )
+            ).rejects.toThrowError(new BadDataException('Invalid tenantId'));
             expect(spyFindOneById).toHaveBeenCalledWith({
                 id: projectId,
                 select: {
@@ -418,98 +609,110 @@ describe('UserMiddleware', () => {
             });
         });
 
-        test('should return SSO Authorization Required error, when sso is required for login but sso token for project does not exist', async () => {
-            jest.spyOn(ProjectService, 'findOneById').mockResolvedValueOnce({
+        test('should throw SsoAuthorizationException error, when sso login is required but sso token for the projectId does not exist', async () => {
+            spyFindOneById.mockResolvedValueOnce({
+                ...mockedProject,
                 requireSsoForLogin: true,
-            } as Project);
+            });
 
-            const spyDoesSsoTokenForProjectExist: jest.SpyInstance = jest
-                .spyOn(UserMiddleware, 'doesSsoTokenForProjectExist')
-                .mockReturnValueOnce(false);
+            spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
 
-            await UserMiddleware.getUserMiddleware(req, res, next);
-
-            expect(Response.sendErrorResponse).toHaveBeenCalledWith(
-                req,
-                res,
-                new SsoAuthorizationException()
-            );
+            await expect(
+                UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                    req,
+                    projectId,
+                    userId
+                )
+            ).rejects.toThrowError(new SsoAuthorizationException());
             expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
                 req,
                 projectId,
-                jwtTokenData.userId
+                userId
             );
         });
 
-        test('should set project-permissions and project-permissions-hash in the response header when tenantId is not null and user has tenant access permission', async () => {
-            const mockedTenantAccessPermission: UserTenantAccessPermission =
-                {} as UserTenantAccessPermission;
+        test('should return null when getUserTenantAccessPermission returns null', async () => {
+            spyFindOneById.mockResolvedValueOnce(mockedProject);
 
-            jest.spyOn(ProjectService, 'findOneById').mockResolvedValueOnce({
-                requireSsoForLogin: false,
-            } as Project);
-            const spySerialize: jest.SpyInstance = jest
-                .spyOn(JSONFunctions, 'serialize')
-                .mockReturnValueOnce({});
             const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
                 .spyOn(AccessTokenService, 'getUserTenantAccessPermission')
-                .mockResolvedValueOnce(mockedTenantAccessPermission);
+                .mockResolvedValueOnce(null);
 
-            await UserMiddleware.getUserMiddleware(req, res, next);
+            const result: UserTenantAccessPermission | null =
+                await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                    req,
+                    projectId,
+                    userId
+                );
 
-            expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
-                jwtTokenData.userId,
+            expect(result).toBeNull();
+            expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
+                userId,
                 projectId
             );
-            expect(spySerialize).toHaveBeenCalledWith(
-                mockedTenantAccessPermission
-            );
-            expect(res.set).toHaveBeenCalledWith(
-                'project-permissions',
-                JSON.stringify({})
-            );
-            expect(res.set).toHaveBeenCalledWith(
-                'project-permissions-hash',
-                hashValue
-            );
-            expect(next).toHaveBeenCalled();
         });
 
-        test('should set project-permissions and project-permissions-hash in the response header with default tenant access permission, when is-multi-tenant-query request header is set and sso-token does not exist', async () => {
-            const mockedTenantAccessPermission: UserTenantAccessPermission =
-                {} as UserTenantAccessPermission;
-            const mockedGlobalAccessPermission: UserGlobalAccessPermission = {
-                projectIds: [projectId],
-            } as UserGlobalAccessPermission;
-            const project: Project = {
-                _id: projectId.toString(),
-                requireSsoForLogin: true,
-            } as Project;
+        test('should return UserTenantAccessPermission', async () => {
+            const mockedUserTenantAccessPermission: UserTenantAccessPermission =
+                { projectId } as UserTenantAccessPermission;
 
-            const mockedRequest: Partial<ExpressRequest> = {
-                headers: { 'is-multi-tenant-query': 'yes' },
-            };
+            spyFindOneById.mockResolvedValueOnce(mockedProject);
 
-            jest.spyOn(ProjectService, 'findBy').mockResolvedValueOnce([
-                project,
+            const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
+                .spyOn(AccessTokenService, 'getUserTenantAccessPermission')
+                .mockResolvedValueOnce(mockedUserTenantAccessPermission);
+
+            const result: UserTenantAccessPermission | null =
+                await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                    req,
+                    projectId,
+                    userId
+                );
+
+            expect(result).toEqual(mockedUserTenantAccessPermission);
+            expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
+                userId,
+                projectId
+            );
+        });
+    });
+
+    describe('getUserTenantAccessPermissionForMultiTenant', () => {
+        const req: ExpressRequest = {} as ExpressRequest;
+        const mockedUserTenantAccessPermission: UserTenantAccessPermission = {
+            projectId,
+        } as UserTenantAccessPermission;
+
+        const spyFindBy: jest.SpyInstance = jest.spyOn(
+            ProjectService,
+            'findBy'
+        );
+        const spyDoesSsoTokenForProjectExist: jest.SpyInstance = jest.spyOn(
+            UserMiddleware,
+            'doesSsoTokenForProjectExist'
+        );
+
+        afterEach(() => {
+            jest.clearAllMocks();
+        });
+
+        test('should return null, when projectIds length is zero', async () => {
+            const result: Dictionary<UserTenantAccessPermission> | null =
+                await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+                    req,
+                    userId,
+                    []
+                );
+
+            expect(result).toBeNull();
+            expect(spyFindBy).not.toBeCalled();
+        });
+
+        test('should return default tenant access permission, when project for a projectId is found, sso is required for login, but sso token does not exist for that projectId', async () => {
+            spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
+            spyFindBy.mockResolvedValueOnce([
+                { ...mockedProject, requireSsoForLogin: true },
             ]);
-            jest.spyOn(ProjectService, 'findOneById').mockResolvedValueOnce({
-                ...project,
-                requireSsoForLogin: false,
-            } as Project);
-            jest.spyOn(
-                UserMiddleware,
-                'doesSsoTokenForProjectExist'
-            ).mockReturnValueOnce(false);
-            jest.spyOn(JSONFunctions, 'serialize').mockReturnValueOnce({});
-            jest.spyOn(
-                AccessTokenService,
-                'getUserGlobalAccessPermission'
-            ).mockResolvedValueOnce(mockedGlobalAccessPermission);
-            jest.spyOn(
-                AccessTokenService,
-                'getUserTenantAccessPermission'
-            ).mockResolvedValueOnce(null);
 
             const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance =
                 jest
@@ -517,78 +720,112 @@ describe('UserMiddleware', () => {
                         AccessTokenService,
                         'getDefaultUserTenantAccessPermission'
                     )
-                    .mockReturnValueOnce(mockedTenantAccessPermission);
+                    .mockReturnValueOnce(mockedUserTenantAccessPermission);
 
-            await UserMiddleware.getUserMiddleware(
-                mockedRequest as ExpressRequest,
-                res,
-                next
+            const result: Dictionary<UserTenantAccessPermission> | null =
+                await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+                    req,
+                    userId,
+                    [projectId]
+                );
+
+            expect(result).toEqual({
+                [projectId.toString()]: mockedUserTenantAccessPermission,
+            });
+            expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
+                req,
+                projectId,
+                userId
             );
-
             expect(
                 spyGetDefaultUserTenantAccessPermission
             ).toHaveBeenCalledWith(projectId);
-            expect(res.set).toHaveBeenCalledWith(
-                'project-permissions',
-                JSON.stringify({})
-            );
-            expect(res.set).toHaveBeenCalledWith(
-                'project-permissions-hash',
-                hashValue
-            );
-            expect(next).toHaveBeenCalled();
         });
 
-        test('should set project-permissions and project-permissions-hash in the response header with user tenant access permission, when is-multi-tenant-query request header is set and user has tenant access permission', async () => {
-            const mockedTenantAccessPermission: UserTenantAccessPermission =
-                {} as UserTenantAccessPermission;
-            const mockedGlobalAccessPermission: UserGlobalAccessPermission = {
-                projectIds: [projectId],
-            } as UserGlobalAccessPermission;
-            const project: Project = {
-                _id: projectId.toString(),
-                requireSsoForLogin: true,
-            } as Project;
+        test('should return user tenant access permission, when project for a projectId is found, sso is not required for login and project level permission exist for the projectId', async () => {
+            spyFindBy.mockResolvedValueOnce([mockedProject]);
 
-            const mockedRequest: Partial<ExpressRequest> = {
-                headers: { 'is-multi-tenant-query': 'yes' },
-            };
+            const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
+                .spyOn(AccessTokenService, 'getUserTenantAccessPermission')
+                .mockResolvedValueOnce(mockedUserTenantAccessPermission);
 
-            jest.spyOn(ProjectService, 'findBy').mockResolvedValueOnce([
-                project,
-            ]);
-            jest.spyOn(ProjectService, 'findOneById').mockResolvedValueOnce({
-                ...project,
-                requireSsoForLogin: false,
-            } as Project);
-            jest.spyOn(
-                UserMiddleware,
-                'doesSsoTokenForProjectExist'
-            ).mockReturnValueOnce(true);
-            jest.spyOn(JSONFunctions, 'serialize').mockReturnValueOnce({});
+            const result: Dictionary<UserTenantAccessPermission> | null =
+                await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+                    req,
+                    userId,
+                    [projectId]
+                );
+
+            expect(result).toEqual({
+                [projectId.toString()]: mockedUserTenantAccessPermission,
+            });
+            expect(spyDoesSsoTokenForProjectExist).not.toBeCalled();
+            expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+                userId,
+                projectId
+            );
+        });
+
+        test('should return null, when project for a projectId is found, sso is not required for login but project level permission does not exist for the projectId', async () => {
+            spyFindBy.mockResolvedValueOnce([mockedProject]);
+
+            const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
+                .spyOn(AccessTokenService, 'getUserTenantAccessPermission')
+                .mockResolvedValueOnce(null);
+
+            const result: Dictionary<UserTenantAccessPermission> | null =
+                await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+                    req,
+                    userId,
+                    [projectId]
+                );
+
+            expect(result).toBeNull();
+            expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+                userId,
+                projectId
+            );
+        });
+
+        test('should return user tenant access permission, when project for a projectId is not found, but project level permission exist for the projectId', async () => {
+            spyFindBy.mockResolvedValueOnce([]);
+
             jest.spyOn(
                 AccessTokenService,
-                'getUserGlobalAccessPermission'
-            ).mockResolvedValueOnce(mockedGlobalAccessPermission);
-            jest.spyOn(AccessTokenService, 'getUserTenantAccessPermission')
-                .mockResolvedValueOnce(null)
-                .mockResolvedValueOnce(mockedTenantAccessPermission);
+                'getUserTenantAccessPermission'
+            ).mockResolvedValueOnce(mockedUserTenantAccessPermission);
 
-            await UserMiddleware.getUserMiddleware(
-                mockedRequest as ExpressRequest,
-                res,
-                next
-            );
+            const result: Dictionary<UserTenantAccessPermission> | null =
+                await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+                    req,
+                    userId,
+                    [projectId]
+                );
 
-            expect(res.set).toHaveBeenCalledWith(
-                'project-permissions',
-                JSON.stringify({})
+            expect(result).toEqual({
+                [projectId.toString()]: mockedUserTenantAccessPermission,
+            });
+        });
+
+        test('should return null, when project for a projectId is not found, and project level permission does not exist for the projectId', async () => {
+            spyFindBy.mockResolvedValueOnce([]);
+
+            const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
+                .spyOn(AccessTokenService, 'getUserTenantAccessPermission')
+                .mockResolvedValueOnce(null);
+
+            const result: Dictionary<UserTenantAccessPermission> | null =
+                await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+                    req,
+                    userId,
+                    [projectId]
+                );
+
+            expect(result).toBeNull();
+            expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+                userId,
+                projectId
             );
-            expect(res.set).toHaveBeenCalledWith(
-                'project-permissions-hash',
-                hashValue
-            );
-            expect(next).toHaveBeenCalled();
         });
     });
 });
