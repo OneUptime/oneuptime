@@ -10,10 +10,11 @@ import Dictionary from '../Dictionary';
 import ObjectID from '../ObjectID';
 import MonitorType from './MonitorType';
 import JSONFunctions from '../JSONFunctions';
+import Hostname from '../API/Hostname';
 
 export interface MonitorStepType {
     id: string;
-    monitorDestination?: URL | IP | undefined;
+    monitorDestination?: URL | IP | Hostname | undefined;
     monitorCriteria: MonitorCriteria;
     requestType: HTTPMethod;
     requestHeaders?: Dictionary<string> | undefined;
@@ -83,7 +84,7 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
-    public setMonitorDestination(monitorDestination: URL | IP): MonitorStep {
+    public setMonitorDestination(monitorDestination: URL | IP | Hostname): MonitorStep {
         this.data!.monitorDestination = monitorDestination;
         return this;
     }
@@ -176,12 +177,12 @@ export default class MonitorStep extends DatabaseProperty {
 
         json = json['value'] as JSONObject;
 
-        let monitorDestination: URL | IP | undefined = undefined;
+        let monitorDestination: URL | IP | Hostname | undefined = undefined;
 
         if (
             json &&
             json['monitorDestination'] &&
-            (json['monitorDestination'] as JSONObject)['_type'] === 'URL'
+            (json['monitorDestination'] as JSONObject)['_type'] === ObjectType.URL
         ) {
             monitorDestination = URL.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -191,7 +192,17 @@ export default class MonitorStep extends DatabaseProperty {
         if (
             json &&
             json['monitorDestination'] &&
-            (json['monitorDestination'] as JSONObject)['_type'] === 'IP'
+            (json['monitorDestination'] as JSONObject)['_type'] === ObjectType.Hostname
+        ) {
+            monitorDestination = Hostname.fromJSON(
+                json['monitorDestination'] as JSONObject
+            );
+        }
+
+        if (
+            json &&
+            json['monitorDestination'] &&
+            (json['monitorDestination'] as JSONObject)['_type'] ===  ObjectType.IP
         ) {
             monitorDestination = IP.fromJSON(
                 json['monitorDestination'] as JSONObject

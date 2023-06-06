@@ -37,6 +37,7 @@ export enum ObjectType {
     Color = 'Color',
     Domain = 'Domain',
     Version = 'Version',
+    IP = 'IP',
     Route = 'Route',
     URL = 'URL',
     Permission = 'Permission',

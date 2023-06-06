@@ -1,7 +1,7 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
-import { JSONObject } from '../JSON';
+import { JSONObject, ObjectType } from '../JSON';
 import Typeof from '../Typeof';
 import IPType from './IPType';
 
@@ -73,7 +73,7 @@ export default class IP extends DatabaseProperty {
     }
 
     public static override fromJSON(json: JSONObject): IP {
-        if (json && json['_type'] !== 'IP') {
+        if (json && json['_type'] !== ObjectType.IP) {
             throw new BadDataException('Invalid JSON for IP');
         }
 
@@ -87,7 +87,7 @@ export default class IP extends DatabaseProperty {
     public override toJSON(): JSONObject {
         return {
             value: this.toString(),
-            _type: 'IP',
+            _type: ObjectType.IP,
         };
     }
 

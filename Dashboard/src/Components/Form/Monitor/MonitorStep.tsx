@@ -25,6 +25,7 @@ import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Exception from 'Common/Types/Exception/Exception';
+import Hostname from 'Common/Types/API/Hostname';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -79,9 +80,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 'Whats the URL of the website you want to monitor?'
             );
         } else if (props.monitorType === MonitorType.Ping) {
-            setDestinationFieldTitle('Ping URL or IP address');
+            setDestinationFieldTitle('Ping Hostname or IP address');
             setDestinationFieldDescription(
-                'Whats the URL or IP address of the resource you want to ping?'
+                'Whats the Hostname or IP address of the resource you want to ping?'
             );
         } else if (props.monitorType === MonitorType.IP) {
             setDestinationFieldTitle('IP Address');
@@ -130,7 +131,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             : undefined
                     }
                     onChange={(value: string) => {
-                        let destination: IP | URL | undefined = undefined;
+                        let destination: IP | URL | Hostname | undefined = undefined;
 
                         try {
                             if (props.monitorType === MonitorType.IP) {
@@ -139,7 +140,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 if (IP.isIP(value)) {
                                     destination = IP.fromString(value);
                                 } else {
-                                    destination = URL.fromString(value);
+                                    destination = Hostname.fromString(value);
                                 }
                             } else if (
                                 props.monitorType === MonitorType.Website
