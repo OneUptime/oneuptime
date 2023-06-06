@@ -154,7 +154,6 @@ export default class UserMiddleware {
             oneuptimeRequest.userType = UserType.User;
         }
 
-        const { userId: userObjectId } = oneuptimeRequest.userAuthorization;
         const userId: string =
             oneuptimeRequest.userAuthorization.userId.toString();
 
@@ -182,7 +181,7 @@ export default class UserMiddleware {
                     await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
                         req,
                         tenantId,
-                        userObjectId
+                        new ObjectID(userId)
                     );
 
                 if (userTenantAccessPermission) {
@@ -205,7 +204,7 @@ export default class UserMiddleware {
                 const userTenantAccessPermission: Dictionary<UserTenantAccessPermission> | null =
                     await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
                         req,
-                        userObjectId,
+                        new ObjectID(userId),
                         userGlobalAccessPermission.projectIds
                     );
                 if (userTenantAccessPermission) {
