@@ -31,7 +31,7 @@ export default class PingMonitor {
             hostAddress = host.toString();
         }
 
-        logger.info("Pinging host: " + hostAddress);
+        logger.info('Pinging host: ' + hostAddress);
 
         try {
             const res: ping.PingResponse = await ping.promise.probe(
@@ -43,7 +43,7 @@ export default class PingMonitor {
                 }
             );
 
-            logger.info("Pinging host "+hostAddress+" success: ");
+            logger.info('Pinging host ' + hostAddress + ' success: ');
             logger.info(res);
 
             return {
@@ -53,8 +53,7 @@ export default class PingMonitor {
                     : undefined,
             };
         } catch (err) {
-
-            logger.info("Pinging host "+hostAddress+" error: ");
+            logger.info('Pinging host ' + hostAddress + ' error: ');
             logger.info(err);
 
             if (!retry) {

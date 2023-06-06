@@ -84,7 +84,9 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
-    public setMonitorDestination(monitorDestination: URL | IP | Hostname): MonitorStep {
+    public setMonitorDestination(
+        monitorDestination: URL | IP | Hostname
+    ): MonitorStep {
         this.data!.monitorDestination = monitorDestination;
         return this;
     }
@@ -182,7 +184,8 @@ export default class MonitorStep extends DatabaseProperty {
         if (
             json &&
             json['monitorDestination'] &&
-            (json['monitorDestination'] as JSONObject)['_type'] === ObjectType.URL
+            (json['monitorDestination'] as JSONObject)['_type'] ===
+                ObjectType.URL
         ) {
             monitorDestination = URL.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -192,7 +195,8 @@ export default class MonitorStep extends DatabaseProperty {
         if (
             json &&
             json['monitorDestination'] &&
-            (json['monitorDestination'] as JSONObject)['_type'] === ObjectType.Hostname
+            (json['monitorDestination'] as JSONObject)['_type'] ===
+                ObjectType.Hostname
         ) {
             monitorDestination = Hostname.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -202,7 +206,8 @@ export default class MonitorStep extends DatabaseProperty {
         if (
             json &&
             json['monitorDestination'] &&
-            (json['monitorDestination'] as JSONObject)['_type'] ===  ObjectType.IP
+            (json['monitorDestination'] as JSONObject)['_type'] ===
+                ObjectType.IP
         ) {
             monitorDestination = IP.fromJSON(
                 json['monitorDestination'] as JSONObject

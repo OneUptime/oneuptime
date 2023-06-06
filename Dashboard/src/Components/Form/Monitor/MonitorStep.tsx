@@ -131,7 +131,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             : undefined
                     }
                     onChange={(value: string) => {
-                        let destination: IP | URL | Hostname | undefined = undefined;
+                        let destination: IP | URL | Hostname | undefined =
+                            undefined;
 
                         try {
                             if (props.monitorType === MonitorType.IP) {
