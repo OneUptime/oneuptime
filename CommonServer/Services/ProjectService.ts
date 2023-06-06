@@ -365,7 +365,7 @@ export class Service extends DatabaseService<Model> {
         createdItem: Model
     ): Promise<Model> {
         let criticalIncident: IncidentSeverity = new IncidentSeverity();
-        criticalIncident.name = 'Critial Incident';
+        criticalIncident.name = 'Critical Incident';
         criticalIncident.description =
             'Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.';
         criticalIncident.color = Moroon;
