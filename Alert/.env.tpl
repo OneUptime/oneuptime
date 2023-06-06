@@ -1,1 +1,0 @@
-PORT={{ .Env.ALERT_PORT }}

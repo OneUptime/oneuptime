@@ -1,5 +1,5 @@
 #
-# OneUptime-Alert Dockerfile
+# NotificationService Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -10,10 +10,6 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
-
-
-# Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -49,30 +45,31 @@ COPY ./CommonServer /usr/src/CommonServer
 
 #SET ENV Variables
 ENV PRODUCTION=true
+ENV CHROME_PATH=/usr/bin/chromium
+
 
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Alert/package*.json /usr/src/app/
+COPY ./Notification/package*.json /usr/src/app/
 RUN npm install
 
 
+
 # Expose ports.
-#   - 3088: OneUptime-Alert
-EXPOSE 3088
+#   - 3190: NotificationService Runner
+EXPOSE 3190
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Alert /usr/src/app
+COPY ./Notification /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
-
-
