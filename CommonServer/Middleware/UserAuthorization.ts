@@ -179,7 +179,7 @@ export default class UserMiddleware {
         if (tenantId) {
             try {
                 const userTenantAccessPermission: UserTenantAccessPermission | null =
-                    await this.getUserTenantAccessPermissionWithTenantId(
+                    await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
                         req,
                         tenantId,
                         userObjectId
@@ -203,7 +203,7 @@ export default class UserMiddleware {
                 userGlobalAccessPermission.projectIds.length > 0
             ) {
                 const userTenantAccessPermission: Dictionary<UserTenantAccessPermission> | null =
-                    await this.getUserTenantAccessPermissionForMultiTenant(
+                    await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
                         req,
                         userObjectId,
                         userGlobalAccessPermission.projectIds
