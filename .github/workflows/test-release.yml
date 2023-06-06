@@ -181,7 +181,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:$ONEUPTIME_VERSION-test --tag oneuptime/nginx:test --push -f ./Nginx/Dockerfile .
       
 
-  mail-test-docker-image-deploy:
+  notification-test-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
     env:
@@ -198,7 +198,7 @@ jobs:
         # Build and deploy accounts.
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:$ONEUPTIME_VERSION-test --tag oneuptime/mail:test --push -f ./Mail/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/notification:$ONEUPTIME_VERSION-test --tag oneuptime/notification:test --push -f ./Notification/Dockerfile .
       
 
   licensing-test-docker-image-deploy:
@@ -415,27 +415,6 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:$ONEUPTIME_VERSION-test --tag oneuptime/api-reference:test --push -f ./ApiReference/Dockerfile .
       
       
-
-
-  alert-test-docker-image-deploy:
-    needs: generate-build-number
-    runs-on: ubuntu-latest
-    env:
-      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
-      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-     
-      - run: npm run prerun
-      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
-        # Build and deploy accounts.
-      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
-      - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/alert:$ONEUPTIME_VERSION-test --tag oneuptime/alert:test --push -f ./Alert/Dockerfile .
       
       
 

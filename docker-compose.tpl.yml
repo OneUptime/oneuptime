@@ -51,7 +51,7 @@ services:
         volumes: 
             - postgres:/var/lib/postgresql/data
     
-    mail:
+    notification:
         ports:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - 9110:9229 # Debugging port.
@@ -61,20 +61,20 @@ services:
         build:
             network: host
             context: .
-            dockerfile: ./Mail/Dockerfile
+            dockerfile: ./Notification/Dockerfile
         {{ else }}
-        image:  oneuptime/mail:{{ .Env.APP_TAG }}
+        image:  oneuptime/notification:{{ .Env.APP_TAG }}
         {{ end }}
         restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
-            - ./Mail/.env
+            - ./Notification/.env
         depends_on:
             - haraka
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
-            - ./Mail:/usr/src/app
+            - ./Notification:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/

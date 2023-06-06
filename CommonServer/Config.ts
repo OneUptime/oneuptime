@@ -59,7 +59,7 @@ export const RealtimeHostname: Hostname = Hostname.fromString(
 );
 
 export const MailHostname: Hostname = Hostname.fromString(
-    process.env['MAIL_HOSTNAME'] || 'mail'
+    process.env['NOTIFICATION_HOSTNAME'] || 'mail'
 );
 
 export const WorkerHostname: Hostname = Hostname.fromString(
