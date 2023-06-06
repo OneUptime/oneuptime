@@ -32,7 +32,7 @@ export const WORKFLOW_ROUTE: Route = new Route(env('WORKFLOW_ROUTE'));
 
 export const FILE_ROUTE: Route = new Route(env('FILE_ROUTE'));
 
-export const MAIL_ROUTE: Route = new Route(env('MAIL_ROUTE'));
+export const NOTIFICATION_ROUTE: Route = new Route(env('NOTIFICATION_ROUTE'));
 
 export const STATUS_PAGE_ROUTE: Route = new Route(env('STATUS_PAGE_ROUTE'));
 
@@ -56,7 +56,7 @@ export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
 
 export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const MAIL_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
@@ -94,7 +94,7 @@ export const IDENTITY_URL: URL = new URL(
     IDENTITY_ROUTE
 );
 
-export const MAIL_URL: URL = new URL(HTTP_PROTOCOL, MAIL_HOSTNAME, MAIL_ROUTE);
+export const NOTIFICATION_URL: URL = new URL(HTTP_PROTOCOL, NOTIFICATION_HOSTNAME, NOTIFICATION_ROUTE);
 
 export const WORKFLOW_URL: URL = new URL(
     HTTP_PROTOCOL,

@@ -59,8 +59,8 @@ RUN npm install
 
 
 # Expose ports.
-#   - 3190: NotificationService Runner
-EXPOSE 3190
+#   - 3191: NotificationService Runner
+EXPOSE 3191
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
