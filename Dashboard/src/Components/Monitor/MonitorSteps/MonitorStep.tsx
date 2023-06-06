@@ -77,9 +77,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             fields = [
                 {
                     key: 'monitorDestination',
-                    title: 'Ping URL',
+                    title: 'Ping Hostname or IP Address',
                     description:
-                        'URL of the resources you would like us to ping.',
+                        'Hostname or IP Address of the resource you would like us to ping.',
                     fieldType: FieldType.Text,
                     placeholder: 'No data entered',
                 },

@@ -3,6 +3,7 @@ import URL from 'Common/Types/API/URL';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import logger from 'CommonServer/Utils/Logger';
 import ping from 'ping';
 
 // TODO - make sure it  work for the IPV6
@@ -30,6 +31,8 @@ export default class PingMonitor {
             hostAddress = host.toString();
         }
 
+        logger.info("Pinging host: " + hostAddress);
+
         try {
             const res: ping.PingResponse = await ping.promise.probe(
                 hostAddress,
@@ -40,6 +43,9 @@ export default class PingMonitor {
                 }
             );
 
+            logger.info("Pinging host "+hostAddress+" success: ");
+            logger.info(res);
+
             return {
                 isOnline: res.alive,
                 responseTimeInMS: res.time
@@ -47,6 +53,10 @@ export default class PingMonitor {
                     : undefined,
             };
         } catch (err) {
+
+            logger.info("Pinging host "+hostAddress+" error: ");
+            logger.info(err);
+
             if (!retry) {
                 retry = 0; // default value
             }
