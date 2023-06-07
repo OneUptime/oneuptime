@@ -56,7 +56,9 @@ export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
 
 export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(
+    env('DOMAIN')
+);
 
 export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
@@ -94,7 +96,11 @@ export const IDENTITY_URL: URL = new URL(
     IDENTITY_ROUTE
 );
 
-export const NOTIFICATION_URL: URL = new URL(HTTP_PROTOCOL, NOTIFICATION_HOSTNAME, NOTIFICATION_ROUTE);
+export const NOTIFICATION_URL: URL = new URL(
+    HTTP_PROTOCOL,
+    NOTIFICATION_HOSTNAME,
+    NOTIFICATION_ROUTE
+);
 
 export const WORKFLOW_URL: URL = new URL(
     HTTP_PROTOCOL,

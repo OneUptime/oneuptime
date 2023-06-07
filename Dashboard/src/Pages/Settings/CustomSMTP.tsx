@@ -290,9 +290,9 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             const response:
                                 | HTTPResponse<EmptyResponseData>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                                    `/smtp-config/test`
-                                ),
+                                URL.fromString(
+                                    NOTIFICATION_URL.toString()
+                                ).addRoute(`/smtp-config/test`),
 
                                 {
                                     toEmail: values['toEmail'],

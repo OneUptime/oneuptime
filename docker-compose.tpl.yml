@@ -221,11 +221,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./DashboardAPI:/usr/src/app
@@ -266,11 +266,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Workflow:/usr/src/app
@@ -310,11 +310,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Alert:/usr/src/app
@@ -353,10 +353,10 @@ services:
 
         depends_on:
             - postgres
-            - mail
+            - notification
         links:
             - postgres
-            - mail
+            - notification
         volumes:
             - ./Certs:/usr/src/Certs
         {{ if eq .Env.ENVIRONMENT "development" }}
@@ -487,11 +487,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Identity:/usr/src/app
@@ -532,11 +532,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./ProbeAPI:/usr/src/app

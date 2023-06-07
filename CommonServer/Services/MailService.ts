@@ -31,7 +31,11 @@ export default class MailService {
         }
 
         return await API.post<EmptyResponseData>(
-            new URL(Protocol.HTTP, NotificationHostname, new Route('/email/send')),
+            new URL(
+                Protocol.HTTP,
+                NotificationHostname,
+                new Route('/email/send')
+            ),
             body,
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
