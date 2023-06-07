@@ -1,18 +1,18 @@
 import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
-import SmsLog from 'Model/Models/WorkflowLog';
+import SmsLog from 'Model/Models/SmsLog';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import DashboardSideMenu from './SideMenu';
+import Page from 'CommonUI/src/Components/Page/Page';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -22,7 +22,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     const [smsText, setSmsText] = useState<string>('');
 
     return (
-        <ModelPage
+        <Page
             title={'Project Settings'}
             breadcrumbLinks={[
                 {
@@ -149,7 +149,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     </Modal>
                 )}
             </>
-        </ModelPage>
+        </Page>
     );
 };
 

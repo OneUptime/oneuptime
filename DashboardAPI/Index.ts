@@ -75,6 +75,11 @@ import ProjectSSOService, {
     Service as ProjectSSOServiceType,
 } from 'CommonServer/Services/ProjectSsoService';
 
+import SmsLog from 'Model/Models/SmsLog';
+import SmsLogService, {
+    Service as SmsLogServiceType,
+} from 'CommonServer/Services/SmsLogService';
+
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import StatusPageSSOService, {
     Service as StatusPageSSOServiceType,
@@ -600,6 +605,15 @@ app.use(
     new BaseAPI<ProjectSSO, ProjectSSOServiceType>(
         ProjectSSO,
         ProjectSSOService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<SmsLog, SmsLogServiceType>(
+        SmsLog,
+        SmsLogService
     ).getRouter()
 );
 
