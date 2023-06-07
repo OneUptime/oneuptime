@@ -13,6 +13,9 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import DashboardSideMenu from './SideMenu';
 import Page from 'CommonUI/src/Components/Page/Page';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import SmsStatus from 'Common/Types/SmsStatus';
+import { Green, Red } from 'Common/Types/BrandColors';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -20,6 +23,8 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
     const [showViewSmsTextModal, setShowViewSmsTextModal] = useState<boolean>(false);
     const [smsText, setSmsText] = useState<string>('');
+    const [smsModelTitle, setSmsModalTitle] = useState<string>('');
+    const [smsModelDescription, setSmsModalDescription] = useState<string>('');
 
     return (
         <Page
@@ -60,6 +65,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     }}
                     selectMoreFields={{
                         smsText: true,
+                        errorMessage: true
                     }}
                     actionButtons={[
                         {
@@ -71,6 +77,31 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                 onCompleteAction: Function
                             ) => {
                                 setSmsText(item['smsText'] as string);
+                                setSmsModalDescription('Contents of the SMS message');
+                                setSmsModalTitle('SMS Text');
+                                setShowViewSmsTextModal(true);
+
+                                onCompleteAction();
+                            },
+                        },
+                        {
+                            title: 'View Error',
+                            buttonStyleType: ButtonStyleType.NORMAL,
+                            icon: IconProp.Error,
+                            isVisible: (item: JSONObject) => {
+                                if(item['status'] === SmsStatus.Error) {
+                                    return true;
+                                }
+
+                                return false;
+                            },
+                            onClick: async (
+                                item: JSONObject,
+                                onCompleteAction: Function
+                            ) => {
+                                setSmsText(item['errorMessage'] as string);
+                                setSmsModalDescription('Here is more information about the error.');
+                                setSmsModalTitle('Error');
                                 setShowViewSmsTextModal(true);
 
                                 onCompleteAction();
@@ -106,7 +137,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
                             title: 'From Number',
                             type: FieldType.Phone,
-                            
+
                         },
                         {
                             field: {
@@ -116,7 +147,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
                             title: 'To Number',
                             type: FieldType.Phone,
-                            
+
                         },
                         {
                             field: {
@@ -126,13 +157,46 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             type: FieldType.DateTime,
                             isFilterable: true,
                         },
+                        {
+                            field: {
+                                status: true,
+                            },
+                            title: 'Status',
+                            type: FieldType.Text,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (item['status']) {
+                                    return (
+                                        <Pill
+                                            isMinimal={false}
+                                            color={
+                                                (
+                                                    item[
+                                                        'status'
+                                                    ] === SmsStatus.Success ? Green : Red
+                                                )
+                                            }
+                                            text={
+                                                (
+                                                    item[
+                                                    'status'
+                                                    ] as string
+                                                )
+                                            }
+                                        />
+                                    );
+                                }
+
+                                return <></>;
+                            },
+                            isFilterable: true,
+                        },
                     ]}
                 />
 
                 {showViewSmsTextModal && (
                     <Modal
-                        title={'SMS Text'}
-                        description="Here are the contents of the SMS."
+                        title={smsModelTitle}
+                        description={smsModelDescription}
                         isLoading={false}
                         modalWidth={ModalWidth.Large}
                         onSubmit={() => {
@@ -142,9 +206,9 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         submitButtonStyleType={ButtonStyleType.NORMAL}
                     >
                         <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                            
+
                             <div>{smsText}</div>;
-                        
+
                         </div>
                     </Modal>
                 )}
