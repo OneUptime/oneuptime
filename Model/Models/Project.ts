@@ -349,53 +349,6 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProject,
-            Permission.UnAuthorizedSsoUser,
-            Permission.ProjectUser,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-            Permission.CanEditProject,
-        ],
-    })
-    @TableColumn({
-        required: true,
-        type: TableColumnType.Boolean,
-        isDefaultValueColumn: true,
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        nullable: false,
-        unique: false,
-        default: false,
-    })
-    public alertsEnabled?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
-        update: [],
-    })
-    @TableColumn({
-        required: true,
-        type: TableColumnType.SmallPositiveNumber,
-        isDefaultValueColumn: true,
-    })
-    @Column({
-        type: ColumnType.SmallPositiveNumber,
-        nullable: false,
-        unique: false,
-        default: 0,
-    })
-    public alertAccountBalance?: number = undefined;
-
-    @ColumnAccessControl({
-        create: [],
         read: [],
         update: [],
     })
@@ -573,9 +526,36 @@ export default class Model extends TenantModel {
         type: ColumnType.Number,
         nullable: false,
         unique: false,
-        default: 0,
+        default: 20,
     })
-    public autoRechargeSmsOrCallCurrentBalanceInUSD?: number = undefined;
+    public autoRechargeSmsOrCallByBalanceInUSD?: number = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.Number, isDefaultValueColumn: true, required: true, title: 'Auto Recharge when current balance falls to',
+        description: 'Auto recharge is triggered when current balance falls to this amount in USD for SMS or Call',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        unique: false,
+        default: 10,
+    })
+    public autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD?: number = undefined;
 
 
     @ColumnAccessControl({
