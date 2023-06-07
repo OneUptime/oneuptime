@@ -51,30 +51,30 @@ services:
         volumes: 
             - postgres:/var/lib/postgresql/data
     
-    mail:
+    notification:
         ports:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - 9110:9229 # Debugging port.
             {{ end }}
-            - 3190:3190
+            - 3191:3191
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
-            dockerfile: ./Mail/Dockerfile
+            dockerfile: ./Notification/Dockerfile
         {{ else }}
-        image:  oneuptime/mail:{{ .Env.APP_TAG }}
+        image:  oneuptime/notification:{{ .Env.APP_TAG }}
         {{ end }}
         restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
-            - ./Mail/.env
+            - ./Notification/.env
         depends_on:
             - haraka
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
-            - ./Mail:/usr/src/app
+            - ./Notification:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -221,11 +221,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./DashboardAPI:/usr/src/app
@@ -266,11 +266,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Workflow:/usr/src/app
@@ -287,50 +287,6 @@ services:
             - /usr/src/Model/node_modules/
         {{ end }}
     
-    alert:
-        ports:
-            - '3088:3088'
-            {{ if eq .Env.ENVIRONMENT "development" }}
-            - '9222:9229' # Debugging port.
-            {{ end }}
-        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
-        build:
-            network: host
-            context: .
-            dockerfile: ./Alert/Dockerfile
-        {{ else }}
-        image:  oneuptime/alert:{{ .Env.APP_TAG }}
-        {{ end }}
-        restart: always
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./Alert/.env
-
-        depends_on:
-            - redis
-            - postgres
-            - mail
-        links:
-            - redis
-            - postgres
-            - mail
-        {{ if eq .Env.ENVIRONMENT "development" }}
-        volumes:
-            - ./Alert:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
-            - ./Model:/usr/src/Model
-            - ./CommonServer:/usr/src/CommonServer
-            - ./CommonUI:/usr/src/CommonUI
-            - /usr/src/Common/node_modules/
-            - /usr/src/CommonUI/node_modules/
-            - /usr/src/CommonServer/node_modules/
-            - /usr/src/Model/node_modules/
-        {{ end }}
-
     workers:
         ports:
             - '3452:3452'
@@ -353,10 +309,10 @@ services:
 
         depends_on:
             - postgres
-            - mail
+            - notification
         links:
             - postgres
-            - mail
+            - notification
         volumes:
             - ./Certs:/usr/src/Certs
         {{ if eq .Env.ENVIRONMENT "development" }}
@@ -487,11 +443,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Identity:/usr/src/app
@@ -532,11 +488,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - mail
+            - notification
         links:
             - redis
             - postgres
-            - mail
+            - notification
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./ProbeAPI:/usr/src/app

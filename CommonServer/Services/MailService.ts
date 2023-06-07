@@ -4,7 +4,7 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
-import { MailHostname } from '../Config';
+import { NotificationHostname } from '../Config';
 import Email from 'Common/Types/Email/EmailMessage';
 import EmailServer from 'Common/Types/Email/EmailServer';
 import Protocol from 'Common/Types/API/Protocol';
@@ -31,7 +31,11 @@ export default class MailService {
         }
 
         return await API.post<EmptyResponseData>(
-            new URL(Protocol.HTTP, MailHostname, new Route('/email/send')),
+            new URL(
+                Protocol.HTTP,
+                NotificationHostname,
+                new Route('/email/send')
+            ),
             body,
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),

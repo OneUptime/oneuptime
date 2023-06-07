@@ -114,7 +114,9 @@ RunCron(
                     templateType: EmailTemplateType.MonitorOwnerStatusChanged,
                     vars: vars,
                     subject:
-                        'Monitor status changed to - ' + monitorStatus!.name!,
+                        (monitor.name || 'Monitor') +
+                        ' status changed to - ' +
+                        monitorStatus!.name!,
                 }).catch((err: Error) => {
                     logger.error(err);
                 });

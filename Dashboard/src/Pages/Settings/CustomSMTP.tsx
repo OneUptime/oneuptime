@@ -20,7 +20,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import API from 'CommonUI/src/Utils/API/API';
-import { MAIL_URL } from 'CommonUI/src/Config';
+import { NOTIFICATION_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import ObjectID from 'Common/Types/ObjectID';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
@@ -290,9 +290,9 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             const response:
                                 | HTTPResponse<EmptyResponseData>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(MAIL_URL.toString()).addRoute(
-                                    `/smtp-config/test`
-                                ),
+                                URL.fromString(
+                                    NOTIFICATION_URL.toString()
+                                ).addRoute(`/smtp-config/test`),
 
                                 {
                                     toEmail: values['toEmail'],

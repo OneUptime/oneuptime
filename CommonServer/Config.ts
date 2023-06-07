@@ -58,8 +58,8 @@ export const RealtimeHostname: Hostname = Hostname.fromString(
     process.env['REALTIME_HOSTNAME'] || 'realtime'
 );
 
-export const MailHostname: Hostname = Hostname.fromString(
-    process.env['MAIL_HOSTNAME'] || 'mail'
+export const NotificationHostname: Hostname = Hostname.fromString(
+    process.env['NOTIFICATION_HOSTNAME'] || 'notification'
 );
 
 export const WorkerHostname: Hostname = Hostname.fromString(
@@ -130,6 +130,10 @@ export const DashboardRoute: Route = new Route(
 
 export const IntegrationRoute: Route = new Route(
     process.env['INTEGRATION_ROUTE'] || '/integration'
+);
+
+export const NotificationRoute: Route = new Route(
+    process.env['NOTIFICATION_ROUTE'] || '/notification'
 );
 
 export const HelmRoute: Route = new Route(

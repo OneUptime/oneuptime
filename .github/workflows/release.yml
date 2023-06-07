@@ -199,7 +199,7 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:$ONEUPTIME_VERSION --tag oneuptime/nginx:release --push -f ./Nginx/Dockerfile .
       
 
-  mail-docker-image-deploy:
+  notification-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
     env:
@@ -218,7 +218,7 @@ jobs:
         # Build and deploy accounts.
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/mail:$ONEUPTIME_VERSION --tag oneuptime/mail:release --push -f ./Mail/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/notification:$ONEUPTIME_VERSION --tag oneuptime/notification:release --push -f ./Notification/Dockerfile .
       
 
   licensing-docker-image-deploy:
@@ -475,32 +475,6 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-reference:$ONEUPTIME_VERSION --tag oneuptime/api-reference:release --push -f ./ApiReference/Dockerfile .
       
       
-
-
-  alert-docker-image-deploy:
-    needs: generate-build-number
-    runs-on: ubuntu-latest
-    env:
-      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
-      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: release
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-     
-      - run: npm run prerun
-      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
-        # Build and deploy accounts.
-      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
-      - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/alert:$ONEUPTIME_VERSION --tag oneuptime/alert:release --push -f ./Alert/Dockerfile .
-      
-      
-
 
   accounts-docker-image-deploy:
     needs: generate-build-number

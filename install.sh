@@ -54,9 +54,9 @@ echo "Checking Accounts Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/accounts/status)" != "200" ]]; do sleep 5; done'
 echo "Accounts Server is up ✔️"
 
-echo "Checking Mail Server Status..."
-bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/mail/status)" != "200" ]]; do sleep 5; done'
-echo "Mail Server is up ✔️"
+echo "Checking Notification Server Status..."
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/notification/status)" != "200" ]]; do sleep 5; done'
+echo "Notification Server is up ✔️"
 
 echo "Checking Worker Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/workers/status)" != "200" ]]; do sleep 5; done'
