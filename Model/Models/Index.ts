@@ -160,5 +160,5 @@ export default [
     StatusPageOwnerTeam,
     StatusPageOwnerUser,
 
-    SmsLog
+    SmsLog,
 ];

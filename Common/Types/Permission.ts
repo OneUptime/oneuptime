@@ -73,7 +73,6 @@ enum Permission {
     CanEditMonitorProbe = 'CanEditMonitorProbe',
     CanReadMonitorProbe = 'CanReadMonitorProbe',
 
-
     CanCreateSmsLog = 'CanCreateSmsLog',
     CanDeleteSmsLog = 'CanDeleteSmsLog',
     CanEditSmsLog = 'CanEditSmsLog',
@@ -1674,13 +1673,10 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateSmsLog,
                 title: 'Can Create SMS Log',
-                description:
-                    'This permission can create SMS Log this project.',
+                description: 'This permission can create SMS Log this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1708,8 +1704,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateMonitorProbe,

@@ -285,7 +285,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/sms-logs`
     ),
 
-
     //api keys.
     [PageMap.SETTINGS_APIKEYS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/api-keys`

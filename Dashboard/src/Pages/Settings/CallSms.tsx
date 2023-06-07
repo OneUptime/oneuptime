@@ -45,11 +45,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 name="Current Balance"
                 cardProps={{
                     title: 'Current Balance',
-                    description: "Here is your current call and SMS balance for this project.",
+                    description:
+                        'Here is your current call and SMS balance for this project.',
                     icon: IconProp.Billing,
                 }}
                 isEditable={false}
-
                 modelDetailProps={{
                     modelType: Project,
                     id: 'current-balance',
@@ -60,8 +60,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Number,
                             title: 'SMS or Call Current Balance',
-                            description: 'This is your current balance for SMS or Call. It is in USD. ',
-                            placeholder: "0 USD",
+                            description:
+                                'This is your current balance for SMS or Call. It is in USD. ',
+                            placeholder: '0 USD',
                         },
                     ],
                     modelId: DashboardNavigation.getProjectId()?.toString(),
@@ -72,7 +73,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 name="Enable Notifications"
                 cardProps={{
                     title: 'Enable Notifications',
-                    description: "Enable Call and SMS notifications for this project.",
+                    description:
+                        'Enable Call and SMS notifications for this project.',
                     icon: IconProp.Notification,
                 }}
                 isEditable={true}
@@ -83,7 +85,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             enableCallNotifications: true,
                         },
                         title: 'Enable Call Notifications',
-                        description: 'Enable Call notifications for this project. This will be used for alerting users by phone call.',
+                        description:
+                            'Enable Call notifications for this project. This will be used for alerting users by phone call.',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
@@ -92,7 +95,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             enableSmsNotifications: true,
                         },
                         title: 'Enable SMS Notifications',
-                        description: 'Enable SMS notifications for this project. This will be used for alerting users by sending an SMS.',
+                        description:
+                            'Enable SMS notifications for this project. This will be used for alerting users by sending an SMS.',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
@@ -107,8 +111,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Enable Call Notifications',
-                            placeholder: "Not Enabled",
-                            description: 'Enable Call notifications for this project. This will be used for alerting users by phone call.',
+                            placeholder: 'Not Enabled',
+                            description:
+                                'Enable Call notifications for this project. This will be used for alerting users by phone call.',
                         },
                         {
                             field: {
@@ -116,8 +121,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Enable SMS Notifications',
-                            placeholder: "Not Enabled",
-                            description: 'Enable SMS notifications for this project. This will be used for alerting users by SMS.',
+                            placeholder: 'Not Enabled',
+                            description:
+                                'Enable SMS notifications for this project. This will be used for alerting users by SMS.',
                         },
                     ],
                     modelId: DashboardNavigation.getProjectId()?.toString(),
@@ -128,7 +134,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 name="Auto Recharge"
                 cardProps={{
                     title: 'Auto Recharge',
-                    description: "Enable Auto Recharge for call and SMS balance. This will make sure you always have enough balance for sending SMS or making calls.",
+                    description:
+                        'Enable Auto Recharge for call and SMS balance. This will make sure you always have enough balance for sending SMS or making calls.',
                     icon: IconProp.Billing,
                 }}
                 isEditable={true}
@@ -139,7 +146,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             enableAutoRechargeSmsOrCallBalance: true,
                         },
                         title: 'Enable Auto Recharge',
-                        description: 'Enable Auto Recharge. This will be used for sending an SMS or Call.',
+                        description:
+                            'Enable Auto Recharge. This will be used for sending an SMS or Call.',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
@@ -148,102 +156,103 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             autoRechargeSmsOrCallByBalanceInUSD: true,
                         },
                         title: 'Auto Recharge Balance by (in USD)',
-                        description: 'Amount of balance to be recharged when the balance is low. It is in USD. ',
+                        description:
+                            'Amount of balance to be recharged when the balance is low. It is in USD. ',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownOptions: [
                             {
                                 value: 10,
-                                label: "10 USD",
+                                label: '10 USD',
                             },
                             {
                                 value: 20,
-                                label: "20 USD",
+                                label: '20 USD',
                             },
                             {
                                 value: 25,
-                                label: "25 USD",
+                                label: '25 USD',
                             },
                             {
                                 value: 50,
-                                label: "50 USD",
+                                label: '50 USD',
                             },
                             {
                                 value: 75,
-                                label: "75 USD",
+                                label: '75 USD',
                             },
                             {
                                 value: 100,
-                                label: "100 USD",
+                                label: '100 USD',
                             },
                             {
                                 value: 200,
-                                label: "200 USD",
+                                label: '200 USD',
                             },
                             {
                                 value: 500,
-                                label: "500 USD",
+                                label: '500 USD',
                             },
                             {
                                 value: 500,
-                                label: "500 USD",
+                                label: '500 USD',
                             },
                             {
                                 value: 1000,
-                                label: "1000 USD",
+                                label: '1000 USD',
                             },
-
                         ],
                         required: true,
                     },
                     {
                         field: {
-                            autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
+                            autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD:
+                                true,
                         },
                         title: 'Auto Recharge when balance falls to (in USD)',
-                        description: 'Trigger auto recharge when balance falls to this amount. It is in USD. ',
+                        description:
+                            'Trigger auto recharge when balance falls to this amount. It is in USD. ',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownOptions: [
                             {
                                 value: 10,
-                                label: "10 USD",
+                                label: '10 USD',
                             },
                             {
                                 value: 20,
-                                label: "20 USD",
+                                label: '20 USD',
                             },
                             {
                                 value: 25,
-                                label: "25 USD",
+                                label: '25 USD',
                             },
                             {
                                 value: 50,
-                                label: "50 USD",
+                                label: '50 USD',
                             },
                             {
                                 value: 75,
-                                label: "75 USD",
+                                label: '75 USD',
                             },
                             {
                                 value: 100,
-                                label: "100 USD",
+                                label: '100 USD',
                             },
                             {
                                 value: 200,
-                                label: "200 USD",
+                                label: '200 USD',
                             },
                             {
                                 value: 500,
-                                label: "500 USD",
+                                label: '500 USD',
                             },
                             {
                                 value: 500,
-                                label: "500 USD",
+                                label: '500 USD',
                             },
                             {
                                 value: 1000,
-                                label: "1000 USD",
+                                label: '1000 USD',
                             },
-
                         ],
                         required: true,
                     },
@@ -258,9 +267,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Auto Recharge Balance by (in USD)',
-                            description: 'Amount of balance to be recharged when the balance is low. It is in USD. ',
-                            placeholder: "Not Enabled",
-
+                            description:
+                                'Amount of balance to be recharged when the balance is low. It is in USD. ',
+                            placeholder: 'Not Enabled',
                         },
                         {
                             field: {
@@ -268,15 +277,16 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Text,
                             title: 'Auto Recharge by (in USD)',
-                            placeholder: "0 USD",
+                            placeholder: '0 USD',
                         },
                         {
                             field: {
-                                autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
+                                autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD:
+                                    true,
                             },
                             fieldType: FieldType.Text,
                             title: 'Trigger auto recharge if balance falls below (in USD)',
-                            placeholder: "0 USD",
+                            placeholder: '0 USD',
                         },
                     ],
                     modelId: DashboardNavigation.getProjectId()?.toString(),

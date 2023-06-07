@@ -608,13 +608,9 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<SmsLog, SmsLogServiceType>(
-        SmsLog,
-        SmsLogService
-    ).getRouter()
+    new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter()
 );
 
 app.use(

@@ -479,7 +479,6 @@ export default class Model extends TenantModel {
     })
     public currentActiveMonitorsCount?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -492,7 +491,10 @@ export default class Model extends TenantModel {
         update: [],
     })
     @TableColumn({
-        type: TableColumnType.Number, isDefaultValueColumn: true, required: true, title: 'SMS or Call Current Balance',
+        type: TableColumnType.Number,
+        isDefaultValueColumn: true,
+        required: true,
+        title: 'SMS or Call Current Balance',
         description: 'Balance in USD for SMS or Call',
     })
     @Column({
@@ -503,7 +505,6 @@ export default class Model extends TenantModel {
     })
     public smsOrCallCurrentBalanceInUSD?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -513,13 +514,13 @@ export default class Model extends TenantModel {
             Permission.CanReadProject,
             Permission.UnAuthorizedSsoUser,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
     })
     @TableColumn({
-        type: TableColumnType.Number, isDefaultValueColumn: true, required: true, title: 'Auto Recharge Amount',
+        type: TableColumnType.Number,
+        isDefaultValueColumn: true,
+        required: true,
+        title: 'Auto Recharge Amount',
         description: 'Auto recharge amount in USD for SMS or Call',
     })
     @Column({
@@ -530,7 +531,6 @@ export default class Model extends TenantModel {
     })
     public autoRechargeSmsOrCallByBalanceInUSD?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -540,14 +540,15 @@ export default class Model extends TenantModel {
             Permission.CanReadProject,
             Permission.UnAuthorizedSsoUser,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
     })
     @TableColumn({
-        type: TableColumnType.Number, isDefaultValueColumn: true, required: true, title: 'Auto Recharge when current balance falls to',
-        description: 'Auto recharge is triggered when current balance falls to this amount in USD for SMS or Call',
+        type: TableColumnType.Number,
+        isDefaultValueColumn: true,
+        required: true,
+        title: 'Auto Recharge when current balance falls to',
+        description:
+            'Auto recharge is triggered when current balance falls to this amount in USD for SMS or Call',
     })
     @Column({
         type: ColumnType.Number,
@@ -556,7 +557,6 @@ export default class Model extends TenantModel {
         default: 10,
     })
     public autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD?: number = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -568,10 +568,7 @@ export default class Model extends TenantModel {
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
     })
     @TableColumn({
         required: true,
@@ -587,7 +584,6 @@ export default class Model extends TenantModel {
     })
     public enableSmsNotifications?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -598,10 +594,7 @@ export default class Model extends TenantModel {
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
     })
     @TableColumn({
         required: true,
@@ -627,17 +620,15 @@ export default class Model extends TenantModel {
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
     })
     @TableColumn({
         required: true,
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Enable auto recharge SMS or Call balance',
-        description: 'Enable auto recharge SMS or Call balance for this project.',
+        description:
+            'Enable auto recharge SMS or Call balance for this project.',
     })
     @Column({
         nullable: false,
@@ -645,5 +636,4 @@ export default class Model extends TenantModel {
         type: ColumnType.Boolean,
     })
     public enableAutoRechargeSmsOrCallBalance?: boolean = undefined;
-
 }

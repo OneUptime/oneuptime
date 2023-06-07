@@ -22,21 +22,15 @@ import Phone from 'Common/Types/Phone';
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [
-       
-    ],
+    create: [],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
         Permission.CanReadSmsLog,
     ],
-    delete: [
-
-    ],
-    update: [
-
-    ],
+    delete: [],
+    update: [],
 })
 @CrudApiEndpoint(new Route('/sms-log'))
 @Entity({
@@ -124,18 +118,14 @@ export default class SmsLog extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadSmsLog,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @Index()
     @TableColumn({
@@ -152,20 +142,15 @@ export default class SmsLog extends BaseModel {
     })
     public toNumber?: Phone = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadSmsLog,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @Index()
     @TableColumn({
@@ -182,20 +167,15 @@ export default class SmsLog extends BaseModel {
     })
     public fromNumber?: Phone = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadSmsLog,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -211,20 +191,15 @@ export default class SmsLog extends BaseModel {
     })
     public smsText?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadSmsLog,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @TableColumn({
         required: false,
@@ -240,20 +215,15 @@ export default class SmsLog extends BaseModel {
     })
     public errorMessage?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadSmsLog,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -270,18 +240,14 @@ export default class SmsLog extends BaseModel {
     public status?: SmsStatus = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadSmsLog,
         ],
-        update: [
-            
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -295,5 +261,4 @@ export default class SmsLog extends BaseModel {
         type: ColumnType.Number,
     })
     public smsCostInUSDCents?: number = undefined;
-
 }

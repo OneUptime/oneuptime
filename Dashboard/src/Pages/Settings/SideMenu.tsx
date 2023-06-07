@@ -30,7 +30,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Label}
                 />
-
             </SideMenuSection>
 
             <SideMenuSection title="Monitors">

@@ -20,8 +20,8 @@ import { Green, Red } from 'Common/Types/BrandColors';
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-    const [showViewSmsTextModal, setShowViewSmsTextModal] = useState<boolean>(false);
+    const [showViewSmsTextModal, setShowViewSmsTextModal] =
+        useState<boolean>(false);
     const [smsText, setSmsText] = useState<string>('');
     const [smsModelTitle, setSmsModalTitle] = useState<string>('');
     const [smsModelDescription, setSmsModalDescription] = useState<string>('');
@@ -65,7 +65,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     }}
                     selectMoreFields={{
                         smsText: true,
-                        errorMessage: true
+                        errorMessage: true,
                     }}
                     actionButtons={[
                         {
@@ -77,7 +77,9 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                 onCompleteAction: Function
                             ) => {
                                 setSmsText(item['smsText'] as string);
-                                setSmsModalDescription('Contents of the SMS message');
+                                setSmsModalDescription(
+                                    'Contents of the SMS message'
+                                );
                                 setSmsModalTitle('SMS Text');
                                 setShowViewSmsTextModal(true);
 
@@ -89,7 +91,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.Error,
                             isVisible: (item: JSONObject) => {
-                                if(item['status'] === SmsStatus.Error) {
+                                if (item['status'] === SmsStatus.Error) {
                                     return true;
                                 }
 
@@ -100,7 +102,9 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                 onCompleteAction: Function
                             ) => {
                                 setSmsText(item['errorMessage'] as string);
-                                setSmsModalDescription('Here is more information about the error.');
+                                setSmsModalDescription(
+                                    'Here is more information about the error.'
+                                );
                                 setSmsModalTitle('Error');
                                 setShowViewSmsTextModal(true);
 
@@ -137,7 +141,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
                             title: 'From Number',
                             type: FieldType.Phone,
-
                         },
                         {
                             field: {
@@ -147,7 +150,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
                             title: 'To Number',
                             type: FieldType.Phone,
-
                         },
                         {
                             field: {
@@ -169,19 +171,12 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                         <Pill
                                             isMinimal={false}
                                             color={
-                                                (
-                                                    item[
-                                                        'status'
-                                                    ] === SmsStatus.Success ? Green : Red
-                                                )
+                                                item['status'] ===
+                                                SmsStatus.Success
+                                                    ? Green
+                                                    : Red
                                             }
-                                            text={
-                                                (
-                                                    item[
-                                                    'status'
-                                                    ] as string
-                                                )
-                                            }
+                                            text={item['status'] as string}
                                         />
                                     );
                                 }
@@ -206,9 +201,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         submitButtonStyleType={ButtonStyleType.NORMAL}
                     >
                         <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-
                             <div>{smsText}</div>;
-
                         </div>
                     </Modal>
                 )}
