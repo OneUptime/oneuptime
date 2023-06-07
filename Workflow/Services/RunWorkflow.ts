@@ -9,7 +9,6 @@ import ComponentMetadata, {
     NodeType,
     Port,
 } from 'Common/Types/Workflow/Component';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import WorkflowService from 'CommonServer/Services/WorkflowService';
 import ComponentCode, {
     RunReturnType,
@@ -388,20 +387,38 @@ export default class RunWorkflow {
             path: string
         ): JSONValue => {
             const paths: Array<string> = path.split('.');
-            let current: any = JSONFunctions.parse(JSON.stringify(obj));
+            let current: any = JSON.parse(JSON.stringify(obj));
 
             for (let i: number = 0; i < paths.length; ++i) {
-                if (
-                    current &&
-                    paths[i] &&
-                    (current[(paths as any)[i] as any] as any) === undefined
-                ) {
+                const key: string | undefined = paths[i];
+
+                if (!key) {
                     return undefined;
-                } else if (current[paths[i] as string] === null) {
-                    return null;
                 }
-                current = current[paths[i] as string];
+                const openBracketIndex: number = key.indexOf('[');
+                const closeBracketIndex: number = key.indexOf(']');
+
+                if (openBracketIndex !== -1 && closeBracketIndex !== -1) {
+                    const arrayKey: string = key.slice(0, openBracketIndex);
+                    const index: number = parseInt(
+                        key.slice(openBracketIndex + 1, closeBracketIndex)
+                    );
+
+                    if (
+                        Array.isArray(current[arrayKey]) &&
+                        current[arrayKey][index]
+                    ) {
+                        current = current[arrayKey][index];
+                    } else {
+                        return undefined;
+                    }
+                } else if (current && current[key] !== undefined) {
+                    current = current[key];
+                } else {
+                    return undefined;
+                }
             }
+
             return current;
         };
 
