@@ -54,7 +54,7 @@ services:
     notification:
         ports:
             {{ if eq .Env.ENVIRONMENT "development" }}
-            - 9110:9229 # Debugging port.
+            - 9111:9229 # Debugging port.
             {{ end }}
             - 3191:3191
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
