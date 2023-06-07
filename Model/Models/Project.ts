@@ -525,4 +525,145 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public currentActiveMonitorsCount?: number = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Number, isDefaultValueColumn: true, required: true, title: 'SMS or Call Current Balance',
+        description: 'Balance in USD for SMS or Call',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        unique: false,
+        default: 0,
+    })
+    public smsOrCallCurrentBalanceInUSD?: number = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.Number, isDefaultValueColumn: true, required: true, title: 'Auto Recharge Amount',
+        description: 'Auto recharge amount in USD for SMS or Call',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        unique: false,
+        default: 0,
+    })
+    public autoRechargeSmsOrCallCurrentBalanceInUSD?: number = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable SMS Notifications',
+        description: 'Enable SMS notificaitons for this project.',
+    })
+    @Column({
+        nullable: false,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public enableSmsNotifications?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable Call Notifications',
+        description: 'Enable call notificaitons for this project.',
+    })
+    @Column({
+        nullable: false,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public enableCallNotifications?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable auto recharge SMS or Call balance',
+        description: 'Enable auto recharge SMS or Call balance for this project.',
+    })
+    @Column({
+        nullable: false,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public enableAutoRechargeSmsOrCallBalance?: boolean = undefined;
+
 }
