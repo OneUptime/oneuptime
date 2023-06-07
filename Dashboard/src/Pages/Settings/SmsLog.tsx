@@ -1,47 +1,28 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import IconProp from 'Common/Types/Icon/IconProp';
-import Domain from 'Model/Models/Domain';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { JSONObject } from 'Common/Types/JSON';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import ObjectID from 'Common/Types/ObjectID';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import SmsLog from 'Model/Models/WorkflowLog';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import API from 'CommonUI/src/Utils/API/API';
+import { JSONObject } from 'Common/Types/JSON';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import DashboardSideMenu from './SideMenu';
 
-const Domains: FunctionComponent<PageComponentProps> = (
+const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const [showVerificationModal, setShowVerificationModal] =
-        useState<boolean>(false);
-    const [error, setError] = useState<string>('');
-    const [currentVerificationDomain, setCurrentVerificationDomain] =
-        useState<JSONObject | null>(null);
-    const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
-    const [isVerificationLoading, setIsVerificationLoading] =
-        useState<boolean>(false);
 
-    useEffect(() => {
-        setError('');
-    }, [showVerificationModal]);
+    const [showViewSmsTextModal, setShowViewSmsTextModal] = useState<boolean>(false);
+    const [smsText, setSmsText] = useState<string>('');
 
     return (
-        <Page
+        <ModelPage
             title={'Project Settings'}
             breadcrumbLinks={[
                 {
@@ -57,177 +38,119 @@ const Domains: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Domains',
+                    title: 'Call & SMS',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_DOMAINS] as Route
+                        RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<Domain>
-                modelType={Domain}
-                showViewIdButton={true}
-                name="Settings > Domain"
-                query={{
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
-                }}
-                id="domains-table"
-                isDeleteable={true}
-                isEditable={false}
-                isCreateable={true}
-                cardProps={{
-                    icon: IconProp.Globe,
-                    title: 'Domains',
-                    description:
-                        'Please list the domains you own here. This will help you to connect them to Status Page.',
-                }}
-                refreshToggle={refreshToggle}
-                noItemsMessage={'No domains found.'}
-                viewPageRoute={Navigation.getCurrentRoute()}
-                actionButtons={[
-                    {
-                        title: 'Verify Domain',
-                        buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
-                        icon: IconProp.Check,
-                        isVisible: (item: JSONObject): boolean => {
-                            if (item['isVerified']) {
-                                return false;
-                            }
-
-                            return true;
-                        },
-                        onClick: async (
-                            item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
-                        ) => {
-                            try {
-                                setCurrentVerificationDomain(item);
-                                setShowVerificationModal(true);
+            <>
+                <ModelTable<SmsLog>
+                    modelType={SmsLog}
+                    id="sms-logs-table"
+                    isDeleteable={false}
+                    isEditable={false}
+                    isCreateable={false}
+                    name="SMS Logs"
+                    query={{
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
+                    }}
+                    selectMoreFields={{
+                        smsText: true,
+                    }}
+                    actionButtons={[
+                        {
+                            title: 'View SMS Text',
+                            buttonStyleType: ButtonStyleType.NORMAL,
+                            icon: IconProp.List,
+                            onClick: async (
+                                item: JSONObject,
+                                onCompleteAction: Function
+                            ) => {
+                                setSmsText(item['smsText'] as string);
+                                setShowViewSmsTextModal(true);
 
                                 onCompleteAction();
-                            } catch (err) {
-                                onCompleteAction();
-                                onError(err as Error);
-                            }
+                            },
                         },
-                    },
-                ]}
-                formFields={[
-                    {
-                        field: {
-                            domain: true,
-                        },
-                        title: 'Domain',
-                        fieldType: FormFieldSchemaType.Domain,
-                        required: true,
-                        placeholder: 'acme-inc.com',
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                ]}
-                selectMoreFields={{
-                    domainVerificationText: true,
-                }}
-                showRefreshButton={true}
-                showFilterButton={true}
-                columns={[
-                    {
-                        field: {
-                            domain: true,
-                        },
-                        title: 'Domain',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            isVerified: true,
-                        },
-                        title: 'Verified',
-                        type: FieldType.Boolean,
-                        isFilterable: true,
-                    },
-                ]}
-            />
-            {showVerificationModal && currentVerificationDomain ? (
-                <ConfirmModal
-                    title={`Verify ${currentVerificationDomain['domain']}`}
-                    error={error}
-                    description={
-                        <div>
-                            <span>
-                                Please add TXT record to your domain. Details of
-                                the TXT records are:
-                            </span>
-                            <br />
-                            <br />
-                            <span>
-                                <b>Record Type: </b> TXT
-                            </span>
-                            <br />
-                            <span>
-                                <b>Name: </b> @ or{' '}
-                                {currentVerificationDomain[
-                                    'domain'
-                                ]?.toString()}
-                            </span>
-                            <br />
-                            <span>
-                                <b>Content: </b>
-                                {(currentVerificationDomain[
-                                    'domainVerificationText'
-                                ] as string) || ''}
-                            </span>
-                            <br />
-                            <br />
-                            <span>
-                                Please note: Some domain changes might take 72
-                                hours to propogate.
-                            </span>
-                        </div>
+                    ]}
+                    isViewable={false}
+                    cardProps={{
+                        icon: IconProp.Logs,
+                        title: 'SMS Logs',
+                        description:
+                            'Logs of all the SMS sent by this project in the last 30 days.',
+                    }}
+                    noItemsMessage={
+                        'Looks like no SMS is sent by this project in the last 30 days.'
                     }
-                    submitButtonText={'Verify Domain'}
-                    onClose={() => {
-                        setShowVerificationModal(false);
-                        setError('');
-                    }}
-                    isLoading={isVerificationLoading}
-                    onSubmit={async () => {
-                        try {
-                            setIsVerificationLoading(true);
-                            setError('');
-                            // verify domain.
-                            await ModelAPI.updateById(
-                                Domain,
-                                new ObjectID(
-                                    currentVerificationDomain['_id']
-                                        ? currentVerificationDomain[
-                                              '_id'
-                                          ].toString()
-                                        : ''
-                                ),
-                                {
-                                    isVerified: true,
-                                },
-                                undefined
-                            );
-                            setIsVerificationLoading(false);
-                            setShowVerificationModal(false);
-                            setRefreshToggle(!refreshToggle);
-                        } catch (err) {
-                            setError(API.getFriendlyMessage(err));
-                            setIsVerificationLoading(false);
-                        }
-                    }}
+                    showRefreshButton={true}
+                    showFilterButton={true}
+                    columns={[
+                        {
+                            field: {
+                                _id: true,
+                            },
+                            title: 'Log ID',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                fromNumber: true,
+                            },
+                            isFilterable: true,
+
+                            title: 'From Number',
+                            type: FieldType.Phone,
+                            
+                        },
+                        {
+                            field: {
+                                toNumber: true,
+                            },
+                            isFilterable: true,
+
+                            title: 'To Number',
+                            type: FieldType.Phone,
+                            
+                        },
+                        {
+                            field: {
+                                createdAt: true,
+                            },
+                            title: 'Sent at',
+                            type: FieldType.DateTime,
+                            isFilterable: true,
+                        },
+                    ]}
                 />
-            ) : (
-                <></>
-            )}
-        </Page>
+
+                {showViewSmsTextModal && (
+                    <Modal
+                        title={'SMS Text'}
+                        description="Here are the contents of the SMS."
+                        isLoading={false}
+                        modalWidth={ModalWidth.Large}
+                        onSubmit={() => {
+                            setShowViewSmsTextModal(false);
+                        }}
+                        submitButtonText={'Close'}
+                        submitButtonStyleType={ButtonStyleType.NORMAL}
+                    >
+                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                            
+                            <div>{smsText}</div>;
+                        
+                        </div>
+                    </Modal>
+                )}
+            </>
+        </ModelPage>
     );
 };
 
-export default Domains;
+export default SMSLogs;

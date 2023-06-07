@@ -26,13 +26,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Project Settings',
+                    title: 'Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.SETTINGS] as Route
                     ),
                 },
                 {
-                    title: 'Call & SMS Settings',
+                    title: 'Call & SMS',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
                     ),
