@@ -5,6 +5,7 @@ import DatabaseService from './DatabaseService';
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays("createdAt", 30);
     }
 }
 export default new Service();
