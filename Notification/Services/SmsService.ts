@@ -98,8 +98,6 @@ export default class SmsService {
                 // check if auto recharge is enabled and current balance is low.
 
                 if (
-                    IsBillingEnabled &&
-                    project &&
                     project.enableAutoRechargeSmsOrCallBalance &&
                     project.autoRechargeSmsOrCallByBalanceInUSD &&
                     project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
