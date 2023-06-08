@@ -122,7 +122,14 @@ export class Service extends DatabaseService<Model> {
         if (IsBillingEnabled) {
             if (updateBy.data.autoRechargeSmsOrCallByBalanceInUSD) {
                 await NotificationService.rechargeIfBalanceIsLow(
-                    new ObjectID(updateBy.query._id! as string)
+                    new ObjectID(updateBy.query._id! as string),
+                    {
+                        autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
+                            .autoRechargeSmsOrCallByBalanceInUSD as number,
+                        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD:
+                            updateBy.data
+                                .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
+                    }
                 );
             }
 

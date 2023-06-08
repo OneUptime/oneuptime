@@ -91,11 +91,11 @@ export default class SmsService {
                 }
 
                 // check if auto recharge is enabled and current balance is low.
-                const updtedBalance =
+                const updatedBalance: number =
                     await NotificationService.rechargeIfBalanceIsLow(
                         project.id!
                     );
-                project.smsOrCallCurrentBalanceInUSDCents = updtedBalance;
+                project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
                     smsLog.status = SmsStatus.LowBalance;

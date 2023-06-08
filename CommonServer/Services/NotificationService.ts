@@ -8,7 +8,11 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class NotificationService {
     public static async rechargeIfBalanceIsLow(
-        projectId: ObjectID
+        projectId: ObjectID,
+        options?: {
+            autoRechargeSmsOrCallByBalanceInUSD: number;
+            autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: number;
+        }
     ): Promise<number> {
         let project: Project | null = null;
         if (projectId && IsBillingEnabled) {
@@ -29,6 +33,15 @@ export default class NotificationService {
                 },
             });
 
+            const autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: number =
+                options?.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD ||
+                project?.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD ||
+                0;
+            const autoRechargeSmsOrCallByBalanceInUSD: number =
+                options?.autoRechargeSmsOrCallByBalanceInUSD ||
+                project?.autoRechargeSmsOrCallByBalanceInUSD ||
+                0;
+
             if (!project) {
                 return 0;
             }
@@ -45,27 +58,26 @@ export default class NotificationService {
 
             if (
                 project.enableAutoRechargeSmsOrCallBalance &&
-                project.autoRechargeSmsOrCallByBalanceInUSD &&
-                project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
+                autoRechargeSmsOrCallByBalanceInUSD &&
+                autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
             ) {
                 if (
                     project.smsOrCallCurrentBalanceInUSDCents &&
                     project.smsOrCallCurrentBalanceInUSDCents <
-                        project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
+                        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
                 ) {
                     try {
                         // recharge balance
                         const updatedAmount: number = Math.floor(
                             project.smsOrCallCurrentBalanceInUSDCents +
-                                project.autoRechargeSmsOrCallByBalanceInUSD *
-                                    100
+                                autoRechargeSmsOrCallByBalanceInUSD * 100
                         );
 
                         // If the recharge is succcessful, then update the project balance.
                         await BillingService.genrateInvoiceAndChargeCustomer(
                             project.paymentProviderCustomerId!,
                             'SMS or Call Balance Recharge',
-                            project.autoRechargeSmsOrCallByBalanceInUSD
+                            autoRechargeSmsOrCallByBalanceInUSD
                         );
 
                         await ProjectService.updateOneById({

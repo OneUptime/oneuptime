@@ -111,7 +111,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public hardDeleteItemsOlderThanInDays(
         columnName: string,
         olderThan: number
-    ) {
+    ): void {
         this.hardDeleteItemByColumnName = columnName;
         this.hardDeleteItemsOlderThanDays = olderThan;
     }
