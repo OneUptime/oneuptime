@@ -12,12 +12,13 @@ import ObjectID from 'Common/Types/ObjectID';
 
 export default class SmsService {
     public static async sendSms(
-        to: Phone, message: string, options: {
-            projectId?: ObjectID | undefined // project id for sms log
-            from?: Phone, // from phone number
+        to: Phone,
+        message: string,
+        options: {
+            projectId?: ObjectID | undefined; // project id for sms log
+            from?: Phone; // from phone number
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
-
         const body: JSONObject = {
             to: to.toString(),
             message,

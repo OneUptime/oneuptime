@@ -35,8 +35,6 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         return <MarkdownViewer text={text} />;
     };
 
-
-
     const getDropdownViewer: Function = (
         data: string,
         options: Array<DropdownOption>,
@@ -76,7 +74,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     const getUSDCentsField: Function = (usdCents: number): ReactElement => {
-        return <div>{usdCents/100} USD</div>;
+        return <div>{usdCents / 100} USD</div>;
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {
@@ -288,5 +286,3 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 };
 
 export default Detail;
-
-

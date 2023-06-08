@@ -10,6 +10,8 @@ import SmsLogService from "CommonServer/Services/SmsLogService"
 import ProjectService from "CommonServer/Services/ProjectService";
 import Project from "Model/Models/Project";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
+import BillingService from "CommonServer/Services/BillingService";
+import logger from "CommonServer/Utils/Logger";
 
 export default class SmsService {
     public static async sendSms(to: Phone, message: string, options: {
@@ -48,12 +50,16 @@ export default class SmsService {
             // make sure project has enough balance. 
 
             if (options.projectId && IsBillingEnabled) {
+
                 project = await ProjectService.findOneById({
                     id: options.projectId,
                     select: {
                         smsOrCallCurrentBalanceInUSDCents: true,
                         enableAutoRechargeSmsOrCallBalance: true,
-                        enableSmsNotifications: true
+                        enableSmsNotifications: true,
+                        autoRechargeSmsOrCallByBalanceInUSD: true,
+                        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
+                        paymentProviderCustomerId: true
                     },
                     props: {
                         isRoot: true
@@ -63,7 +69,7 @@ export default class SmsService {
                 if (!project) {
                     smsLog.status = SmsStatus.Error;
                     smsLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
-                     await SmsLogService.create({
+                    await SmsLogService.create({
                         data: smsLog,
                         props: {
                             isRoot: true
@@ -73,7 +79,7 @@ export default class SmsService {
 
                 }
 
-                if(!project.enableSmsNotifications){
+                if (!project.enableSmsNotifications) {
                     smsLog.status = SmsStatus.Error;
                     smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in project settings.`;
                     await SmsLogService.create({
@@ -83,6 +89,39 @@ export default class SmsService {
                         }
                     });
                     return;
+                }
+
+                // check if auto recharge is enabled and current balance is low.
+
+                if (IsBillingEnabled && project && project.enableAutoRechargeSmsOrCallBalance && project.autoRechargeSmsOrCallByBalanceInUSD && project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD) {
+
+                    if (project.smsOrCallCurrentBalanceInUSDCents && project.smsOrCallCurrentBalanceInUSDCents < project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD) {
+                        try {
+                            // recharge balance
+                            const updatedAmount: number = Math.floor(project.smsOrCallCurrentBalanceInUSDCents + (project.autoRechargeSmsOrCallByBalanceInUSD * 100));
+
+                            // If the recharge is succcessful, then update the project balance.
+                            await BillingService.genrateInvoiceAndChargeCustomer(project.paymentProviderCustomerId!, "SMS or Call Balance Recharge", project.autoRechargeSmsOrCallByBalanceInUSD);
+
+                            await ProjectService.updateOneById({
+                                data: {
+                                    smsOrCallCurrentBalanceInUSDCents: updatedAmount
+                                },
+                                id: project.id!,
+                                props: {
+                                    isRoot: true
+                                }
+                            });
+
+                            project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
+
+                            // TODO: Send an email on successful recharge. 
+                        } catch (err) {
+                            // TODO: if the recharge fails, then send email to the user. 
+                            logger.error(err);
+                        }
+
+                    }
                 }
 
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
@@ -96,7 +135,7 @@ export default class SmsService {
                     });
                     return;
 
-                   
+
                 }
 
                 if (project.smsOrCallCurrentBalanceInUSDCents < SMSDefaultCostInCents) {
@@ -109,7 +148,6 @@ export default class SmsService {
                         }
                     });
                     return;
-
                 }
 
             }
@@ -153,6 +191,9 @@ export default class SmsService {
                     isRoot: true
                 }
             });
+
+
+
         }
     }
 }

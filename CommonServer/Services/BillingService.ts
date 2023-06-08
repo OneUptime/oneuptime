@@ -497,6 +497,35 @@ export class BillingService {
         });
     }
 
+    public static async genrateInvoiceAndChargeCustomer(
+        customerId: string,
+        itemText: string,
+        amountInUsd: number
+    ): Promise<void> {
+        const invoice: Stripe.Invoice = await this.stripe.invoices.create({
+            customer: customerId,
+            auto_advance: true, // do not automatically charge.
+            collection_method: 'charge_automatically',
+        });
+
+        if (!invoice || !invoice.id) {
+            throw new APIException('Invoice not generated.');
+        }
+
+        await this.stripe.invoiceItems.create({
+            invoice: invoice.id,
+            amount: amountInUsd * 100,
+            quantity: 1,
+            description: itemText,
+            currency: 'usd',
+            customer: customerId,
+        });
+
+        await this.stripe.invoices.finalizeInvoice(invoice.id!);
+
+        await this.stripe.invoices.pay(invoice.id);
+    }
+
     public static async payInvoice(
         customerId: string,
         invoiceId: string

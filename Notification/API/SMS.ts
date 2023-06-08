@@ -18,10 +18,14 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const body: JSONObject = JSONFunctions.deserialize(req.body);
 
-        await SmsService.sendSms(body['to'] as Phone, body['message'] as string, {
-            projectId: body['projectId'] as ObjectID,
-            from: body['from'] as Phone,
-        });
+        await SmsService.sendSms(
+            body['to'] as Phone,
+            body['message'] as string,
+            {
+                projectId: body['projectId'] as ObjectID,
+                from: body['from'] as Phone,
+            }
+        );
 
         return Response.sendEmptyResponse(req, res);
     }
