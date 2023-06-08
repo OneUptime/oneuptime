@@ -11,6 +11,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -41,7 +42,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             {/* API Key View  */}
-            <CardModelDetail
+            {BILLING_ENABLED ? <CardModelDetail
                 name="Current Balance"
                 cardProps={{
                     title: 'Current Balance',
@@ -56,9 +57,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                smsOrCallCurrentBalanceInUSD: true,
+                                smsOrCallCurrentBalanceInUSDCents: true,
                             },
-                            fieldType: FieldType.Number,
+                            fieldType: FieldType.USDCents,
                             title: 'SMS or Call Current Balance',
                             description:
                                 'This is your current balance for SMS or Call. It is in USD. ',
@@ -67,7 +68,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ],
                     modelId: DashboardNavigation.getProjectId()?.toString(),
                 }}
-            />
+            /> : <></>}
 
             <CardModelDetail
                 name="Enable Notifications"
@@ -130,7 +131,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-            <CardModelDetail
+            {BILLING_ENABLED ? <CardModelDetail
                 name="Auto Recharge"
                 cardProps={{
                     title: 'Auto Recharge',
@@ -291,7 +292,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ],
                     modelId: DashboardNavigation.getProjectId()?.toString(),
                 }}
-            />
+            /> : <></>}
         </Page>
     );
 };

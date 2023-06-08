@@ -74,7 +74,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     const getUSDCentsField: Function = (usdCents: number): ReactElement => {
-        return <div>{usdCents / 100} USD</div>;
+        return <div className='text-gray-900'>{usdCents / 100} USD</div>;
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {

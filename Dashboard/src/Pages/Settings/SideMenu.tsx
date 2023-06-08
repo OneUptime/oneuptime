@@ -155,12 +155,12 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Call and SMS',
+                        title: 'Notification Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
                         ),
                     }}
-                    icon={IconProp.Call}
+                    icon={IconProp.Settings}
                 />
                 <SideMenuItem
                     link={{

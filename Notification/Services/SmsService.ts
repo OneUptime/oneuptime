@@ -155,6 +155,7 @@ export default class SmsService {
                 });
             }
         } catch (e: any) {
+            smsLog.smsCostInUSDCents = 0;
             smsLog.status = SmsStatus.Error;
             smsLog.statusMessage =
                 e && e.message ? e.message.toString() : e.toString();

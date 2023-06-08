@@ -16,6 +16,9 @@ import Page from 'CommonUI/src/Components/Page/Page';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import SmsStatus from 'Common/Types/SmsStatus';
 import { Green, Red } from 'Common/Types/BrandColors';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import Column from 'CommonUI/src/Components/ModelTable/Column';
+import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -25,6 +28,70 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     const [smsText, setSmsText] = useState<string>('');
     const [smsModelTitle, setSmsModalTitle] = useState<string>('');
     const [smsModelDescription, setSmsModalDescription] = useState<string>('');
+
+
+    const modelTableColumns: Columns<SmsLog> = [{
+        field: {
+            _id: true,
+        },
+        title: 'Log ID',
+        type: FieldType.Text,
+        isFilterable: true,
+    },
+    {
+        field: {
+            toNumber: true,
+        },
+        isFilterable: true,
+
+        title: 'To Number',
+        type: FieldType.Phone,
+    },
+    {
+        field: {
+            createdAt: true,
+        },
+        title: 'Sent at',
+        type: FieldType.DateTime,
+        isFilterable: true,
+    },
+    
+    {
+        field: {
+            status: true,
+        },
+        title: 'Status',
+        type: FieldType.Text,
+        getElement: (item: JSONObject): ReactElement => {
+            if (item['status']) {
+                return (
+                    <Pill
+                        isMinimal={false}
+                        color={
+                            item['status'] ===
+                            SmsStatus.Success
+                                ? Green
+                                : Red
+                        }
+                        text={item['status'] as string}
+                    />
+                );
+            }
+
+            return <></>;
+        },
+        isFilterable: true,
+    }];
+
+    if(BILLING_ENABLED){
+        modelTableColumns.push({
+            field: {
+                smsCostInUSDCents: true,
+            },
+            title: 'SMS Cost',
+            type: FieldType.USDCents,
+        } as Column<SmsLog>);
+    }
 
     return (
         <Page
@@ -117,66 +184,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     }
                     showRefreshButton={true}
                     showFilterButton={true}
-                    columns={[
-                        {
-                            field: {
-                                _id: true,
-                            },
-                            title: 'Log ID',
-                            type: FieldType.Text,
-                            isFilterable: true,
-                        },
-                        {
-                            field: {
-                                toNumber: true,
-                            },
-                            isFilterable: true,
-
-                            title: 'To Number',
-                            type: FieldType.Phone,
-                        },
-                        {
-                            field: {
-                                createdAt: true,
-                            },
-                            title: 'Sent at',
-                            type: FieldType.DateTime,
-                            isFilterable: true,
-                        },
-                        {
-                            field: {
-                                smsCostInUSDCents: true,
-                            },
-                            title: 'SMS Cost',
-                            type: FieldType.USDCents,
-                        },
-                        {
-                            field: {
-                                status: true,
-                            },
-                            title: 'Status',
-                            type: FieldType.Text,
-                            getElement: (item: JSONObject): ReactElement => {
-                                if (item['status']) {
-                                    return (
-                                        <Pill
-                                            isMinimal={false}
-                                            color={
-                                                item['status'] ===
-                                                SmsStatus.Success
-                                                    ? Green
-                                                    : Red
-                                            }
-                                            text={item['status'] as string}
-                                        />
-                                    );
-                                }
-
-                                return <></>;
-                            },
-                            isFilterable: true,
-                        },
-                    ]}
+                    columns={modelTableColumns}
                 />
 
                 {showViewSmsTextModal && (
