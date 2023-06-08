@@ -101,8 +101,13 @@ cd ..
 if [[ ! $(which node) && ! $(node --version) ]]; then
     if [[ "$OSTYPE" != "darwin"* ]]; then
         echo "Setting up NodeJS"
-        sudo apt-get install -y nodejs
-        sudo apt-get install -y npm
+        sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+        export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+        nvm install lts/*
+        nvm use lts/*
+        sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
+        sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
     fi
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
