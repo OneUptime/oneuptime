@@ -15,8 +15,7 @@ import SmsLogService from 'CommonServer/Services/SmsLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';
 import { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message';
-import BillingService from 'CommonServer/Services/BillingService';
-import logger from 'CommonServer/Utils/Logger';
+import NotificationService from "CommonServer/Services/NotificationService"
 
 export default class SmsService {
     public static async sendSms(
@@ -60,11 +59,7 @@ export default class SmsService {
                     id: options.projectId,
                     select: {
                         smsOrCallCurrentBalanceInUSDCents: true,
-                        enableAutoRechargeSmsOrCallBalance: true,
                         enableSmsNotifications: true,
-                        autoRechargeSmsOrCallByBalanceInUSD: true,
-                        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
-                        paymentProviderCustomerId: true,
                     },
                     props: {
                         isRoot: true,
@@ -96,53 +91,8 @@ export default class SmsService {
                 }
 
                 // check if auto recharge is enabled and current balance is low.
-
-                if (
-                    project.enableAutoRechargeSmsOrCallBalance &&
-                    project.autoRechargeSmsOrCallByBalanceInUSD &&
-                    project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
-                ) {
-                    if (
-                        project.smsOrCallCurrentBalanceInUSDCents &&
-                        project.smsOrCallCurrentBalanceInUSDCents <
-                            project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
-                    ) {
-                        try {
-                            // recharge balance
-                            const updatedAmount: number = Math.floor(
-                                project.smsOrCallCurrentBalanceInUSDCents +
-                                    project.autoRechargeSmsOrCallByBalanceInUSD *
-                                        100
-                            );
-
-                            // If the recharge is succcessful, then update the project balance.
-                            await BillingService.genrateInvoiceAndChargeCustomer(
-                                project.paymentProviderCustomerId!,
-                                'SMS or Call Balance Recharge',
-                                project.autoRechargeSmsOrCallByBalanceInUSD
-                            );
-
-                            await ProjectService.updateOneById({
-                                data: {
-                                    smsOrCallCurrentBalanceInUSDCents:
-                                        updatedAmount,
-                                },
-                                id: project.id!,
-                                props: {
-                                    isRoot: true,
-                                },
-                            });
-
-                            project.smsOrCallCurrentBalanceInUSDCents =
-                                updatedAmount;
-
-                            // TODO: Send an email on successful recharge.
-                        } catch (err) {
-                            // TODO: if the recharge fails, then send email to the user.
-                            logger.error(err);
-                        }
-                    }
-                }
+                const updtedBalance = await NotificationService.rechargeIfBalanceIsLow(project.id!);
+                project.smsOrCallCurrentBalanceInUSDCents = updtedBalance;
 
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
                     smsLog.status = SmsStatus.LowBalance;
