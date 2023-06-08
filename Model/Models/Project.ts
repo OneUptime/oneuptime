@@ -503,7 +503,7 @@ export default class Model extends TenantModel {
         unique: false,
         default: 0,
     })
-    public smsOrCallCurrentBalanceInUSD?: number = undefined;
+    public smsOrCallCurrentBalanceInUSDCents?: number = undefined;
 
     @ColumnAccessControl({
         create: [],

@@ -26,4 +26,9 @@ export const InternalSmtpFromEmail: Email = new Email(
 export const InternalSmtpFromName: string =
     process.env['INTERNAL_SMTP_NAME'] || '';
 
+export const TwilioAccountSid: string = process.env['TWILIO_ACCOUNT_SID'] || '';
+export const TwilioAuthToken: string = process.env['TWILIO_AUTH_TOKEN'] || '';
+export const TwilioPhoneNumber: string = process.env['TWILIO_PHONE_NUMBER'] || '';
+export const SMSDefaultCostInCents: number = process.env['SMS_DEFAULT_COST_IN_CENTS'] ? parseInt(process.env['SMS_DEFAULT_COST_IN_CENTS']) : 0;
+
 export const SendGridApiKey: string = process.env['SENDGRID_API_KEY'] || '';
