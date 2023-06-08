@@ -120,12 +120,12 @@ export class Service extends DatabaseService<Model> {
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
         if (IsBillingEnabled) {
-
-            if(updateBy.data.autoRechargeSmsOrCallByBalanceInUSD) {
-                await NotificationService.rechargeIfBalanceIsLow(new ObjectID(updateBy.query._id! as string));
+            if (updateBy.data.autoRechargeSmsOrCallByBalanceInUSD) {
+                await NotificationService.rechargeIfBalanceIsLow(
+                    new ObjectID(updateBy.query._id! as string)
+                );
             }
 
-            
             if (updateBy.data.paymentProviderPlanId) {
                 // payment provider id changed.
                 const project: Model | null = await this.findOneById({

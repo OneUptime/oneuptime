@@ -29,61 +29,61 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     const [smsModelTitle, setSmsModalTitle] = useState<string>('');
     const [smsModelDescription, setSmsModalDescription] = useState<string>('');
 
+    const modelTableColumns: Columns<SmsLog> = [
+        {
+            field: {
+                _id: true,
+            },
+            title: 'Log ID',
+            type: FieldType.Text,
+            isFilterable: true,
+        },
+        {
+            field: {
+                toNumber: true,
+            },
+            isFilterable: true,
 
-    const modelTableColumns: Columns<SmsLog> = [{
-        field: {
-            _id: true,
+            title: 'To Number',
+            type: FieldType.Phone,
         },
-        title: 'Log ID',
-        type: FieldType.Text,
-        isFilterable: true,
-    },
-    {
-        field: {
-            toNumber: true,
+        {
+            field: {
+                createdAt: true,
+            },
+            title: 'Sent at',
+            type: FieldType.DateTime,
+            isFilterable: true,
         },
-        isFilterable: true,
 
-        title: 'To Number',
-        type: FieldType.Phone,
-    },
-    {
-        field: {
-            createdAt: true,
-        },
-        title: 'Sent at',
-        type: FieldType.DateTime,
-        isFilterable: true,
-    },
-    
-    {
-        field: {
-            status: true,
-        },
-        title: 'Status',
-        type: FieldType.Text,
-        getElement: (item: JSONObject): ReactElement => {
-            if (item['status']) {
-                return (
-                    <Pill
-                        isMinimal={false}
-                        color={
-                            item['status'] ===
-                            SmsStatus.Success
-                                ? Green
-                                : Red
-                        }
-                        text={item['status'] as string}
-                    />
-                );
-            }
+        {
+            field: {
+                status: true,
+            },
+            title: 'Status',
+            type: FieldType.Text,
+            getElement: (item: JSONObject): ReactElement => {
+                if (item['status']) {
+                    return (
+                        <Pill
+                            isMinimal={false}
+                            color={
+                                item['status'] === SmsStatus.Success
+                                    ? Green
+                                    : Red
+                            }
+                            text={item['status'] as string}
+                        />
+                    );
+                }
 
-            return <></>;
+                return <></>;
+            },
+            isFilterable: true,
         },
-        isFilterable: true,
-    }];
+    ];
 
-    if(BILLING_ENABLED){
+    if (BILLING_ENABLED) {
         modelTableColumns.push({
             field: {
                 smsCostInUSDCents: true,

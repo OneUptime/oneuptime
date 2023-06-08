@@ -15,7 +15,7 @@ import SmsLogService from 'CommonServer/Services/SmsLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';
 import { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message';
-import NotificationService from "CommonServer/Services/NotificationService"
+import NotificationService from 'CommonServer/Services/NotificationService';
 
 export default class SmsService {
     public static async sendSms(
@@ -91,7 +91,10 @@ export default class SmsService {
                 }
 
                 // check if auto recharge is enabled and current balance is low.
-                const updtedBalance = await NotificationService.rechargeIfBalanceIsLow(project.id!);
+                const updtedBalance =
+                    await NotificationService.rechargeIfBalanceIsLow(
+                        project.id!
+                    );
                 project.smsOrCallCurrentBalanceInUSDCents = updtedBalance;
 
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {

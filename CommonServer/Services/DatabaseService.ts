@@ -79,25 +79,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
     private model!: TBaseModel;
     private modelName!: string;
 
-    
-    private _hardDeleteItemByColumnName : string = '';
-    public get hardDeleteItemByColumnName() : string {
+    private _hardDeleteItemByColumnName: string = '';
+    public get hardDeleteItemByColumnName(): string {
         return this._hardDeleteItemByColumnName;
     }
-    public set hardDeleteItemByColumnName(v : string) {
+    public set hardDeleteItemByColumnName(v: string) {
         this._hardDeleteItemByColumnName = v;
     }
-    
 
-    
-    private _hardDeleteItemsOlderThanDays : number = 0;
-    public get hardDeleteItemsOlderThanDays() : number {
+    private _hardDeleteItemsOlderThanDays: number = 0;
+    public get hardDeleteItemsOlderThanDays(): number {
         return this._hardDeleteItemsOlderThanDays;
     }
-    public set hardDeleteItemsOlderThanDays(v : number) {
+    public set hardDeleteItemsOlderThanDays(v: number) {
         this._hardDeleteItemsOlderThanDays = v;
     }
-    
 
     public constructor(
         modelType: { new (): TBaseModel },
@@ -112,7 +108,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public hardDeleteItemsOlderThanInDays(columnName: string, olderThan: number) {
+    public hardDeleteItemsOlderThanInDays(
+        columnName: string,
+        olderThan: number
+    ) {
         this.hardDeleteItemByColumnName = columnName;
         this.hardDeleteItemsOlderThanDays = olderThan;
     }

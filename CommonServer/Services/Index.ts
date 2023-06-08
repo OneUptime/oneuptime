@@ -122,5 +122,5 @@ export default [
     WorkflowVariablesService,
     WorkflowLogService,
 
-    SmsLogService
+    SmsLogService,
 ];

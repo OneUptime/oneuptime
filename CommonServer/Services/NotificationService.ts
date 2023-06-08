@@ -1,4 +1,3 @@
-
 import { IsBillingEnabled } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import Project from 'Model/Models/Project';
@@ -9,13 +8,11 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class NotificationService {
     public static async rechargeIfBalanceIsLow(
-        projectId: ObjectID,
+        projectId: ObjectID
     ): Promise<number> {
         let project: Project | null = null;
         if (projectId && IsBillingEnabled) {
-
-            // check payment methods. 
-
+            // check payment methods.
 
             project = await ProjectService.findOneById({
                 id: projectId,
@@ -36,8 +33,14 @@ export default class NotificationService {
                 return 0;
             }
 
-            if (!(await BillingService.hasPaymentMethods(project.paymentProviderCustomerId!))) {
-                throw new BadDataException('No payment methods found for the project. Please add a payment method in project settings to continue.');
+            if (
+                !(await BillingService.hasPaymentMethods(
+                    project.paymentProviderCustomerId!
+                ))
+            ) {
+                throw new BadDataException(
+                    'No payment methods found for the project. Please add a payment method in project settings to continue.'
+                );
             }
 
             if (
@@ -48,14 +51,14 @@ export default class NotificationService {
                 if (
                     project.smsOrCallCurrentBalanceInUSDCents &&
                     project.smsOrCallCurrentBalanceInUSDCents <
-                    project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
+                        project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
                 ) {
                     try {
                         // recharge balance
                         const updatedAmount: number = Math.floor(
                             project.smsOrCallCurrentBalanceInUSDCents +
-                            project.autoRechargeSmsOrCallByBalanceInUSD *
-                            100
+                                project.autoRechargeSmsOrCallByBalanceInUSD *
+                                    100
                         );
 
                         // If the recharge is succcessful, then update the project balance.
@@ -86,7 +89,6 @@ export default class NotificationService {
                     }
                 }
             }
-
         }
 
         return project?.smsOrCallCurrentBalanceInUSDCents || 0;

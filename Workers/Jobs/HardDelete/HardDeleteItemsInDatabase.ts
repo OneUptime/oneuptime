@@ -36,15 +36,16 @@ RunCron(
     }
 );
 
-
 RunCron(
     'HardDelete:HardDeleteOlderItemsInDatabase',
     { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
     async () => {
         for (const service of Services) {
             if (service instanceof DatabaseService) {
-
-                if(!service.hardDeleteItemByColumnName || !service.hardDeleteItemsOlderThanDays) {
+                if (
+                    !service.hardDeleteItemByColumnName ||
+                    !service.hardDeleteItemsOlderThanDays
+                ) {
                     continue;
                 }
 
@@ -52,9 +53,12 @@ RunCron(
                     // Retain data for 30 days for accidental deletion, and then hard delete.
                     await service.hardDeleteBy({
                         query: {
-                            [service.hardDeleteItemByColumnName]: QueryHelper.lessThan(
-                                OneUptimeDate.getSomeDaysAgo(service.hardDeleteItemsOlderThanDays)
-                            ),
+                            [service.hardDeleteItemByColumnName]:
+                                QueryHelper.lessThan(
+                                    OneUptimeDate.getSomeDaysAgo(
+                                        service.hardDeleteItemsOlderThanDays
+                                    )
+                                ),
                         },
                         props: {
                             isRoot: true,
@@ -69,7 +73,3 @@ RunCron(
         }
     }
 );
-
-
-
-

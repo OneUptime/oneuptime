@@ -349,8 +349,8 @@ export class BillingService {
     public static async hasPaymentMethods(
         customerId: string
     ): Promise<boolean> {
-        if((await this.getPaymentMethods(customerId)).length > 0) {
-            return true
+        if ((await this.getPaymentMethods(customerId)).length > 0) {
+            return true;
         }
 
         return false;
