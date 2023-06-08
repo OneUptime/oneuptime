@@ -346,6 +346,16 @@ export class BillingService {
         await this.stripe.paymentMethods.detach(paymentMethodId);
     }
 
+    public static async hasPaymentMethods(
+        customerId: string
+    ): Promise<boolean> {
+        if((await this.getPaymentMethods(customerId)).length > 0) {
+            return true
+        }
+
+        return false;
+    }
+
     public static async getPaymentMethods(
         customerId: string
     ): Promise<Array<PaymentMethod>> {
