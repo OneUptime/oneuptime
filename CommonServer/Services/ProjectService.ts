@@ -116,19 +116,16 @@ export class Service extends DatabaseService<Model> {
         return Promise.resolve({ createBy: data, carryForward: null });
     }
 
-    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
-        
-        if(onUpdate.updateBy.data.autoRechargeSmsOrCallByBalanceInUSD && IsBillingEnabled) {
-            await NotificationService.rechargeIfBalanceIsLow(new ObjectID(onUpdate.updateBy.query._id! as string));
-        }
-
-        return onUpdate;
-    }
-
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
         if (IsBillingEnabled) {
+
+            if(updateBy.data.autoRechargeSmsOrCallByBalanceInUSD) {
+                await NotificationService.rechargeIfBalanceIsLow(new ObjectID(updateBy.query._id! as string));
+            }
+
+            
             if (updateBy.data.paymentProviderPlanId) {
                 // payment provider id changed.
                 const project: Model | null = await this.findOneById({
