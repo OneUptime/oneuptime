@@ -41,18 +41,19 @@ export default class SmsService {
             smsLog.projectId = options.projectId;
         }
 
-        let project: Project | null =  null ;
+        let project: Project | null = null;
 
         try {
 
             // make sure project has enough balance. 
-            
+
             if (options.projectId && IsBillingEnabled) {
                 project = await ProjectService.findOneById({
                     id: options.projectId,
                     select: {
                         smsOrCallCurrentBalanceInUSDCents: true,
-                        enableAutoRechargeSmsOrCallBalance: true
+                        enableAutoRechargeSmsOrCallBalance: true,
+                        enableSmsNotifications: true
                     },
                     props: {
                         isRoot: true
@@ -60,20 +61,60 @@ export default class SmsService {
                 });
 
                 if (!project) {
-                    throw new BadDataException(`Project ${options.projectId.toString()} not found.`);
+                    smsLog.status = SmsStatus.Error;
+                    smsLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
+                     await SmsLogService.create({
+                        data: smsLog,
+                        props: {
+                            isRoot: true
+                        }
+                    });
+                    return;
+
+                }
+
+                if(!project.enableSmsNotifications){
+                    smsLog.status = SmsStatus.Error;
+                    smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in project settings.`;
+                    await SmsLogService.create({
+                        data: smsLog,
+                        props: {
+                            isRoot: true
+                        }
+                    });
+                    return;
                 }
 
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
-                    throw new BadDataException(`Project ${options.projectId.toString()} does not have enough SMS balance.`);
+                    smsLog.status = SmsStatus.LowBalance;
+                    smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
+                    await SmsLogService.create({
+                        data: smsLog,
+                        props: {
+                            isRoot: true
+                        }
+                    });
+                    return;
+
+                   
                 }
 
                 if (project.smsOrCallCurrentBalanceInUSDCents < SMSDefaultCostInCents) {
-                    throw new BadDataException(`Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents} cents. Required balance is ${SMSDefaultCostInCents} cents to send this SMS.`);
+                    smsLog.status = SmsStatus.LowBalance;
+                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents} cents. Required balance is ${SMSDefaultCostInCents} cents to send this SMS.`;
+                    await SmsLogService.create({
+                        data: smsLog,
+                        props: {
+                            isRoot: true
+                        }
+                    });
+                    return;
+
                 }
 
             }
 
-            const twillioMessage: MessageInstance  = await client.messages
+            const twillioMessage: MessageInstance = await client.messages
                 .create({
                     body: message,
                     to: to.toString(),
@@ -107,7 +148,7 @@ export default class SmsService {
 
         if (options.projectId) {
             await SmsLogService.create({
-                data: smsLog, 
+                data: smsLog,
                 props: {
                     isRoot: true
                 }

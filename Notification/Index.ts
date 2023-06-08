@@ -5,6 +5,7 @@ import Redis from 'CommonServer/Infrastructure/Redis';
 
 // API
 import MailAPI from './API/Mail';
+import SmsAPI from './API/SMS';
 import SMTPConfigAPI from './API/SMTPConfig';
 import logger from 'CommonServer/Utils/Logger';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
@@ -16,7 +17,7 @@ const APP_NAME: string = 'notification';
 const app: ExpressApplication = Express.getExpressApp();
 
 app.use([`/${APP_NAME}/email`, '/email'], MailAPI);
-
+app.use([`/${APP_NAME}/sms`, '/sms'], SmsAPI);
 app.use([`/${APP_NAME}/smtp-config`, '/smtp-config'], SMTPConfigAPI);
 
 const init: Function = async (): Promise<void> => {
