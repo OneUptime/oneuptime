@@ -525,15 +525,13 @@ export class BillingService {
         await this.stripe.invoiceItems.create({
             invoice: invoice.id,
             amount: amountInUsd * 100,
-            quantity: 1,
             description: itemText,
-            currency: 'usd',
             customer: customerId,
         });
 
         await this.stripe.invoices.finalizeInvoice(invoice.id!);
 
-        await this.stripe.invoices.pay(invoice.id);
+        await this.payInvoice(customerId, invoice.id!);
     }
 
     public static async payInvoice(

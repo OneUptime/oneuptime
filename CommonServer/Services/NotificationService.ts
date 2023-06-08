@@ -65,14 +65,13 @@ export default class NotificationService {
                 autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
             ) {
                 if (
-                    project.smsOrCallCurrentBalanceInUSDCents &&
-                    project.smsOrCallCurrentBalanceInUSDCents <
+                    ((project.smsOrCallCurrentBalanceInUSDCents || 0)/100) <
                         autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
                 ) {
                     try {
                         // recharge balance
                         const updatedAmount: number = Math.floor(
-                            project.smsOrCallCurrentBalanceInUSDCents +
+                            (project.smsOrCallCurrentBalanceInUSDCents || 0) +
                                 autoRechargeSmsOrCallByBalanceInUSD * 100
                         );
 
