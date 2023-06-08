@@ -12,6 +12,7 @@ export default class NotificationService {
         options?: {
             autoRechargeSmsOrCallByBalanceInUSD: number;
             autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: number;
+            enableAutoRechargeSmsOrCallBalance: boolean;
         }
     ): Promise<number> {
         let project: Project | null = null;
@@ -42,6 +43,8 @@ export default class NotificationService {
                 project?.autoRechargeSmsOrCallByBalanceInUSD ||
                 0;
 
+            const enableAutoRechargeSmsOrCallBalance: boolean = options ? options.enableAutoRechargeSmsOrCallBalance : project?.enableAutoRechargeSmsOrCallBalance || false;
+
             if (!project) {
                 return 0;
             }
@@ -57,7 +60,7 @@ export default class NotificationService {
             }
 
             if (
-                project.enableAutoRechargeSmsOrCallBalance &&
+                enableAutoRechargeSmsOrCallBalance &&
                 autoRechargeSmsOrCallByBalanceInUSD &&
                 autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
             ) {
