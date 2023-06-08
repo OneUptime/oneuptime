@@ -9,6 +9,7 @@ import { IsBillingEnabled } from "CommonServer/Config";
 import SmsLogService from "CommonServer/Services/SmsLogService"
 import ProjectService from "CommonServer/Services/ProjectService";
 import Project from "Model/Models/Project";
+import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
     public static async sendSms(to: Phone, message: string, options: {
@@ -72,7 +73,7 @@ export default class SmsService {
 
             }
 
-            await client.messages
+            const twillioMessage: MessageInstance  = await client.messages
                 .create({
                     body: message,
                     to: to.toString(),
@@ -81,7 +82,7 @@ export default class SmsService {
 
 
             smsLog.status = SmsStatus.Success;
-            smsLog.errorMessage = "";
+            smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
 
             if (IsBillingEnabled && project) {
                 smsLog.smsCostInUSDCents = SMSDefaultCostInCents;
@@ -101,7 +102,7 @@ export default class SmsService {
 
         } catch (e: any) {
             smsLog.status = SmsStatus.Error;
-            smsLog.errorMessage = e && e.message ? e.message.toString() : e.toString();
+            smsLog.statusMessage = e && e.message ? e.message.toString() : e.toString();
         }
 
         if (options.projectId) {

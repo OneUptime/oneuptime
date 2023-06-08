@@ -35,6 +35,8 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         return <MarkdownViewer text={text} />;
     };
 
+
+
     const getDropdownViewer: Function = (
         data: string,
         options: Array<DropdownOption>,
@@ -71,6 +73,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
     const getColorField: Function = (color: Color): ReactElement => {
         return <ColorViewer value={color} />;
+    };
+
+    const getUSDCentsField: Function = (usdCents: number): ReactElement => {
+        return <div>{usdCents/100} USD</div>;
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {
@@ -110,6 +116,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
         if (data && field.fieldType === FieldType.Color) {
             data = getColorField(data);
+        }
+
+        if (data && field.fieldType === FieldType.USDCents) {
+            data = getUSDCentsField(data);
         }
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {
@@ -278,3 +288,5 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 };
 
 export default Detail;
+
+

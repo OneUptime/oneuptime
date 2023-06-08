@@ -204,8 +204,8 @@ export default class SmsLog extends BaseModel {
     @TableColumn({
         required: false,
         type: TableColumnType.LongText,
-        title: 'Error Message',
-        description: 'Error Message (if any)',
+        title: 'Status Message',
+        description: 'Status Message (if any)',
         canReadOnPopulate: false,
     })
     @Column({
@@ -213,7 +213,7 @@ export default class SmsLog extends BaseModel {
         type: ColumnType.LongText,
         length: ColumnLength.LongText,
     })
-    public errorMessage?: string = undefined;
+    public statusMessage?: string = undefined;
 
     @ColumnAccessControl({
         create: [],

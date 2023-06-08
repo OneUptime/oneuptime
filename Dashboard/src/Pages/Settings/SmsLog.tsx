@@ -65,7 +65,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     }}
                     selectMoreFields={{
                         smsText: true,
-                        errorMessage: true,
+                        statusMessage: true,
                     }}
                     actionButtons={[
                         {
@@ -90,22 +90,15 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             title: 'View Error',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.Error,
-                            isVisible: (item: JSONObject) => {
-                                if (item['status'] === SmsStatus.Error) {
-                                    return true;
-                                }
-
-                                return false;
-                            },
                             onClick: async (
                                 item: JSONObject,
                                 onCompleteAction: Function
                             ) => {
-                                setSmsText(item['errorMessage'] as string);
+                                setSmsText(item['statusMessage'] as string);
                                 setSmsModalDescription(
-                                    'Here is more information about the error.'
+                                    'Here is more information about this message.'
                                 );
-                                setSmsModalTitle('Error');
+                                setSmsModalTitle('Status Message');
                                 setShowViewSmsTextModal(true);
 
                                 onCompleteAction();
@@ -135,15 +128,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                fromNumber: true,
-                            },
-                            isFilterable: true,
-
-                            title: 'From Number',
-                            type: FieldType.Phone,
-                        },
-                        {
-                            field: {
                                 toNumber: true,
                             },
                             isFilterable: true,
@@ -158,6 +142,13 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             title: 'Sent at',
                             type: FieldType.DateTime,
                             isFilterable: true,
+                        },
+                        {
+                            field: {
+                                smsCostInUSDCents: true,
+                            },
+                            title: 'SMS Cost',
+                            type: FieldType.USDCents,
                         },
                         {
                             field: {
