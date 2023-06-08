@@ -42,6 +42,7 @@ import AllMeteredPlans from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import AccessTokenService from './AccessTokenService';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import User from 'Model/Models/User';
+import NotificationService from './NotificationService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -113,6 +114,15 @@ export class Service extends DatabaseService<Model> {
         }
 
         return Promise.resolve({ createBy: data, carryForward: null });
+    }
+
+    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
+        
+        if(onUpdate.updateBy.data.autoRechargeSmsOrCallByBalanceInUSD && IsBillingEnabled) {
+            await NotificationService.rechargeIfBalanceIsLow(new ObjectID(onUpdate.updateBy.query._id! as string));
+        }
+
+        return onUpdate;
     }
 
     protected override async onBeforeUpdate(
