@@ -105,7 +105,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         return Promise.resolve(item);
                     }}
                     id="sso-table"
-                    name="Status Pages > Staus Page View > Project SSO"
+                    name="Status Pages > Status Page View > Project SSO"
                     isDeleteable={true}
                     isEditable={true}
                     isCreateable={true}
