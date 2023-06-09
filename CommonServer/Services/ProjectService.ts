@@ -189,7 +189,7 @@ export class Service extends DatabaseService<Model> {
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===
-                        updateBy.data.paymentProviderPlanId,
+                            updateBy.data.paymentProviderPlanId,
                         project.trialEndsAt
                     );
 
@@ -728,13 +728,17 @@ export class Service extends DatabaseService<Model> {
                 plan === PlanSelect.Free
                     ? false
                     : SubscriptionPlan.isUnpaid(
-                        project.paymentProviderSubscriptionStatus ||
-                        SubscriptionStatus.Active
-                    ),
+                          project.paymentProviderSubscriptionStatus ||
+                              SubscriptionStatus.Active
+                      ),
         };
     }
 
-    public async sendEmailToProjectOwners(projectId: ObjectID, subject: string, message: string): Promise<void> {
+    public async sendEmailToProjectOwners(
+        projectId: ObjectID,
+        subject: string,
+        message: string
+    ): Promise<void> {
         const owners: Array<User> = await this.getOwners(projectId);
 
         if (owners.length === 0) {
@@ -742,10 +746,10 @@ export class Service extends DatabaseService<Model> {
         }
 
         const emails: Array<Email> = owners.map((owner: User) => {
-            return owner.email!
+            return owner.email!;
         });
 
-        for(const email of emails) {
+        for (const email of emails) {
             MailService.sendMail({
                 toEmail: email,
                 templateType: EmailTemplateType.SimpleMessage,
@@ -759,6 +763,5 @@ export class Service extends DatabaseService<Model> {
             });
         }
     }
-
 }
 export default new Service();

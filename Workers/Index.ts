@@ -59,8 +59,6 @@ import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
 import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
 import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
 
-// Test Worker
-import './Jobs/Test';
 
 const APP_NAME: string = 'workers';
 

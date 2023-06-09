@@ -63,7 +63,7 @@ export default class SmsService {
                         enableSmsNotifications: true,
                         lowCallAndSMSBalanceNotificationSentToOwners: true,
                         name: true,
-                        notEnabledSmsNotificationSentToOwners: true
+                        notEnabledSmsNotificationSentToOwners: true,
                     },
                     props: {
                         isRoot: true,
@@ -95,15 +95,19 @@ export default class SmsService {
                     if (!project.notEnabledSmsNotificationSentToOwners) {
                         await ProjectService.updateOneById({
                             data: {
-                                notEnabledSmsNotificationSentToOwners:
-                                    true,
+                                notEnabledSmsNotificationSentToOwners: true,
                             },
                             id: project.id!,
                             props: {
                                 isRoot: true,
                             },
                         });
-                        await ProjectService.sendEmailToProjectOwners(project.id!, "SMS notifications not enabled for " + (project.name || ''), `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in project settings.`);
+                        await ProjectService.sendEmailToProjectOwners(
+                            project.id!,
+                            'SMS notifications not enabled for ' +
+                                (project.name || ''),
+                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in project settings.`
+                        );
                     }
                     return;
                 }
@@ -136,7 +140,14 @@ export default class SmsService {
                                 isRoot: true,
                             },
                         });
-                        await ProjectService.sendEmailToProjectOwners(project.id!, "Low SMS and Call Balance for " + (project.name || ''), `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents || 0} USD cents. Required balance to send this SMS should is ${SMSDefaultCostInCents} USD cents. Please enable auto recharge or recharge manually.`);
+                        await ProjectService.sendEmailToProjectOwners(
+                            project.id!,
+                            'Low SMS and Call Balance for ' +
+                                (project.name || ''),
+                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
+                                project.smsOrCallCurrentBalanceInUSDCents || 0
+                            } USD cents. Required balance to send this SMS should is ${SMSDefaultCostInCents} USD cents. Please enable auto recharge or recharge manually.`
+                        );
                     }
                     return;
                 }
@@ -164,7 +175,14 @@ export default class SmsService {
                                 isRoot: true,
                             },
                         });
-                        await ProjectService.sendEmailToProjectOwners(project.id!, "Low SMS and Call Balance for " + (project.name || ''), `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents} cents. Required balance is ${SMSDefaultCostInCents} cents to send this SMS. Please enable auto recharge or recharge manually.`);
+                        await ProjectService.sendEmailToProjectOwners(
+                            project.id!,
+                            'Low SMS and Call Balance for ' +
+                                (project.name || ''),
+                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
+                                project.smsOrCallCurrentBalanceInUSDCents
+                            } cents. Required balance is ${SMSDefaultCostInCents} cents to send this SMS. Please enable auto recharge or recharge manually.`
+                        );
                     }
                     return;
                 }
@@ -188,7 +206,7 @@ export default class SmsService {
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
                     project.smsOrCallCurrentBalanceInUSDCents! -
-                    SMSDefaultCostInCents
+                        SMSDefaultCostInCents
                 );
 
                 await ProjectService.updateOneById({

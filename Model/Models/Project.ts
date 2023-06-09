@@ -637,7 +637,6 @@ export default class Model extends TenantModel {
     })
     public enableAutoRechargeSmsOrCallBalance?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
@@ -648,8 +647,7 @@ export default class Model extends TenantModel {
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Low Call and SMS Balance Notification Sent to Owners',
-        description:
-            'Low Call and SMS Balance Notification Sent to Owners',
+        description: 'Low Call and SMS Balance Notification Sent to Owners',
     })
     @Column({
         nullable: false,
@@ -677,7 +675,6 @@ export default class Model extends TenantModel {
         type: ColumnType.Boolean,
     })
     public failedCallAndSMSBalanceChargeNotificationSentToOwners?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [],

@@ -29,7 +29,7 @@ export default class NotificationService {
                     autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
                     paymentProviderCustomerId: true,
                     name: true,
-                    failedCallAndSMSBalanceChargeNotificationSentToOwners: true
+                    failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
                 },
                 props: {
                     isRoot: true,
@@ -58,7 +58,9 @@ export default class NotificationService {
                     project.paymentProviderCustomerId!
                 ))
             ) {
-                if (!project.failedCallAndSMSBalanceChargeNotificationSentToOwners) {
+                if (
+                    !project.failedCallAndSMSBalanceChargeNotificationSentToOwners
+                ) {
                     await ProjectService.updateOneById({
                         data: {
                             failedCallAndSMSBalanceChargeNotificationSentToOwners:
@@ -69,7 +71,14 @@ export default class NotificationService {
                             isRoot: true,
                         },
                     });
-                    await ProjectService.sendEmailToProjectOwners(project.id!, "ACTION REQUIRED: SMS and Call Recharge Failed for project - " + (project.name || ''), `We have tried recharged your SMS and Call balance for project - ${project.name || ''} and failed. We could not find a payment method for the project. Please add a payment method in project settings.`);
+                    await ProjectService.sendEmailToProjectOwners(
+                        project.id!,
+                        'ACTION REQUIRED: SMS and Call Recharge Failed for project - ' +
+                            (project.name || ''),
+                        `We have tried recharged your SMS and Call balance for project - ${
+                            project.name || ''
+                        } and failed. We could not find a payment method for the project. Please add a payment method in project settings.`
+                    );
                 }
                 throw new BadDataException(
                     'No payment methods found for the project. Please add a payment method in project settings to continue.'
@@ -89,7 +98,7 @@ export default class NotificationService {
                         // recharge balance
                         const updatedAmount: number = Math.floor(
                             (project.smsOrCallCurrentBalanceInUSDCents || 0) +
-                            autoRechargeSmsOrCallByBalanceInUSD * 100
+                                autoRechargeSmsOrCallByBalanceInUSD * 100
                         );
 
                         // If the recharge is succcessful, then update the project balance.
@@ -103,9 +112,11 @@ export default class NotificationService {
                             data: {
                                 smsOrCallCurrentBalanceInUSDCents:
                                     updatedAmount,
-                                failedCallAndSMSBalanceChargeNotificationSentToOwners: false, // reset this flag
-                                lowCallAndSMSBalanceNotificationSentToOwners: false, // reset this flag
-                                notEnabledSmsNotificationSentToOwners: false
+                                failedCallAndSMSBalanceChargeNotificationSentToOwners:
+                                    false, // reset this flag
+                                lowCallAndSMSBalanceNotificationSentToOwners:
+                                    false, // reset this flag
+                                notEnabledSmsNotificationSentToOwners: false,
                             },
                             id: project.id!,
                             props: {
@@ -113,12 +124,19 @@ export default class NotificationService {
                             },
                         });
 
-                        await ProjectService.sendEmailToProjectOwners(project.id!, "SMS and Call Recharge Successful for project - " + (project.name || ''), `We have successfully recharged your SMS and Call balance for project - ${project.name || ''} by ${autoRechargeSmsOrCallByBalanceInUSD} USD. Your current balance is ${updatedAmount / 100} USD.`);
+                        await ProjectService.sendEmailToProjectOwners(
+                            project.id!,
+                            'SMS and Call Recharge Successful for project - ' +
+                                (project.name || ''),
+                            `We have successfully recharged your SMS and Call balance for project - ${
+                                project.name || ''
+                            } by ${autoRechargeSmsOrCallByBalanceInUSD} USD. Your current balance is ${
+                                updatedAmount / 100
+                            } USD.`
+                        );
 
                         project.smsOrCallCurrentBalanceInUSDCents =
                             updatedAmount;
-
-
                     } catch (err) {
                         await ProjectService.updateOneById({
                             data: {
@@ -130,7 +148,14 @@ export default class NotificationService {
                                 isRoot: true,
                             },
                         });
-                        await ProjectService.sendEmailToProjectOwners(project.id!, "ACTION REQUIRED: SMS and Call Recharge Failed for project - " + (project.name || ''), `We have tried recharged your SMS and Call balance for project - ${project.name || ''} and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in project settings.`);
+                        await ProjectService.sendEmailToProjectOwners(
+                            project.id!,
+                            'ACTION REQUIRED: SMS and Call Recharge Failed for project - ' +
+                                (project.name || ''),
+                            `We have tried recharged your SMS and Call balance for project - ${
+                                project.name || ''
+                            } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in project settings.`
+                        );
                         logger.error(err);
                     }
                 }
