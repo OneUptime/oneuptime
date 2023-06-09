@@ -59,7 +59,6 @@ import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
 import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
 import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
 
-
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();

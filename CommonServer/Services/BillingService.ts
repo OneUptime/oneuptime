@@ -543,7 +543,9 @@ export class BillingService {
     public static async voidInvoice(
         invoiceId: string
     ): Promise<Stripe.Invoice> {
-        const invoice: Stripe.Invoice = await this.stripe.invoices.voidInvoice(invoiceId);
+        const invoice: Stripe.Invoice = await this.stripe.invoices.voidInvoice(
+            invoiceId
+        );
 
         return invoice;
     }
