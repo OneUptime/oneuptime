@@ -360,7 +360,7 @@ RunCron(
                 },
             });
 
-        const stausPageDomains: Array<StatusPageDomain> =
+        const statusPageDomains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
                 query: {
                     isSelfSignedSslGenerated: false,
@@ -384,7 +384,7 @@ RunCron(
         );
 
         // Generate self signed certs
-        for (const domain of stausPageDomains) {
+        for (const domain of statusPageDomains) {
             if (greenlockCertDomains.includes(domain.fullDomain)) {
                 continue;
             }

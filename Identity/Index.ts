@@ -20,7 +20,7 @@ app.use([`/${APP_NAME}`, '/'], SsoAPI);
 app.use([`/${APP_NAME}`, '/'], StatusPageSsoAPI);
 
 app.use(
-    [`/${APP_NAME}/status-page`, '/staus-page'],
+    [`/${APP_NAME}/status-page`, '/status-page'],
     StatusPageAuthenticationAPI
 );
 

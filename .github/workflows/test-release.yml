@@ -79,7 +79,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workers:$ONEUPTIME_VERSION-test --tag oneuptime/workers:test --push -f ./Workers/Dockerfile .
 
-  staus-page-test-docker-image-deploy:
+  status-page-test-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
     env:
