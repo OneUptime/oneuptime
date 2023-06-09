@@ -154,7 +154,7 @@ const init: Function = async (
             if (err instanceof Promise) {
                 err.catch((exception: Exception) => {
                     if (
-                        StatusCode.isValidStausCode(
+                        StatusCode.isValidStatusCode(
                             (exception as Exception).code
                         )
                     ) {

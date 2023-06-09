@@ -120,7 +120,7 @@ export const IdentityRoute: Route = new Route(
 
 export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '/file');
 
-export const StausPageRoute: Route = new Route(
+export const StatusPageRoute: Route = new Route(
     process.env['STATUS_PAGE_ROUTE'] || '/status-page'
 );
 

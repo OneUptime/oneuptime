@@ -31,7 +31,7 @@ import './Jobs/ScheduledMaintenanceStateTimeline/SendEmailToSubscribers';
 import './Jobs/ScheduledMaintenancePublicNote/SendEmailToSubscribers';
 
 // Certs Routers
-import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
+import StatusPageCerts from './Jobs/StatusPageCerts/StatusPageCerts';
 
 // Express
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
@@ -64,7 +64,7 @@ const APP_NAME: string = 'workers';
 const app: ExpressApplication = Express.getExpressApp();
 
 //cert routes.
-app.use(`/${APP_NAME.toLocaleLowerCase()}`, StausPageCerts);
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, StatusPageCerts);
 
 const init: Function = async (): Promise<void> => {
     try {

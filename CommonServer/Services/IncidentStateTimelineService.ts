@@ -97,15 +97,15 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
                 if (resolvedMonitorState) {
                     for (const monitor of incident.monitors) {
-                        const monitorStausTimeline: MonitorStatusTimeline =
+                        const monitorStatusTimeline: MonitorStatusTimeline =
                             new MonitorStatusTimeline();
-                        monitorStausTimeline.monitorId = monitor.id!;
-                        monitorStausTimeline.projectId = incident.projectId!;
-                        monitorStausTimeline.monitorStatusId =
+                        monitorStatusTimeline.monitorId = monitor.id!;
+                        monitorStatusTimeline.projectId = incident.projectId!;
+                        monitorStatusTimeline.monitorStatusId =
                             resolvedMonitorState.id!;
 
                         await MonitorStatusTimelineService.create({
-                            data: monitorStausTimeline,
+                            data: monitorStatusTimeline,
                             props: {
                                 isRoot: true,
                             },

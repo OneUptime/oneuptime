@@ -24,7 +24,7 @@ export default class StatusCode {
         return this.statusCode.toNumber();
     }
 
-    public static isValidStausCode(statusCode: number | string): boolean {
+    public static isValidStatusCode(statusCode: number | string): boolean {
         try {
             if (typeof statusCode === Typeof.String) {
                 statusCode = parseInt(statusCode as string);

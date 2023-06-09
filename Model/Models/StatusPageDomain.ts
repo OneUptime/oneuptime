@@ -61,8 +61,8 @@ import { JSONObject } from 'Common/Types/JSON';
 @CrudApiEndpoint(new Route('/status-page-domain'))
 @TableMetadata({
     tableName: 'StatusPageDomain',
-    singularName: 'Staus Page Domain',
-    pluralName: 'Staus Page Domains',
+    singularName: 'Status Page Domain',
+    pluralName: 'Status Page Domains',
     icon: IconProp.Globe,
     tableDescription: 'Manage custom domains for your status page',
 })

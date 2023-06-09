@@ -105,16 +105,16 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
                 if (resolvedMonitorState) {
                     for (const monitor of scheduledMaintenanceService.monitors) {
-                        const monitorStausTimeline: MonitorStatusTimeline =
+                        const monitorStatusTimeline: MonitorStatusTimeline =
                             new MonitorStatusTimeline();
-                        monitorStausTimeline.monitorId = monitor.id!;
-                        monitorStausTimeline.projectId =
+                        monitorStatusTimeline.monitorId = monitor.id!;
+                        monitorStatusTimeline.projectId =
                             scheduledMaintenanceService.projectId!;
-                        monitorStausTimeline.monitorStatusId =
+                        monitorStatusTimeline.monitorStatusId =
                             resolvedMonitorState.id!;
 
                         await MonitorStatusTimelineService.create({
-                            data: monitorStausTimeline,
+                            data: monitorStatusTimeline,
                             props: {
                                 isRoot: true,
                             },

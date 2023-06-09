@@ -3,7 +3,7 @@ import Page, {
     ComponentProps as PageComponentProps,
 } from 'CommonUI/src/Components/Page/Page';
 
-const StausPagePage: FunctionComponent<PageComponentProps> = (
+const StatusPagePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -14,4 +14,4 @@ const StausPagePage: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default StausPagePage;
+export default StatusPagePage;

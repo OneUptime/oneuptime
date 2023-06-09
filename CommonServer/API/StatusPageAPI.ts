@@ -602,19 +602,19 @@ export default class StatusPageAPI extends BaseAPI<
                         });
                     }
 
-                    const incidentsOnStausPage: Array<ObjectID> =
+                    const incidentsOnStatusPage: Array<ObjectID> =
                         activeIncidents.map((incident: Incident) => {
                             return incident.id!;
                         });
 
                     let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
-                    if (incidentsOnStausPage.length > 0) {
+                    if (incidentsOnStatusPage.length > 0) {
                         incidentPublicNotes =
                             await IncidentPublicNoteService.findBy({
                                 query: {
                                     incidentId:
-                                        QueryHelper.in(incidentsOnStausPage),
+                                        QueryHelper.in(incidentsOnStatusPage),
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
@@ -635,12 +635,12 @@ export default class StatusPageAPI extends BaseAPI<
                     let incidentStateTimelines: Array<IncidentStateTimeline> =
                         [];
 
-                    if (incidentsOnStausPage.length > 0) {
+                    if (incidentsOnStatusPage.length > 0) {
                         incidentStateTimelines =
                             await IncidentStateTimelineService.findBy({
                                 query: {
                                     incidentId:
-                                        QueryHelper.in(incidentsOnStausPage),
+                                        QueryHelper.in(incidentsOnStatusPage),
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
@@ -783,7 +783,7 @@ export default class StatusPageAPI extends BaseAPI<
                         }
                     );
 
-                    const scheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
+                    const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
                         scheduledMaintenanceEvents.map(
                             (event: ScheduledMaintenance) => {
                                 return event.id!;
@@ -793,12 +793,12 @@ export default class StatusPageAPI extends BaseAPI<
                     let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                         [];
 
-                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+                    if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
                         scheduledMaintenanceEventsPublicNotes =
                             await ScheduledMaintenancePublicNoteService.findBy({
                                 query: {
                                     scheduledMaintenanceId: QueryHelper.in(
-                                        scheduledMaintenanceEventsOnStausPage
+                                        scheduledMaintenanceEventsOnStatusPage
                                     ),
                                     projectId: statusPage.projectId!,
                                 },
@@ -820,13 +820,13 @@ export default class StatusPageAPI extends BaseAPI<
                     let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                         [];
 
-                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+                    if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
                         scheduledMaintenanceStateTimelines =
                             await ScheduledMaintenanceStateTimelineService.findBy(
                                 {
                                     query: {
                                         scheduledMaintenanceId: QueryHelper.in(
-                                            scheduledMaintenanceEventsOnStausPage
+                                            scheduledMaintenanceEventsOnStatusPage
                                         ),
                                         projectId: statusPage.projectId!,
                                     },
@@ -1338,7 +1338,7 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
-        const scheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
+        const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
             scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
                 return event.id!;
             });
@@ -1346,12 +1346,12 @@ export default class StatusPageAPI extends BaseAPI<
         let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
             [];
 
-        if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+        if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
             scheduledMaintenanceEventsPublicNotes =
                 await ScheduledMaintenancePublicNoteService.findBy({
                     query: {
                         scheduledMaintenanceId: QueryHelper.in(
-                            scheduledMaintenanceEventsOnStausPage
+                            scheduledMaintenanceEventsOnStatusPage
                         ),
                         projectId: statusPage.projectId!,
                     },
@@ -1373,12 +1373,12 @@ export default class StatusPageAPI extends BaseAPI<
         let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
             [];
 
-        if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+        if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
             scheduledMaintenanceStateTimelines =
                 await ScheduledMaintenanceStateTimelineService.findBy({
                     query: {
                         scheduledMaintenanceId: QueryHelper.in(
-                            scheduledMaintenanceEventsOnStausPage
+                            scheduledMaintenanceEventsOnStatusPage
                         ),
                         projectId: statusPage.projectId!,
                     },
@@ -1703,7 +1703,7 @@ export default class StatusPageAPI extends BaseAPI<
             incidents = ArrayUtil.distinctByFieldName(incidents, '_id');
         }
 
-        const incidentsOnStausPage: Array<ObjectID> = incidents.map(
+        const incidentsOnStatusPage: Array<ObjectID> = incidents.map(
             (incident: Incident) => {
                 return incident.id!;
             }
@@ -1711,10 +1711,10 @@ export default class StatusPageAPI extends BaseAPI<
 
         let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
-        if (incidentsOnStausPage.length > 0) {
+        if (incidentsOnStatusPage.length > 0) {
             incidentPublicNotes = await IncidentPublicNoteService.findBy({
                 query: {
-                    incidentId: QueryHelper.in(incidentsOnStausPage),
+                    incidentId: QueryHelper.in(incidentsOnStatusPage),
                     projectId: statusPage.projectId!,
                 },
                 select: {
@@ -1734,10 +1734,10 @@ export default class StatusPageAPI extends BaseAPI<
 
         let incidentStateTimelines: Array<IncidentStateTimeline> = [];
 
-        if (incidentsOnStausPage.length > 0) {
+        if (incidentsOnStatusPage.length > 0) {
             incidentStateTimelines = await IncidentStateTimelineService.findBy({
                 query: {
-                    incidentId: QueryHelper.in(incidentsOnStausPage),
+                    incidentId: QueryHelper.in(incidentsOnStatusPage),
                     projectId: statusPage.projectId!,
                 },
                 select: {
