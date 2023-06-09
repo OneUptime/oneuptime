@@ -43,7 +43,9 @@ export default class NotificationService {
                 project?.autoRechargeSmsOrCallByBalanceInUSD ||
                 0;
 
-            const enableAutoRechargeSmsOrCallBalance: boolean = options ? options.enableAutoRechargeSmsOrCallBalance : project?.enableAutoRechargeSmsOrCallBalance || false;
+            const enableAutoRechargeSmsOrCallBalance: boolean = options
+                ? options.enableAutoRechargeSmsOrCallBalance
+                : project?.enableAutoRechargeSmsOrCallBalance || false;
 
             if (!project) {
                 return 0;
@@ -65,8 +67,8 @@ export default class NotificationService {
                 autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
             ) {
                 if (
-                    ((project.smsOrCallCurrentBalanceInUSDCents || 0)/100) <
-                        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
+                    (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100 <
+                    autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
                 ) {
                     try {
                         // recharge balance

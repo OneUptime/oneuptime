@@ -102,6 +102,17 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 column.noValueMessage || ''
                                             )
                                         ) : column.type ===
+                                          FieldType.USDCents ? (
+                                            props.item[column.key] ? (
+                                                ((props.item[
+                                                    column.key
+                                                ] as number) || 0) /
+                                                    100 +
+                                                ' USD'
+                                            ) : (
+                                                column.noValueMessage || '0 USD'
+                                            )
+                                        ) : column.type ===
                                           FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon

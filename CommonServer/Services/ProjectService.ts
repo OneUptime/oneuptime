@@ -129,7 +129,8 @@ export class Service extends DatabaseService<Model> {
                         autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD:
                             updateBy.data
                                 .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-                        enableAutoRechargeSmsOrCallBalance: updateBy.data.enableAutoRechargeSmsOrCallBalance as boolean,
+                        enableAutoRechargeSmsOrCallBalance: updateBy.data
+                            .enableAutoRechargeSmsOrCallBalance as boolean,
                     }
                 );
             }
@@ -184,7 +185,7 @@ export class Service extends DatabaseService<Model> {
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===
-                        updateBy.data.paymentProviderPlanId,
+                            updateBy.data.paymentProviderPlanId,
                         project.trialEndsAt
                     );
 
@@ -723,9 +724,9 @@ export class Service extends DatabaseService<Model> {
                 plan === PlanSelect.Free
                     ? false
                     : SubscriptionPlan.isUnpaid(
-                        project.paymentProviderSubscriptionStatus ||
-                        SubscriptionStatus.Active
-                    ),
+                          project.paymentProviderSubscriptionStatus ||
+                              SubscriptionStatus.Active
+                      ),
         };
     }
 }

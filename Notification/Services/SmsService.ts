@@ -42,8 +42,9 @@ export default class SmsService {
 
         const smsLog: SmsLog = new SmsLog();
         smsLog.toNumber = to;
-        smsLog.fromNumber = options.from;
+        smsLog.fromNumber = options.from || new Phone(TwilioPhoneNumber);
         smsLog.smsText = message;
+        smsLog.smsCostInUSDCents = 0;
 
         if (options.projectId) {
             smsLog.projectId = options.projectId;

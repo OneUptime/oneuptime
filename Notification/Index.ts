@@ -9,7 +9,6 @@ import SmsAPI from './API/SMS';
 import SMTPConfigAPI from './API/SMTPConfig';
 import logger from 'CommonServer/Utils/Logger';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
-
 // import handlebars loader.
 import './Utils/Handlebars';
 

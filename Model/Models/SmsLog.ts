@@ -139,6 +139,7 @@ export default class SmsLog extends BaseModel {
         nullable: false,
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
+        transformer: Phone.getDatabaseTransformer(),
     })
     public toNumber?: Phone = undefined;
 
@@ -164,6 +165,7 @@ export default class SmsLog extends BaseModel {
         nullable: false,
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
+        transformer: Phone.getDatabaseTransformer(),
     })
     public fromNumber?: Phone = undefined;
 
@@ -255,9 +257,11 @@ export default class SmsLog extends BaseModel {
         title: 'SMS Cost',
         description: 'SMS Cost in USD Cents',
         canReadOnPopulate: false,
+        isDefaultValueColumn: true,
     })
     @Column({
         nullable: false,
+        default: 0,
         type: ColumnType.Number,
     })
     public smsCostInUSDCents?: number = undefined;

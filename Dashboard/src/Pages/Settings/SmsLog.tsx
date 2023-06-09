@@ -10,7 +10,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import DashboardSideMenu from './SideMenu';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -19,6 +18,7 @@ import { Green, Red } from 'Common/Types/BrandColors';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -27,7 +27,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
         useState<boolean>(false);
     const [smsText, setSmsText] = useState<string>('');
     const [smsModelTitle, setSmsModalTitle] = useState<string>('');
-    const [smsModelDescription, setSmsModalDescription] = useState<string>('');
 
     const modelTableColumns: Columns<SmsLog> = [
         {
@@ -144,9 +143,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                 onCompleteAction: Function
                             ) => {
                                 setSmsText(item['smsText'] as string);
-                                setSmsModalDescription(
-                                    'Contents of the SMS message'
-                                );
+
                                 setSmsModalTitle('SMS Text');
                                 setShowViewSmsTextModal(true);
 
@@ -154,7 +151,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
-                            title: 'View Error',
+                            title: 'View Status Message',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.Error,
                             onClick: async (
@@ -162,9 +159,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                 onCompleteAction: Function
                             ) => {
                                 setSmsText(item['statusMessage'] as string);
-                                setSmsModalDescription(
-                                    'Here is more information about this message.'
-                                );
+
                                 setSmsModalTitle('Status Message');
                                 setShowViewSmsTextModal(true);
 
@@ -188,21 +183,15 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                 />
 
                 {showViewSmsTextModal && (
-                    <Modal
+                    <ConfirmModal
                         title={smsModelTitle}
-                        description={smsModelDescription}
-                        isLoading={false}
-                        modalWidth={ModalWidth.Large}
+                        description={smsText}
                         onSubmit={() => {
                             setShowViewSmsTextModal(false);
                         }}
-                        submitButtonText={'Close'}
-                        submitButtonStyleType={ButtonStyleType.NORMAL}
-                    >
-                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                            <div>{smsText}</div>;
-                        </div>
-                    </Modal>
+                        submitButtonText="Close"
+                        submitButtonType={ButtonStyleType.NORMAL}
+                    />
                 )}
             </>
         </Page>

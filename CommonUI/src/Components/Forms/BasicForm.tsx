@@ -272,8 +272,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                     if (field.fieldType === FormFieldSchemaType.Dropdown) {
                         const fieldName: string = field.name!;
-                        if ((values as any)[fieldName] && (values as any)[fieldName]['value']) {
-                            (values as any)[fieldName] = (values as any)[fieldName]['value'];
+                        if (
+                            (values as any)[fieldName] &&
+                            (values as any)[fieldName]['value']
+                        ) {
+                            (values as any)[fieldName] = (values as any)[
+                                fieldName
+                            ]['value'];
                         }
                     }
 
