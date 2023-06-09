@@ -902,7 +902,7 @@ export default class ModelPermission {
             if (!canReadOnTheseColumns.columns.includes(key)) {
                 if (!tableColumns.includes(key)) {
                     throw new BadDataException(
-                        `Cannnot select on ${key}. This column does not exist on ${model.singularName}`
+                        `Cannot select on ${key}. This column does not exist on ${model.singularName}`
                     );
                 }
 
