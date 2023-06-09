@@ -21,11 +21,13 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
-    const [showRechargeBalanceModal, setShowRechargeBalanceModal] = useState<boolean>(false);
-    const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] = useState<boolean>(false);
-    const [rechargeBalanceError, setRechargeBalanceError] = useState<string | null>(null);
+    const [showRechargeBalanceModal, setShowRechargeBalanceModal] =
+        useState<boolean>(false);
+    const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] =
+        useState<boolean>(false);
+    const [rechargeBalanceError, setRechargeBalanceError] = useState<
+        string | null
+    >(null);
 
     return (
         <Page
@@ -67,9 +69,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 icon: IconProp.Add,
                                 onClick: () => {
                                     setShowRechargeBalanceModal(true);
-                                }
-                            }
-                        ]
+                                },
+                            },
+                        ],
                     }}
                     isEditable={false}
                     modelDetailProps={{
@@ -322,8 +324,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 <></>
             )}
 
-
-            {showRechargeBalanceModal ?
+            {showRechargeBalanceModal ? (
                 <BasicFormModal
                     title={'Recharge Balance'}
                     onClose={() => {
@@ -335,10 +336,16 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     onSubmit={async (item: JSONObject) => {
                         setIsRechargeBalanceLoading(true);
                         try {
-                            await API.post(URL.fromString(DASHBOARD_API_URL.toString()).addRoute("/notification/recharge"), {
-                                amount: item['amount'],
-                                projectId: DashboardNavigation.getProjectId()?.toString(),
-                            });
+                            await API.post(
+                                URL.fromString(
+                                    DASHBOARD_API_URL.toString()
+                                ).addRoute('/notification/recharge'),
+                                {
+                                    amount: item['amount'],
+                                    projectId:
+                                        DashboardNavigation.getProjectId()?.toString(),
+                                }
+                            );
                             setIsRechargeBalanceLoading(false);
                             setShowRechargeBalanceModal(false);
                             Navigation.reload();
@@ -346,10 +353,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             setRechargeBalanceError(API.getFriendlyMessage(e));
                             setIsRechargeBalanceLoading(false);
                         }
-
                     }}
                     formProps={{
-
                         error: rechargeBalanceError || '',
                         fields: [
                             {
@@ -366,11 +371,12 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 },
                                 fieldType: FormFieldSchemaType.PositveNumber,
                             },
-
                         ],
                     }}
-                /> : <></>}
-
+                />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

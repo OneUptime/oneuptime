@@ -7,8 +7,10 @@ import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class NotificationService {
-
-    public static async rechargeBalance(projectId: ObjectID, amountInUSD: number): Promise<number> {
+    public static async rechargeBalance(
+        projectId: ObjectID,
+        amountInUSD: number
+    ): Promise<number> {
         const project: Project | null = await ProjectService.findOneById({
             id: projectId,
             select: {
@@ -52,8 +54,9 @@ export default class NotificationService {
                     await ProjectService.sendEmailToProjectOwners(
                         project.id!,
                         'ACTION REQUIRED: SMS and Call Recharge Failed for project - ' +
-                        (project.name || ''),
-                        `We have tried to recharge your SMS and Call balance for project - ${project.name || ''
+                            (project.name || ''),
+                        `We have tried to recharge your SMS and Call balance for project - ${
+                            project.name || ''
                         } and failed. We could not find a payment method for the project. Please add a payment method in project settings.`
                     );
                 }
@@ -62,11 +65,10 @@ export default class NotificationService {
                 );
             }
 
-
             // recharge balance
             const updatedAmount: number = Math.floor(
                 (project.smsOrCallCurrentBalanceInUSDCents || 0) +
-                amountInUSD * 100
+                    amountInUSD * 100
             );
 
             // If the recharge is succcessful, then update the project balance.
@@ -78,12 +80,10 @@ export default class NotificationService {
 
             await ProjectService.updateOneById({
                 data: {
-                    smsOrCallCurrentBalanceInUSDCents:
-                        updatedAmount,
+                    smsOrCallCurrentBalanceInUSDCents: updatedAmount,
                     failedCallAndSMSBalanceChargeNotificationSentToOwners:
                         false, // reset this flag
-                    lowCallAndSMSBalanceNotificationSentToOwners:
-                        false, // reset this flag
+                    lowCallAndSMSBalanceNotificationSentToOwners: false, // reset this flag
                     notEnabledSmsNotificationSentToOwners: false,
                 },
                 id: project.id!,
@@ -95,21 +95,21 @@ export default class NotificationService {
             await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 'SMS and Call Recharge Successful for project - ' +
-                (project.name || ''),
-                `We have successfully recharged your SMS and Call balance for project - ${project.name || ''
-                } by ${amountInUSD} USD. Your current balance is ${updatedAmount / 100
+                    (project.name || ''),
+                `We have successfully recharged your SMS and Call balance for project - ${
+                    project.name || ''
+                } by ${amountInUSD} USD. Your current balance is ${
+                    updatedAmount / 100
                 } USD.`
             );
 
-            project.smsOrCallCurrentBalanceInUSDCents =
-                updatedAmount;
+            project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
 
             return updatedAmount;
         } catch (err) {
             await ProjectService.updateOneById({
                 data: {
-                    failedCallAndSMSBalanceChargeNotificationSentToOwners:
-                        true,
+                    failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
                 },
                 id: project.id!,
                 props: {
@@ -119,8 +119,9 @@ export default class NotificationService {
             await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 'ACTION REQUIRED: SMS and Call Recharge Failed for project - ' +
-                (project.name || ''),
-                `We have tried recharged your SMS and Call balance for project - ${project.name || ''
+                    (project.name || ''),
+                `We have tried recharged your SMS and Call balance for project - ${
+                    project.name || ''
                 } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in project settings.`
             );
             logger.error(err);
@@ -166,7 +167,6 @@ export default class NotificationService {
                 ? options.enableAutoRechargeSmsOrCallBalance
                 : project?.enableAutoRechargeSmsOrCallBalance || false;
 
-
             if (!project) {
                 return 0;
             }
@@ -180,11 +180,11 @@ export default class NotificationService {
                     (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100 <
                     autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
                 ) {
-
-                    const updatedAmount: number = await this.rechargeBalance(projectId, autoRechargeSmsOrCallByBalanceInUSD);
-                    project.smsOrCallCurrentBalanceInUSDCents =
-                        updatedAmount;
-
+                    const updatedAmount: number = await this.rechargeBalance(
+                        projectId,
+                        autoRechargeSmsOrCallByBalanceInUSD
+                    );
+                    project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
                 }
             }
         }
