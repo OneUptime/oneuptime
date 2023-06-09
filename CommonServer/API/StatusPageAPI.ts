@@ -613,8 +613,9 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentPublicNotes =
                             await IncidentPublicNoteService.findBy({
                                 query: {
-                                    incidentId:
-                                        QueryHelper.in(incidentsOnStatusPage),
+                                    incidentId: QueryHelper.in(
+                                        incidentsOnStatusPage
+                                    ),
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
@@ -639,8 +640,9 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentStateTimelines =
                             await IncidentStateTimelineService.findBy({
                                 query: {
-                                    incidentId:
-                                        QueryHelper.in(incidentsOnStatusPage),
+                                    incidentId: QueryHelper.in(
+                                        incidentsOnStatusPage
+                                    ),
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
