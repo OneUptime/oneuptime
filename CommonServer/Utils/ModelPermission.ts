@@ -902,7 +902,11 @@ export default class ModelPermission {
             if (!canReadOnTheseColumns.columns.includes(key)) {
                 if (!tableColumns.includes(key)) {
                     throw new BadDataException(
-                        `Invalid select clause. Cannnot select on "${key}". This column does not exist on ${model.singularName}. Here are the columns you can select on: ${tableColumns.join(", ")}`
+                        `Invalid select clause. Cannnot select on "${key}". This column does not exist on ${
+                            model.singularName
+                        }. Here are the columns you can select on: ${tableColumns.join(
+                            ', '
+                        )}`
                     );
                 }
 
