@@ -31,6 +31,7 @@ enum EmailTemplateType {
     StatusPageOwnerResourceCreated = 'StatusPageOwnerResourceCreated.hbs',
     StatusPageOwnerAdded = 'StatusPageOwnerAdded.hbs',
     StatusPageOwnerAnnouncementPosted = 'StatusPageOwnerAnnouncementPosted.hbs',
+    SimpleMessage = 'SimpleMessage.hbs',
 }
 
 export default EmailTemplateType;

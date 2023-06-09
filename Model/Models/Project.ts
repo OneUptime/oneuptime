@@ -636,4 +636,66 @@ export default class Model extends TenantModel {
         type: ColumnType.Boolean,
     })
     public enableAutoRechargeSmsOrCallBalance?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Low Call and SMS Balance Notification Sent to Owners',
+        description:
+            'Low Call and SMS Balance Notification Sent to Owners',
+    })
+    @Column({
+        nullable: false,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public lowCallAndSMSBalanceNotificationSentToOwners?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Failed Call and SMS Balance Charge Notification Sent to Owners',
+        description:
+            'Failed Call and SMS Balance Charge Notification Sent to Owners',
+    })
+    @Column({
+        nullable: false,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public failedCallAndSMSBalanceChargeNotificationSentToOwners?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Failed Call and SMS Balance Charge Notification Sent to Owners',
+        description:
+            'Failed Call and SMS Balance Charge Notification Sent to Owners',
+    })
+    @Column({
+        nullable: false,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public notEnabledSmsNotificationSentToOwners?: boolean = undefined;
 }

@@ -531,7 +531,21 @@ export class BillingService {
 
         await this.stripe.invoices.finalizeInvoice(invoice.id!);
 
-        await this.payInvoice(customerId, invoice.id!);
+        try {
+            await this.payInvoice(customerId, invoice.id!);
+        } catch (err) {
+            // mark invoice as failed and do not collect payment. 
+            await this.voidInvoice(invoice.id!);
+            throw err;
+        }
+    }
+
+    public static async voidInvoice(invoiceId: string): Promise<Stripe.Invoice> {
+        const invoice = await this.stripe.invoices.voidInvoice(
+            invoiceId
+        );
+
+        return invoice;
     }
 
     public static async payInvoice(

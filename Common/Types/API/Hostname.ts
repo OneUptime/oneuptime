@@ -23,7 +23,7 @@ export default class Hostname extends DatabaseProperty {
         if (Hostname.isValid(value)) {
             this._route = value;
         } else {
-            throw new BadDataException('Hostname is not in valid format.');
+            throw new BadDataException('Hostname '+value+' is not in valid format.');
         }
     }
 

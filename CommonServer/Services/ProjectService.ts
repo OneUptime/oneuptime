@@ -43,6 +43,10 @@ import AccessTokenService from './AccessTokenService';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import User from 'Model/Models/User';
 import NotificationService from './NotificationService';
+import MailService from './MailService';
+import logger from '../Utils/Logger';
+import Email from 'Common/Types/Email';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -185,7 +189,7 @@ export class Service extends DatabaseService<Model> {
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===
-                            updateBy.data.paymentProviderPlanId,
+                        updateBy.data.paymentProviderPlanId,
                         project.trialEndsAt
                     );
 
@@ -724,10 +728,37 @@ export class Service extends DatabaseService<Model> {
                 plan === PlanSelect.Free
                     ? false
                     : SubscriptionPlan.isUnpaid(
-                          project.paymentProviderSubscriptionStatus ||
-                              SubscriptionStatus.Active
-                      ),
+                        project.paymentProviderSubscriptionStatus ||
+                        SubscriptionStatus.Active
+                    ),
         };
     }
+
+    public async sendEmailToProjectOwners(projectId: ObjectID, subject: string, message: string): Promise<void> {
+        const owners: Array<User> = await this.getOwners(projectId);
+
+        if (owners.length === 0) {
+            return;
+        }
+
+        const emails: Array<Email> = owners.map((owner: User) => {
+            return owner.email!
+        });
+
+        for(const email of emails) {
+            MailService.sendMail({
+                toEmail: email,
+                templateType: EmailTemplateType.SimpleMessage,
+                vars: {
+                    subject: subject,
+                    message: message,
+                },
+                subject: subject,
+            }).catch((err: Error) => {
+                logger.error(err);
+            });
+        }
+    }
+
 }
 export default new Service();
