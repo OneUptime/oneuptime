@@ -17,6 +17,8 @@ import { JSONObject } from 'Common/Types/JSON';
 import API from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -69,6 +71,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 icon: IconProp.Add,
                                 onClick: () => {
                                     setShowRechargeBalanceModal(true);
+                                    setRechargeBalanceError(null);
+                                    setIsRechargeBalanceLoading(false);
                                 },
                             },
                         ],
@@ -336,7 +340,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     onSubmit={async (item: JSONObject) => {
                         setIsRechargeBalanceLoading(true);
                         try {
-                            await API.post(
+                            const response:
+                                | HTTPResponse<JSONObject>
+                                | HTTPErrorResponse = await API.post(
                                 URL.fromString(
                                     DASHBOARD_API_URL.toString()
                                 ).addRoute('/notification/recharge'),
@@ -346,9 +352,17 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                         DashboardNavigation.getProjectId()?.toString(),
                                 }
                             );
-                            setIsRechargeBalanceLoading(false);
-                            setShowRechargeBalanceModal(false);
-                            Navigation.reload();
+
+                            if (response.isFailure()) {
+                                setRechargeBalanceError(
+                                    API.getFriendlyMessage(response)
+                                );
+                                setIsRechargeBalanceLoading(false);
+                            } else {
+                                setIsRechargeBalanceLoading(false);
+                                setShowRechargeBalanceModal(false);
+                                Navigation.reload();
+                            }
                         } catch (e) {
                             setRechargeBalanceError(API.getFriendlyMessage(e));
                             setIsRechargeBalanceLoading(false);
@@ -369,7 +383,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     minValue: 20,
                                     maxValue: 1000,
                                 },
-                                fieldType: FormFieldSchemaType.PositveNumber,
+                                fieldType: FormFieldSchemaType.Number,
                             },
                         ],
                     }}

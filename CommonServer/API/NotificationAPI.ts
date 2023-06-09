@@ -12,6 +12,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Permission, { UserPermission } from 'Common/Types/Permission';
 import Exception from 'Common/Types/Exception/Exception';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -20,7 +21,19 @@ router.post(
     UserMiddleware.getUserMiddleware,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const amount: number = req.body.amount;
+            let amount: number | PositiveNumber =
+                JSONFunctions.deserializeValue(req.body.amount) as
+                    | number
+                    | PositiveNumber;
+
+            if (amount instanceof PositiveNumber) {
+                amount = amount.toNumber();
+            }
+
+            if (typeof amount === 'string') {
+                amount = parseInt(amount);
+            }
+
             const projectId: ObjectID = JSONFunctions.deserializeValue(
                 req.body.projectId
             ) as ObjectID;
@@ -97,6 +110,8 @@ router.post(
         } catch (err: any) {
             return Response.sendErrorResponse(req, res, err as Exception);
         }
+
+        return Response.sendEmptyResponse(req, res);
     }
 );
 
