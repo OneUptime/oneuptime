@@ -79,6 +79,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
     private model!: TBaseModel;
     private modelName!: string;
 
+    private _hardDeleteItemByColumnName: string = '';
+    public get hardDeleteItemByColumnName(): string {
+        return this._hardDeleteItemByColumnName;
+    }
+    public set hardDeleteItemByColumnName(v: string) {
+        this._hardDeleteItemByColumnName = v;
+    }
+
+    private _hardDeleteItemsOlderThanDays: number = 0;
+    public get hardDeleteItemsOlderThanDays(): number {
+        return this._hardDeleteItemsOlderThanDays;
+    }
+    public set hardDeleteItemsOlderThanDays(v: number) {
+        this._hardDeleteItemsOlderThanDays = v;
+    }
+
     public constructor(
         modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
@@ -90,6 +106,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
+    }
+
+    public hardDeleteItemsOlderThanInDays(
+        columnName: string,
+        olderThan: number
+    ): void {
+        this.hardDeleteItemByColumnName = columnName;
+        this.hardDeleteItemsOlderThanDays = olderThan;
     }
 
     public getModel(): TBaseModel {

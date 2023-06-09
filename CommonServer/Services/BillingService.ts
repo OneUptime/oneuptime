@@ -346,6 +346,16 @@ export class BillingService {
         await this.stripe.paymentMethods.detach(paymentMethodId);
     }
 
+    public static async hasPaymentMethods(
+        customerId: string
+    ): Promise<boolean> {
+        if ((await this.getPaymentMethods(customerId)).length > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static async getPaymentMethods(
         customerId: string
     ): Promise<Array<PaymentMethod>> {
@@ -495,6 +505,33 @@ export class BillingService {
                 customerId: invoice.customer?.toString() || '',
             };
         });
+    }
+
+    public static async genrateInvoiceAndChargeCustomer(
+        customerId: string,
+        itemText: string,
+        amountInUsd: number
+    ): Promise<void> {
+        const invoice: Stripe.Invoice = await this.stripe.invoices.create({
+            customer: customerId,
+            auto_advance: true, // do not automatically charge.
+            collection_method: 'charge_automatically',
+        });
+
+        if (!invoice || !invoice.id) {
+            throw new APIException('Invoice not generated.');
+        }
+
+        await this.stripe.invoiceItems.create({
+            invoice: invoice.id,
+            amount: amountInUsd * 100,
+            description: itemText,
+            customer: customerId,
+        });
+
+        await this.stripe.invoices.finalizeInvoice(invoice.id!);
+
+        await this.payInvoice(customerId, invoice.id!);
     }
 
     public static async payInvoice(

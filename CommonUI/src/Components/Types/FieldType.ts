@@ -28,6 +28,7 @@ enum FieldType {
     JavaScript = 'JavaScript',
     DictionaryOfStrings = 'DictionaryOfStrings',
     JSON = 'JSON',
+    USDCents = 'USDCents',
 }
 
 export default FieldType;

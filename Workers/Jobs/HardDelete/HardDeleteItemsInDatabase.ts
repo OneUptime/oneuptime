@@ -35,3 +35,41 @@ RunCron(
         }
     }
 );
+
+RunCron(
+    'HardDelete:HardDeleteOlderItemsInDatabase',
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
+    async () => {
+        for (const service of Services) {
+            if (service instanceof DatabaseService) {
+                if (
+                    !service.hardDeleteItemByColumnName ||
+                    !service.hardDeleteItemsOlderThanDays
+                ) {
+                    continue;
+                }
+
+                try {
+                    // Retain data for 30 days for accidental deletion, and then hard delete.
+                    await service.hardDeleteBy({
+                        query: {
+                            [service.hardDeleteItemByColumnName]:
+                                QueryHelper.lessThan(
+                                    OneUptimeDate.getSomeDaysAgo(
+                                        service.hardDeleteItemsOlderThanDays
+                                    )
+                                ),
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                        limit: LIMIT_MAX,
+                        skip: 0,
+                    });
+                } catch (err) {
+                    logger.error(err);
+                }
+            }
+        }
+    }
+);

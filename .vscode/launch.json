@@ -113,8 +113,8 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Mail",
-            "name": "Mail: Debug with Docker",
+            "localRoot": "${workspaceFolder}/Notification",
+            "name": "Notification: Debug with Docker",
             "port": 9111,
             "remoteRoot": "/usr/src/app",
             "request": "attach",

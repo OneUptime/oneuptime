@@ -73,6 +73,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         return <ColorViewer value={color} />;
     };
 
+    const getUSDCentsField: Function = (usdCents: number): ReactElement => {
+        return <div className="text-gray-900">{usdCents / 100} USD</div>;
+    };
+
     const getField: Function = (field: Field, index: number): ReactElement => {
         const fieldKey: string = field.key;
 
@@ -110,6 +114,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
         if (data && field.fieldType === FieldType.Color) {
             data = getColorField(data);
+        }
+
+        if (data && field.fieldType === FieldType.USDCents) {
+            data = getUSDCentsField(data);
         }
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {

@@ -663,6 +663,7 @@ services:
             - dashboard-api
             - dashboard
             - home
+            - notification
         restart: always
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:

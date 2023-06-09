@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/WorkflowLog';
+import Model from 'Model/Models/SmsLog';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {
@@ -8,4 +8,5 @@ export class Service extends DatabaseService<Model> {
         this.hardDeleteItemsOlderThanInDays('createdAt', 30);
     }
 }
+
 export default new Service();

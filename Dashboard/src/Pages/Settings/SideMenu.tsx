@@ -30,30 +30,8 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Label}
                 />
-                {/* <SideMenuItem
-                    link={{
-                        title: 'Integrations',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Integrations}
-                /> */}
             </SideMenuSection>
-            {/* <SideMenuSection title="Templates">
-                <SideMenuItem
-                    link={{
-                        title: 'Email Templates',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Email}
-                />
-                <SideMenuItem
-                    link={{
-                        title: 'SMS Templates',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.SMS}
-                />
-            </SideMenuSection> */}
+
             <SideMenuSection title="Monitors">
                 <SideMenuItem
                     link={{
@@ -165,7 +143,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.Team}
                 />
             </SideMenuSection>
-            <SideMenuSection title="Email">
+            <SideMenuSection title="Notifications">
                 <SideMenuItem
                     link={{
                         title: 'Custom SMTP',
@@ -174,6 +152,24 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Email}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Notification Settings',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Settings}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'SMS Logs',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                        ),
+                    }}
+                    icon={IconProp.SMS}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">

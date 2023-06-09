@@ -276,6 +276,15 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/danger-zone`
     ),
 
+    //SMS and Call
+    [PageMap.SETTINGS_CALL_SMS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification`
+    ),
+
+    [PageMap.SETTINGS_SMS_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/sms-logs`
+    ),
+
     //api keys.
     [PageMap.SETTINGS_APIKEYS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/api-keys`

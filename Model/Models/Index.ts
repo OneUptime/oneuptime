@@ -85,6 +85,9 @@ import WorkflowLog from './WorkflowLog';
 //SSO
 import ProjectSSO from './ProjectSso';
 
+// SMS
+import SmsLog from './SmsLog';
+
 export default [
     User,
     Probe,
@@ -156,4 +159,6 @@ export default [
 
     StatusPageOwnerTeam,
     StatusPageOwnerUser,
+
+    SmsLog,
 ];

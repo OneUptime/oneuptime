@@ -94,6 +94,8 @@ import SettingsDomains from './Pages/Settings/Domains';
 import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 import SettingsBilling from './Pages/Settings/Billing';
 import SettingsSSO from './Pages/Settings/SSO';
+import SettingsSmsLog from './Pages/Settings/SmsLog';
+import SettingsCallSms from './Pages/Settings/CallSms';
 import SettingsInvoices from './Pages/Settings/Invoices';
 import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
 import StatusPageCustomFields from './Pages/Settings/StatusPageCustomFields';
@@ -1380,6 +1382,30 @@ const App: FunctionComponent = () => {
                         <ProjectSettings
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_SMS_LOGS]?.toString() || ''}
+                    element={
+                        <SettingsSmsLog
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_CALL_SMS]?.toString() || ''}
+                    element={
+                        <SettingsCallSms
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                            }
                         />
                     }
                 />

@@ -42,6 +42,7 @@ import AllMeteredPlans from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import AccessTokenService from './AccessTokenService';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import User from 'Model/Models/User';
+import NotificationService from './NotificationService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -119,6 +120,21 @@ export class Service extends DatabaseService<Model> {
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
         if (IsBillingEnabled) {
+            if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
+                await NotificationService.rechargeIfBalanceIsLow(
+                    new ObjectID(updateBy.query._id! as string),
+                    {
+                        autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
+                            .autoRechargeSmsOrCallByBalanceInUSD as number,
+                        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD:
+                            updateBy.data
+                                .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
+                        enableAutoRechargeSmsOrCallBalance: updateBy.data
+                            .enableAutoRechargeSmsOrCallBalance as boolean,
+                    }
+                );
+            }
+
             if (updateBy.data.paymentProviderPlanId) {
                 // payment provider id changed.
                 const project: Model | null = await this.findOneById({

@@ -68,6 +68,9 @@ import WorkflowService from './WorkflowService';
 import WorkflowVariablesService from './WorkflowVariableService';
 import WorkflowLogService from './WorkflowLogService';
 
+// SMS Log Servce
+import SmsLogService from './SmsLogService';
+
 export default [
     UserService,
     ProbeService,
@@ -118,4 +121,6 @@ export default [
     WorkflowService,
     WorkflowVariablesService,
     WorkflowLogService,
+
+    SmsLogService,
 ];
