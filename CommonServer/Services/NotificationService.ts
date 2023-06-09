@@ -75,7 +75,7 @@ export default class NotificationService {
                         project.id!,
                         'ACTION REQUIRED: SMS and Call Recharge Failed for project - ' +
                             (project.name || ''),
-                        `We have tried recharged your SMS and Call balance for project - ${
+                        `We have tried to recharge your SMS and Call balance for project - ${
                             project.name || ''
                         } and failed. We could not find a payment method for the project. Please add a payment method in project settings.`
                     );
