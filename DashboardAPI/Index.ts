@@ -253,6 +253,7 @@ import StatusPageDomainService, {
 // Import API
 
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
+import NotificationAPI from 'CommonServer/API/NotificationAPI';
 
 import ProbeAPI from 'CommonServer/API/ProbeAPI';
 
@@ -734,6 +735,8 @@ app.use(
         StatusPageCustomFieldService
     ).getRouter()
 );
+
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
 
 const init: Function = async (): Promise<void> => {
     try {

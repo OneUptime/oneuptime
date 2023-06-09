@@ -58,8 +58,10 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
                 )
         );
 
+        let cardButtons: Array<CardButtonSchema> = [];
+
         if (props.isEditable && hasPermissionToEdit) {
-            setCardButtons([
+            cardButtons.push(
                 {
                     title: props.editButtonText || `Edit ${model.singularName}`,
                     buttonStyle: ButtonStyleType.NORMAL,
@@ -68,8 +70,14 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
                     },
                     icon: IconProp.Edit,
                 },
-            ]);
+            );
         }
+
+        if(props.cardProps.buttons) {
+            cardButtons = cardButtons.concat(...props.cardProps.buttons);
+        }
+
+        setCardButtons(cardButtons);
     }, []);
 
     return (

@@ -3,7 +3,7 @@ import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -11,11 +11,22 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
+import { JSONObject } from 'Common/Types/JSON';
+import API from 'CommonUI/src/Utils/API/API';
+import URL from 'Common/Types/API/URL';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+
+    const [showRechargeBalanceModal, setShowRechargeBalanceModal] = useState<boolean>(false);
+    const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] = useState<boolean>(false);
+    const [rechargeBalanceError, setRechargeBalanceError] = useState<string | null>(null);
+
     return (
         <Page
             title={'Project Settings'}
@@ -50,6 +61,15 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         description:
                             'Here is your current call and SMS balance for this project.',
                         icon: IconProp.Billing,
+                        buttons: [
+                            {
+                                title: 'Recharge Balance',
+                                icon: IconProp.Add,
+                                onClick: () => {
+                                    setShowRechargeBalanceModal(true);
+                                }
+                            }
+                        ]
                     }}
                     isEditable={false}
                     modelDetailProps={{
@@ -301,6 +321,56 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
+
+
+            {showRechargeBalanceModal ?
+                <BasicFormModal
+                    title={'Recharge Balance'}
+                    onClose={() => {
+                        setShowRechargeBalanceModal(false);
+                    }}
+                    isLoading={isRechargeBalanceLoading}
+                    name="Recharge Balance"
+                    submitButtonText={'Recharge'}
+                    onSubmit={async (item: JSONObject) => {
+                        setIsRechargeBalanceLoading(true);
+                        try {
+                            await API.post(URL.fromString(DASHBOARD_API_URL.toString()).addRoute("/notification/recharge"), {
+                                amount: item['amount'],
+                                projectId: DashboardNavigation.getProjectId()?.toString(),
+                            });
+                            setIsRechargeBalanceLoading(false);
+                            setShowRechargeBalanceModal(false);
+                            Navigation.reload();
+                        } catch (e) {
+                            setRechargeBalanceError(API.getFriendlyMessage(e));
+                            setIsRechargeBalanceLoading(false);
+                        }
+
+                    }}
+                    formProps={{
+
+                        error: rechargeBalanceError || '',
+                        fields: [
+                            {
+                                title: 'Amount (in USD)',
+                                description: `Please enter the amount to recharge. It is in USD.`,
+                                field: {
+                                    amount: true,
+                                },
+                                placeholder: '100',
+                                required: true,
+                                validation: {
+                                    minValue: 20,
+                                    maxValue: 1000,
+                                },
+                                fieldType: FormFieldSchemaType.PositveNumber,
+                            },
+
+                        ],
+                    }}
+                /> : <></>}
+
         </Page>
     );
 };
