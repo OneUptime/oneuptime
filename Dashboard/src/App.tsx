@@ -246,7 +246,7 @@ const App: FunctionComponent = () => {
                     paymentProviderPlanId: true,
                 },
                 {},
-                {},
+                
                 {
                     isMultiTenantRequest: true,
                 }

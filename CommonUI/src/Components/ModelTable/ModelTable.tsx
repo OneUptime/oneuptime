@@ -445,7 +445,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             [column.filterDropdownField.value]: true,
                         },
                         {},
-                        {}
+                       
                     );
 
                 classicColumn.filterDropdownOptions = [];

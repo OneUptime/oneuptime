@@ -60,7 +60,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         isOperationalState: true,
                         isOfflineState: true,
                     },
-                    {},
+                    
                     {}
                 );
 
@@ -88,7 +88,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     {
                         order: SortOrder.Ascending,
                     },
-                    {}
+                   
                 );
 
             if (incidentSeverityList.data) {

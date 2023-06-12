@@ -56,7 +56,6 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                         description: true,
                     } as any,
                     {},
-                    {}
                 );
 
             const item: BaseModel | null = await ModelAPI.getItem<BaseModel>(

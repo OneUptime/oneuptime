@@ -30,7 +30,6 @@ import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Populate from '../../Utils/ModelAPI/Populate';
 import FileModel from 'Common/Models/FileModel';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
@@ -116,8 +115,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         return select;
     };
 
-    const getPopulate: Function = (): Populate<TBaseModel> => {
-        const populate: Populate<TBaseModel> = {};
+    const getRelationSelect: Function = (): Select<TBaseModel> => {
+        const relationSelect: Select<TBaseModel> = {};
 
         for (const field of props.fields) {
             const key: string | null = field.field
@@ -125,18 +124,18 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 : null;
 
             if (key && model.isFileColumn(key)) {
-                (populate as JSONObject)[key] = {
+                (relationSelect as JSONObject)[key] = {
                     file: true,
                     _id: true,
                     type: true,
                     name: true,
                 };
             } else if (key && model.isEntityColumn(key)) {
-                (populate as JSONObject)[key] = (field.field as any)[key];
+                (relationSelect as JSONObject)[key] = (field.field as any)[key];
             }
         }
 
-        return populate;
+        return relationSelect;
     };
 
     const hasPermissionOnField: Function = (fieldName: string): boolean => {
@@ -231,7 +230,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             props.modelType,
             props.modelIdToEdit,
             getSelectFields(),
-            getPopulate()
+            getRelationSelect()
         );
 
         if (!(item instanceof BaseModel) && item) {
@@ -251,9 +250,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             );
         }
 
-        const populate: Populate<TBaseModel> = getPopulate();
+        const relationSelect: Select<TBaseModel> = getRelationSelect();
 
-        for (const key in populate) {
+        for (const key in relationSelect) {
             if (item) {
                 if (Array.isArray((item as any)[key])) {
                     const idArray: Array<string> = [];

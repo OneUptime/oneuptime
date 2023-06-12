@@ -77,7 +77,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 },
                 {},
                 {},
-                {}
             );
 
             const globalProbeList: ListResult<Probe> = await ModelAPI.getList(
@@ -89,7 +88,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     name: true,
                     _id: true,
                 },
-                {},
                 {},
                 {
                     overrideRequestUrl: URL.fromString(
