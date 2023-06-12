@@ -25,7 +25,7 @@ class JSONWebToken {
             jsonObj = {
                 userId: data.id!.toString(),
                 email: data.email!.toString(),
-                name: data.name!.toString(),
+                name: data.name?.toString() || '',
                 isMasterAdmin: data.isMasterAdmin!,
             };
         } else if (data instanceof StatusPagePrivateUser) {
