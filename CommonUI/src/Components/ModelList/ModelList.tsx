@@ -95,7 +95,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                     0,
                     props.select,
                     {},
-                   
+
                     props.fetchRequestOptions
                 );
             }

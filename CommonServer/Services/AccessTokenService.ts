@@ -92,7 +92,7 @@ export default class AccessTokenService {
                         _id: true,
                     },
                 },
-               
+
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {
@@ -251,12 +251,11 @@ export default class AccessTokenService {
                 },
                 select: {
                     permission: true,
-                    labels: true,
                     labels: {
                         _id: true,
                     },
                 },
-                
+
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {

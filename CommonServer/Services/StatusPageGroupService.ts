@@ -136,7 +136,7 @@ export class Service extends DatabaseService<Model> {
                 query: {
                     statusPageId: group?.statusPageId!,
                 },
-                
+
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {

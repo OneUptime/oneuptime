@@ -73,7 +73,6 @@ RunCron(
                             name: true,
                         },
                     },
-                    
                 }
             );
 
@@ -176,7 +175,6 @@ RunCron(
                             secure: true,
                         },
                     },
-                    
                 });
 
             for (const statuspage of statusPages) {

@@ -48,7 +48,6 @@ RunCron(
                         name: true,
                     },
                 },
-               
             });
 
         for (const incidentStateTimeline of incidentStateTimelines) {
@@ -93,7 +92,6 @@ RunCron(
                             name: true,
                         },
                     },
-                   
                 }
             );
 
@@ -185,7 +183,6 @@ RunCron(
                             secure: true,
                         },
                     },
-                    
                 });
 
             for (const statuspage of statusPages) {

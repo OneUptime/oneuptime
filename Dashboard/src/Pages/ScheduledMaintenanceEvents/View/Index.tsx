@@ -216,7 +216,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         isScheduledState: true,
                                     },
                                 },
-                                {},
+                                {}
                             );
 
                         return scheduledMaintenanceTimelines;

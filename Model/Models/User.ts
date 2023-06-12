@@ -280,7 +280,10 @@ class User extends UserModel {
 
         update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, canReadOnRelationQuery: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        canReadOnRelationQuery: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

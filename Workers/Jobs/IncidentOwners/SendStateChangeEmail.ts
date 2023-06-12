@@ -47,7 +47,6 @@ RunCron(
                         name: true,
                     },
                 },
-                
             });
 
         for (const incidentStateTimeline of incidentStateTimelines) {
@@ -68,7 +67,6 @@ RunCron(
                             name: true,
                         },
                     },
-                    
                 });
 
             if (!incidentWithSeverity) {

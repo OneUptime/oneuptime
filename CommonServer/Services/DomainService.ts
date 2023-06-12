@@ -39,7 +39,7 @@ export class Service extends DatabaseService<Model> {
                     domain: true,
                     domainVerificationText: true,
                 },
-                
+
                 limit: 1,
                 skip: 0,
                 props: {

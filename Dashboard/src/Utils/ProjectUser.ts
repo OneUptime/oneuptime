@@ -22,9 +22,7 @@ export default class ProjectUser {
                 },
             },
             {},
-            {
-                
-            }
+            {}
         );
 
         return teamMembers.data.map((teamMember: TeamMember) => {

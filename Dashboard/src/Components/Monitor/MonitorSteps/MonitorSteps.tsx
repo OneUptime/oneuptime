@@ -59,8 +59,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         color: true,
                         isOperationalState: true,
                     },
-                    {},
-                  
+                    {}
                 );
 
             if (monitorStatusList.data) {
@@ -82,8 +81,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         name: true,
                         color: true,
                     },
-                    {},
-                   
+                    {}
                 );
 
             if (incidentSeverityList.data) {

@@ -70,7 +70,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         createdAt: SortOrder.Ascending,
-                    },
+                    }
                 );
 
             setData(monitorStatus.data);

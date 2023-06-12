@@ -15,7 +15,7 @@ import Detail from '../Detail/Detail';
 import API from '../../Utils/API/API';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     fields: Array<Field<TBaseModel>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
@@ -114,12 +114,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                         ...field,
                         getElement: field.getElement
                             ? (item: JSONObject): ReactElement => {
-                                return field.getElement!(
-                                    item,
-                                    onBeforeFetchData,
-                                    fetchItem
-                                );
-                            }
+                                  return field.getElement!(
+                                      item,
+                                      onBeforeFetchData,
+                                      fetchItem
+                                  );
+                              }
                             : undefined,
                     });
                 }
@@ -128,12 +128,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                     ...field,
                     getElement: field.getElement
                         ? (item: JSONObject): ReactElement => {
-                            return field.getElement!(
-                                item,
-                                onBeforeFetchData,
-                                fetchItem
-                            );
-                        }
+                              return field.getElement!(
+                                  item,
+                                  onBeforeFetchData,
+                                  fetchItem
+                              );
+                          }
                         : undefined,
                 });
             }
@@ -164,7 +164,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 props.modelId,
                 {
                     ...getSelectFields(),
-                    ...getRelationSelect()
+                    ...getRelationSelect(),
                 }
             );
 

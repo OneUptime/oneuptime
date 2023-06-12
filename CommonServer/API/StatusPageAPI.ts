@@ -259,7 +259,6 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                         });
 
-
                     const item: StatusPage | null =
                         await this.service.findOneById({
                             id: objectId,
@@ -487,7 +486,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     currentMonitorStatusId: true,
                                 },
                             },
-                           
+
                             sort: {
                                 order: SortOrder.Ascending,
                             },
@@ -584,7 +583,7 @@ export default class StatusPageAPI extends BaseAPI<
                             sort: {
                                 createdAt: SortOrder.Ascending,
                             },
-                            
+
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -649,7 +648,7 @@ export default class StatusPageAPI extends BaseAPI<
                                         isAcknowledgedState: true,
                                     },
                                 },
-                                
+
                                 sort: {
                                     createdAt: SortOrder.Descending, // new note first
                                 },
@@ -721,7 +720,7 @@ export default class StatusPageAPI extends BaseAPI<
                             sort: {
                                 createdAt: SortOrder.Ascending,
                             },
-                            
+
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -759,7 +758,7 @@ export default class StatusPageAPI extends BaseAPI<
                             sort: {
                                 createdAt: SortOrder.Ascending,
                             },
-                           
+
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -833,7 +832,7 @@ export default class StatusPageAPI extends BaseAPI<
                                             isOngoingState: true,
                                         },
                                     },
-                                  
+
                                     sort: {
                                         createdAt: SortOrder.Descending, // new note first
                                     },
@@ -1220,7 +1219,7 @@ export default class StatusPageAPI extends BaseAPI<
                         currentMonitorStatusId: true,
                     },
                 },
-                
+
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1272,7 +1271,7 @@ export default class StatusPageAPI extends BaseAPI<
                 sort: {
                     startsAt: SortOrder.Descending,
                 },
-                
+
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1379,7 +1378,7 @@ export default class StatusPageAPI extends BaseAPI<
                             isOngoingState: true,
                         },
                     },
-                    
+
                     sort: {
                         createdAt: SortOrder.Descending, // new note first
                     },
@@ -1501,7 +1500,7 @@ export default class StatusPageAPI extends BaseAPI<
                         currentMonitorStatusId: true,
                     },
                 },
-                
+
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1572,7 +1571,7 @@ export default class StatusPageAPI extends BaseAPI<
                         currentMonitorStatusId: true,
                     },
                 },
-               
+
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1631,7 +1630,7 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                     },
                 },
-               
+
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1668,7 +1667,7 @@ export default class StatusPageAPI extends BaseAPI<
                     sort: {
                         createdAt: SortOrder.Descending,
                     },
-                    
+
                     skip: 0,
                     limit: LIMIT_PER_PROJECT,
                     props: {
@@ -1732,7 +1731,7 @@ export default class StatusPageAPI extends BaseAPI<
                 sort: {
                     createdAt: SortOrder.Descending, // new note first
                 },
-              
+
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {

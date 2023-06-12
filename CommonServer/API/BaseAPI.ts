@@ -20,7 +20,6 @@ import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Populate from '../Types/Database/RelationSelect';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../Config';
@@ -298,7 +297,6 @@ export default class BaseAPI<
                 req.body['select']
             ) as Select<BaseModel>;
 
-
             sort = JSONFunctions.deserialize(
                 req.body['sort']
             ) as Sort<BaseModel>;
@@ -364,12 +362,11 @@ export default class BaseAPI<
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         await this.onBeforeGet(req, res);
         let select: Select<BaseModel> = {};
-        
+
         if (req.body) {
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
-
         }
 
         const item: BaseModel | null = await this.service.findOneById({

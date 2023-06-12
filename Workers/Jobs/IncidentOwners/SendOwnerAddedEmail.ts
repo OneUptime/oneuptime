@@ -88,7 +88,6 @@ RunCron(
                         name: true,
                     },
                 },
-               
             });
 
         for (const incidentOwnerUser of incidentOwnerUsers) {

@@ -8,7 +8,10 @@ export type SelectPropertyOptions<Property> = Property extends DatabaseProperty
     ? boolean
     : Property extends JSONObject
     ? boolean
-    : FindOptionsSelectProperty<Property> | FindOptionsRelations<Property> | boolean;
+    :
+          | FindOptionsSelectProperty<Property>
+          | FindOptionsRelations<Property>
+          | boolean;
 
 /**
  * Select find options.

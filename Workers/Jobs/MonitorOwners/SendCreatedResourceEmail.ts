@@ -37,7 +37,6 @@ RunCron(
                     name: true,
                 },
             },
-            
         });
 
         for (const monitor of monitors) {

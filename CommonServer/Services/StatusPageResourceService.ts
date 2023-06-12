@@ -154,7 +154,7 @@ export class Service extends DatabaseService<Model> {
                     statusPageGroupId:
                         resource?.statusPageGroupId || QueryHelper.isNull(),
                 },
-                
+
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {

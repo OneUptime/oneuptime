@@ -157,7 +157,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             },
             limit: LIMIT_MAX,
             skip: 0,
-            
+
             props: {
                 isRoot: true,
             },
@@ -284,7 +284,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                     name: true,
                 },
             },
-           
+
             skip: 0,
             limit: LIMIT_MAX,
         });

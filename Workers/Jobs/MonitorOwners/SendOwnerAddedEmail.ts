@@ -88,7 +88,6 @@ RunCron(
                         name: true,
                     },
                 },
-               
             });
 
         for (const monitorOwnerUser of monitorOwnerUsers) {
@@ -147,7 +146,6 @@ RunCron(
                         name: true,
                     },
                 },
-               
             });
 
             if (!monitor) {

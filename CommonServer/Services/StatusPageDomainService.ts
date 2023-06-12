@@ -55,7 +55,7 @@ export class Service extends DatabaseService<Model> {
                 ...deleteBy.query,
                 isAddedtoGreenlock: true,
             },
-            
+
             skip: 0,
             limit: LIMIT_MAX,
             select: { fullDomain: true },

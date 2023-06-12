@@ -162,8 +162,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         isAcknowledgedState: true,
                                     },
                                 },
-                                {},
-
+                                {}
                             );
 
                         return incidentTimelines;

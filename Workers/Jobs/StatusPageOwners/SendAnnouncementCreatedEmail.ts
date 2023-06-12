@@ -31,7 +31,6 @@ RunCron(
                     _id: true,
                     title: true,
                     description: true,
-                    statusPages: true,
                     projectId: true,
                     statusPages: {
                         _id: true,

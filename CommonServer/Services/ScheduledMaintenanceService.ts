@@ -178,7 +178,7 @@ export class Service extends DatabaseService<Model> {
                         name: true,
                     },
                 },
-               
+
                 props: {
                     isRoot: true,
                 },

@@ -76,7 +76,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     _id: true,
                 },
                 {},
-                {},
+                {}
             );
 
             const globalProbeList: ListResult<Probe> = await ModelAPI.getList(

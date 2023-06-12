@@ -120,8 +120,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                                 isOngoingState: true,
                                 isScheduledState: true,
                             },
-                            {},
-                           
+                            {}
                         );
 
                     let stateId: ObjectID | null = null;

@@ -229,8 +229,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         let item: BaseModel | null = await ModelAPI.getItem(
             props.modelType,
             props.modelIdToEdit,
-            { ...getSelectFields(),
-            ...getRelationSelect()}
+            { ...getSelectFields(), ...getRelationSelect() }
         );
 
         if (!(item instanceof BaseModel) && item) {

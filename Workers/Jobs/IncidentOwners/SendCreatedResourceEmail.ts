@@ -40,7 +40,6 @@ RunCron(
                     name: true,
                 },
             },
-           
         });
 
         for (const incident of incidents) {

@@ -47,7 +47,6 @@ RunCron(
                         name: true,
                     },
                 },
-                
             });
 
         for (const scheduledMaintenanceStateTimeline of scheduledMaintenanceStateTimelines) {
