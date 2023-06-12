@@ -87,7 +87,6 @@ export default class AccessTokenService {
                 },
                 select: {
                     permission: true,
-                    labels: true,
                     labels: {
                         _id: true,
                     },
