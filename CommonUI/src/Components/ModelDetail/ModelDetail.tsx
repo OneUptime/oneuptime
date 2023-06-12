@@ -12,11 +12,10 @@ import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Field from './Field';
 import Detail from '../Detail/Detail';
-import Populate from '../../Utils/ModelAPI/Populate';
 import API from '../../Utils/API/API';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     fields: Array<Field<TBaseModel>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
@@ -55,8 +54,8 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         return select;
     };
 
-    const getPopulate: Function = (): Populate<TBaseModel> => {
-        const populate: Populate<TBaseModel> = {};
+    const getRelationSelect: Function = (): Select<TBaseModel> => {
+        const relationSelect: Select<TBaseModel> = {};
 
         for (const field of props.fields || []) {
             const key: string | null = field.field
@@ -64,18 +63,18 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 : null;
 
             if (key && new props.modelType()?.isFileColumn(key)) {
-                (populate as JSONObject)[key] = {
+                (relationSelect as JSONObject)[key] = {
                     file: true,
                     _id: true,
                     type: true,
                     name: true,
                 };
             } else if (key && new props.modelType()?.isEntityColumn(key)) {
-                (populate as JSONObject)[key] = (field.field as any)[key];
+                (relationSelect as JSONObject)[key] = (field.field as any)[key];
             }
         }
 
-        return populate;
+        return relationSelect;
     };
 
     const setDetailFields: Function = (): void => {
@@ -115,12 +114,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                         ...field,
                         getElement: field.getElement
                             ? (item: JSONObject): ReactElement => {
-                                  return field.getElement!(
-                                      item,
-                                      onBeforeFetchData,
-                                      fetchItem
-                                  );
-                              }
+                                return field.getElement!(
+                                    item,
+                                    onBeforeFetchData,
+                                    fetchItem
+                                );
+                            }
                             : undefined,
                     });
                 }
@@ -129,12 +128,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                     ...field,
                     getElement: field.getElement
                         ? (item: JSONObject): ReactElement => {
-                              return field.getElement!(
-                                  item,
-                                  onBeforeFetchData,
-                                  fetchItem
-                              );
-                          }
+                            return field.getElement!(
+                                item,
+                                onBeforeFetchData,
+                                fetchItem
+                            );
+                        }
                         : undefined,
                 });
             }
@@ -163,8 +162,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             const item: TBaseModel | null = await ModelAPI.getItem(
                 props.modelType,
                 props.modelId,
-                getSelectFields(),
-                getPopulate()
+                {
+                    ...getSelectFields(),
+                    ...getRelationSelect()
+                }
             );
 
             if (!item) {

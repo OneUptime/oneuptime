@@ -17,7 +17,6 @@ import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
 import Sort from './Sort';
 import Project from 'Model/Models/Project';
-import Populate from './Populate';
 import User from '../User';
 import Navigation from '../Navigation';
 
@@ -171,7 +170,6 @@ export default class ModelAPI {
         skip: number,
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>,
-        populate?: Populate<TBaseModel>,
         requestOptions?: RequestOptions
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new modelType();
@@ -210,9 +208,6 @@ export default class ModelAPI {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
                     sort: JSONFunctions.serialize(sort as JSONObject),
-                    populate: populate
-                        ? JSONFunctions.serialize(populate as JSONObject)
-                        : null,
                 },
                 headers,
                 {
@@ -325,7 +320,6 @@ export default class ModelAPI {
         modelType: { new (): TBaseModel },
         id: ObjectID,
         select: Select<TBaseModel>,
-        populate?: Populate<TBaseModel>,
         requestOptions?: RequestOptions | undefined
     ): Promise<TBaseModel | null> {
         const apiPath: Route | null = new modelType().getCrudApiPath();
@@ -356,9 +350,6 @@ export default class ModelAPI {
                 apiUrl,
                 {
                     select: JSONFunctions.serialize(select as JSONObject),
-                    populate: populate
-                        ? JSONFunctions.serialize(populate as JSONObject)
-                        : null,
                 },
                 this.getCommonHeaders(requestOptions)
             );
