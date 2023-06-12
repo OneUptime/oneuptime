@@ -1,7 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import Dictionary from 'Common/Types/Dictionary';
 
-export type SelectPropertyOptions = true | Dictionary<true>;
+export type SelectPropertyOptions = boolean | Dictionary<boolean>;
 
 /**
  * Select find options.
