@@ -1615,9 +1615,6 @@ export default class StatusPageAPI extends BaseAPI<
                     title: true,
                     description: true,
                     _id: true,
-                },
-                sort: {
-                    createdAt: SortOrder.Descending,
                     incidentSeverity: {
                         name: true,
                         color: true,
@@ -1630,7 +1627,9 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                     },
                 },
-
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
