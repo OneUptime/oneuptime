@@ -15,14 +15,15 @@ export default class ProjectUser {
             0,
             {
                 _id: true,
-            },
-            {},
-            {
                 user: {
                     _id: true,
                     name: true,
                     email: true,
                 },
+            },
+            {},
+            {
+                
             }
         );
 

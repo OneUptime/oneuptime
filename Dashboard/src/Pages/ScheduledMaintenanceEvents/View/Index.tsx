@@ -204,9 +204,6 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                     _id: true,
 
                                     createdAt: true,
-                                },
-                                {},
-                                {
                                     createdByUser: {
                                         name: true,
                                         email: true,
@@ -218,7 +215,8 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         isOngoingState: true,
                                         isScheduledState: true,
                                     },
-                                }
+                                },
+                                {},
                             );
 
                         return scheduledMaintenanceTimelines;

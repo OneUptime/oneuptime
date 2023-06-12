@@ -62,17 +62,15 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     {
                         createdAt: true,
                         monitorId: true,
-                    },
-                    {
-                        createdAt: SortOrder.Ascending,
-                    },
-                    {
                         monitorStatus: {
                             name: true,
                             color: true,
                             priority: true,
                         },
-                    }
+                    },
+                    {
+                        createdAt: SortOrder.Ascending,
+                    },
                 );
 
             setData(monitorStatus.data);

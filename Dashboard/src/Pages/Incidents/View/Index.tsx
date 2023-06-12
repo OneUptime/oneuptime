@@ -151,9 +151,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     _id: true,
 
                                     createdAt: true,
-                                },
-                                {},
-                                {
                                     createdByUser: {
                                         name: true,
                                         email: true,
@@ -164,7 +161,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         isResolvedState: true,
                                         isAcknowledgedState: true,
                                     },
-                                }
+                                },
+                                {},
+
                             );
 
                         return incidentTimelines;
