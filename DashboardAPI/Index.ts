@@ -160,10 +160,10 @@ import MonitorService, {
     Service as MonitorServiceType,
 } from 'CommonServer/Services/MonitorService';
 
-import OnCallDuty from 'Model/Models/OnCallDuty';
-import OnCallDutyService, {
-    Service as OnCallDutyServiceType,
-} from 'CommonServer/Services/OnCallDutyService';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutyPolicyService, {
+    Service as OnCallDutyPolicyServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyService';
 
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService, {
@@ -687,17 +687,17 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
-        OnCallDuty,
-        OnCallDutyService
+    new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
+        OnCallDutyPolicy,
+        OnCallDutyPolicyService
     ).getRouter()
 );
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
-        OnCallDuty,
-        OnCallDutyService
+    new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
+        OnCallDutyPolicy,
+        OnCallDutyPolicyService
     ).getRouter()
 );
 

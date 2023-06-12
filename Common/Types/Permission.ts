@@ -296,10 +296,10 @@ enum Permission {
     CanReadProjectStatusPage = 'CanReadProjectStatusPage',
 
     // Resource Permissions (Team Permission)
-    CanCreateProjectOnCallDuty = 'CanCreateProjectOnCallDuty',
-    CanEditProjectOnCallDuty = 'CanEditProjectOnCallDuty',
-    CanDeleteProjectOnCallDuty = 'CanDeleteProjectOnCallDuty',
-    CanReadProjectOnCallDuty = 'CanReadProjectOnCallDuty',
+    CanCreateProjectOnCallDutyPolicy = 'CanCreateProjectOnCallDutyPolicy',
+    CanEditProjectOnCallDutyPolicy = 'CanEditProjectOnCallDutyPolicy',
+    CanDeleteProjectOnCallDutyPolicy = 'CanDeleteProjectOnCallDutyPolicy',
+    CanReadProjectOnCallDutyPolicy = 'CanReadProjectOnCallDutyPolicy',
 
     // Project SMTP Config (Team Permission)
     CanCreateProjectSMTPConfig = 'CanCreateProjectSMTPConfig',
@@ -1446,32 +1446,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectOnCallDuty,
-                title: 'Can Create On-Call Duty',
+                permission: Permission.CanCreateProjectOnCallDutyPolicy,
+                title: 'Can Create On-Call Duty Policy',
                 description:
                     'This permission can create on-call duty this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectOnCallDuty,
-                title: 'Can Delete On-Call Duty',
+                permission: Permission.CanDeleteProjectOnCallDutyPolicy,
+                title: 'Can Delete On-Call Duty Policy',
                 description:
                     'This permission  can delete on-call duty of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectOnCallDuty,
-                title: 'Can Edit On-Call Duty',
+                permission: Permission.CanEditProjectOnCallDutyPolicy,
+                title: 'Can Edit On-Call Duty Policy',
                 description:
                     'This permission can edit on-call duty of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectOnCallDuty,
-                title: 'Can Read On-Call Duty',
+                permission: Permission.CanReadProjectOnCallDutyPolicy,
+                title: 'Can Read On-Call Duty Policy',
                 description:
                     'This permission  can read on-call duty of this project.',
                 isAssignableToTenant: true,

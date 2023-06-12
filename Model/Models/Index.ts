@@ -31,7 +31,7 @@ import StatusPageOwnerTeam from './StatusPageOwnerTeam';
 import StatusPageOwnerUser from './StatusPageOwnerUser';
 
 // On Call Duty
-import OnCallDuty from './OnCallDuty';
+import OnCallDutyPolicy from './OnCallDutyPolicy';
 
 // Monitors
 import Monitor from './Monitor';
@@ -101,7 +101,7 @@ export default [
     ApiKeyPermission,
     ProjectSmtpConfig,
     StatusPage,
-    OnCallDuty,
+    OnCallDutyPolicy,
     Monitor,
     MonitorStatus,
     MonitorCustomField,
