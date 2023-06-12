@@ -32,7 +32,7 @@
         "compile": "tsc",
         "start": "node --require ts-node/register Serve.ts",
         "audit": "npm audit --audit-level=low",
-        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "configure": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true'"
     },
     "browserslist": {

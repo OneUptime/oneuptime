@@ -13,7 +13,7 @@ fi
 
 set -e
 
-bash preinstall.sh
+bash configure.sh
 
 # Load env values from config.env
 export $(grep -v '^#' config.env | xargs)

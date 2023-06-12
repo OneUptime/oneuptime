@@ -40,7 +40,7 @@ Deploy a single-server instance in one line on Debian / Ubuntu with Docker (we o
   git clone https://github.com/OneUptime/oneuptime
   cd oneuptime
   git checkout release
-  bash preinstall.sh
+  bash configure.sh
  ``` 
 
 Please look at config.env and change these values, 
