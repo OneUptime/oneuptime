@@ -68,7 +68,7 @@ bash install.sh
 To update: 
 
 ```
-bash install.sh
+bash update.sh
 ```
 
 OneUptime should run at: https://localhost. You need to register a new account for your instance to start using it.

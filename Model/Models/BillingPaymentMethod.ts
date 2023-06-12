@@ -23,8 +23,9 @@ import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessContr
     create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
     read: [
         Permission.ProjectOwner,
-
         Permission.ProjectUser,
+        Permission.ProjectMember,
+        Permission.ProjectMember,
         Permission.CanReadBillingPaymentMethod,
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteBillingPaymentMethod],
@@ -53,6 +54,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -89,6 +91,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -119,6 +122,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -155,6 +159,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -178,6 +183,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -210,6 +216,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -237,6 +244,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -256,6 +264,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -275,6 +284,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -298,6 +308,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],
@@ -321,6 +332,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectOwner,
 
             Permission.ProjectUser,
+            Permission.ProjectMember,
             Permission.CanReadBillingPaymentMethod,
         ],
         update: [],

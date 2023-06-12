@@ -166,27 +166,32 @@ const App: FunctionComponent = () => {
     const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
 
     useAsyncEffect(async () => {
-        if (selectedProject && selectedProject._id && BILLING_ENABLED) {
-            setPaymentMethodsCountLoading(true);
-            const paymentMethodsCount: number = await ModelAPI.count(
-                BillingPaymentMethod,
-                { projectId: selectedProject._id }
-            );
+        try {
+            if (selectedProject && selectedProject._id && BILLING_ENABLED) {
+                setPaymentMethodsCountLoading(true);
+                const paymentMethodsCount: number = await ModelAPI.count(
+                    BillingPaymentMethod,
+                    { projectId: selectedProject._id }
+                );
 
-            setPaymentMethodsCount(paymentMethodsCount);
+                setPaymentMethodsCount(paymentMethodsCount);
 
-            if (paymentMethodsCount && paymentMethodsCount > 0) {
-                setHasPaymentMethod(true);
-            } else {
-                setHasPaymentMethod(false);
+                if (paymentMethodsCount && paymentMethodsCount > 0) {
+                    setHasPaymentMethod(true);
+                } else {
+                    setHasPaymentMethod(false);
+                }
             }
-        }
 
-        if (!BILLING_ENABLED) {
-            setHasPaymentMethod(true);
-        }
+            if (!BILLING_ENABLED) {
+                setHasPaymentMethod(true);
+            }
 
-        setPaymentMethodsCountLoading(false);
+            setPaymentMethodsCountLoading(false);
+        } catch (e) {
+            setError(API.getFriendlyMessage(e));
+            setPaymentMethodsCountLoading(false);
+        }
     }, [selectedProject?._id]);
 
     const onProjectSelected: (project: Project) => void = (
