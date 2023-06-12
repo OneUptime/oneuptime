@@ -66,8 +66,6 @@ RunCron(
                         _id: true,
                         title: true,
                         description: true,
-                    },
-                    populate: {
                         monitors: {
                             _id: true,
                         },
@@ -75,6 +73,7 @@ RunCron(
                             name: true,
                         },
                     },
+                    
                 }
             );
 
@@ -166,8 +165,6 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
-                    },
-                    populate: {
                         smtpConfig: {
                             _id: true,
                             hostname: true,
@@ -179,6 +176,7 @@ RunCron(
                             secure: true,
                         },
                     },
+                    
                 });
 
             for (const statuspage of statusPages) {

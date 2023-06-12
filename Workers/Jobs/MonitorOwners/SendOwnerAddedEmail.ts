@@ -83,13 +83,12 @@ RunCron(
                     _id: true,
                     monitorId: true,
                     userId: true,
-                },
-                populate: {
                     user: {
                         email: true,
                         name: true,
                     },
                 },
+               
             });
 
         for (const monitorOwnerUser of monitorOwnerUsers) {
@@ -141,8 +140,6 @@ RunCron(
                     name: true,
                     description: true,
                     projectId: true,
-                },
-                populate: {
                     project: {
                         name: true,
                     },
@@ -150,6 +147,7 @@ RunCron(
                         name: true,
                     },
                 },
+               
             });
 
             if (!monitor) {

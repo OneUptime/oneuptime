@@ -35,8 +35,6 @@ RunCron(
                     _id: true,
                     projectId: true,
                     createdAt: true,
-                },
-                populate: {
                     project: {
                         name: true,
                     },
@@ -49,6 +47,7 @@ RunCron(
                         name: true,
                     },
                 },
+                
             });
 
         for (const monitorStatusTimeline of monitorStatusTimelines) {

@@ -30,8 +30,6 @@ RunCron(
                 name: true,
                 description: true,
                 projectId: true,
-            },
-            populate: {
                 project: {
                     name: true,
                 },
@@ -39,6 +37,7 @@ RunCron(
                     name: true,
                 },
             },
+            
         });
 
         for (const monitor of monitors) {
