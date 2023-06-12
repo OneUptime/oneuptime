@@ -276,7 +276,7 @@ router.post(
 
             // get status page URL.
             const statusPageURL: string =
-                await StatusPageService.getStatusPageURL(statusPageId);
+                await StatusPageService.getStatusPageFirstURL(statusPageId);
 
             return Response.redirect(
                 req,

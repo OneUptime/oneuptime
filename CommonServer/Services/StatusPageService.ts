@@ -281,5 +281,39 @@ export class Service extends DatabaseService<StatusPage> {
 
         return statusPageURL;
     }
+
+    public async getStatusPageFirstURL(
+        statusPageId: ObjectID
+    ): Promise<string> {
+        const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    statusPageId: statusPageId,
+                    isSslProvisioned: true,
+                },
+                select: {
+                    fullDomain: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+
+        let statusPageURL: string = '';
+
+        if (domains.length === 0) {
+            // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
+            statusPageURL = new URL(HttpProtocol, Domain)
+                .addRoute('/status-page/' + statusPageId.toString())
+                .toString();
+        } else {
+            statusPageURL = domains[0]?.fullDomain || '';
+        }
+
+        return statusPageURL;
+    }
 }
 export default new Service();

@@ -36,11 +36,19 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     }
 
     if (UserUtil.isLoggedIn(props.statusPageId)) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
-            )
-        );
+        if (Navigation.getQueryStringByName('redirectUrl')) {
+            Navigation.navigate(
+                new Route(Navigation.getQueryStringByName('redirectUrl')!)
+            );
+        } else {
+            Navigation.navigate(
+                new Route(
+                    props.isPreviewPage
+                        ? `/status-page/${props.statusPageId}`
+                        : '/'
+                )
+            );
+        }
     }
 
     if (Navigation.getQueryStringByName('redirectUrl')) {
