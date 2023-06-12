@@ -125,7 +125,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -160,7 +160,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Any friendly name of this object',
     })
@@ -374,7 +374,7 @@ export default class IncidentState extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         description: 'Color of this resource in Hex (#32a852 for example)',
     })
     @Column({
@@ -409,7 +409,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Is Created State',
         description: 'Is it the created state of the incident?',
     })
@@ -442,7 +442,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Is Acknowledged State',
         description: 'Is it the acknowledged state of the incident?',
     })
@@ -475,7 +475,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Is Resolved State',
         description: 'Is it the resolved state of the incident?',
     })
@@ -509,7 +509,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Order',
         description: 'Order / Priority of this resource',
     })

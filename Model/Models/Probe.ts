@@ -97,7 +97,7 @@ export default class Probe extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.Name,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -263,7 +263,7 @@ export default class Probe extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'Icon',
         description: 'Probe Page Icon File ID',
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -315,7 +315,7 @@ export default class Probe extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: false,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.ObjectID,

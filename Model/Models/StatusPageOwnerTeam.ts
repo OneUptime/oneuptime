@@ -116,7 +116,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -182,7 +182,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Team ID',
         description: 'ID of your OneUptime Team in which this object belongs',
     })
@@ -247,7 +247,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'StatusPage ID',
         description:
             'ID of your OneUptime StatusPage in which this object belongs',

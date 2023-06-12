@@ -125,7 +125,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -160,7 +160,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Any friendly name of this object',
     })
@@ -374,7 +374,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         description: 'Color of this resource in Hex (#32a852 for example)',
     })
     @Column({
@@ -409,7 +409,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Scheduled State',
         description: 'Is this state a scheduled state?',
     })
@@ -442,7 +442,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Ongoing State',
         description: 'Is this state a ongoing state?',
     })
@@ -475,7 +475,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Resolved State',
         description: 'Is this state a resolved state?',
     })
@@ -509,7 +509,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Order',
         description: 'Order / Priority of this resource',
     })

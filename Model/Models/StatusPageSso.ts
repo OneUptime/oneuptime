@@ -131,7 +131,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -234,7 +234,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Any friendly name of this object',
     })
@@ -268,7 +268,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.LongText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -297,7 +297,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -327,7 +327,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -358,7 +358,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.LongURL,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -389,7 +389,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.LongURL,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -419,7 +419,7 @@ export default class StatusPageSSO extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.LongText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,

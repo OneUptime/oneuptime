@@ -138,7 +138,7 @@ export default class Monitor extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -176,7 +176,7 @@ export default class Monitor extends BaseModel {
         type: TableColumnType.ShortText,
         title: 'Name',
         description: 'Any friendly name for this monitor',
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,

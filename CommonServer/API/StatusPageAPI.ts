@@ -4,7 +4,7 @@ import UserMiddleware from '../Middleware/UserAuthorization';
 import StatusPageService, {
     Service as StatusPageServiceType,
 } from '../Services/StatusPageService';
-import Populate from '../Types/Database/Populate';
+import Populate from '../Types/Database/RelationSelect';
 import Select from '../Types/Database/Select';
 import {
     ExpressRequest,

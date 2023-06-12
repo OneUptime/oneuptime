@@ -1,5 +1,5 @@
 import Select from './Select';
-import Populate from './Populate';
+import Populate from './RelationSelect';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';

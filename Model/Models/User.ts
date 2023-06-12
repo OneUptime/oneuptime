@@ -59,7 +59,7 @@ class User extends UserModel {
         ],
         update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.Name, canReadOnPopulate: true })
+    @TableColumn({ type: TableColumnType.Name, canReadOnRelationQuery: true })
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -84,7 +84,7 @@ class User extends UserModel {
         required: true,
         unique: true,
         type: TableColumnType.Email,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.Email,
@@ -280,7 +280,7 @@ class User extends UserModel {
 
         update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.ObjectID, canReadOnPopulate: true })
+    @TableColumn({ type: TableColumnType.ObjectID, canReadOnRelationQuery: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

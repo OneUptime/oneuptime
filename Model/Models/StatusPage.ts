@@ -137,7 +137,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -176,7 +176,7 @@ export default class StatusPage extends BaseModel {
         type: TableColumnType.ShortText,
         title: 'Name',
         description: 'Any friendly name of this object',
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -1053,7 +1053,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: false,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'SMTP Config ID',
         description:
             'ID of your SMTP Config Resource which is used to send email to subscribers.',

@@ -105,7 +105,7 @@ export default class SmsLog extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -133,7 +133,7 @@ export default class SmsLog extends BaseModel {
         type: TableColumnType.Phone,
         title: 'To Number',
         description: 'Phone Number SMS was sent to',
-        canReadOnPopulate: false,
+        canReadOnRelationQuery: false,
     })
     @Column({
         nullable: false,
@@ -159,7 +159,7 @@ export default class SmsLog extends BaseModel {
         type: TableColumnType.Phone,
         title: 'From Number',
         description: 'Phone Number SMS was sent from',
-        canReadOnPopulate: false,
+        canReadOnRelationQuery: false,
     })
     @Column({
         nullable: false,
@@ -184,7 +184,7 @@ export default class SmsLog extends BaseModel {
         type: TableColumnType.LongText,
         title: 'SMS Text',
         description: 'Text content of the message',
-        canReadOnPopulate: false,
+        canReadOnRelationQuery: false,
     })
     @Column({
         nullable: false,
@@ -208,7 +208,7 @@ export default class SmsLog extends BaseModel {
         type: TableColumnType.LongText,
         title: 'Status Message',
         description: 'Status Message (if any)',
-        canReadOnPopulate: false,
+        canReadOnRelationQuery: false,
     })
     @Column({
         nullable: true,
@@ -232,7 +232,7 @@ export default class SmsLog extends BaseModel {
         type: TableColumnType.ShortText,
         title: 'Status of the SMS',
         description: 'Status of the SMS sent',
-        canReadOnPopulate: false,
+        canReadOnRelationQuery: false,
     })
     @Column({
         nullable: false,
@@ -256,7 +256,7 @@ export default class SmsLog extends BaseModel {
         type: TableColumnType.Number,
         title: 'SMS Cost',
         description: 'SMS Cost in USD Cents',
-        canReadOnPopulate: false,
+        canReadOnRelationQuery: false,
         isDefaultValueColumn: true,
     })
     @Column({

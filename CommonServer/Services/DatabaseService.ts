@@ -41,7 +41,7 @@ import ModelPermission, {
     CheckReadPermissionType,
 } from '../Utils/ModelPermission';
 import Select from '../Types/Database/Select';
-import Populate from '../Types/Database/Populate';
+import RelationSelect from '../Types/Database/RelationSelect';
 import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
 import API from 'Common/Utils/API';
 import Protocol from 'Common/Types/API/Protocol';
@@ -748,7 +748,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     this.entityType,
                     query,
                     null,
-                    null,
                     props
                 );
 
@@ -820,7 +819,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     query: beforeDeleteBy.query,
                     skip: beforeDeleteBy.skip.toNumber(),
                     limit: beforeDeleteBy.limit.toNumber(),
-                    populate: {},
                     select: {},
                     props: { ...beforeDeleteBy.props, ignoreHooks: true },
                 },
@@ -888,7 +886,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query: beforeDeleteBy.query,
                 skip: beforeDeleteBy.skip.toNumber(),
                 limit: beforeDeleteBy.limit.toNumber(),
-                populate: {},
                 select: select,
                 props: { ...beforeDeleteBy.props, ignoreHooks: true },
             });
@@ -1007,18 +1004,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const result: {
                 query: Query<TBaseModel>;
                 select: Select<TBaseModel> | null;
-                populate: Populate<TBaseModel> | null;
+                relationSelect: RelationSelect<TBaseModel> | null;
             } = await ModelPermission.checkReadPermission(
                 this.entityType,
                 onBeforeFind.query,
                 onBeforeFind.select || null,
-                onBeforeFind.populate || null,
                 onBeforeFind.props
             );
 
             onBeforeFind.query = result.query;
             onBeforeFind.select = result.select || undefined;
-            onBeforeFind.populate = result.populate || undefined;
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -1033,7 +1028,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
                 order: onBeforeFind.sort as any,
-                relations: onBeforeFind.populate as any,
+                relations: result.relationSelect as any,
                 select: onBeforeFind.select as any,
                 withDeleted: withDeleted || false,
             });
@@ -1082,7 +1077,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
-                        'Populate not supported on ' +
+                        'Select not supported on ' +
                             key +
                             ' of ' +
                             this.model.singularName +
@@ -1150,7 +1145,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: findOneById.id.toString() as any,
             },
             select: findOneById.select || {},
-            populate: findOneById.populate || {},
             props: findOneById.props,
         });
     }
@@ -1197,7 +1191,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query: beforeUpdateBy.query,
                 skip: updateBy.skip.toNumber(),
                 limit: updateBy.limit.toNumber(),
-                populate: {},
                 select: {},
                 props: { ...beforeUpdateBy.props, ignoreHooks: true },
             });
@@ -1286,7 +1279,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return this.findOneById({
             id: updateById.id,
             select: updateById.select,
-            populate: updateById.populate,
             props: updateById.props,
         });
     }
@@ -1295,7 +1287,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         skip,
         limit,
         select,
-        populate,
         props,
     }: SearchBy<TBaseModel>): Promise<SearchResult<TBaseModel>> {
         const query: Query<TBaseModel> = {};
@@ -1309,7 +1300,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     skip,
                     limit,
                     select,
-                    populate,
                     props: props,
                 }),
                 this.countBy({

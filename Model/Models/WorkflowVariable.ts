@@ -119,7 +119,7 @@ export default class WorkflowVariable extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -185,7 +185,7 @@ export default class WorkflowVariable extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: false,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Workflow ID',
         description:
             'ID of Workflow this variable belong to. If this is null then this variable will be a global variable',
@@ -218,7 +218,7 @@ export default class WorkflowVariable extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Variable Name',
     })

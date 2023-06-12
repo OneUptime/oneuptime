@@ -20,7 +20,7 @@ import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Populate from '../Types/Database/Populate';
+import Populate from '../Types/Database/RelationSelect';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../Config';

@@ -28,7 +28,7 @@ export default class FileModel extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.File,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -46,7 +46,7 @@ export default class FileModel extends BaseModel {
         type: TableColumnType.ShortText,
         title: 'Name',
         description: 'Any friendly name of this object',
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -63,7 +63,7 @@ export default class FileModel extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -81,7 +81,7 @@ export default class FileModel extends BaseModel {
         required: true,
         unique: true,
         type: TableColumnType.Slug,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -99,7 +99,7 @@ export default class FileModel extends BaseModel {
         required: true,
         isDefaultValueColumn: true,
         type: TableColumnType.Slug,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,

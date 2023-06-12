@@ -17,7 +17,7 @@ export interface TableColumnMetadata {
     encrypted?: boolean;
     manyToOneRelationColumn?: string;
     type: TableColumnType;
-    canReadOnPopulate?: boolean;
+    canReadOnRelationQuery?: boolean;
     modelType?: { new (): BaseModel };
 }
 

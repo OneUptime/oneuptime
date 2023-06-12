@@ -109,7 +109,7 @@ export default class Domain extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -141,7 +141,7 @@ export default class Domain extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.Domain,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Domain',
         description: 'Domain - acmeinc.com for example.',
     })

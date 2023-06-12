@@ -117,7 +117,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -183,7 +183,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Team ID',
         description: 'ID of your OneUptime Team in which this object belongs',
     })
@@ -248,7 +248,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'ScheduledMaintenance ID',
         description:
             'ID of your OneUptime ScheduledMaintenance in which this object belongs',

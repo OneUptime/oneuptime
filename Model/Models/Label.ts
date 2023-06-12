@@ -128,7 +128,7 @@ export default class Label extends AccessControlModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -161,7 +161,7 @@ export default class Label extends AccessControlModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Any friendly name of this object',
     })
@@ -369,7 +369,7 @@ export default class Label extends AccessControlModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         description: 'Color of this resource in Hex (#32a852 for example)',
     })
     @Column({

@@ -125,7 +125,7 @@ export default class MonitorStatus extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         required: true,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Project ID',
         description:
             'ID of your OneUptime Project in which this object belongs',
@@ -160,7 +160,7 @@ export default class MonitorStatus extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Any friendly name of this object',
     })
@@ -374,7 +374,7 @@ export default class MonitorStatus extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         description: 'Color of this resource in Hex (#32a852 for example)',
     })
     @Column({
@@ -409,7 +409,7 @@ export default class MonitorStatus extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Is Operational State',
         description: 'Is this monitor in operational state?',
     })
@@ -442,7 +442,7 @@ export default class MonitorStatus extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Is Offline State',
         description: 'Is this monitor in offline state?',
     })
@@ -475,7 +475,7 @@ export default class MonitorStatus extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.Number,
-        canReadOnPopulate: true,
+        canReadOnRelationQuery: true,
         title: 'Order',
         description:
             'Order / Priority of this status. For example: Operational has priority 1, Degraded has 2, Offline has 3. Lower priority would mean bad state of the resource. ',
