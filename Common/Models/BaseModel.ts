@@ -45,6 +45,7 @@ export type DbTypes =
     | URL
     | Phone
     | JSONObject
+    | ObjectID
     | JSONArray
     | Buffer;
 

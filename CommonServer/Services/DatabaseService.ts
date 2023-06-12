@@ -594,11 +594,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
             // hit workflow.;
             if (
                 this.getModel().enableWorkflowOn?.create &&
-                createBy.props.tenantId
+                (createBy.props.tenantId ||
+                    (this.getModel().getTenantColumn() &&
+                        createBy.data.getValue<ObjectID>(
+                            this.getModel().getTenantColumn()!
+                        )))
             ) {
                 await this.onTrigger(
                     createBy.data,
-                    createBy.props.tenantId,
+                    createBy.props.tenantId ||
+                        createBy.data.getValue<ObjectID>(
+                            this.getModel().getTenantColumn()!
+                        ),
                     'on-create'
                 );
             }
@@ -870,12 +877,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
             }
 
+            const select: Select<TBaseModel> = {};
+
+            if (this.getModel().getTenantColumn()) {
+                (select as any)[this.getModel().getTenantColumn() as string] =
+                    true;
+            }
+
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
                 skip: beforeDeleteBy.skip.toNumber(),
                 limit: beforeDeleteBy.limit.toNumber(),
                 populate: {},
-                select: {},
+                select: select,
                 props: { ...beforeDeleteBy.props, ignoreHooks: true },
             });
 
@@ -915,14 +929,25 @@ class DatabaseService<TBaseModel extends BaseModel> {
             // hit workflow.
             if (
                 this.getModel().enableWorkflowOn?.delete &&
-                deleteBy.props.tenantId
+                (deleteBy.props.tenantId || this.getModel().getTenantColumn())
             ) {
                 for (const item of items) {
-                    await this.onTrigger(
-                        item,
-                        deleteBy.props.tenantId,
-                        'on-delete'
-                    );
+                    if (
+                        (this.getModel().getTenantColumn() &&
+                            item.getValue<ObjectID>(
+                                this.getModel().getTenantColumn()!
+                            )) ||
+                        deleteBy.props.tenantId
+                    ) {
+                        await this.onTrigger(
+                            item,
+                            deleteBy.props.tenantId ||
+                                item.getValue<ObjectID>(
+                                    this.getModel().getTenantColumn()!
+                                ),
+                            'on-delete'
+                        );
+                    }
                 }
             }
 
@@ -1160,6 +1185,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!(updateBy.limit instanceof PositiveNumber)) {
                 updateBy.limit = new PositiveNumber(updateBy.limit);
             }
+
+            const select: Select<TBaseModel> = {};
+
+            if (this.getModel().getTenantColumn()) {
+                (select as any)[this.getModel().getTenantColumn() as string] =
+                    true;
+            }
+
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeUpdateBy.query,
                 skip: updateBy.skip.toNumber(),
@@ -1169,22 +1202,29 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props: { ...beforeUpdateBy.props, ignoreHooks: true },
             });
 
-            for (let item of items) {
-                item = {
+            for (const item of items) {
+                const updatedItem: any = {
                     _id: item._id!,
                     ...data,
                 } as any;
 
-                await this.getRepository().save(item);
+                await this.getRepository().save(updatedItem);
 
                 // hit workflow.
                 if (
-                    this.getModel().enableWorkflowOn?.update &&
-                    updateBy.props.tenantId
+                    (this.getModel().enableWorkflowOn?.update &&
+                        updateBy.props.tenantId) ||
+                    (this.getModel().getTenantColumn() &&
+                        item.getValue<ObjectID>(
+                            this.getModel().getTenantColumn()!
+                        ))
                 ) {
                     await this.onTrigger(
                         item,
-                        updateBy.props.tenantId,
+                        updateBy.props.tenantId ||
+                            item.getValue<ObjectID>(
+                                this.getModel().getTenantColumn()!
+                            ),
                         'on-update'
                     );
                 }
