@@ -44,8 +44,6 @@ RunCron(
                     _id: true,
                     scheduledMaintenanceId: true,
                     scheduledMaintenanceStateId: true,
-                },
-                populate: {
                     scheduledMaintenanceState: {
                         name: true,
                     },
@@ -88,8 +86,6 @@ RunCron(
                         title: true,
                         description: true,
                         startsAt: true,
-                    },
-                    populate: {
                         monitors: {
                             _id: true,
                         },
@@ -173,8 +169,6 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
-                    },
-                    populate: {
                         smtpConfig: {
                             _id: true,
                             hostname: true,

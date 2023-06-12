@@ -98,8 +98,6 @@ export class Service extends DatabaseService<Model> {
                 _id: true,
                 teamId: true,
                 projectId: true,
-            },
-            populate: {
                 team: {
                     isPermissionsEditable: true,
                 },
@@ -166,8 +164,6 @@ export class Service extends DatabaseService<Model> {
                 _id: true,
                 teamId: true,
                 projectId: true,
-            },
-            populate: {
                 team: {
                     isPermissionsEditable: true,
                 },

@@ -777,8 +777,6 @@ describe('probeService', () => {
                 probeVersion: true,
                 createdAt: true,
                 key: true,
-            },
-            populate: {
                 createdByUser: {
                     _id: true,
                     name: true,
@@ -842,8 +840,6 @@ describe('probeService', () => {
                 probeVersion: true,
                 createdAt: true,
                 key: true,
-            },
-            populate: {
                 createdByUser: {
                     _id: true,
                     name: true,

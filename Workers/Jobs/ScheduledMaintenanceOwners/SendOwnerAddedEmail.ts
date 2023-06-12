@@ -92,8 +92,6 @@ RunCron(
                     _id: true,
                     scheduledMaintenanceId: true,
                     userId: true,
-                },
-                populate: {
                     user: {
                         email: true,
                         name: true,
@@ -168,8 +166,6 @@ RunCron(
                         title: true,
                         description: true,
                         projectId: true,
-                    },
-                    populate: {
                         project: {
                             name: true,
                         },

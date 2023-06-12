@@ -157,7 +157,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             },
             limit: LIMIT_MAX,
             skip: 0,
-            populate: {},
+            
             props: {
                 isRoot: true,
             },
@@ -180,15 +180,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 projectId: true,
                 teamId: true,
                 hasAcceptedInvitation: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            populate: {
                 team: {
                     _id: true,
                     shouldHaveAtleastOneMember: true,
                 },
             },
+            limit: LIMIT_MAX,
+            skip: 0,
             props: {
                 isRoot: true,
             },
@@ -280,14 +278,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             },
             select: {
                 _id: true,
-            },
-            populate: {
                 user: {
                     _id: true,
                     email: true,
                     name: true,
                 },
             },
+           
             skip: 0,
             limit: LIMIT_MAX,
         });

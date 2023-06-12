@@ -140,9 +140,6 @@ router.post(
                         signOnURL: true,
                         issuerURL: true,
                         publicCertificate: true,
-                        teams: true,
-                    },
-                    populate: {
                         teams: {
                             _id: true,
                         },

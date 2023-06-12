@@ -35,8 +35,6 @@ RunCron(
                     _id: true,
                     createdAt: true,
                     projectId: true,
-                },
-                populate: {
                     project: {
                         name: true,
                     },
@@ -49,6 +47,7 @@ RunCron(
                         name: true,
                     },
                 },
+                
             });
 
         for (const incidentStateTimeline of incidentStateTimelines) {
@@ -65,12 +64,11 @@ RunCron(
                     },
                     select: {
                         _id: true,
-                    },
-                    populate: {
                         incidentSeverity: {
                             name: true,
                         },
                     },
+                    
                 });
 
             if (!incidentWithSeverity) {

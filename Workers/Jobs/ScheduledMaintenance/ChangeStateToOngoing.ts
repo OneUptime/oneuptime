@@ -32,8 +32,6 @@ RunCron(
                     _id: true,
                     projectId: true,
                     changeMonitorStatusToId: true,
-                },
-                populate: {
                     monitors: {
                         _id: true,
                     },

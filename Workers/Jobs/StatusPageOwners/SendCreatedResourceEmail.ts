@@ -30,8 +30,6 @@ RunCron(
                 name: true,
                 description: true,
                 projectId: true,
-            },
-            populate: {
                 project: {
                     name: true,
                 },

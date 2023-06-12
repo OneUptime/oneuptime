@@ -83,13 +83,12 @@ RunCron(
                     _id: true,
                     incidentId: true,
                     userId: true,
-                },
-                populate: {
                     user: {
                         email: true,
                         name: true,
                     },
                 },
+               
             });
 
         for (const incidentOwnerUser of incidentOwnerUsers) {
@@ -144,8 +143,6 @@ RunCron(
                         title: true,
                         description: true,
                         projectId: true,
-                    },
-                    populate: {
                         project: {
                             name: true,
                         },

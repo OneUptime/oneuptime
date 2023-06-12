@@ -33,8 +33,6 @@ RunCron(
                     description: true,
                     statusPages: true,
                     projectId: true,
-                },
-                populate: {
                     statusPages: {
                         _id: true,
                         name: true,

@@ -66,8 +66,6 @@ router.post(
                     select: {
                         probeId: true,
                         monitorId: true,
-                    },
-                    populate: {
                         monitor: {
                             monitorSteps: true,
                             monitorType: true,

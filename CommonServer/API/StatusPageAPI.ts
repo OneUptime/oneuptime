@@ -4,7 +4,6 @@ import UserMiddleware from '../Middleware/UserAuthorization';
 import StatusPageService, {
     Service as StatusPageServiceType,
 } from '../Services/StatusPageService';
-import Populate from '../Types/Database/RelationSelect';
 import Select from '../Types/Database/Select';
 import {
     ExpressRequest,
@@ -229,6 +228,24 @@ export default class StatusPageAPI extends BaseAPI<
                         enableSubscribers: true,
                         isPublicStatusPage: true,
                         requireSsoForLogin: true,
+                        coverImageFile: {
+                            file: true,
+                            _id: true,
+                            type: true,
+                            name: true,
+                        },
+                        faviconFile: {
+                            file: true,
+                            _id: true,
+                            type: true,
+                            name: true,
+                        },
+                        logoFile: {
+                            file: true,
+                            _id: true,
+                            type: true,
+                            name: true,
+                        },
                     };
 
                     const hasEnabledSSO: PositiveNumber =
@@ -242,32 +259,11 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                         });
 
-                    const populate: Populate<StatusPage> = {
-                        coverImageFile: {
-                            file: true as any,
-                            _id: true,
-                            type: true,
-                            name: true,
-                        } as any,
-                        faviconFile: {
-                            file: true as any,
-                            _id: true,
-                            type: true,
-                            name: true,
-                        } as any,
-                        logoFile: {
-                            file: true as any,
-                            _id: true,
-                            type: true,
-                            name: true,
-                        } as any,
-                    };
 
                     const item: StatusPage | null =
                         await this.service.findOneById({
                             id: objectId,
                             select,
-                            populate,
                             props: {
                                 isRoot: true,
                             },
@@ -287,7 +283,6 @@ export default class StatusPageAPI extends BaseAPI<
                                 link: true,
                                 title: true,
                             },
-                            populate: {},
                             limit: LIMIT_PER_PROJECT,
                             skip: 0,
                             props: {
@@ -487,13 +482,12 @@ export default class StatusPageAPI extends BaseAPI<
                                 showStatusHistoryChart: true,
                                 showCurrentStatus: true,
                                 order: true,
-                            },
-                            populate: {
                                 monitor: {
                                     _id: true,
                                     currentMonitorStatusId: true,
                                 },
                             },
+                           
                             sort: {
                                 order: SortOrder.Ascending,
                             },
@@ -542,16 +536,14 @@ export default class StatusPageAPI extends BaseAPI<
                                 select: {
                                     monitorId: true,
                                     createdAt: true,
-                                },
-                                sort: {
-                                    createdAt: SortOrder.Ascending,
-                                },
-                                populate: {
                                     monitorStatus: {
                                         name: true,
                                         color: true,
                                         priority: true,
-                                    },
+                                    } as any,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
                                 },
                                 skip: 0,
                                 limit: LIMIT_PER_PROJECT,
@@ -577,11 +569,6 @@ export default class StatusPageAPI extends BaseAPI<
                                 title: true,
                                 description: true,
                                 _id: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Ascending,
-                            },
-                            populate: {
                                 incidentSeverity: {
                                     name: true,
                                     color: true,
@@ -594,6 +581,10 @@ export default class StatusPageAPI extends BaseAPI<
                                     _id: true,
                                 },
                             },
+                            sort: {
+                                createdAt: SortOrder.Ascending,
+                            },
+                            
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -649,8 +640,6 @@ export default class StatusPageAPI extends BaseAPI<
                                     _id: true,
                                     createdAt: true,
                                     incidentId: true,
-                                },
-                                populate: {
                                     incidentState: {
                                         _id: true,
                                         name: true,
@@ -660,6 +649,7 @@ export default class StatusPageAPI extends BaseAPI<
                                         isAcknowledgedState: true,
                                     },
                                 },
+                                
                                 sort: {
                                     createdAt: SortOrder.Descending, // new note first
                                 },
@@ -717,11 +707,6 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 endsAt: true,
                                 startsAt: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Ascending,
-                            },
-                            populate: {
                                 currentScheduledMaintenanceState: {
                                     name: true,
                                     color: true,
@@ -733,6 +718,10 @@ export default class StatusPageAPI extends BaseAPI<
                                     _id: true,
                                 },
                             },
+                            sort: {
+                                createdAt: SortOrder.Ascending,
+                            },
+                            
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -756,11 +745,6 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 endsAt: true,
                                 startsAt: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Ascending,
-                            },
-                            populate: {
                                 currentScheduledMaintenanceState: {
                                     name: true,
                                     color: true,
@@ -772,6 +756,10 @@ export default class StatusPageAPI extends BaseAPI<
                                     _id: true,
                                 },
                             },
+                            sort: {
+                                createdAt: SortOrder.Ascending,
+                            },
+                           
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -836,8 +824,6 @@ export default class StatusPageAPI extends BaseAPI<
                                         _id: true,
                                         createdAt: true,
                                         scheduledMaintenanceId: true,
-                                    },
-                                    populate: {
                                         scheduledMaintenanceState: {
                                             _id: true,
                                             color: true,
@@ -847,6 +833,7 @@ export default class StatusPageAPI extends BaseAPI<
                                             isOngoingState: true,
                                         },
                                     },
+                                  
                                     sort: {
                                         createdAt: SortOrder.Descending, // new note first
                                     },
@@ -1228,13 +1215,12 @@ export default class StatusPageAPI extends BaseAPI<
                     displayTooltip: true,
                     displayDescription: true,
                     displayName: true,
-                },
-                populate: {
                     monitor: {
                         _id: true,
                         currentMonitorStatusId: true,
                     },
                 },
+                
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1272,11 +1258,6 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     endsAt: true,
                     startsAt: true,
-                },
-                sort: {
-                    startsAt: SortOrder.Descending,
-                },
-                populate: {
                     currentScheduledMaintenanceState: {
                         name: true,
                         color: true,
@@ -1288,6 +1269,10 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                     },
                 },
+                sort: {
+                    startsAt: SortOrder.Descending,
+                },
+                
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1311,11 +1296,6 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     endsAt: true,
                     startsAt: true,
-                },
-                sort: {
-                    createdAt: SortOrder.Ascending,
-                },
-                populate: {
                     currentScheduledMaintenanceState: {
                         name: true,
                         color: true,
@@ -1326,6 +1306,9 @@ export default class StatusPageAPI extends BaseAPI<
                     monitors: {
                         _id: true,
                     },
+                },
+                sort: {
+                    createdAt: SortOrder.Ascending,
                 },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
@@ -1388,8 +1371,6 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                         createdAt: true,
                         scheduledMaintenanceId: true,
-                    },
-                    populate: {
                         scheduledMaintenanceState: {
                             name: true,
                             color: true,
@@ -1398,6 +1379,7 @@ export default class StatusPageAPI extends BaseAPI<
                             isOngoingState: true,
                         },
                     },
+                    
                     sort: {
                         createdAt: SortOrder.Descending, // new note first
                     },
@@ -1514,13 +1496,12 @@ export default class StatusPageAPI extends BaseAPI<
                     displayTooltip: true,
                     displayDescription: true,
                     displayName: true,
-                },
-                populate: {
                     monitor: {
                         _id: true,
                         currentMonitorStatusId: true,
                     },
                 },
+                
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1586,13 +1567,12 @@ export default class StatusPageAPI extends BaseAPI<
                     displayTooltip: true,
                     displayDescription: true,
                     displayName: true,
-                },
-                populate: {
                     monitor: {
                         _id: true,
                         currentMonitorStatusId: true,
                     },
                 },
+               
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1639,8 +1619,6 @@ export default class StatusPageAPI extends BaseAPI<
                 },
                 sort: {
                     createdAt: SortOrder.Descending,
-                },
-                populate: {
                     incidentSeverity: {
                         name: true,
                         color: true,
@@ -1653,6 +1631,7 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                     },
                 },
+               
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
@@ -1674,11 +1653,6 @@ export default class StatusPageAPI extends BaseAPI<
                         title: true,
                         description: true,
                         _id: true,
-                    },
-                    sort: {
-                        createdAt: SortOrder.Descending,
-                    },
-                    populate: {
                         incidentSeverity: {
                             name: true,
                             color: true,
@@ -1691,6 +1665,10 @@ export default class StatusPageAPI extends BaseAPI<
                             _id: true,
                         },
                     },
+                    sort: {
+                        createdAt: SortOrder.Descending,
+                    },
+                    
                     skip: 0,
                     limit: LIMIT_PER_PROJECT,
                     props: {
@@ -1746,16 +1724,15 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     createdAt: true,
                     incidentId: true,
-                },
-                sort: {
-                    createdAt: SortOrder.Descending, // new note first
-                },
-                populate: {
                     incidentState: {
                         name: true,
                         color: true,
                     },
                 },
+                sort: {
+                    createdAt: SortOrder.Descending, // new note first
+                },
+              
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {

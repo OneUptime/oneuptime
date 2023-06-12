@@ -83,8 +83,6 @@ RunCron(
                     _id: true,
                     statusPageId: true,
                     userId: true,
-                },
-                populate: {
                     user: {
                         email: true,
                         name: true,
@@ -146,8 +144,6 @@ RunCron(
                         name: true,
                         description: true,
                         projectId: true,
-                    },
-                    populate: {
                         project: {
                             name: true,
                         },

@@ -287,7 +287,6 @@ export default class BaseAPI<
 
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
-        let populate: Populate<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
 
         if (req.body) {
@@ -299,11 +298,6 @@ export default class BaseAPI<
                 req.body['select']
             ) as Select<BaseModel>;
 
-            if (req.body['populate']) {
-                populate = JSONFunctions.deserialize(
-                    req.body['populate']
-                ) as Populate<BaseModel>;
-            }
 
             sort = JSONFunctions.deserialize(
                 req.body['sort']
@@ -319,7 +313,6 @@ export default class BaseAPI<
             skip: skip,
             limit: limit,
             sort: sort,
-            populate,
             props: databaseProps,
         });
 
@@ -371,24 +364,17 @@ export default class BaseAPI<
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         await this.onBeforeGet(req, res);
         let select: Select<BaseModel> = {};
-        let populate: Populate<BaseModel> = {};
-
+        
         if (req.body) {
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
 
-            if (req.body['populate']) {
-                populate = JSONFunctions.deserialize(
-                    req.body['populate']
-                ) as Populate<BaseModel>;
-            }
         }
 
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
             select,
-            populate,
             props: await this.getDatabaseCommonInteractionProps(req),
         });
 

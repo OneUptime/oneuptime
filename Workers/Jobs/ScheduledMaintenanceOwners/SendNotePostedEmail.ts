@@ -106,8 +106,6 @@ RunCron(
                         title: true,
                         description: true,
                         projectId: true,
-                    },
-                    populate: {
                         project: {
                             name: true,
                         },

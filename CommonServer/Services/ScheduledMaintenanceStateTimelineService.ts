@@ -72,8 +72,6 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                     select: {
                         _id: true,
                         projectId: true,
-                    },
-                    populate: {
                         monitors: {
                             _id: true,
                         },

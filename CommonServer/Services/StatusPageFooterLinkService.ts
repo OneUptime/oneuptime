@@ -137,7 +137,7 @@ export class Service extends DatabaseService<Model> {
                 query: {
                     statusPageId: resource?.statusPageId!,
                 },
-                populate: {},
+                
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {

@@ -68,8 +68,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
                 select: {
                     _id: true,
                     projectId: true,
-                },
-                populate: {
                     monitors: {
                         _id: true,
                     },

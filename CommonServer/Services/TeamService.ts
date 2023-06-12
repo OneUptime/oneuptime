@@ -24,7 +24,7 @@ export class Service extends DatabaseService<Model> {
                 name: true,
                 isTeamEditable: true,
             },
-            populate: {},
+            
             props: updateBy.props,
         });
 
@@ -52,7 +52,7 @@ export class Service extends DatabaseService<Model> {
                 name: true,
                 isTeamDeleteable: true,
             },
-            populate: {},
+            
             props: deleteBy.props,
         });
 

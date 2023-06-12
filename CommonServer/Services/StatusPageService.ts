@@ -69,8 +69,6 @@ export class Service extends DatabaseService<StatusPage> {
                 },
                 select: {
                     _id: true,
-                },
-                populate: {
                     user: {
                         _id: true,
                         email: true,

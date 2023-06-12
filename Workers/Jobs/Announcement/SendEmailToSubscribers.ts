@@ -39,8 +39,6 @@ RunCron(
                     _id: true,
                     title: true,
                     description: true,
-                },
-                populate: {
                     statusPages: {
                         _id: true,
                     },
@@ -75,8 +73,6 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
-                    },
-                    populate: {
                         smtpConfig: {
                             _id: true,
                             hostname: true,

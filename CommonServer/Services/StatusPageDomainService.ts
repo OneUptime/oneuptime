@@ -25,7 +25,6 @@ export class Service extends DatabaseService<Model> {
                     createBy.data.domain?._id ||
                     '',
             },
-            populate: {},
             select: { domain: true, isVerified: true },
             props: {
                 isRoot: true,
@@ -56,7 +55,7 @@ export class Service extends DatabaseService<Model> {
                 ...deleteBy.query,
                 isAddedtoGreenlock: true,
             },
-            populate: {},
+            
             skip: 0,
             limit: LIMIT_MAX,
             select: { fullDomain: true },
