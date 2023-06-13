@@ -16,7 +16,6 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
-import Team from './Team';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -25,52 +24,52 @@ import Team from './Team';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+        Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+        Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectOnCallDutyPolicyEscalationRule,
+        Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleUser,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+        Permission.CanEditProjectOnCallDutyPolicyEscalationRuleUser,
     ],
 })
-@CrudApiEndpoint(new Route('/on-call-duty-policy-esclation-rule'))
+@CrudApiEndpoint(new Route('/on-call-duty-policy-esclation-rule-user'))
 @Entity({
-    name: 'OnCallDutyPolicyEscalationRule',
+    name: 'OnCallDutyPolicyEscalationRuleUser',
 })
 @TableMetadata({
-    tableName: 'OnCallDutyPolicyEscalationRule',
+    tableName: 'OnCallDutyPolicyEscalationRuleUser',
     singularName: 'On Call Duty Escalation Rule',
-    pluralName: 'On Call Duty Escalation Rules',
+    pluralName: 'On Call Duty Esdcalation Rules',
     icon: IconProp.Call,
     tableDescription:
         'Manage on-call duty escalation rule for the on-call policy.',
 })
-export default class OnCallDutyPolicyEscalationRule extends BaseModel {
+export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -101,13 +100,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -132,13 +131,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -169,13 +168,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -200,26 +199,26 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'teamId',
+        manyToOneRelationColumn: 'userId',
         type: TableColumnType.Entity,
-        modelType: Team,
-        title: 'Team',
-        description: 'Relation to Team who is in this escalation rule.',
+        modelType: User,
+        title: 'User',
+        description: 'Relation to User who is in this escalation rule.',
     })
     @ManyToOne(
         (_type: string) => {
-            return Team;
+            return User;
         },
         {
             eager: false,
@@ -228,48 +227,48 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'teamId' })
-    public team?: Team = undefined;
+    @JoinColumn({ name: 'userId' })
+    public user?: User = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: 'Team ID',
-        description: 'ID of the team who is in this escalation rule.',
+        title: 'User ID',
+        description: 'ID of the user who is in this escalation rule.',
     })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public teamId?: ObjectID = undefined;
+    public userId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -300,13 +299,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
