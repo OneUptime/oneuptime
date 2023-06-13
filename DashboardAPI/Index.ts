@@ -275,10 +275,37 @@ import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
 
+
+import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
+import OnCallDutyPolicyExecutionLogTimelineService, {
+    Service as OnCallDutyPolicyExecutionLogTimelineServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyExecutionLogTimelineService';
+
 import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCustomField';
 import ScheduledMaintenanceCustomFieldService, {
     Service as ScheduledMaintenanceCustomFieldServiceType,
 } from 'CommonServer/Services/ScheduledMaintenanceCustomFieldService';
+
+import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
+import OnCallDutyPolicyExecutionLogService, {
+    Service as OnCallDutyPolicyExecutionLogServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyExecutionLogService';
+
+import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import OnCallDutyPolicyEscalationRuleService, {
+    Service as OnCallDutyPolicyEscalationRuleServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleService';
+
+import OnCallDutyPolicyEscalationRuleTeam from 'Model/Models/OnCallDutyPolicyEscalationRuleTeam';
+import OnCallDutyPolicyEscalationRuleTeamService, {
+    Service as OnCallDutyPolicyEscalationRuleTeamServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleTeamService';
+
+import OnCallDutyPolicyEscalationRuleUser from 'Model/Models/OnCallDutyPolicyEscalationRuleUser';
+import OnCallDutyPolicyEscalationRuleUserService, {
+    Service as OnCallDutyPolicyEscalationRuleUserServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleUserService';
+
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -712,6 +739,41 @@ app.use(
     ).getRouter()
 );
 
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDutyPolicyEscalationRuleUser, OnCallDutyPolicyEscalationRuleUserServiceType>(
+        OnCallDutyPolicyEscalationRuleUser,
+        OnCallDutyPolicyEscalationRuleUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDutyPolicyEscalationRuleTeam, OnCallDutyPolicyEscalationRuleTeamServiceType>(
+        OnCallDutyPolicyEscalationRuleTeam,
+        OnCallDutyPolicyEscalationRuleTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDutyPolicyExecutionLog, OnCallDutyPolicyExecutionLogServiceType>(
+        OnCallDutyPolicyExecutionLog,
+        OnCallDutyPolicyExecutionLogService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDutyPolicyExecutionLogTimeline, OnCallDutyPolicyExecutionLogTimelineServiceType>(
+        OnCallDutyPolicyExecutionLogTimeline,
+        OnCallDutyPolicyExecutionLogTimelineService
+    ).getRouter()
+);
+
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
@@ -719,6 +781,15 @@ app.use(
         IncidentCustomFieldService
     ).getRouter()
 );
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDutyPolicyEscalationRule, OnCallDutyPolicyEscalationRuleServiceType>(
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicyEscalationRuleService
+    ).getRouter()
+);
+
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
