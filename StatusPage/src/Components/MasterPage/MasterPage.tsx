@@ -105,17 +105,23 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             User.setAccessToken(decodedtoken.statusPageId!, sso_token);
 
-            Navigation.navigate(
-                !props.isPreview
-                    ? RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.OVERVIEW]!,
-                          statusPageId
-                      )
-                    : RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.PREVIEW_OVERVIEW]!,
-                          statusPageId
-                      )
-            );
+            if (Navigation.getQueryStringByName('redirectUrl')) {
+                Navigation.navigate(
+                    new Route(Navigation.getQueryStringByName('redirectUrl')!)
+                );
+            } else {
+                Navigation.navigate(
+                    !props.isPreview
+                        ? RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.OVERVIEW]!,
+                              statusPageId
+                          )
+                        : RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.PREVIEW_OVERVIEW]!,
+                              statusPageId
+                          )
+                );
+            }
         }
     }, [statusPageId]);
 
