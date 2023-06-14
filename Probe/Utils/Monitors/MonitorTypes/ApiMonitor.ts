@@ -32,7 +32,6 @@ export default class ApiMonitor {
         retry?: number | undefined
     ): Promise<APIResponse> {
         try {
-
             logger.info(`API Monitor - Pinging ${url.toString()}`);
 
             const startTime: [number, number] = process.hrtime();
@@ -60,14 +59,18 @@ export default class ApiMonitor {
                 responseHeaders: result.headers,
                 requestBody: options.requestBody || {},
             };
-            
-            logger.info(`API Monitor - Pinging ${url.toString()} Success - Response: ${JSON.stringify(apiResponse)}`);
+
+            logger.info(
+                `API Monitor - Pinging ${url.toString()} Success - Response: ${JSON.stringify(
+                    apiResponse
+                )}`
+            );
 
             return apiResponse;
         } catch (err) {
-
-            logger.error(`API Monitor - Pinging ${url.toString()} - Error: ${err}`);
-
+            logger.error(
+                `API Monitor - Pinging ${url.toString()} - Error: ${err}`
+            );
 
             if (!retry) {
                 retry = 0; // default value
