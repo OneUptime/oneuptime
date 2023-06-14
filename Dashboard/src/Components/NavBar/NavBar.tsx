@@ -129,6 +129,19 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
+
+                            <NavBarMenuItem
+                                title="On-Call Duty"
+                                description='Manage you on-call schedules, escalations and more.'
+                                route={RouteUtil.populateRouteParams(
+                                    RouteMap[PageMap.ON_CALL_DUTY] as Route
+                                )}
+                                icon={IconProp.Call}
+                                onClick={() => {
+                                    forceHideMoreMenu();
+                                }}
+                            />
+
                             <NavBarMenuItem
                                 title="Workflows"
                                 description="Integrate OneUptime with the rest of your ecosystem."
@@ -168,15 +181,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             )}
                             icon={IconProp.Error}
                         />
-                        <NavBarMenuItem
-                            title="On-Call Duty"
-                            description='Manage you on-call schedules, escalations and more.'
-                            route={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.ON_CALL_DUTY] as Route
-                            )}
-                            icon={IconProp.Call}
-                        ></NavBarMenuItem>
-
 
                         <NavBarMenuItem
                             title="Reports"

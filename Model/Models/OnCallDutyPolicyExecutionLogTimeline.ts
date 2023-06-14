@@ -118,9 +118,9 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyExecutionLogId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicyExecutionLog,
-        title: 'On Call Duty Policy Execution Log',
+        title: 'On Call Policy Execution Log',
         description:
-            'Relation to On Call Duty Policy Execution Log where this timeline event belongs.',
+            'Relation to On Call Policy Execution Log where this timeline event belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -151,9 +151,9 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Duty Policy Execution Log ID',
+        title: 'On Call Policy Execution Log ID',
         description:
-            'ID of your On Call Duty Policy Execution Log where this timeline event belongs.',
+            'ID of your On Call Policy Execution Log where this timeline event belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -176,9 +176,9 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyEscalationRuleId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicyEscalationRule,
-        title: 'On Call Duty Policy Escalation Rule',
+        title: 'On Call Policy Escalation Rule',
         description:
-            'Relation to On Call Duty Policy Escalation Rule where this timeline event belongs.',
+            'Relation to On Call Policy Escalation Rule where this timeline event belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -209,9 +209,9 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Duty Policy Escalation Rule ID',
+        title: 'On Call Policy Escalation Rule ID',
         description:
-            'ID of your On Call Duty Policy Escalation Rule where this timeline event belongs.',
+            'ID of your On Call Policy Escalation Rule where this timeline event belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,

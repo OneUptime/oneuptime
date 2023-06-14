@@ -117,9 +117,9 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicy,
-        title: 'On Call Duty Policy',
+        title: 'On Call Policy',
         description:
-            'Relation to On Call Duty Policy which belongs to this execution log event.',
+            'Relation to On Call Policy which belongs to this execution log event.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -150,9 +150,9 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Duty Policy ID',
+        title: 'On Call Policy ID',
         description:
-            'ID of your On Call Duty Policy which belongs to this execution log event.',
+            'ID of your On Call Policy which belongs to this execution log event.',
     })
     @Column({
         type: ColumnType.ObjectID,

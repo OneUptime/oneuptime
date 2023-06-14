@@ -35,28 +35,28 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
                 {
                     title: 'Monitors',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITORS] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
                 {
                     title: 'View Monitor',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITOR_VIEW] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
                 {
                     title: 'Status Timeline',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
             ]}

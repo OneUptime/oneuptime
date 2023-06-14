@@ -5,27 +5,27 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import Workflow from 'Model/Models/Workflow';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import LabelsElement from '../../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import IconProp from 'Common/Types/Icon/IconProp';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import LabelsElement from '../../../Components/Label/Labels';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
-const Delete: FunctionComponent<PageComponentProps> = (
+const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
         <ModelPage
-            title="Workflow"
-            modelType={Workflow}
+            title="On Call Policy"
+            modelType={OnCallDutyPolicy}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -37,58 +37,52 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Workflows',
+                    title: 'On Call Policy',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOWS] as Route,
+                        RouteMap[PageMap.STATUS_PAGES] as Route,
                         {modelId}
                     ),
                 },
                 {
-                    title: 'View Workflow',
+                    title: 'View On Call Policy',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_VIEW] as Route,
-                        {modelId}
-                    ),
-                },
-                {
-                    title: 'Builder',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
                         {modelId}
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            {/* StatusPage View  */}
+
+            {/* OnCallDutyPolicy View  */}
             <CardModelDetail
-                name="Workflow > Workflow Details"
+                name="On Call Policy > On Call Policy Details"
                 cardProps={{
-                    title: 'Workflow Details',
-                    description: "Here's more details for this workflow.",
-                    icon: IconProp.Workflow,
+                    title: 'On Call Policy Details',
+                    description: "Here's more details for this on call policy.",
+                    icon: IconProp.Call,
                 }}
-                isEditable={true}
                 formSteps={[
                     {
-                        title: 'Workflow Info',
-                        id: 'workflow-info',
+                        title: 'On Call Policy Info',
+                        id: 'on-call-policy-info',
                     },
                     {
                         title: 'Labels',
                         id: 'labels',
                     },
                 ]}
+                isEditable={true}
                 formFields={[
                     {
                         field: {
                             name: true,
                         },
-                        stepId: 'workflow-info',
                         title: 'Name',
+                        stepId: 'on-call-policy-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Status Page Name',
+                        placeholder: 'On Call Policy Name',
                         validation: {
                             minLength: 2,
                         },
@@ -97,7 +91,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        stepId: 'workflow-info',
+                        stepId: 'on-call-policy-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -105,18 +99,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            isEnabled: true,
-                        },
-                        title: 'Enabled',
-                        stepId: 'workflow-info',
-                        fieldType: FormFieldSchemaType.Toggle,
-                    },
-                    {
-                        field: {
                             labels: true,
                         },
-                        stepId: 'labels',
                         title: 'Labels ',
+                        stepId: 'labels',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -131,33 +117,20 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
-                    modelType: Workflow,
-                    id: 'model-detail-workflow',
+                    modelType: OnCallDutyPolicy,
+                    id: 'model-detail-monitors',
                     fields: [
                         {
                             field: {
                                 _id: true,
                             },
-                            title: 'Workflow ID',
+                            title: 'On Call Policy ID',
                         },
                         {
                             field: {
                                 name: true,
                             },
                             title: 'Name',
-                        },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                        },
-                        {
-                            field: {
-                                isEnabled: true,
-                            },
-                            title: 'Enabled',
-                            fieldType: FieldType.Boolean,
                         },
                         {
                             field: {
@@ -182,6 +155,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 );
                             },
                         },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                        },
                     ],
                     modelId: modelId,
                 }}
@@ -190,4 +169,4 @@ const Delete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default Delete;
+export default OnCallDutyPolicyView;

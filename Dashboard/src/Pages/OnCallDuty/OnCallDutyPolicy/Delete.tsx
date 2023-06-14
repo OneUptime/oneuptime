@@ -8,17 +8,17 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
-const StatusPageDelete: FunctionComponent<PageComponentProps> = (
+const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
         <ModelPage
-            title="Status Page"
-            modelType={StatusPage}
+            title="On Call Policy"
+            modelType={OnCallDutyPolicy}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -30,23 +30,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Status Pages',
+                    title: 'On Call Duty',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY] as Route,
                         {modelId}
                     ),
                 },
                 {
-                    title: 'View Status Page',
+                    title: 'View On Call Policy',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
                         {modelId}
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Delete On Call Policy',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route,
                         {modelId}
                     ),
                 },
@@ -54,11 +54,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <ModelDelete
-                modelType={StatusPage}
+                modelType={OnCallDutyPolicy}
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
+                        RouteMap[PageMap.ON_CALL_DUTY] as Route
                     );
                 }}
             />
@@ -66,4 +66,4 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default StatusPageDelete;
+export default OnCallPolicyDelete;

@@ -146,9 +146,9 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicy,
-        title: 'On Call Duty Policy',
+        title: 'On Call Policy',
         description:
-            'Relation to On Call Duty Policy where this escalation rule belongs.',
+            'Relation to On Call Policy where this escalation rule belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -184,9 +184,9 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Duty Policy ID',
+        title: 'On Call Policy ID',
         description:
-            'ID of your On Call Duty Policy where this escalation rule belongs.',
+            'ID of your On Call Policy where this escalation rule belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,

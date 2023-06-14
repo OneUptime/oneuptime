@@ -5,7 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import OnCallDuty from 'Model/Models/OnCallDuty';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -15,12 +15,14 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+
+
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'On-Call-Duty'}
+            title={'On-Call Duty'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -34,23 +36,29 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         RouteMap[PageMap.ON_CALL_DUTY] as Route
                     ),
                 },
+                {
+                    title: 'Policies',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
+                    ),
+                },
             ]}
         >
-            <ModelTable<OnCallDuty>
-                modelType={OnCallDuty}
+            <ModelTable<OnCallDutyPolicy>
+                modelType={OnCallDutyPolicy}
                 id="on-call-duty-table"
                 isDeleteable={false}
-                name="Scheduled Maintenance Events > On Call Duties"
+                name="On Call > Policies"
                 isEditable={true}
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
                     icon: IconProp.Call,
-                    title: 'On Call Duties',
+                    title: 'On Call Duty Policies',
                     description:
-                        'Here is a list of on-call-duty schedules for this project.',
+                        'Here is a list of on-call-duty policies for this project.',
                 }}
-                noItemsMessage={'No on-call-duty found.'}
+                noItemsMessage={'No on-call policy found.'}
                 formFields={[
                     {
                         field: {

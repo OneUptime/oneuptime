@@ -258,9 +258,36 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
+
+
     [PageMap.ON_CALL_DUTY]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
+    [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/execution-logs/`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/escalations`
+    ),
+
+    
     [PageMap.REPORTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/reports/`
     ),
@@ -420,7 +447,10 @@ export class RouteUtil {
         return false;
     }
 
-    public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
+    public static populateRouteParams(route: Route, props?: { 
+        modelId?: ObjectID
+        subModelId?: ObjectID
+    }): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
         const tempRoute: Route = new Route(route.toString());
@@ -429,10 +459,17 @@ export class RouteUtil {
             route = tempRoute.addRouteParam(RouteParams.ProjectID, project._id);
         }
 
-        if (modelId) {
+        if (props && props.modelId) {
             route = tempRoute.addRouteParam(
                 RouteParams.ModelID,
-                modelId.toString()
+                props.modelId.toString()
+            );
+        }
+
+        if (props && props.subModelId) {
+            route = tempRoute.addRouteParam(
+                RouteParams.SubModelID,
+                props.subModelId.toString()
             );
         }
 

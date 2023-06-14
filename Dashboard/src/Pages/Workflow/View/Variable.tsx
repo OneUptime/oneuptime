@@ -43,14 +43,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     title: 'View Workflow',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.WORKFLOW_VIEW] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
                 {
                     title: 'Builder',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
             ]}

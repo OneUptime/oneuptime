@@ -47,21 +47,21 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENTS] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
                 {
                     title: 'View Incident',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                        modelId
+                        {modelId}
                     ),
                 },
             ]}

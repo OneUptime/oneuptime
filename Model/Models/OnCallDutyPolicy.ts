@@ -64,7 +64,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 })
 @TableMetadata({
     tableName: 'OnCallDutyPolicy',
-    singularName: 'On Call Duty Policy',
+    singularName: 'On Call Policy',
     pluralName: 'On Call Duty Policies',
     icon: IconProp.Call,
     tableDescription:
