@@ -48,6 +48,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                 id="on-call-duty-table"
                 isDeleteable={false}
                 name="On Call > Policies"
+                showViewIdButton={true}
                 isEditable={false}
                 isCreateable={true}
                 isViewable={true}

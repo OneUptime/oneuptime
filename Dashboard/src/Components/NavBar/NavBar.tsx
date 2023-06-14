@@ -131,7 +131,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                         >
                             <NavBarMenuItem
                                 title="On-Call Duty"
-                                description="Manage you on-call schedules, escalations and more."
+                                description="Manage your on-call schedules, escalations and more."
                                 route={RouteUtil.populateRouteParams(
                                     RouteMap[PageMap.ON_CALL_DUTY] as Route
                                 )}
@@ -154,11 +154,22 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             />
                             <NavBarMenuItem
                                 title="Project Settings"
-                                description="Review or manage project settings here."
+                                description="Review or manage settings related to this project here."
                                 route={RouteUtil.populateRouteParams(
                                     RouteMap[PageMap.SETTINGS] as Route
                                 )}
                                 icon={IconProp.Settings}
+                                onClick={() => {
+                                    forceHideMoreMenu();
+                                }}
+                            />
+                            <NavBarMenuItem
+                                title="User Settings"
+                                description="Review or manage user settings related to this project here."
+                                route={RouteUtil.populateRouteParams(
+                                    RouteMap[PageMap.USER_SETTINGS] as Route
+                                )}
+                                icon={IconProp.User}
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}

@@ -96,6 +96,11 @@ enum IconProp {
     Bolt = 'Bolt',
     BarsArrowUp = 'BarsArrowUp',
     BarsArrowDown = 'BarsArrowDown',
+    Bell = 'Bell',
+    BellRinging = 'BellRinging',
+    AdjustmentVertical = 'AdjustmentVertical',
+    AdjustmentHorizontal = 'AdjustmentHorizontal',
+    
 }
 
 export default IconProp;

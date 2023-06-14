@@ -293,6 +293,20 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/error-tracker/`
     ),
 
+
+    // User Settings Routes
+    [PageMap.USER_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/user-settings/notification-methods`
+    ),
+
+    [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-methods`
+    ),
+
+    [PageMap.USER_SETTINGS_NOTIFICATION_RULES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-rules`
+    ),
+
     // Settings Routes
     [PageMap.SETTINGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/`
