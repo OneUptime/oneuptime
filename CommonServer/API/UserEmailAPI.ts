@@ -4,7 +4,10 @@ import UserEmailService, {
 } from '../Services/UserEmailService';
 import BaseAPI from './BaseAPI';
 
-export default class UserEmailAPI extends BaseAPI<UserEmail, UserEmailServiceType> {
+export default class UserEmailAPI extends BaseAPI<
+    UserEmail,
+    UserEmailServiceType
+> {
     public constructor() {
         super(UserEmail, UserEmailService);
     }

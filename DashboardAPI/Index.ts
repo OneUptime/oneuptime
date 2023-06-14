@@ -250,8 +250,7 @@ import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from 'CommonServer/Services/StatusPageDomainService';
 
-
-// User Notification methods. 
+// User Notification methods.
 import UserEmailAPI from 'CommonServer/API/UserEmailAPI';
 import UserSMSAPI from 'CommonServer/API/UserSMSAPI';
 import UserCallAPI from 'CommonServer/API/UserCallAPI';

@@ -4,7 +4,10 @@ import UserCallService, {
 } from '../Services/UserCallService';
 import BaseAPI from './BaseAPI';
 
-export default class UserCallAPI extends BaseAPI<UserCall, UserCallServiceType> {
+export default class UserCallAPI extends BaseAPI<
+    UserCall,
+    UserCallServiceType
+> {
     public constructor() {
         super(UserCall, UserCallService);
     }

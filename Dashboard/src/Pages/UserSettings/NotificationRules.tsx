@@ -1,4 +1,3 @@
-
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -29,16 +28,14 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Notification Rules',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_RULES] as Route
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_RULES
+                        ] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
-        >
-            
-
-
-        </Page>
+        ></Page>
     );
 };
 

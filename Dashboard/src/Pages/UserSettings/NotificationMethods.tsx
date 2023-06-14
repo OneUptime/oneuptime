@@ -35,19 +35,19 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Notification Methods',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_METHODS] as Route
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+                        ] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            
-
             <ModelTable<UserEmail>
                 modelType={UserEmail}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
-                    userId: User.getUserId().toString()
+                    userId: User.getUserId().toString(),
                 }}
                 id="user-emails"
                 name="User Settings > Notifiation Methods > Emails"
@@ -60,7 +60,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     description:
                         'Manage emails that will receive notifications for this project.',
                 }}
-                noItemsMessage={'No emails found. Please add one to receive notifications.'}
+                noItemsMessage={
+                    'No emails found. Please add one to receive notifications.'
+                }
                 formFields={[
                     {
                         field: {
@@ -73,7 +75,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         validation: {
                             minLength: 2,
                         },
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={false}
@@ -95,7 +97,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
         </Page>
     );
 };

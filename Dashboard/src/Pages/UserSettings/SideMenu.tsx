@@ -15,7 +15,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     link={{
                         title: 'Notification Methods',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_METHODS] as Route
+                            RouteMap[
+                                PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Bell}
@@ -24,7 +26,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     link={{
                         title: 'Notification Rules',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_RULES] as Route
+                            RouteMap[
+                                PageMap.USER_SETTINGS_NOTIFICATION_RULES
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.AdjustmentVertical}

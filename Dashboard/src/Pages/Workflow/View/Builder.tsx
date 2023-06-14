@@ -283,12 +283,13 @@ const Delete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <>
-
-            <Banner
+                <Banner
                     openInNewTab={true}
                     title="Need help with building workflows?"
                     description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
-                    link={URL.fromString('https://www.youtube.com/watch?v=VX3TwFrpvyI')}
+                    link={URL.fromString(
+                        'https://www.youtube.com/watch?v=VX3TwFrpvyI'
+                    )}
                 />
                 <Card
                     title={'Workflow Builder'}
