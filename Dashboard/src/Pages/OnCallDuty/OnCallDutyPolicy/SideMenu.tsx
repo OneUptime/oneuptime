@@ -31,25 +31,39 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
+                        title: 'Escalation Rules',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.BarsArrowDown}
+                />
+
+              
+            </SideMenuSection>
+
+            <SideMenuSection title="Advanced">
+            <SideMenuItem
+                    link={{
                         title: 'Execution Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Logs}
                 />
-            </SideMenuSection>
-
-            <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
                         title: 'Delete Policy',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
                             ] as Route,
                             { modelId: props.modelId }
                         ),

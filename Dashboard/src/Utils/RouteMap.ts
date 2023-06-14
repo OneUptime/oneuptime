@@ -267,23 +267,23 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/delete`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/execution-logs/`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/escalations`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/escalations`
     ),
 
     [PageMap.REPORTS]: new Route(
