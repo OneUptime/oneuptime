@@ -275,7 +275,6 @@ import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
 
-
 import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
 import OnCallDutyPolicyExecutionLogTimelineService, {
     Service as OnCallDutyPolicyExecutionLogTimelineServiceType,
@@ -305,7 +304,6 @@ import OnCallDutyPolicyEscalationRuleUser from 'Model/Models/OnCallDutyPolicyEsc
 import OnCallDutyPolicyEscalationRuleUserService, {
     Service as OnCallDutyPolicyEscalationRuleUserServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleUserService';
-
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -739,10 +737,12 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicyEscalationRuleUser, OnCallDutyPolicyEscalationRuleUserServiceType>(
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRuleUser,
+        OnCallDutyPolicyEscalationRuleUserServiceType
+    >(
         OnCallDutyPolicyEscalationRuleUser,
         OnCallDutyPolicyEscalationRuleUserService
     ).getRouter()
@@ -750,7 +750,10 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicyEscalationRuleTeam, OnCallDutyPolicyEscalationRuleTeamServiceType>(
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRuleTeam,
+        OnCallDutyPolicyEscalationRuleTeamServiceType
+    >(
         OnCallDutyPolicyEscalationRuleTeam,
         OnCallDutyPolicyEscalationRuleTeamService
     ).getRouter()
@@ -758,21 +761,25 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicyExecutionLog, OnCallDutyPolicyExecutionLogServiceType>(
+    new BaseAPI<
+        OnCallDutyPolicyExecutionLog,
+        OnCallDutyPolicyExecutionLogServiceType
+    >(
         OnCallDutyPolicyExecutionLog,
         OnCallDutyPolicyExecutionLogService
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicyExecutionLogTimeline, OnCallDutyPolicyExecutionLogTimelineServiceType>(
+    new BaseAPI<
+        OnCallDutyPolicyExecutionLogTimeline,
+        OnCallDutyPolicyExecutionLogTimelineServiceType
+    >(
         OnCallDutyPolicyExecutionLogTimeline,
         OnCallDutyPolicyExecutionLogTimelineService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -784,12 +791,14 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicyEscalationRule, OnCallDutyPolicyEscalationRuleServiceType>(
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicyEscalationRuleServiceType
+    >(
         OnCallDutyPolicyEscalationRule,
         OnCallDutyPolicyEscalationRuleService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
