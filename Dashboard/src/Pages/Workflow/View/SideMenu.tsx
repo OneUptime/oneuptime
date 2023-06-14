@@ -23,8 +23,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.WORKFLOW_VIEW] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.Info}
                 />
@@ -33,8 +33,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Builder',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.Workflow}
                 />
@@ -46,8 +46,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Runs & Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.WORKFLOW_LOGS] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.Logs}
                 />
@@ -57,8 +57,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Workflow Variables',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.WORKFLOW_VARIABLES] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.Variable}
                 />
@@ -68,8 +68,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Workflow',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.WORKFLOW_DELETE] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.Trash}
                     className="danger-on-hover"
