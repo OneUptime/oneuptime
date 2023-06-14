@@ -88,6 +88,11 @@ import ProjectSSO from './ProjectSso';
 // SMS
 import SmsLog from './SmsLog';
 
+// Notification Methods
+import UserEmail from './UserEmail';
+import UserSms from './UserSMS';
+import UserCall from './UserCall';
+
 export default [
     User,
     Probe,
@@ -161,4 +166,8 @@ export default [
     StatusPageOwnerUser,
 
     SmsLog,
+
+    UserEmail, 
+    UserSms,
+    UserCall
 ];

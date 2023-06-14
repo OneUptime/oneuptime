@@ -34,8 +34,8 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 })
 @TableMetadata({
     tableName: 'UserSMS',
-    singularName: 'User Phone Number for SMS',
-    pluralName: 'User Phone Number for SMS',
+    singularName: 'Phone Number for SMS Notifications',
+    pluralName: 'Phone Numbers for SMS Notifications',
     icon: IconProp.SMS,
     tableDescription: 'Phone Number which will be used for SMS notifications.',
 })
@@ -97,14 +97,14 @@ class UserSMS extends BaseModel {
     @TableColumn({
         title: 'Phone',
         required: true,
-        unique: true,
+        unique: false,
         type: TableColumnType.Phone,
         canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
-        unique: true,
+        unique: false,
         nullable: false,
         transformer: Phone.getDatabaseTransformer(),
     })
@@ -270,8 +270,9 @@ class UserSMS extends BaseModel {
         title: 'Verification Code',
         description: 'Temporary Verification Code',
         isDefaultValueColumn: true,
+        required: true,
         type: TableColumnType.ShortText,
-        getDefaultValueOnCreate: () => {
+        forceGetDefaultValueOnCreate: () => {
             return Text.generateRandomNumber(6);
         },
     })
@@ -280,7 +281,7 @@ class UserSMS extends BaseModel {
         nullable: false,
         length: ColumnLength.ShortText,
     })
-    public verificationCode?: boolean = undefined;
+    public verificationCode?: string = undefined;
 }
 
 export default UserSMS;

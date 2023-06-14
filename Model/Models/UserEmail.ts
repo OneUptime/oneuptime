@@ -34,8 +34,8 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 })
 @TableMetadata({
     tableName: 'UserEmail',
-    singularName: 'User Email',
-    pluralName: 'User Emails',
+    singularName: 'Email',
+    pluralName: 'Emails',
     icon: IconProp.Email,
     tableDescription: 'Emails which will be used for notifications.',
 })
@@ -97,14 +97,14 @@ class UserEmail extends BaseModel {
     @TableColumn({
         title: 'Email',
         required: true,
-        unique: true,
+        unique: false,
         type: TableColumnType.Email,
         canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
-        unique: true,
+        unique: false,
         nullable: false,
         transformer: Email.getDatabaseTransformer(),
     })
@@ -270,8 +270,9 @@ class UserEmail extends BaseModel {
         title: 'Verification Code',
         description: 'Temporary Verification Code',
         isDefaultValueColumn: true,
+        required: true,
         type: TableColumnType.ShortText,
-        getDefaultValueOnCreate: () => {
+        forceGetDefaultValueOnCreate: () => {
             return Text.generateRandomNumber(6);
         },
     })
@@ -280,7 +281,7 @@ class UserEmail extends BaseModel {
         nullable: false,
         length: ColumnLength.ShortText,
     })
-    public verificationCode?: boolean = undefined;
+    public verificationCode?: string = undefined;
 }
 
 export default UserEmail;

@@ -35,7 +35,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
-        ></Page>
+        ><></></Page>
     );
 };
 

@@ -174,6 +174,11 @@ export default class ModelPermission {
                 !permissionColumns.columns.includes(key) &&
                 tableColumns.includes(key)
             ) {
+
+                if(requestType === DatabaseRequestType.Create && tableColumnMetadata.forceGetDefaultValueOnCreate) {
+                    continue; // this is a special case where we want to force the default value on create.
+                }
+
                 throw new BadDataException(
                     `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`
                 );

@@ -49,6 +49,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     userId: User.getUserId().toString(),
                 }}
+                onBeforeCreate={(model: UserEmail): UserEmail => {
+                    model.projectId = DashboardNavigation.getProjectId()!;
+                    model.userId = User.getUserId();
+                    return model;
+                }}
                 id="user-emails"
                 name="User Settings > Notifiation Methods > Emails"
                 isDeleteable={true}

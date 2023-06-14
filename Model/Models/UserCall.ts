@@ -34,8 +34,8 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 })
 @TableMetadata({
     tableName: 'UserCall',
-    singularName: 'User Phone Number for Calls',
-    pluralName: 'User Phone Numbers for Calls',
+    singularName: 'Phone Number for Calls',
+    pluralName: 'Phone Numbers for Calls',
     icon: IconProp.Call,
     tableDescription: 'Phone Number which will be used for call notifications.',
 })
@@ -97,14 +97,14 @@ class UserCall extends BaseModel {
     @TableColumn({
         title: 'Phone',
         required: true,
-        unique: true,
+        unique: false,
         type: TableColumnType.Phone,
         canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
-        unique: true,
+        unique: false,
         nullable: false,
         transformer: Phone.getDatabaseTransformer(),
     })
@@ -270,8 +270,9 @@ class UserCall extends BaseModel {
         title: 'Verification Code',
         description: 'Temporary Verification Code',
         isDefaultValueColumn: true,
+        required: true,
         type: TableColumnType.ShortText,
-        getDefaultValueOnCreate: () => {
+        forceGetDefaultValueOnCreate: () => {
             return Text.generateRandomNumber(6);
         },
     })
@@ -280,7 +281,7 @@ class UserCall extends BaseModel {
         nullable: false,
         length: ColumnLength.ShortText,
     })
-    public verificationCode?: boolean = undefined;
+    public verificationCode?: string = undefined;
 }
 
 export default UserCall;
