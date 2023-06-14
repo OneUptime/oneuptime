@@ -250,6 +250,12 @@ import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from 'CommonServer/Services/StatusPageDomainService';
 
+
+// User Notification methods. 
+import UserEmailAPI from 'CommonServer/API/UserEmailAPI';
+import UserSMSAPI from 'CommonServer/API/UserSMSAPI';
+import UserCallAPI from 'CommonServer/API/UserCallAPI';
+
 // Import API
 
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
@@ -656,7 +662,9 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
-
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
 
 app.use(

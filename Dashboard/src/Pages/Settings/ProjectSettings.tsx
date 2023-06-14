@@ -27,13 +27,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Project Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
+                        RouteMap[PageMap.SETTINGS] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            {/* API Key View  */}
+            {/* Project Settings View  */}
             <CardModelDetail
                 name="Project Details"
                 cardProps={{
