@@ -23,8 +23,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
-                             {modelId: props.modelId}
-                    ),
+                            { modelId: props.modelId }
+                        ),
                     }}
                     icon={IconProp.Info}
                 />
@@ -36,8 +36,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                             ] as Route,
-                             {modelId: props.modelId}
-                    ),
+                            { modelId: props.modelId }
+                        ),
                     }}
                     icon={IconProp.Logs}
                 />
@@ -51,8 +51,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
                             ] as Route,
-                             {modelId: props.modelId}
-                    ),
+                            { modelId: props.modelId }
+                        ),
                     }}
                     icon={IconProp.Trash}
                     className="danger-on-hover"

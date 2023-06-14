@@ -109,8 +109,14 @@ import ProjectInvitations from './Pages/Global/ProjectInvitations';
 import UserProfileOverview from './Pages/Global/UserProfile/Index';
 import UserProfilePicture from './Pages/Global/UserProfile/Picture';
 import UserProfilePassword from './Pages/Global/UserProfile/Password';
+
 // On Call Duty
 import OnCallDutyPoliciesPage from './Pages/OnCallDuty/OnCallDutyPolicies';
+import OnCallDutyPolicyView from './Pages/OnCallDuty/OnCallDutyPolicy/Index';
+import OnCallDutyPolicyViewDelete from './Pages/OnCallDuty/OnCallDutyPolicy/Delete';
+import OnCallDutyPolicyViewLogs from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs';
+import OnCallDutyPolicyViewLogsView from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogView';
+import OnCallDutyPolicyViewEscalation from './Pages/OnCallDuty/OnCallDutyPolicy/Escalation';
 
 // Monitors
 import MonitorPage from './Pages/Monitor/Monitors';
@@ -1745,7 +1751,99 @@ const App: FunctionComponent = () => {
                         <OnCallDutyPoliciesPage
                             {...commonPageProps}
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                                RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_POLICY_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewDelete
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewEscalation
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewLogs
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewLogsView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                                ] as Route
                             }
                         />
                     }
