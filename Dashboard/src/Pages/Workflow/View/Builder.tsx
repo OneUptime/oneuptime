@@ -36,6 +36,7 @@ import ComponentMetadata, {
 import API from 'CommonUI/src/Utils/API/API';
 import { WORKFLOW_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -282,6 +283,13 @@ const Delete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <>
+
+            <Banner
+                    openInNewTab={true}
+                    title="Need help with building workflows?"
+                    description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
+                    link={URL.fromString('https://www.youtube.com/watch?v=VX3TwFrpvyI')}
+                />
                 <Card
                     title={'Workflow Builder'}
                     description={'Workflow builder for OneUptime'}
