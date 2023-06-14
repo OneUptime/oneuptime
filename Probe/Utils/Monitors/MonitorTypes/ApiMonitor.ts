@@ -7,6 +7,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import logger from 'CommonServer/Utils/Logger';
 
 export interface APIResponse {
     url: URL;
@@ -31,6 +32,8 @@ export default class ApiMonitor {
         retry?: number | undefined
     ): Promise<APIResponse> {
         try {
+            logger.info(`API Monitor - Pinging ${url.toString()}`);
+
             const startTime: [number, number] = process.hrtime();
             const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
                 await API.fetch(
@@ -44,7 +47,7 @@ export default class ApiMonitor {
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
             );
 
-            return {
+            const apiResponse: APIResponse = {
                 url: url,
                 requestHeaders: options.requestHeaders || {},
                 // if server is responding, it is online.
@@ -56,7 +59,19 @@ export default class ApiMonitor {
                 responseHeaders: result.headers,
                 requestBody: options.requestBody || {},
             };
+
+            logger.info(
+                `API Monitor - Pinging ${url.toString()} Success - Response: ${JSON.stringify(
+                    apiResponse
+                )}`
+            );
+
+            return apiResponse;
         } catch (err) {
+            logger.error(
+                `API Monitor - Pinging ${url.toString()} - Error: ${err}`
+            );
+
             if (!retry) {
                 retry = 0; // default value
             }
