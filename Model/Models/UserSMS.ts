@@ -21,9 +21,7 @@ import Project from './Project';
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
     create: [Permission.CurrentUser],
-    read: [
-        Permission.CurrentUser
-    ],
+    read: [Permission.CurrentUser],
     delete: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
 })
@@ -39,14 +37,10 @@ import Project from './Project';
     tableDescription: 'Phone Number which will be used for SMS notifications.',
 })
 @CurrentUserCanAccessRecordBy('userId')
-class UserSMS extends BaseModel { 
-
-
+class UserSMS extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -73,9 +67,7 @@ class UserSMS extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @Index()
@@ -96,9 +88,7 @@ class UserSMS extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -117,15 +107,9 @@ class UserSMS extends BaseModel {
     })
     public phone?: Phone = undefined;
 
-
-
     @ColumnAccessControl({
-        create: [
-            Permission.CurrentUser
-        ],
-        read: [
-            Permission.CurrentUser
-        ],
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -133,8 +117,7 @@ class UserSMS extends BaseModel {
         type: TableColumnType.Entity,
         modelType: User,
         title: 'User',
-        description:
-            'Relation to User who this email belongs to',
+        description: 'Relation to User who this email belongs to',
     })
     @ManyToOne(
         (_type: string) => {
@@ -151,19 +134,14 @@ class UserSMS extends BaseModel {
     public user?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.CurrentUser
-        ],
-        read: [
-            Permission.CurrentUser
-        ],
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'User ID',
-        description:
-            'User ID who this email belongs to',
+        description: 'User ID who this email belongs to',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -173,14 +151,9 @@ class UserSMS extends BaseModel {
     @Index()
     public userId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            Permission.CurrentUser
-        ],
-        read: [
-            Permission.CurrentUser
-        ],
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -206,12 +179,8 @@ class UserSMS extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.CurrentUser
-        ],
-        read: [
-            Permission.CurrentUser
-        ],
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -272,33 +241,37 @@ class UserSMS extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
         update: [],
     })
-    @TableColumn({ title: 'Is Verified',
-    description:
-        'Is this verified?',isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        title: 'Is Verified',
+        description: 'Is this verified?',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+    })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public isVerified?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
         update: [],
     })
-    @TableColumn({ title: 'Verification Code',
-    description:
-        'Temporary Verification Code',isDefaultValueColumn: false, type: TableColumnType.ShortText })
+    @TableColumn({
+        title: 'Verification Code',
+        description: 'Temporary Verification Code',
+        isDefaultValueColumn: false,
+        type: TableColumnType.ShortText,
+    })
     @Column({
         type: ColumnType.ShortText,
-        nullable: false,
+        nullable: true,
         length: ColumnLength.ShortText,
     })
     public verificationCode?: boolean = undefined;
