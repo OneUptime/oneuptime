@@ -18,7 +18,9 @@ import User from './User';
 import Phone from 'Common/Types/Phone';
 import Project from './Project';
 import Text from 'Common/Types/Text';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 
+@TenantColumn('projectId')
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
     create: [Permission.CurrentUser],
