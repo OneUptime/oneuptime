@@ -17,6 +17,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
+import Text from 'Common/Types/Text';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
@@ -266,12 +267,15 @@ class UserEmail extends BaseModel {
     @TableColumn({
         title: 'Verification Code',
         description: 'Temporary Verification Code',
-        isDefaultValueColumn: false,
+        isDefaultValueColumn: true,
         type: TableColumnType.ShortText,
+        getDefaultValueOnCreate: () => {
+            return Text.generateRandomNumber(6);
+        },
     })
     @Column({
         type: ColumnType.ShortText,
-        nullable: true,
+        nullable: false,
         length: ColumnLength.ShortText,
     })
     public verificationCode?: boolean = undefined;

@@ -19,6 +19,7 @@ export interface TableColumnMetadata {
     type: TableColumnType;
     canReadOnRelationQuery?: boolean;
     modelType?: { new (): BaseModel };
+    getDefaultValueOnCreate?: () => string | number | boolean;
 }
 
 export default (props: TableColumnMetadata): ReflectionMetadataType => {

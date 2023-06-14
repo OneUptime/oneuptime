@@ -152,7 +152,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return true;
     }
 
-    protected checkRequiredFields(data: TBaseModel): void {
+    protected checkRequiredFields(data: TBaseModel): TBaseModel {
         // Check required fields.
 
         const relatationalColumns: Dictionary<string> = {};
@@ -168,13 +168,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const requiredField of data.getRequiredColumns().columns) {
+            const metadata: TableColumnMetadata =
+                data.getTableColumnMetadata(requiredField);
+
             if (typeof (data as any)[requiredField] === Typeof.Boolean) {
                 if (
                     !(data as any)[requiredField] &&
                     (data as any)[requiredField] !== false &&
                     !data.isDefaultValueColumn(requiredField)
                 ) {
-                    throw new BadDataException(`${requiredField} is required`);
+                    if (metadata && metadata.getDefaultValueOnCreate) {
+                        (data as any)[requiredField] =
+                            metadata.getDefaultValueOnCreate();
+                    } else {
+                        throw new BadDataException(
+                            `${requiredField} is required`
+                        );
+                    }
                 }
             } else if (
                 !(data as any)[requiredField] &&
@@ -201,9 +211,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     continue;
                 }
 
-                throw new BadDataException(`${requiredField} is required`);
+                if (metadata && metadata.getDefaultValueOnCreate) {
+                    (data as any)[requiredField] =
+                        metadata.getDefaultValueOnCreate();
+                } else {
+                    throw new BadDataException(`${requiredField} is required`);
+                }
             }
         }
+
+        return data;
     }
 
     protected async onBeforeCreate(
@@ -545,7 +562,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
         }
 
-        this.checkRequiredFields(data);
+        data = this.checkRequiredFields(data);
 
         if (!this.isValid(data)) {
             throw new BadDataException('Data is not valid');
