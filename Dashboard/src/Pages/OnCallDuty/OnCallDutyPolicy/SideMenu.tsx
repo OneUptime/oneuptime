@@ -41,22 +41,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Logs}
                 />
-              
             </SideMenuSection>
 
-           
-
-          
-
-            
-
             <SideMenuSection title="Advanced">
-                
                 <SideMenuItem
                     link={{
                         title: 'Delete Policy',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route,
+                            RouteMap[
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                            ] as Route,
                             props.modelId
                         ),
                     }}

@@ -259,7 +259,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
 
-
     [PageMap.ON_CALL_DUTY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
@@ -287,7 +286,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies${RouteParams.ModelID}/escalations`
     ),
 
-    
     [PageMap.REPORTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/reports/`
     ),
@@ -447,10 +445,13 @@ export class RouteUtil {
         return false;
     }
 
-    public static populateRouteParams(route: Route, props?: { 
-        modelId?: ObjectID
-        subModelId?: ObjectID
-    }): Route {
+    public static populateRouteParams(
+        route: Route,
+        props?: {
+            modelId?: ObjectID;
+            subModelId?: ObjectID;
+        }
+    ): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
         const tempRoute: Route = new Route(route.toString());

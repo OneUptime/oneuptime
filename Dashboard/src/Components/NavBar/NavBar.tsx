@@ -129,10 +129,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
-
                             <NavBarMenuItem
                                 title="On-Call Duty"
-                                description='Manage you on-call schedules, escalations and more.'
+                                description="Manage you on-call schedules, escalations and more."
                                 route={RouteUtil.populateRouteParams(
                                     RouteMap[PageMap.ON_CALL_DUTY] as Route
                                 )}

@@ -33,27 +33,26 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'On Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGES] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View On Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             {/* OnCallDutyPolicy View  */}
             <CardModelDetail
                 name="On Call Policy > On Call Policy Details"

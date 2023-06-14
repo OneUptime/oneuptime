@@ -40,28 +40,28 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENTS] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View Incident',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Private Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
             ]}

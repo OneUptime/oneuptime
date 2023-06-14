@@ -39,28 +39,28 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENTS] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View Incident',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Owners',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
             ]}

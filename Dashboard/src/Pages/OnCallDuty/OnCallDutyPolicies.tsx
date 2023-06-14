@@ -16,7 +16,6 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
-
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {

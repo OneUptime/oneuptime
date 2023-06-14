@@ -26,28 +26,30 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'On Call Duty',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View On Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Delete On Call Policy',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route,
-                        {modelId}
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                        ] as Route,
+                        { modelId }
                     ),
                 },
             ]}

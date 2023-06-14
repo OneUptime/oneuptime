@@ -28,28 +28,28 @@ const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Monitors',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITORS] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View Monitor',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITOR_VIEW] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Custom Fields',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
-                        {modelId}
+                        { modelId }
                     ),
                 },
             ]}
