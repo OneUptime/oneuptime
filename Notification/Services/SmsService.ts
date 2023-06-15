@@ -25,6 +25,7 @@ export default class SmsService {
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from: Phone; // from phone number
+            isSensitive?: boolean; // if true, message will not be logged
         }
     ): Promise<void> {
         if (!TwilioAccountSid) {
@@ -44,7 +45,10 @@ export default class SmsService {
         const smsLog: SmsLog = new SmsLog();
         smsLog.toNumber = to;
         smsLog.fromNumber = options.from || new Phone(TwilioPhoneNumber);
-        smsLog.smsText = message;
+        smsLog.smsText =
+            options && options.isSensitive
+                ? 'This message is sensitive and is not logged'
+                : message;
         smsLog.smsCostInUSDCents = 0;
 
         if (options.projectId) {

@@ -174,8 +174,10 @@ export default class ModelPermission {
                 !permissionColumns.columns.includes(key) &&
                 tableColumns.includes(key)
             ) {
-
-                if(requestType === DatabaseRequestType.Create && tableColumnMetadata.forceGetDefaultValueOnCreate) {
+                if (
+                    requestType === DatabaseRequestType.Create &&
+                    tableColumnMetadata.forceGetDefaultValueOnCreate
+                ) {
                     continue; // this is a special case where we want to force the default value on create.
                 }
 

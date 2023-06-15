@@ -167,7 +167,7 @@ export default [
 
     SmsLog,
 
-    UserEmail, 
+    UserEmail,
     UserSms,
-    UserCall
+    UserCall,
 ];

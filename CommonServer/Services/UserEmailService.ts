@@ -13,31 +13,35 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onCreateSuccess(_onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
+    protected override async onCreateSuccess(
+        _onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
         // send verification email
         this.sendVerificationCode(createdItem);
         return createdItem;
     }
 
     public async resendVerificationCode(itemId: ObjectID): Promise<void> {
-
         const item: Model | null = await this.findOneById({
             id: itemId,
             props: {
-                isRoot: true
+                isRoot: true,
             },
             select: {
                 email: true,
                 verificationCode: true,
-                isVerified: true
-            }
+                isVerified: true,
+            },
         });
 
         if (!item) {
-            throw new BadDataException('Item with ID '+itemId.toString()+' not found');
+            throw new BadDataException(
+                'Item with ID ' + itemId.toString() + ' not found'
+            );
         }
 
-        if(item.isVerified){
+        if (item.isVerified) {
             throw new BadDataException('Email already verified');
         }
 
@@ -47,11 +51,11 @@ export class Service extends DatabaseService<Model> {
         await this.updateOneById({
             id: item.id!,
             props: {
-                isRoot: true
+                isRoot: true,
             },
             data: {
-                verificationCode: item.verificationCode
-            }
+                verificationCode: item.verificationCode,
+            },
         });
 
         this.sendVerificationCode(item);
@@ -63,7 +67,7 @@ export class Service extends DatabaseService<Model> {
             templateType: EmailTemplateType.VerificationCode,
             vars: {
                 code: item.verificationCode!,
-                subject:  'Verify this email address'
+                subject: 'Verify this email address',
             },
             subject: 'Verify this email address',
         }).catch((err: Error) => {

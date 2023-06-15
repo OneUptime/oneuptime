@@ -17,6 +17,7 @@ export default class SmsService {
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
+            isSensitive?: boolean; // if true, message will not be logged
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -24,6 +25,7 @@ export default class SmsService {
             message,
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
+            isSensitive: options.isSensitive,
         };
 
         return await API.post<EmptyResponseData>(

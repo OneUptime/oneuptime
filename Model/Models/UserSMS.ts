@@ -34,8 +34,8 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 })
 @TableMetadata({
     tableName: 'UserSMS',
-    singularName: 'Phone Number for SMS Notifications',
-    pluralName: 'Phone Numbers for SMS Notifications',
+    singularName: 'Phone Number for Notifications',
+    pluralName: 'Phone Numbers for Notifications',
     icon: IconProp.SMS,
     tableDescription: 'Phone Number which will be used for SMS notifications.',
 })

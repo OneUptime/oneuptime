@@ -75,7 +75,7 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    public entityType!: { new(): TBaseModel };
+    public entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
@@ -96,7 +96,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -182,19 +182,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const requiredField of data.getRequiredColumns().columns) {
-            
-
             if (typeof (data as any)[requiredField] === Typeof.Boolean) {
                 if (
                     !(data as any)[requiredField] &&
                     (data as any)[requiredField] !== false &&
                     !data.isDefaultValueColumn(requiredField)
                 ) {
-
-                    throw new BadDataException(
-                        `${requiredField} is required`
-                    );
-
+                    throw new BadDataException(`${requiredField} is required`);
                 }
             } else if (
                 !(data as any)[requiredField] &&
@@ -221,9 +215,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     continue;
                 }
 
-
                 throw new BadDataException(`${requiredField} is required`);
-
             }
         }
 
@@ -422,8 +414,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                        createBy.data.getSlugifyColumn() as string
-                    ] as string)
+                          createBy.data.getSlugifyColumn() as string
+                      ] as string)
                     : null
             );
         }
@@ -569,7 +561,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
         }
 
-        data  = this.generateDefaultValues(data);
+        data = this.generateDefaultValues(data);
         data = this.checkRequiredFields(data);
 
         if (!this.isValid(data)) {
@@ -628,9 +620,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 await this.onTrigger(
                     createBy.data,
                     createBy.props.tenantId ||
-                    createBy.data.getValue<ObjectID>(
-                        this.getModel().getTenantColumn()!
-                    ),
+                        createBy.data.getValue<ObjectID>(
+                            this.getModel().getTenantColumn()!
+                        ),
                     'on-create'
                 );
             }
@@ -964,9 +956,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         await this.onTrigger(
                             item,
                             deleteBy.props.tenantId ||
-                            item.getValue<ObjectID>(
-                                this.getModel().getTenantColumn()!
-                            ),
+                                item.getValue<ObjectID>(
+                                    this.getModel().getTenantColumn()!
+                                ),
                             'on-delete'
                         );
                     }
@@ -1103,10 +1095,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Select not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -1240,9 +1232,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     await this.onTrigger(
                         item,
                         updateBy.props.tenantId ||
-                        item.getValue<ObjectID>(
-                            this.getModel().getTenantColumn()!
-                        ),
+                            item.getValue<ObjectID>(
+                                this.getModel().getTenantColumn()!
+                            ),
                         'on-update'
                     );
                 }
