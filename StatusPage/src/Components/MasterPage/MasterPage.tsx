@@ -34,6 +34,7 @@ import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
 import Route from 'Common/Types/API/Route';
 import User from '../../Utils/User';
 import LoginUtil from '../../Utils/Login';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -126,12 +127,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     }, [statusPageId]);
 
     const getId: Function = async (): Promise<ObjectID> => {
-        const id: string | null = Navigation.getParamByName(
-            RouteParams.StatusPageId,
-            RouteMap[PageMap.PREVIEW_OVERVIEW]!
-        );
-        if (id) {
-            return new ObjectID(id);
+        if (StatusPageUtil.isPreviewPage()) {
+            const id: string | null = Navigation.getParamByName(
+                RouteParams.StatusPageId,
+                RouteMap[PageMap.PREVIEW_OVERVIEW]!
+            );
+            if (id) {
+                return new ObjectID(id);
+            }
         }
         // get status page id by hostname.
         const response: HTTPResponse<JSONObject> =
