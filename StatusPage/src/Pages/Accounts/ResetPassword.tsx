@@ -47,7 +47,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
         Navigation.navigate(
             new Route(
                 StatusPageUtil.isPreviewPage()
-                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
                     : '/'
             )
         );
@@ -57,7 +57,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
         Navigation.navigate(
             new Route(
                 StatusPageUtil.isPreviewPage()
-                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
                     : '/'
             )
         );
@@ -162,7 +162,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                             to={
                                 new Route(
                                     StatusPageUtil.isPreviewPage()
-                                        ? `/status-page/${StatusPageUtil.getStatusPageId()}/login`
+                                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
                                         : '/login'
                                 )
                             }

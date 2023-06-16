@@ -74,7 +74,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         Navigation.navigate(
             new Route(
                 StatusPageUtil.isPreviewPage()
-                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
                     : '/'
             )
         );
@@ -92,7 +92,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             Navigation.navigate(
                 new Route(
                     StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
                         : '/'
                 )
             );
@@ -151,7 +151,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                     text: 'Forgot password?',
                                     url: new Route(
                                         StatusPageUtil.isPreviewPage()
-                                            ? `/status-page/${StatusPageUtil.getStatusPageId()}/forgot-password`
+                                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/forgot-password`
                                             : '/forgot-password'
                                     ),
                                     openLinkInNewTab: false,
@@ -178,7 +178,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 Navigation.navigate(
                                     new Route(
                                         StatusPageUtil.isPreviewPage()
-                                            ? `/status-page/${StatusPageUtil.getStatusPageId()}/`
+                                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/`
                                             : '/'
                                     )
                                 );
@@ -204,7 +204,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                             to={
                                                 new Route(
                                                     StatusPageUtil.isPreviewPage()
-                                                        ? `/status-page/${StatusPageUtil.getStatusPageId()}/sso`
+                                                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
                                                         : '/sso'
                                                 )
                                             }
