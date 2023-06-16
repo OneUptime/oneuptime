@@ -39,7 +39,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
                 }
 
                 // Check if the code matches and verify the phone number.
-                const item = await this.service.findOneById({
+                const item: UserSMS | null = await this.service.findOneById({
                     id: req.body['itemId'],
                     props: {
                         isRoot: true,
@@ -109,7 +109,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
                     );
                 }
 
-                this.service.resendVerificationCode(req.body.itemId);
+                await this.service.resendVerificationCode(req.body.itemId);
 
                 return Response.sendEmptyResponse(req, res);
             }

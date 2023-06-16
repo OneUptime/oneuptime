@@ -1,13 +1,11 @@
-
-
 export interface Say {
-    sayMessage: string; 
+    sayMessage: string;
 }
 
 export enum CallAction {
-    Hangup = "Hangup",
+    Hangup = 'Hangup',
 }
 
 export default interface CallRequest {
-    data: Array<Say | CallAction>
+    data: Array<Say | CallAction>;
 }

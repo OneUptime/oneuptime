@@ -106,7 +106,7 @@ export class Service extends DatabaseService<Model> {
                 projectId: item.projectId,
                 isSensitive: true,
             }
-        ).catch((err) => {
+        ).catch((err: Error) => {
             logger.error(err);
         });
     }

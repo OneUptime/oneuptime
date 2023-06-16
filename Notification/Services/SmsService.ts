@@ -90,7 +90,8 @@ export default class SmsService {
                     if (!project.notEnabledSmsOrCallNotificationSentToOwners) {
                         await ProjectService.updateOneById({
                             data: {
-                                notEnabledSmsOrCallNotificationSentToOwners: true,
+                                notEnabledSmsOrCallNotificationSentToOwners:
+                                    true,
                             },
                             id: project.id!,
                             props: {
@@ -147,8 +148,11 @@ export default class SmsService {
                             'Low SMS and Call Balance for ' +
                                 (project.name || ''),
                             `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                (project.smsOrCallCurrentBalanceInUSDCents || 0)/100
-                            } USD cents. Required balance to send this SMS should is ${SMSDefaultCostInCents/100} USD. Please enable auto recharge or recharge manually.`
+                                (project.smsOrCallCurrentBalanceInUSDCents ||
+                                    0) / 100
+                            } USD cents. Required balance to send this SMS should is ${
+                                SMSDefaultCostInCents / 100
+                            } USD. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
@@ -159,7 +163,11 @@ export default class SmsService {
                     SMSDefaultCostInCents
                 ) {
                     smsLog.status = SmsStatus.LowBalance;
-                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents/100} USD. Required balance is ${SMSDefaultCostInCents/100} USD to send this SMS.`;
+                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${
+                        project.smsOrCallCurrentBalanceInUSDCents / 100
+                    } USD. Required balance is ${
+                        SMSDefaultCostInCents / 100
+                    } USD to send this SMS.`;
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -183,7 +191,9 @@ export default class SmsService {
                                 (project.name || ''),
                             `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
                                 project.smsOrCallCurrentBalanceInUSDCents / 100
-                            } USD. Required balance is ${SMSDefaultCostInCents/100} USD to send this SMS. Please enable auto recharge or recharge manually.`
+                            } USD. Required balance is ${
+                                SMSDefaultCostInCents / 100
+                            } USD to send this SMS. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;

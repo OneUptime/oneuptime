@@ -42,7 +42,7 @@ export default class UserEmailAPI extends BaseAPI<
                 }
 
                 // Check if the code matches and verify the email.
-                const item = await this.service.findOneById({
+                const item: UserEmail | null = await this.service.findOneById({
                     id: req.body['itemId'],
                     props: {
                         isRoot: true,
@@ -114,7 +114,7 @@ export default class UserEmailAPI extends BaseAPI<
                     );
                 }
 
-                this.service.resendVerificationCode(req.body.itemId);
+                await this.service.resendVerificationCode(req.body.itemId);
 
                 return Response.sendEmptyResponse(req, res);
             }

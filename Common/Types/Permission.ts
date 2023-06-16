@@ -73,7 +73,6 @@ enum Permission {
     CanEditMonitorProbe = 'CanEditMonitorProbe',
     CanReadMonitorProbe = 'CanReadMonitorProbe',
 
-
     CanReadSmsLog = 'CanReadSmsLog',
 
     CanReadCallLog = 'CanReadCallLog',
@@ -1825,7 +1824,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-            
             {
                 permission: Permission.CanReadSmsLog,
                 title: 'Can Read SMS Log',

@@ -19,7 +19,6 @@ import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
 import { CallInstance } from 'twilio/lib/rest/api/v2010/account/call';
 
-
 export default class CallService {
     public static async makeCall(
         to: Phone,
@@ -30,7 +29,6 @@ export default class CallService {
             isSensitive?: boolean; // if true, message will not be logged
         }
     ): Promise<void> {
-
         TwilioUtil.checkEnvironmentVariables();
 
         const client: Twilio.Twilio = Twilio(TwilioAccountSid, TwilioAuthToken);
@@ -94,7 +92,8 @@ export default class CallService {
                     if (!project.notEnabledSmsOrCallNotificationSentToOwners) {
                         await ProjectService.updateOneById({
                             data: {
-                                notEnabledSmsOrCallNotificationSentToOwners: true,
+                                notEnabledSmsOrCallNotificationSentToOwners:
+                                    true,
                             },
                             id: project.id!,
                             props: {
@@ -104,7 +103,7 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Call notifications not enabled for ' +
-                            (project.name || ''),
+                                (project.name || ''),
                             `We tried to make a call to ${to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
                         );
                     }
@@ -149,9 +148,13 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Low SMS and Call Balance for ' +
-                            (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                            } USD. Required balance to send this SMS should is ${CallDefaultCostInCentsPerMinute / 100} USD. Please enable auto recharge or recharge manually.`
+                                (project.name || ''),
+                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
+                                (project.smsOrCallCurrentBalanceInUSDCents ||
+                                    0) / 100
+                            } USD. Required balance to send this SMS should is ${
+                                CallDefaultCostInCentsPerMinute / 100
+                            } USD. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
@@ -162,7 +165,11 @@ export default class CallService {
                     CallDefaultCostInCentsPerMinute
                 ) {
                     callLog.status = CallStatus.LowBalance;
-                    callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100} USD. Required balance is ${CallDefaultCostInCentsPerMinute / 100} USD to make this call.`;
+                    callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
+                        project.smsOrCallCurrentBalanceInUSDCents / 100
+                    } USD. Required balance is ${
+                        CallDefaultCostInCentsPerMinute / 100
+                    } USD to make this call.`;
                     await CallLogService.create({
                         data: callLog,
                         props: {
@@ -183,25 +190,26 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Low SMS and Call Balance for ' +
-                            (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
-                            } USD. Required balance is ${CallDefaultCostInCentsPerMinute / 100} USD to make this call. Please enable auto recharge or recharge manually.`
+                                (project.name || ''),
+                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
+                                project.smsOrCallCurrentBalanceInUSDCents / 100
+                            } USD. Required balance is ${
+                                CallDefaultCostInCentsPerMinute / 100
+                            } USD to make this call. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
                 }
             }
 
-            const twillioCall: CallInstance =
-                await client.calls.create({
-                    twiml: this.generateTwimlForCall(callRequest),
-                    to: to.toString(),
-                    from:
-                        options && options.from
-                            ? options.from.toString()
-                            : TwilioPhoneNumber.toString(), // From a valid Twilio number
-                });
-
+            const twillioCall: CallInstance = await client.calls.create({
+                twiml: this.generateTwimlForCall(callRequest),
+                to: to.toString(),
+                from:
+                    options && options.from
+                        ? options.from.toString()
+                        : TwilioPhoneNumber.toString(), // From a valid Twilio number
+            });
 
             callLog.status = CallStatus.Success;
             callLog.statusMessage = 'Call ID: ' + twillioCall.sid;
@@ -209,15 +217,16 @@ export default class CallService {
             if (IsBillingEnabled && project) {
                 callLog.callCostInUSDCents = CallDefaultCostInCentsPerMinute;
 
-                if(twillioCall && parseInt(twillioCall.duration) > 60) {
+                if (twillioCall && parseInt(twillioCall.duration) > 60) {
                     callLog.callCostInUSDCents = Math.ceil(
-                        (Math.ceil(parseInt(twillioCall.duration) / 60)) * CallDefaultCostInCentsPerMinute
+                        Math.ceil(parseInt(twillioCall.duration) / 60) *
+                            CallDefaultCostInCentsPerMinute
                     );
                 }
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
                     project.smsOrCallCurrentBalanceInUSDCents! -
-                    CallDefaultCostInCentsPerMinute
+                        CallDefaultCostInCentsPerMinute
                 );
 
                 await ProjectService.updateOneById({
@@ -250,14 +259,15 @@ export default class CallService {
     }
 
     public static generateTwimlForCall(callRequest: CallRequest): string {
-        const response = new Twilio.twiml.VoiceResponse();
+        const response: Twilio.twiml.VoiceResponse =
+            new Twilio.twiml.VoiceResponse();
 
-        for(const item of callRequest.data) {
-            if((item as Say).sayMessage){
+        for (const item of callRequest.data) {
+            if ((item as Say).sayMessage) {
                 response.say((item as Say).sayMessage);
             }
 
-            if((item as CallAction) === CallAction.Hangup){
+            if ((item as CallAction) === CallAction.Hangup) {
                 response.hangup();
             }
         }

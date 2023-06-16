@@ -52,9 +52,7 @@ import Phone from 'Common/Types/Phone';
 })
 export default class SmsLog extends BaseModel {
     @ColumnAccessControl({
-        create: [
-            
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -86,9 +84,7 @@ export default class SmsLog extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-            
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
