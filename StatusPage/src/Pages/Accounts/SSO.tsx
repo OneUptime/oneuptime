@@ -29,7 +29,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         Navigation.navigate(
             new Route(
                 StatusPageUtil.isPreviewPage()
-                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
                     : '/'
             )
         );
@@ -47,7 +47,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             Navigation.navigate(
                 new Route(
                     StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
                         : '/'
                 )
             );
@@ -111,7 +111,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 Navigation.navigate(
                                     URL.fromURL(IDENTITY_URL).addRoute(
                                         new Route(
-                                            `/status-page-sso/${StatusPageUtil.getStatusPageId()}/${
+                                            `/status-page-sso/${StatusPageUtil.getStatusPageId()?.toString()}/${
                                                 list[0]?._id
                                             }`
                                         )

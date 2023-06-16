@@ -139,7 +139,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                             to={
                                 new Route(
                                     StatusPageUtil.isPreviewPage()
-                                        ? `/status-page/${StatusPageUtil.getStatusPageId()}/login`
+                                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
                                         : '/login'
                                 )
                             }
