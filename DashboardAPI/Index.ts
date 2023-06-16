@@ -651,10 +651,7 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<CallLog, CallLogServiceType>(
-        CallLog,
-        CallLogService
-    ).getRouter()
+    new BaseAPI<CallLog, CallLogServiceType>(CallLog, CallLogService).getRouter()
 );
 
 app.use(

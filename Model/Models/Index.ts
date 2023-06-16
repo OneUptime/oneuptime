@@ -92,6 +92,7 @@ import SmsLog from './SmsLog';
 import UserEmail from './UserEmail';
 import UserSms from './UserSMS';
 import UserCall from './UserCall';
+import CallLog from './CallLog';
 
 export default [
     User,
@@ -166,6 +167,7 @@ export default [
     StatusPageOwnerUser,
 
     SmsLog,
+    CallLog,
 
     UserEmail,
     UserSms,
