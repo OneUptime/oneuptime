@@ -8,8 +8,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import UserUtil from '../../Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import SubscribeSideMenu from './SideMenu';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -18,9 +16,10 @@ import Card from 'CommonUI/src/Components/Card/Card';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 const SubscribePage: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
@@ -29,22 +28,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         throw new BadDataException('Status Page ID is required');
     }
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     return (
         <Page
@@ -53,7 +37,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -61,7 +45,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Subscribe',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_SUBSCRIBE_EMAIL
                               ] as Route)
@@ -71,7 +55,9 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={
                 <SubscribeSideMenu
-                    isPreviewStatusPage={Boolean(props.isPreviewPage)}
+                    isPreviewStatusPage={Boolean(
+                        StatusPageUtil.isPreviewPage()
+                    )}
                 />
             }
         >
@@ -115,7 +101,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                         `/status-page/subscribe/${id.toString()}`
                                     )}
                                     requestHeaders={API.getDefaultHeaders(
-                                        props.statusPageId!
+                                        StatusPageUtil.getStatusPageId()!
                                     )}
                                     formType={FormType.Create}
                                     submitButtonText={'Subscribe'}

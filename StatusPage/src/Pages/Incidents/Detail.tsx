@@ -33,12 +33,12 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
-import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green, Grey, Red } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -157,22 +157,7 @@ export const getIncidentEventItem: Function = (
 const Detail: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -191,7 +176,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
 
     useAsyncEffect(async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -212,7 +197,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}/${incidentId?.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 
@@ -270,7 +255,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 incidentPublicNotes,
                 incidentStateTimelines,
                 statusPageResources,
-                props.isPreviewPage
+                StatusPageUtil.isPreviewPage()
             )
         );
     }, [isLoading, incident]);
@@ -294,7 +279,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -302,7 +287,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
                             : (RouteMap[PageMap.INCIDENT_LIST] as Route)
                     ),
@@ -310,7 +295,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Incident Report',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_INCIDENT_DETAIL
                               ] as Route)

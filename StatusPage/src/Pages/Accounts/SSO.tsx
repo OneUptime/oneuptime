@@ -9,13 +9,11 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export interface ComponentProps {
-    statusPageId: ObjectID | null;
-    isPreviewPage: boolean;
     statusPageName: string;
     logoFileId: ObjectID;
-    isPrivatePage: boolean;
 }
 
 const LoginPage: FunctionComponent<ComponentProps> = (
@@ -23,19 +21,24 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 ) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    if (!props.statusPageId) {
+    if (!StatusPageUtil.getStatusPageId()) {
         return <></>;
     }
 
-    if (!props.isPrivatePage) {
+    if (!StatusPageUtil.isPrivateStatusPage()) {
         Navigation.navigate(
             new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    : '/'
             )
         );
     }
 
-    if (UserUtil.isLoggedIn(props.statusPageId)) {
+    if (
+        StatusPageUtil.getStatusPageId() &&
+        UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
+    ) {
         if (Navigation.getQueryStringByName('redirectUrl')) {
             Navigation.navigate(
                 new Route(Navigation.getQueryStringByName('redirectUrl')!)
@@ -43,8 +46,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         } else {
             Navigation.navigate(
                 new Route(
-                    props.isPreviewPage
-                        ? `/status-page/${props.statusPageId}`
+                    StatusPageUtil.isPreviewPage()
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()}`
                         : '/'
                 )
             );
@@ -90,7 +93,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                         overrideFetchApiUrl={URL.fromString(
                             DASHBOARD_API_URL.toString()
                         ).addRoute(
-                            '/status-page/sso/' + props.statusPageId.toString()
+                            '/status-page/sso/' +
+                                StatusPageUtil.getStatusPageId()?.toString()
                         )}
                         modelType={StatusPageSSO}
                         titleField="name"
@@ -107,7 +111,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 Navigation.navigate(
                                     URL.fromURL(IDENTITY_URL).addRoute(
                                         new Route(
-                                            `/status-page-sso/${props.statusPageId}/${list[0]?._id}`
+                                            `/status-page-sso/${StatusPageUtil.getStatusPageId()}/${
+                                                list[0]?._id
+                                            }`
                                         )
                                     )
                                 );

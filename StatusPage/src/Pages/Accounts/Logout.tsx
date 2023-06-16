@@ -4,30 +4,25 @@ import UserUtil from '../../Utils/User';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ObjectID from 'Common/Types/ObjectID';
+import StatusPageUtil from '../../Utils/StatusPage';
 
-export interface ComponentProps {
-    isPreviewPage: boolean;
-    statusPageId: ObjectID;
-}
-
-const Logout: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+const Logout: FunctionComponent = () => {
     useEffect(() => {
-        if (props.statusPageId) {
-            UserUtil.logout(props.statusPageId);
+        if (StatusPageUtil.getStatusPageId()) {
+            UserUtil.logout(StatusPageUtil.getStatusPageId()!);
             Navigation.navigate(
-                props.isPreviewPage
+                StatusPageUtil.isPreviewPage()
                     ? RouteUtil.populateRouteParams(
                           RouteMap[PageMap.PREVIEW_LOGIN]!,
-                          props.statusPageId
+                          StatusPageUtil.getStatusPageId()!
                       )
                     : RouteUtil.populateRouteParams(
                           RouteMap[PageMap.LOGIN]!,
-                          props.statusPageId
+                          StatusPageUtil.getStatusPageId()!
                       )
             );
         }
-    }, [props.statusPageId]);
+    }, [StatusPageUtil.getStatusPageId()]);
 
     return <PageLoader isVisible={true} />;
 };
