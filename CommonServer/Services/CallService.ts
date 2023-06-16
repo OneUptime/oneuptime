@@ -9,11 +9,12 @@ import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
+import CallRequest from 'Common/Types/Call/CallRequest';
 
 export default class CallService {
     public static async makeCall(
         to: Phone,
-        message: string,
+        callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
@@ -22,7 +23,7 @@ export default class CallService {
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             to: to.toString(),
-            message,
+            callRequest: callRequest,
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
             isSensitive: options.isSensitive,
@@ -32,7 +33,7 @@ export default class CallService {
             new URL(
                 Protocol.HTTP,
                 NotificationHostname,
-                new Route('/call/send')
+                new Route('/call/make-call')
             ),
             body,
             {
