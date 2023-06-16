@@ -5,7 +5,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
-import SmsLog from 'Model/Models/SmsLog';
+import CallLog from 'Model/Models/CallLog';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
@@ -13,22 +13,22 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import DashboardSideMenu from './SideMenu';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import SmsStatus from 'Common/Types/SmsStatus';
+import CallStatus from 'Common/Types/Call/CallStatus';
 import { Green, Red } from 'Common/Types/BrandColors';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-const SMSLogs: FunctionComponent<PageComponentProps> = (
+const CallLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const [showViewSmsTextModal, setShowViewSmsTextModal] =
+    const [showViewCallTextModal, setShowViewCallTextModal] =
         useState<boolean>(false);
-    const [smsText, setSmsText] = useState<string>('');
-    const [smsModelTitle, setSmsModalTitle] = useState<string>('');
+    const [callText, setCallText] = useState<string>('');
+    const [callModelTitle, setCallModalTitle] = useState<string>('');
 
-    const modelTableColumns: Columns<SmsLog> = [
+    const modelTableColumns: Columns<CallLog> = [
         {
             field: {
                 _id: true,
@@ -67,7 +67,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         <Pill
                             isMinimal={false}
                             color={
-                                item['status'] === SmsStatus.Success
+                                item['status'] === CallStatus.Success
                                     ? Green
                                     : Red
                             }
@@ -85,11 +85,11 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     if (BILLING_ENABLED) {
         modelTableColumns.push({
             field: {
-                smsCostInUSDCents: true,
+                callCostInUSDCents: true,
             },
-            title: 'SMS Cost',
+            title: 'Call Cost',
             type: FieldType.USDCents,
-        } as Column<SmsLog>);
+        } as Column<CallLog>);
     }
 
     return (
@@ -109,43 +109,43 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'SMS Logs',
+                    title: 'Call Logs',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                        RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
             <>
-                <ModelTable<SmsLog>
-                    modelType={SmsLog}
-                    id="sms-logs-table"
+                <ModelTable<CallLog>
+                    modelType={CallLog}
+                    id="call-logs-table"
                     isDeleteable={false}
                     isEditable={false}
                     isCreateable={false}
-                    name="SMS Logs"
+                    name="Call Logs"
                     query={{
                         projectId:
                             DashboardNavigation.getProjectId()?.toString(),
                     }}
                     selectMoreFields={{
-                        smsText: true,
+                        callText: true,
                         statusMessage: true,
                     }}
                     actionButtons={[
                         {
-                            title: 'View SMS Text',
+                            title: 'View Call Text',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (
                                 item: JSONObject,
                                 onCompleteAction: Function
                             ) => {
-                                setSmsText(item['smsText'] as string);
+                                setCallText(item['callText'] as string);
 
-                                setSmsModalTitle('SMS Text');
-                                setShowViewSmsTextModal(true);
+                                setCallModalTitle('Call Text');
+                                setShowViewCallTextModal(true);
 
                                 onCompleteAction();
                             },
@@ -158,10 +158,10 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                                 item: JSONObject,
                                 onCompleteAction: Function
                             ) => {
-                                setSmsText(item['statusMessage'] as string);
+                                setCallText(item['statusMessage'] as string);
 
-                                setSmsModalTitle('Status Message');
-                                setShowViewSmsTextModal(true);
+                                setCallModalTitle('Status Message');
+                                setShowViewCallTextModal(true);
 
                                 onCompleteAction();
                             },
@@ -170,24 +170,24 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     isViewable={false}
                     cardProps={{
                         icon: IconProp.Logs,
-                        title: 'SMS Logs',
+                        title: 'Call Logs',
                         description:
-                            'Logs of all the SMS sent by this project in the last 30 days.',
+                            'Logs of all the Call sent by this project in the last 30 days.',
                     }}
                     noItemsMessage={
-                        'Looks like no SMS is sent by this project in the last 30 days.'
+                        'Looks like no Call is sent by this project in the last 30 days.'
                     }
                     showRefreshButton={true}
                     showFilterButton={true}
                     columns={modelTableColumns}
                 />
 
-                {showViewSmsTextModal && (
+                {showViewCallTextModal && (
                     <ConfirmModal
-                        title={smsModelTitle}
-                        description={smsText}
+                        title={callModelTitle}
+                        description={callText}
                         onSubmit={() => {
-                            setShowViewSmsTextModal(false);
+                            setShowViewCallTextModal(false);
                         }}
                         submitButtonText="Close"
                         submitButtonType={ButtonStyleType.NORMAL}
@@ -198,4 +198,4 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default SMSLogs;
+export default CallLogs;

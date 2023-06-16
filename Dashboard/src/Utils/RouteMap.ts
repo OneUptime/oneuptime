@@ -323,6 +323,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/sms-logs`
     ),
 
+    [PageMap.SETTINGS_CALL_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/call-logs`
+    ),
+
     //api keys.
     [PageMap.SETTINGS_APIKEYS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/api-keys`

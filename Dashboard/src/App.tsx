@@ -95,6 +95,7 @@ import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 import SettingsBilling from './Pages/Settings/Billing';
 import SettingsSSO from './Pages/Settings/SSO';
 import SettingsSmsLog from './Pages/Settings/SmsLog';
+import SettingsCallLog from './Pages/Settings/CallLog';
 import SettingsCallSms from './Pages/Settings/CallSms';
 import SettingsInvoices from './Pages/Settings/Invoices';
 import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
@@ -1407,6 +1408,18 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                            }
+                        />
+                    }
+                />
+
+<PageRoute
+                    path={RouteMap[PageMap.SETTINGS_CALL_LOGS]?.toString() || ''}
+                    element={
+                        <SettingsCallLog
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
                             }
                         />
                     }

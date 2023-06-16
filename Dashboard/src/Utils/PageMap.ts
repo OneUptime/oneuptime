@@ -157,6 +157,7 @@ enum PageMap {
     // SMS and Call
     SETTINGS_CALL_SMS = 'SETTINGS_CALL_SMS',
     SETTINGS_SMS_LOGS = 'SETTINGS_SMS_LOGS',
+    SETTINGS_CALL_LOGS = 'SETTINGS_CALL_LOGS',
 }
 
 export default PageMap;

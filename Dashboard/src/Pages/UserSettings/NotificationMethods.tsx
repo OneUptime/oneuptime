@@ -7,6 +7,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import UserSMS from '../../Components/NotificationMethods/SMS';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import UserCall from '../../Components/NotificationMethods/Call';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -40,6 +41,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
         >
             <UserEmail />
             <UserSMS />
+            <UserCall />
         </Page>
     );
 };
