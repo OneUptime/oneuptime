@@ -40,7 +40,6 @@ import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Monitor from 'Model/Models/Monitor';
-import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
@@ -50,6 +49,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
 import StatusPage from 'Model/Models/StatusPage';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -110,22 +110,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     const loadPage: Function = async () => {
         try {

@@ -8,8 +8,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import UserUtil from '../../Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import SubscribeSideMenu from './SideMenu';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -18,6 +16,7 @@ import Card from 'CommonUI/src/Components/Card/Card';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 const SubscribePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -29,22 +28,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         throw new BadDataException('Status Page ID is required');
     }
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     return (
         <Page

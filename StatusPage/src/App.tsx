@@ -35,6 +35,7 @@ import ObjectID from 'Common/Types/ObjectID';
 
 // Logout.
 import Logout from './Pages/Accounts/Logout';
+import StatusPageUtil from './Utils/StatusPage';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -53,7 +54,8 @@ const App: FunctionComponent = () => {
     const [forceSSO, setForceSSO] = useState<boolean>(false);
 
     useEffect(() => {
-        setIsPreview(isPreviewPage());
+        const preview: boolean = StatusPageUtil.isPreviewPage();
+        setIsPreview(preview);
     }, []);
 
     // js.
@@ -64,10 +66,6 @@ const App: FunctionComponent = () => {
             // run custom javascipt.
             new Function(javascript)();
         }
-    };
-
-    const isPreviewPage: Function = (): boolean => {
-        return Navigation.containsInPath('/status-page/');
     };
 
     return (
@@ -112,6 +110,7 @@ const App: FunctionComponent = () => {
                         'statusPage.isPublicStatusPage'
                     ) as boolean;
 
+                StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
                 setIsPrivateStatusPage(isPrivateStatusPage);
 
                 const statusPageId: string | null =

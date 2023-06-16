@@ -29,14 +29,13 @@ import Dictionary from 'Common/Types/Dictionary';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getIncidentEventItem } from './Detail';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -56,22 +55,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     useAsyncEffect(async () => {
         try {

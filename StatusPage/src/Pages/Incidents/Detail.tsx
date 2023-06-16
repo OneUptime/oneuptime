@@ -33,12 +33,12 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
-import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green, Grey, Red } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -157,22 +157,7 @@ export const getIncidentEventItem: Function = (
 const Detail: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
