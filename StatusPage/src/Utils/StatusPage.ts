@@ -18,7 +18,7 @@ export default class StatusPageUtil {
         return value;
     }
 
-    public setStatusPageId(id: ObjectID): void {
+    public static setStatusPageId(id: ObjectID | null): void {
         LocalStorage.setItem('statusPageId', id);
     }
 
