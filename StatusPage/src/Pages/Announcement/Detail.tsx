@@ -27,12 +27,12 @@ import EventItem, {
     ComponentProps as EventItemComponentProps,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { Blue } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -75,26 +75,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     useAsyncEffect(async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
 
@@ -116,7 +101,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/announcements/${id.toString()}/${announcementId}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 
@@ -160,7 +145,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
 
         setParsedData(
-            getAnnouncementEventItem(announcement, Boolean(props.isPreviewPage))
+            getAnnouncementEventItem(
+                announcement,
+                Boolean(StatusPageUtil.isPreviewPage())
+            )
         );
     }, [isLoading]);
 
@@ -183,7 +171,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -191,7 +179,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Announcements',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_ANNOUNCEMENT_LIST
                               ] as Route)
@@ -201,7 +189,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Announcement',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                               ] as Route)

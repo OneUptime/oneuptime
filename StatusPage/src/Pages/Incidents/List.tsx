@@ -29,14 +29,13 @@ import Dictionary from 'Common/Types/Dictionary';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getIncidentEventItem } from './Detail';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import API from '../../Utils/API';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -56,26 +55,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     useAsyncEffect(async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -92,7 +76,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 
@@ -161,7 +145,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     incidentPublicNotes,
                     incidentStateTimelines,
                     statusPageResources,
-                    props.isPreviewPage,
+                    StatusPageUtil.isPreviewPage(),
                     true
                 )
             );
@@ -195,7 +179,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -203,7 +187,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
                             : (RouteMap[PageMap.INCIDENT_LIST] as Route)
                     ),

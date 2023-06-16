@@ -12,13 +12,11 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { FILE_URL } from 'CommonUI/src/Config';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export interface ComponentProps {
-    statusPageId: ObjectID | null;
-    isPreviewPage: boolean;
     statusPageName: string;
     logoFileId: ObjectID;
-    isPrivatePage: boolean;
     forceSSO: boolean;
 }
 
@@ -28,7 +26,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         if (props.forceSSO) {
             Navigation.navigate(
-                !props.isPreviewPage
+                !StatusPageUtil.isPreviewPage()
                     ? RouteMap[PageMap.SSO]!
                     : RouteMap[PageMap.PREVIEW_SSO]!
             );
@@ -39,22 +37,29 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-    if (!props.statusPageId) {
+    if (!StatusPageUtil.getStatusPageId()) {
         return <></>;
     }
 
-    if (!props.isPrivatePage) {
+    if (!StatusPageUtil.isPrivateStatusPage()) {
         Navigation.navigate(
             new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
+                    : '/'
             )
         );
     }
 
-    if (UserUtil.isLoggedIn(props.statusPageId)) {
+    if (
+        StatusPageUtil.getStatusPageId() &&
+        UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
+    ) {
         Navigation.navigate(
             new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
+                    : '/'
             )
         );
     }
@@ -102,7 +107,8 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                             onBeforeCreate={(
                                 item: StatusPagePrivateUser
                             ): Promise<StatusPagePrivateUser> => {
-                                item.statusPageId = props.statusPageId!;
+                                item.statusPageId =
+                                    StatusPageUtil.getStatusPageId()!;
                                 return Promise.resolve(item);
                             }}
                             fields={[
@@ -132,8 +138,8 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                         <Link
                             to={
                                 new Route(
-                                    props.isPreviewPage
-                                        ? `/status-page/${props.statusPageId}/login`
+                                    StatusPageUtil.isPreviewPage()
+                                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
                                         : '/login'
                                 )
                             }

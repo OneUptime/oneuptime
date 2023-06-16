@@ -40,7 +40,6 @@ import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Monitor from 'Model/Models/Monitor';
-import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
@@ -50,6 +49,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
 import StatusPage from 'Model/Models/StatusPage';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -110,26 +110,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    if (
-        props.statusPageId &&
-        props.isPrivatePage &&
-        !UserUtil.isLoggedIn(props.statusPageId)
-    ) {
-        Navigation.navigate(
-            new Route(
-                props.isPreviewPage
-                    ? `/status-page/${
-                          props.statusPageId
-                      }/login?redirectUrl=${Navigation.getCurrentPath()}`
-                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-            ),
-            { forceNavigate: true }
-        );
-    }
+    StatusPageUtil.checkIfUserHasLoggedIn();
 
     const loadPage: Function = async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -146,7 +131,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/overview/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 
@@ -253,7 +238,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     useEffect(() => {
         loadPage();
-    }, [props.statusPageId, props.isPreviewPage, props.isPrivatePage]);
+    }, [
+        StatusPageUtil.getStatusPageId()?.toString() || '',
+        StatusPageUtil.isPreviewPage(),
+        StatusPageUtil.isPrivateStatusPage(),
+    ]);
 
     const getOverallMonitorStatus: Function = (
         statusPageResources: Array<StatusPageResource>,
@@ -564,7 +553,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     key={i}
                                     {...getAnnouncementEventItem(
                                         announcement,
-                                        props.isPreviewPage,
+                                        StatusPageUtil.isPreviewPage(),
                                         true
                                     )}
                                 />
@@ -584,7 +573,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         incidentGroup.publicNotes,
                                         incidentGroup.incidentStateTimelines,
                                         incidentGroup.incidentResources,
-                                        props.isPreviewPage,
+                                        StatusPageUtil.isPreviewPage(),
                                         true
                                     )}
                                 />
@@ -607,7 +596,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         scheduledEventGroup.publicNotes,
                                         scheduledEventGroup.scheduledMaintenanceStateTimelines,
                                         scheduledEventGroup.scheduledEventResources,
-                                        props.isPreviewPage,
+                                        StatusPageUtil.isPreviewPage(),
                                         true
                                     )}
                                 />
