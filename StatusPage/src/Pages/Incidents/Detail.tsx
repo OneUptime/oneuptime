@@ -197,7 +197,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}/${incidentId?.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 

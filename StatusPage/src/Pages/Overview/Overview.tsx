@@ -131,7 +131,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/overview/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 
@@ -239,7 +239,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     useEffect(() => {
         loadPage();
     }, [
-        StatusPageUtil.getStatusPageId(),
+        StatusPageUtil.getStatusPageId()?.toString() || '',
         StatusPageUtil.isPreviewPage(),
         StatusPageUtil.isPrivateStatusPage(),
     ]);

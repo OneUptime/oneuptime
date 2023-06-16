@@ -79,7 +79,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/scheduled-maintenance-events/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 

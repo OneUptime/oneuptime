@@ -94,7 +94,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                             DASHBOARD_API_URL.toString()
                         ).addRoute(
                             '/status-page/sso/' +
-                                StatusPageUtil.getStatusPageId().toString()
+                                StatusPageUtil.getStatusPageId()?.toString()
                         )}
                         modelType={StatusPageSSO}
                         titleField="name"
