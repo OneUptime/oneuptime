@@ -171,7 +171,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.SMS}
                 />
-                 <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Call Logs',
                         to: RouteUtil.populateRouteParams(

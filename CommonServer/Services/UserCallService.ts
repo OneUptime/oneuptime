@@ -28,7 +28,7 @@ export class Service extends DatabaseService<Model> {
             },
             select: {
                 enableCallNotifications: true,
-                smsOrCallCurrentBalanceInUSDCents: true
+                smsOrCallCurrentBalanceInUSDCents: true,
             },
         });
 
@@ -50,7 +50,6 @@ export class Service extends DatabaseService<Model> {
 
         return { carryForward: null, createBy };
     }
-
 
     protected override async onCreateSuccess(
         _onCreate: OnCreate<Model>,
@@ -100,34 +99,32 @@ export class Service extends DatabaseService<Model> {
     }
 
     public sendVerificationCode(item: Model): void {
-
         const callRequest: CallRequest = {
             data: [
                 {
-                    sayMessage: 'Your verification code is ' + item.verificationCode?.split("").join(" "), // add space to make it more clear
+                    sayMessage:
+                        'Your verification code is ' +
+                        item.verificationCode?.split('').join(' '), // add space to make it more clear
                 },
                 {
-                    sayMessage: 'Your verification code is ' + item.verificationCode?.split("").join(" "), // add space to make it more clear
+                    sayMessage:
+                        'Your verification code is ' +
+                        item.verificationCode?.split('').join(' '), // add space to make it more clear
                 },
                 {
                     sayMessage: 'Thank you for using OneUptime. Goodbye.',
                 },
-                CallAction.Hangup
-            ]
-        }
+                CallAction.Hangup,
+            ],
+        };
 
         // send verifiction sms.
-        CallService.makeCall(
-            item.phone!,
-            callRequest,
-            {
-                projectId: item.projectId,
-                isSensitive: true,
-            }
-        ).catch((err: Error) => {
+        CallService.makeCall(item.phone!, callRequest, {
+            projectId: item.projectId,
+            isSensitive: true,
+        }).catch((err: Error) => {
             logger.error(err);
         });
     }
-
 }
 export default new Service();

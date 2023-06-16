@@ -1413,8 +1413,10 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-<PageRoute
-                    path={RouteMap[PageMap.SETTINGS_CALL_LOGS]?.toString() || ''}
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.SETTINGS_CALL_LOGS]?.toString() || ''
+                    }
                     element={
                         <SettingsCallLog
                             {...commonPageProps}

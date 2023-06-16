@@ -142,7 +142,9 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                                 item: JSONObject,
                                 onCompleteAction: Function
                             ) => {
-                                setCallText(JSON.stringify(item['callData']) as string);
+                                setCallText(
+                                    JSON.stringify(item['callData']) as string
+                                );
 
                                 setCallModalTitle('Call Text');
                                 setShowViewCallTextModal(true);
@@ -185,9 +187,11 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                 {showViewCallTextModal && (
                     <ConfirmModal
                         title={callModelTitle}
-                        description={<div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                            {callText}
-                        </div>}
+                        description={
+                            <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                                {callText}
+                            </div>
+                        }
                         onSubmit={() => {
                             setShowViewCallTextModal(false);
                         }}

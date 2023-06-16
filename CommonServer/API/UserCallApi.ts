@@ -119,5 +119,4 @@ export default class UserCallAPI extends BaseAPI<
             }
         );
     }
-    
 }
