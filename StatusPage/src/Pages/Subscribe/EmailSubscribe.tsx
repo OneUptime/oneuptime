@@ -19,7 +19,7 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 
 const SubscribePage: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
@@ -37,7 +37,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -45,7 +45,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Subscribe',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_SUBSCRIBE_EMAIL
                               ] as Route)
@@ -55,7 +55,9 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={
                 <SubscribeSideMenu
-                    isPreviewStatusPage={Boolean(props.isPreviewPage)}
+                    isPreviewStatusPage={Boolean(
+                        StatusPageUtil.isPreviewPage()
+                    )}
                 />
             }
         >
@@ -99,7 +101,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                         `/status-page/subscribe/${id.toString()}`
                                     )}
                                     requestHeaders={API.getDefaultHeaders(
-                                        props.statusPageId!
+                                        StatusPageUtil.getStatusPageId()!
                                     )}
                                     formType={FormType.Create}
                                     submitButtonText={'Subscribe'}

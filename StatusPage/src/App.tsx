@@ -167,11 +167,8 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.LOGIN]?.toString() || ''}
                     element={
                         <Login
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                             forceSSO={forceSSO}
                             hasEnabledSSOConfig={hasEnabledSSO}
                         />
@@ -182,11 +179,8 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SSO]?.toString() || ''}
                     element={
                         <Sso
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -195,11 +189,8 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ''}
                     element={
                         <ResetPassword
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                             forceSSO={forceSSO}
                         />
                     }
@@ -209,11 +200,8 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ''}
                     element={
                         <ForgotPassword
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                             forceSSO={forceSSO}
                         />
                     }
@@ -388,22 +376,12 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={RouteMap[PageMap.PREVIEW_LOGOUT]?.toString() || ''}
-                    element={
-                        <Logout
-                            isPreviewPage={isPreview}
-                            statusPageId={new ObjectID(statusPageId)}
-                        />
-                    }
+                    element={<Logout />}
                 />
 
                 <PageRoute
                     path={RouteMap[PageMap.LOGOUT]?.toString() || ''}
-                    element={
-                        <Logout
-                            isPreviewPage={isPreview}
-                            statusPageId={new ObjectID(statusPageId)}
-                        />
-                    }
+                    element={<Logout />}
                 />
 
                 <PageRoute
@@ -544,11 +522,8 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PREVIEW_LOGIN]?.toString() || ''}
                     element={
                         <Login
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                             forceSSO={forceSSO}
                             hasEnabledSSOConfig={hasEnabledSSO}
                         />
@@ -562,11 +537,8 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ResetPassword
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                             forceSSO={forceSSO}
                         />
                     }
@@ -579,11 +551,8 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ForgotPassword
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                             forceSSO={forceSSO}
                         />
                     }
@@ -593,11 +562,8 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PREVIEW_SSO]?.toString() || ''}
                     element={
                         <Sso
-                            isPreviewPage={isPreview}
-                            isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
-                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />

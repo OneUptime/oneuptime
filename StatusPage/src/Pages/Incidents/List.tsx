@@ -59,7 +59,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     useAsyncEffect(async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -76,7 +76,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
                 );
             const data: JSONObject = response.data;
 
@@ -145,7 +145,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     incidentPublicNotes,
                     incidentStateTimelines,
                     statusPageResources,
-                    props.isPreviewPage,
+                    StatusPageUtil.isPreviewPage(),
                     true
                 )
             );
@@ -179,7 +179,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -187,7 +187,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
                             : (RouteMap[PageMap.INCIDENT_LIST] as Route)
                     ),

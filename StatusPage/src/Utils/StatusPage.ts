@@ -6,7 +6,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 
 export default class StatusPageUtil {
-    public static statusPageId(): ObjectID | null {
+    public static getStatusPageId(): ObjectID | null {
         const value: ObjectID | null = LocalStorage.getItem(
             'statusPageId'
         ) as ObjectID | null;
@@ -36,14 +36,14 @@ export default class StatusPageUtil {
 
     public static checkIfUserHasLoggedIn(): void {
         if (
-            StatusPageUtil.statusPageId() &&
+            StatusPageUtil.getStatusPageId() &&
             StatusPageUtil.isPrivateStatusPage() &&
-            !UserUtil.isLoggedIn(StatusPageUtil.statusPageId()!)
+            !UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
         ) {
             Navigation.navigate(
                 new Route(
                     StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${StatusPageUtil.statusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
                         : `/login?redirectUrl=${Navigation.getCurrentPath()}`
                 ),
                 { forceNavigate: true }

@@ -176,7 +176,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
 
     useAsyncEffect(async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -197,7 +197,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}/${incidentId?.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
                 );
             const data: JSONObject = response.data;
 
@@ -255,7 +255,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 incidentPublicNotes,
                 incidentStateTimelines,
                 statusPageResources,
-                props.isPreviewPage
+                StatusPageUtil.isPreviewPage()
             )
         );
     }, [isLoading, incident]);
@@ -279,7 +279,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -287,7 +287,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
                             : (RouteMap[PageMap.INCIDENT_LIST] as Route)
                     ),
@@ -295,7 +295,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Incident Report',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_INCIDENT_DETAIL
                               ] as Route)

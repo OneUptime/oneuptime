@@ -12,13 +12,11 @@ import { RESET_PASSWORD_API_URL } from '../../Utils/ApiPaths';
 import ObjectID from 'Common/Types/ObjectID';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export interface ComponentProps {
-    statusPageId: ObjectID | null;
-    isPreviewPage: boolean;
     statusPageName: string;
     logoFileId: ObjectID;
-    isPrivatePage: boolean;
     forceSSO: boolean;
 }
 
@@ -31,29 +29,36 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         if (props.forceSSO) {
             Navigation.navigate(
-                !props.isPreviewPage
+                !StatusPageUtil.isPreviewPage()
                     ? RouteMap[PageMap.SSO]!
                     : RouteMap[PageMap.PREVIEW_SSO]!
             );
         }
     }, [props.forceSSO]);
 
-    if (!props.statusPageId) {
+    if (!StatusPageUtil.getStatusPageId()) {
         return <></>;
     }
 
-    if (UserUtil.isLoggedIn(props.statusPageId)) {
+    if (
+        StatusPageUtil.getStatusPageId() &&
+        UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
+    ) {
         Navigation.navigate(
             new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    : '/'
             )
         );
     }
 
-    if (!props.isPrivatePage) {
+    if (!StatusPageUtil.isPrivateStatusPage()) {
         Navigation.navigate(
             new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    : '/'
             )
         );
     }
@@ -156,8 +161,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                         <Link
                             to={
                                 new Route(
-                                    props.isPreviewPage
-                                        ? `/status-page/${props.statusPageId}/login`
+                                    StatusPageUtil.isPreviewPage()
+                                        ? `/status-page/${StatusPageUtil.getStatusPageId()}/login`
                                         : '/login'
                                 )
                             }

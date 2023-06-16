@@ -79,7 +79,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     useAsyncEffect(async () => {
         try {
-            if (!StatusPageUtil.statusPageId()) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
 
@@ -101,7 +101,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/announcements/${id.toString()}/${announcementId}`
                     ),
                     {},
-                    API.getDefaultHeaders(StatusPageUtil.statusPageId()!)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
             const data: JSONObject = response.data;
 
@@ -145,7 +145,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
 
         setParsedData(
-            getAnnouncementEventItem(announcement, Boolean(props.isPreviewPage))
+            getAnnouncementEventItem(
+                announcement,
+                Boolean(StatusPageUtil.isPreviewPage())
+            )
         );
     }, [isLoading]);
 
@@ -168,7 +171,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -176,7 +179,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Announcements',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_ANNOUNCEMENT_LIST
                               ] as Route)
@@ -186,7 +189,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Announcement',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                               ] as Route)

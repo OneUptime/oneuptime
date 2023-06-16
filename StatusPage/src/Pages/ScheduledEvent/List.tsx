@@ -62,7 +62,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     useAsyncEffect(async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -79,7 +79,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/scheduled-maintenance-events/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
                 );
             const data: JSONObject = response.data;
 
@@ -155,7 +155,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     scheduledMaintenance,
                     scheduledMaintenanceEventsPublicNotes,
                     scheduledMaintenanceStateTimelines,
-                    Boolean(props.isPreviewPage),
+                    Boolean(StatusPageUtil.isPreviewPage()),
                     true
                 )
             );
@@ -189,7 +189,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Overview',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
                             : (RouteMap[PageMap.OVERVIEW] as Route)
                     ),
@@ -197,7 +197,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Scheduled Events',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewPage
+                        StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
                                   PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                               ] as Route)

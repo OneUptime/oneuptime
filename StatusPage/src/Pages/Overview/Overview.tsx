@@ -114,7 +114,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     const loadPage: Function = async () => {
         try {
-            if (!props.statusPageId) {
+            if (!StatusPageUtil.getStatusPageId()) {
                 return;
             }
             setIsLoading(true);
@@ -131,7 +131,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/overview/${id.toString()}`
                     ),
                     {},
-                    API.getDefaultHeaders(props.statusPageId)
+                    API.getDefaultHeaders(StatusPageUtil.getStatusPageId())
                 );
             const data: JSONObject = response.data;
 
@@ -238,7 +238,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     useEffect(() => {
         loadPage();
-    }, [props.statusPageId, props.isPreviewPage, props.isPrivatePage]);
+    }, [
+        StatusPageUtil.getStatusPageId(),
+        StatusPageUtil.isPreviewPage(),
+        StatusPageUtil.isPrivateStatusPage(),
+    ]);
 
     const getOverallMonitorStatus: Function = (
         statusPageResources: Array<StatusPageResource>,
@@ -549,7 +553,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     key={i}
                                     {...getAnnouncementEventItem(
                                         announcement,
-                                        props.isPreviewPage,
+                                        StatusPageUtil.isPreviewPage(),
                                         true
                                     )}
                                 />
@@ -569,7 +573,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         incidentGroup.publicNotes,
                                         incidentGroup.incidentStateTimelines,
                                         incidentGroup.incidentResources,
-                                        props.isPreviewPage,
+                                        StatusPageUtil.isPreviewPage(),
                                         true
                                     )}
                                 />
@@ -592,7 +596,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         scheduledEventGroup.publicNotes,
                                         scheduledEventGroup.scheduledMaintenanceStateTimelines,
                                         scheduledEventGroup.scheduledEventResources,
-                                        props.isPreviewPage,
+                                        StatusPageUtil.isPreviewPage(),
                                         true
                                     )}
                                 />

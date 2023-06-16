@@ -15,13 +15,11 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import StatusPageUtil from '../../Utils/StatusPage';
 
 export interface ComponentProps {
-    statusPageId: ObjectID | null;
-    isPreviewPage: boolean;
     statusPageName: string;
     logoFileId: ObjectID;
-    isPrivatePage: boolean;
     forceSSO: boolean;
     hasEnabledSSOConfig: boolean;
 }
@@ -30,19 +28,19 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
     useEffect(() => {
-        if (props.forceSSO && props.statusPageId) {
+        if (props.forceSSO && StatusPageUtil.getStatusPageId()) {
             if (Navigation.getQueryStringByName('redirectUrl')) {
                 // forward redirect url to sso page
                 Navigation.navigate(
                     new Route(
-                        (!props.isPreviewPage
+                        (!StatusPageUtil.isPreviewPage()
                             ? RouteUtil.populateRouteParams(
                                   RouteMap[PageMap.SSO]!,
-                                  props.statusPageId
+                                  StatusPageUtil.getStatusPageId()!
                               )
                             : RouteUtil.populateRouteParams(
                                   RouteMap[PageMap.PREVIEW_SSO]!,
-                                  props.statusPageId
+                                  StatusPageUtil.getStatusPageId()!
                               )
                         ).toString() +
                             `?redirectUrl=${Navigation.getQueryStringByName(
@@ -52,35 +50,40 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 );
             } else {
                 Navigation.navigate(
-                    !props.isPreviewPage
+                    !StatusPageUtil.isPreviewPage()
                         ? RouteUtil.populateRouteParams(
                               RouteMap[PageMap.SSO]!,
-                              props.statusPageId
+                              StatusPageUtil.getStatusPageId()!
                           )
                         : RouteUtil.populateRouteParams(
                               RouteMap[PageMap.PREVIEW_SSO]!,
-                              props.statusPageId
+                              StatusPageUtil.getStatusPageId()!
                           )
                 );
             }
         }
-    }, [props.forceSSO, props.statusPageId]);
+    }, [props.forceSSO, StatusPageUtil.getStatusPageId()]);
 
     const apiUrl: URL = LOGIN_API_URL;
 
-    if (!props.statusPageId) {
+    if (!StatusPageUtil.getStatusPageId()) {
         return <></>;
     }
 
-    if (!props.isPrivatePage) {
+    if (!StatusPageUtil.isPrivateStatusPage()) {
         Navigation.navigate(
             new Route(
-                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()}`
+                    : '/'
             )
         );
     }
 
-    if (UserUtil.isLoggedIn(props.statusPageId)) {
+    if (
+        StatusPageUtil.getStatusPageId() &&
+        UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
+    ) {
         if (Navigation.getQueryStringByName('redirectUrl')) {
             Navigation.navigate(
                 new Route(Navigation.getQueryStringByName('redirectUrl')!)
@@ -88,8 +91,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         } else {
             Navigation.navigate(
                 new Route(
-                    props.isPreviewPage
-                        ? `/status-page/${props.statusPageId}`
+                    StatusPageUtil.isPreviewPage()
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()}`
                         : '/'
                 )
             );
@@ -147,8 +150,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 sideLink: {
                                     text: 'Forgot password?',
                                     url: new Route(
-                                        props.isPreviewPage
-                                            ? `/status-page/${props.statusPageId}/forgot-password`
+                                        StatusPageUtil.isPreviewPage()
+                                            ? `/status-page/${StatusPageUtil.getStatusPageId()}/forgot-password`
                                             : '/forgot-password'
                                     ),
                                     openLinkInNewTab: false,
@@ -174,21 +177,22 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                             } else {
                                 Navigation.navigate(
                                     new Route(
-                                        props.isPreviewPage
-                                            ? `/status-page/${props.statusPageId}/`
+                                        StatusPageUtil.isPreviewPage()
+                                            ? `/status-page/${StatusPageUtil.getStatusPageId()}/`
                                             : '/'
                                     )
                                 );
                             }
                         }}
                         onBeforeCreate={(item: StatusPagePrivateUser) => {
-                            if (!props.statusPageId) {
+                            if (!StatusPageUtil.getStatusPageId()) {
                                 throw new BadDataException(
                                     'Status Page ID not found'
                                 );
                             }
 
-                            item.statusPageId = props.statusPageId;
+                            item.statusPageId =
+                                StatusPageUtil.getStatusPageId()!;
                             return item;
                         }}
                         maxPrimaryButtonWidth={true}
@@ -199,8 +203,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                         <Link
                                             to={
                                                 new Route(
-                                                    props.isPreviewPage
-                                                        ? `/status-page/${props.statusPageId}/sso`
+                                                    StatusPageUtil.isPreviewPage()
+                                                        ? `/status-page/${StatusPageUtil.getStatusPageId()}/sso`
                                                         : '/sso'
                                                 )
                                             }
