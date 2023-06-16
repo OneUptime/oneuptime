@@ -17,7 +17,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
         super(UserSMS, UserSMSService);
 
         this.router.post(
-            `${new this.entityType().getCrudApiPath()?.toString()}/verify`,
+            `/user-sms/verify`,
             UserMiddleware.getUserMiddleware,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 req = req as OneUptimeRequest;
@@ -96,9 +96,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
         );
 
         this.router.post(
-            `${new this.entityType()
-                .getCrudApiPath()
-                ?.toString()}/resend-verification-code`,
+            `/user-sms/resend-verification-code`,
             UserMiddleware.getUserMiddleware,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 req = req as OneUptimeRequest;

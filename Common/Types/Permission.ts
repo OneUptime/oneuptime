@@ -73,10 +73,10 @@ enum Permission {
     CanEditMonitorProbe = 'CanEditMonitorProbe',
     CanReadMonitorProbe = 'CanReadMonitorProbe',
 
-    CanCreateSmsLog = 'CanCreateSmsLog',
-    CanDeleteSmsLog = 'CanDeleteSmsLog',
-    CanEditSmsLog = 'CanEditSmsLog',
+
     CanReadSmsLog = 'CanReadSmsLog',
+
+    CanReadCallLog = 'CanReadCallLog',
 
     CanCreateIncidentOwnerTeam = 'CanCreateIncidentOwnerTeam',
     CanDeleteIncidentOwnerTeam = 'CanDeleteIncidentOwnerTeam',
@@ -1825,34 +1825,21 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-            {
-                permission: Permission.CanCreateSmsLog,
-                title: 'Can Create SMS Log',
-                description: 'This permission can create SMS Log this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-            {
-                permission: Permission.CanDeleteSmsLog,
-                title: 'Can Delete SMS Log',
-                description:
-                    'This permission  can delete SMS Log of this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-            {
-                permission: Permission.CanEditSmsLog,
-                title: 'Can Edit SMS Log',
-                description:
-                    'This permission can edit SMS Log of this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
+            
             {
                 permission: Permission.CanReadSmsLog,
                 title: 'Can Read SMS Log',
                 description:
                     'This permission  can read SMS Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanReadCallLog,
+                title: 'Can Read Call Log',
+                description:
+                    'This permission  can read Call Logs of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

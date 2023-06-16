@@ -694,5 +694,5 @@ export default class Model extends TenantModel {
         default: false,
         type: ColumnType.Boolean,
     })
-    public notEnabledSmsNotificationSentToOwners?: boolean = undefined;
+    public notEnabledSmsOrCallNotificationSentToOwners?: boolean = undefined;
 }

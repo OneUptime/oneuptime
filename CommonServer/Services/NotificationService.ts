@@ -84,7 +84,7 @@ export default class NotificationService {
                     failedCallAndSMSBalanceChargeNotificationSentToOwners:
                         false, // reset this flag
                     lowCallAndSMSBalanceNotificationSentToOwners: false, // reset this flag
-                    notEnabledSmsNotificationSentToOwners: false,
+                    notEnabledSmsOrCallNotificationSentToOwners: false,
                 },
                 id: project.id!,
                 props: {

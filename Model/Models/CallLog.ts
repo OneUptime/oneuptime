@@ -2,7 +2,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SmsStatus from 'Common/Types/SmsStatus';
+import CallStatus from 'Common/Types/Call/CallStatus';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
@@ -27,14 +27,14 @@ import Phone from 'Common/Types/Phone';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadSmsLog,
+        Permission.CanReadCallLog,
     ],
     delete: [],
     update: [],
 })
-@CrudApiEndpoint(new Route('/sms-log'))
+@CrudApiEndpoint(new Route('/call-log'))
 @Entity({
-    name: 'SmsLog',
+    name: 'CallLog',
 })
 @EnableWorkflow({
     create: true,
@@ -43,23 +43,23 @@ import Phone from 'Common/Types/Phone';
     read: true,
 })
 @TableMetadata({
-    tableName: 'SmsLog',
-    singularName: 'SMS Log',
-    pluralName: 'SMS Logs',
-    icon: IconProp.SMS,
+    tableName: 'CallLog',
+    singularName: 'Call Log',
+    pluralName: 'Call Logs',
+    icon: IconProp.Call,
     tableDescription:
-        'Logs of all the SMS sent out to all users and subscribers for this project.',
+        'Logs of all the Call sent out to all users and subscribers for this project.',
 })
-export default class SmsLog extends BaseModel {
+export default class CallLog extends BaseModel {
     @ColumnAccessControl({
         create: [
-            
+
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
@@ -87,13 +87,13 @@ export default class SmsLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [
-            
+
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
@@ -119,7 +119,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
@@ -128,7 +128,7 @@ export default class SmsLog extends BaseModel {
         required: true,
         type: TableColumnType.Phone,
         title: 'To Number',
-        description: 'Phone Number SMS was sent to',
+        description: 'Phone Number Call was sent to',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -145,7 +145,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
@@ -154,7 +154,7 @@ export default class SmsLog extends BaseModel {
         required: true,
         type: TableColumnType.Phone,
         title: 'From Number',
-        description: 'Phone Number SMS was sent from',
+        description: 'Phone Number Call was sent from',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -171,23 +171,22 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
     @TableColumn({
         required: true,
-        type: TableColumnType.LongText,
-        title: 'SMS Text',
-        description: 'Text content of the message',
+        type: TableColumnType.JSON,
+        title: 'Call Data',
+        description: 'Content of the data that was sent in the call',
         canReadOnRelationQuery: false,
     })
     @Column({
         nullable: false,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        type: ColumnType.JSON,
     })
-    public smsText?: string = undefined;
+    public callData?: JSON = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -195,7 +194,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
@@ -219,15 +218,15 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        title: 'Status of the SMS',
-        description: 'Status of the SMS sent',
+        title: 'Status of the Call',
+        description: 'Status of the Call sent',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -235,7 +234,7 @@ export default class SmsLog extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public status?: SmsStatus = undefined;
+    public status?: CallStatus = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -243,15 +242,15 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.CanReadCallLog,
         ],
         update: [],
     })
     @TableColumn({
         required: true,
         type: TableColumnType.Number,
-        title: 'SMS Cost',
-        description: 'SMS Cost in USD Cents',
+        title: 'Call Cost',
+        description: 'Call Cost in USD Cents',
         canReadOnRelationQuery: false,
         isDefaultValueColumn: true,
     })
@@ -260,5 +259,5 @@ export default class SmsLog extends BaseModel {
         default: 0,
         type: ColumnType.Number,
     })
-    public smsCostInUSDCents?: number = undefined;
+    public callCostInUSDCents?: number = undefined;
 }

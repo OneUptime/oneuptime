@@ -7,7 +7,6 @@ import {
     TwilioPhoneNumber,
 } from '../Config';
 import Twilio from 'twilio';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import SmsLog from 'Model/Models/SmsLog';
 import SmsStatus from 'Common/Types/SmsStatus';
 import { IsBillingEnabled } from 'CommonServer/Config';
@@ -17,6 +16,7 @@ import Project from 'Model/Models/Project';
 import { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
+import TwilioUtil from '../Utils/Twilio';
 
 export default class SmsService {
     public static async sendSms(
@@ -28,17 +28,7 @@ export default class SmsService {
             isSensitive?: boolean; // if true, message will not be logged
         }
     ): Promise<void> {
-        if (!TwilioAccountSid) {
-            throw new BadDataException('TwilioAccountSid is not configured');
-        }
-
-        if (!TwilioAuthToken) {
-            throw new BadDataException('TwilioAuthToken is not configured');
-        }
-
-        if (!TwilioPhoneNumber) {
-            throw new BadDataException('TwilioPhoneNumber is not configured');
-        }
+        TwilioUtil.checkEnvironmentVariables();
 
         const client: Twilio.Twilio = Twilio(TwilioAccountSid, TwilioAuthToken);
 
@@ -68,7 +58,7 @@ export default class SmsService {
                         enableSmsNotifications: true,
                         lowCallAndSMSBalanceNotificationSentToOwners: true,
                         name: true,
-                        notEnabledSmsNotificationSentToOwners: true,
+                        notEnabledSmsOrCallNotificationSentToOwners: true,
                     },
                     props: {
                         isRoot: true,
@@ -97,10 +87,10 @@ export default class SmsService {
                             isRoot: true,
                         },
                     });
-                    if (!project.notEnabledSmsNotificationSentToOwners) {
+                    if (!project.notEnabledSmsOrCallNotificationSentToOwners) {
                         await ProjectService.updateOneById({
                             data: {
-                                notEnabledSmsNotificationSentToOwners: true,
+                                notEnabledSmsOrCallNotificationSentToOwners: true,
                             },
                             id: project.id!,
                             props: {
@@ -157,8 +147,8 @@ export default class SmsService {
                             'Low SMS and Call Balance for ' +
                                 (project.name || ''),
                             `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                project.smsOrCallCurrentBalanceInUSDCents || 0
-                            } USD cents. Required balance to send this SMS should is ${SMSDefaultCostInCents} USD cents. Please enable auto recharge or recharge manually.`
+                                (project.smsOrCallCurrentBalanceInUSDCents || 0)/100
+                            } USD cents. Required balance to send this SMS should is ${SMSDefaultCostInCents/100} USD. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
@@ -169,7 +159,7 @@ export default class SmsService {
                     SMSDefaultCostInCents
                 ) {
                     smsLog.status = SmsStatus.LowBalance;
-                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents} cents. Required balance is ${SMSDefaultCostInCents} cents to send this SMS.`;
+                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents/100} USD. Required balance is ${SMSDefaultCostInCents/100} USD to send this SMS.`;
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -192,8 +182,8 @@ export default class SmsService {
                             'Low SMS and Call Balance for ' +
                                 (project.name || ''),
                             `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                project.smsOrCallCurrentBalanceInUSDCents
-                            } cents. Required balance is ${SMSDefaultCostInCents} cents to send this SMS. Please enable auto recharge or recharge manually.`
+                                project.smsOrCallCurrentBalanceInUSDCents / 100
+                            } USD. Required balance is ${SMSDefaultCostInCents/100} USD to send this SMS. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
@@ -225,7 +215,7 @@ export default class SmsService {
                     data: {
                         smsOrCallCurrentBalanceInUSDCents:
                             project.smsOrCallCurrentBalanceInUSDCents,
-                        notEnabledSmsNotificationSentToOwners: false, // reset this flag
+                        notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
                     },
                     id: project.id!,
                     props: {

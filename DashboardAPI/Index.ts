@@ -80,6 +80,11 @@ import SmsLogService, {
     Service as SmsLogServiceType,
 } from 'CommonServer/Services/SmsLogService';
 
+import CallLog from 'Model/Models/CallLog';
+import CallLogService, {
+    Service as CallLogServiceType,
+} from 'CommonServer/Services/CallLogService';
+
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import StatusPageSSOService, {
     Service as StatusPageSSOServiceType,
@@ -642,6 +647,12 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<CallLog, CallLogServiceType>(CallLog, CallLogService).getRouter()
 );
 
 app.use(
