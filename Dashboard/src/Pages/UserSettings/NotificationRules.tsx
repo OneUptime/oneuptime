@@ -30,6 +30,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import NotifyAfterDropdownOptions from '../../Components/NotificationRule/NotifyAfterMinutesDropdownOptions';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
+import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -195,6 +196,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     userId: User.getUserId().toString(),
                                     incidentSeverityId:
                                         incidentSeverity.id!.toString(),
+                                        ruleType: NotificationRuleType.INCIDENT_ASSIGNED,
                                 }}
                                 onBeforeCreate={(
                                     model: UserNotifiacationRule
@@ -202,6 +204,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     model.projectId =
                                         DashboardNavigation.getProjectId()!;
                                     model.userId = User.getUserId();
+                                    model.ruleType = NotificationRuleType.INCIDENT_ASSIGNED;
                                     model.incidentSeverityId =
                                         incidentSeverity.id!;
 
