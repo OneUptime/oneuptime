@@ -55,8 +55,8 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 @CrudApiEndpoint(new Route('/on-call-duty-policy-custom-field'))
 @TableMetadata({
     tableName: 'OnCallDutyPolicyCustomField',
-    singularName: 'OnCallDutyPolicy Custom Field',
-    pluralName: 'OnCallDutyPolicy Custom Fields',
+    singularName: 'On Call Policy Custom Field',
+    pluralName: 'On Call Policy Custom Fields',
     icon: IconProp.TableCells,
     tableDescription: 'Manage custom fields for your on-call policy',
 })

@@ -73,7 +73,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}

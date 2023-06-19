@@ -12,7 +12,7 @@ const OnCallDutyPolicyCustomFields: FunctionComponent<PageComponentProps> = (
     return (
         <CustomFieldsPageBase
             {...props}
-            title="OnCallDutyPolicy Custom Fields"
+            title="On Call Policy Custom Fields"
             currentRoute={RouteUtil.populateRouteParams(
                 RouteMap[
                     PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
