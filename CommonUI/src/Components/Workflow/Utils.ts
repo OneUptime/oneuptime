@@ -80,6 +80,12 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
+    if (componentInputType === ComponentInputType.Select) {
+        return {
+            fieldType: FormFieldSchemaType.JSON,
+        };
+    }
+
     if (componentInputType === ComponentInputType.StringDictionary) {
         return {
             fieldType: FormFieldSchemaType.JSON,

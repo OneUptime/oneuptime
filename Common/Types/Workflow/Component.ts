@@ -18,6 +18,7 @@ export enum ComponentInputType {
     Email = 'Email',
     CronTab = 'CronTab',
     Query = 'Database Query',
+    Select = 'Database Select',
     BaseModel = 'Database Record',
     BaseModelArray = 'Database Records',
     JSONArray = 'List of JSON',
