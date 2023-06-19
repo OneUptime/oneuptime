@@ -19,7 +19,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import User from 'CommonUI/src/Utils/User';
-import UserNotifiacationRule from 'Model/Models/UserNotificationRule';
+import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import IconProp from 'Common/Types/Icon/IconProp';
 import UserCall from 'Model/Models/UserCall';
 import UserEmail from 'Model/Models/UserEmail';
@@ -187,9 +187,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {incidentSeverities.map(
                     (incidentSeverity: IncidentSeverity, i: number) => {
                         return (
-                            <ModelTable<UserNotifiacationRule>
-                                modelType={UserNotifiacationRule}
-                                key={i}
+                            <div key={i} className='mt-5 mb-5'>
+                            <ModelTable<UserNotificationRule>
+                                modelType={UserNotificationRule}
+                                
                                 query={{
                                     projectId:
                                         DashboardNavigation.getProjectId()?.toString(),
@@ -200,8 +201,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                         NotificationRuleType.INCIDENT_ASSIGNED,
                                 }}
                                 onBeforeCreate={(
-                                    model: UserNotifiacationRule
-                                ): UserNotifiacationRule => {
+                                    model: UserNotificationRule
+                                ): UserNotificationRule => {
                                     model.projectId =
                                         DashboardNavigation.getProjectId()!;
                                     model.userId = User.getUserId();
@@ -427,6 +428,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     },
                                 ]}
                             />
+                            </div>
                         );
                     }
                 )}

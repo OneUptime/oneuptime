@@ -115,6 +115,11 @@ import StatusPageHeaderLinkService, {
     Service as StatusPageHeaderLinkServiceType,
 } from 'CommonServer/Services/StatusPageHeaderLinkService';
 
+import UserNotificationRule from 'Model/Models/UserNotificationRule';
+import UserNotificationRuleService, {
+    Service as UserNotificationRuleServiceType,
+} from 'CommonServer/Services/UserNotificationRuleService';
+
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService, {
     Service as StatusPageAnnouncementServiceType,
@@ -511,6 +516,15 @@ app.use(
     new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
         StatusPageHeaderLink,
         StatusPageHeaderLinkService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<UserNotificationRule, UserNotificationRuleServiceType>(
+        UserNotificationRule,
+        UserNotificationRuleService
     ).getRouter()
 );
 

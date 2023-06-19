@@ -94,7 +94,7 @@ import UserEmail from './UserEmail';
 import UserSms from './UserSMS';
 import UserCall from './UserCall';
 import CallLog from './CallLog';
-import UserNotifiacationRule from './UserNotificationRule';
+import UserNotificationRule from './UserNotificationRule';
 
 export default [
     User,
@@ -177,5 +177,5 @@ export default [
     UserEmail,
     UserSms,
     UserCall,
-    UserNotifiacationRule,
+    UserNotificationRule,
 ];

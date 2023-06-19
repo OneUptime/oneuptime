@@ -33,17 +33,17 @@ import IncidentSeverity from './IncidentSeverity';
 })
 @CrudApiEndpoint(new Route('/user-notification-rule'))
 @Entity({
-    name: 'UserNotifiacationRule',
+    name: 'UserNotificationRule',
 })
 @TableMetadata({
-    tableName: 'UserNotifiacationRule',
-    singularName: 'User Notifiacation Rule',
-    pluralName: 'User Notifiacation Rules',
+    tableName: 'UserNotificationRule',
+    singularName: 'User Notification Rule',
+    pluralName: 'User Notification Rules',
     icon: IconProp.Email,
     tableDescription: 'Rules which will be used to send notifications.',
 })
 @CurrentUserCanAccessRecordBy('userId')
-class UserNotifiacationRule extends BaseModel {
+class UserNotificationRule extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
@@ -457,4 +457,4 @@ class UserNotifiacationRule extends BaseModel {
     public incidentSeverityId?: ObjectID = undefined;
 }
 
-export default UserNotifiacationRule;
+export default UserNotificationRule;
