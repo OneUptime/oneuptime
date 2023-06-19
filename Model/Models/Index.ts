@@ -177,5 +177,5 @@ export default [
     UserEmail,
     UserSms,
     UserCall,
-    UserNotifiacationRule
+    UserNotifiacationRule,
 ];
