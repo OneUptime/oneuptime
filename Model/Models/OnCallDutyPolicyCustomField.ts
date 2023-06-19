@@ -1,17 +1,7 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-} from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
@@ -21,69 +11,70 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
-import Label from './Label';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import BaseModel from 'Common/Models/BaseModel';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
-import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
-@AccessControlColumn('labels')
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CanCreateProjectOnCallDutyPolicy,
+        Permission.CanCreateOnCallDutyPolicyCustomField,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectOnCallDutyPolicy,
+        Permission.CanReadOnCallDutyPolicyCustomField,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CanDeleteProjectOnCallDutyPolicy,
+        Permission.CanDeleteOnCallDutyPolicyCustomField,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CanEditProjectOnCallDutyPolicy,
+        Permission.CanEditOnCallDutyPolicyCustomField,
     ],
 })
-@CrudApiEndpoint(new Route('/on-call-duty-policy'))
-@SlugifyColumn('name', 'slug')
-@Entity({
-    name: 'OnCallDutyPolicy',
-})
+@CrudApiEndpoint(new Route('/on-call-duty-policy-custom-field'))
 @TableMetadata({
-    tableName: 'OnCallDutyPolicy',
-    singularName: 'On Call Policy',
-    pluralName: 'On Call Duty Policies',
-    icon: IconProp.Call,
-    tableDescription:
-        'Manage on-call duty, schedules and roster for your project',
+    tableName: 'OnCallDutyPolicyCustomField',
+    singularName: 'OnCallDutyPolicy Custom Field',
+    pluralName: 'OnCallDutyPolicy Custom Fields',
+    icon: IconProp.TableCells,
+    tableDescription: 'Manage custom fields for your on-call policy',
 })
-export default class OnCallDutyPolicy extends BaseModel {
+@Entity({
+    name: 'OnCallDutyPolicyCustomField',
+})
+export default class OnCallDutyPolicyCustomField extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -113,14 +104,13 @@ export default class OnCallDutyPolicy extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -144,109 +134,59 @@ export default class OnCallDutyPolicy extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicy,
+            Permission.CanEditOnCallDutyPolicyCustomField,
         ],
     })
-    @Index()
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
         title: 'Name',
         description: 'Any friendly name of this object',
-        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
+    @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicy,
-        ],
-    })
-    @TableColumn({
-        required: false,
-        type: TableColumnType.EntityArray,
-        modelType: Label,
-        title: 'Labels',
-        description:
-            'Relation to Labels Array where this object is categorized in.',
-    })
-    @ManyToMany(
-        () => {
-            return Label;
-        },
-        { eager: false }
-    )
-    @JoinTable({
-        name: 'OnCallDutyPolicyLabel',
-        inverseJoinColumn: {
-            name: 'labelId',
-            referencedColumnName: '_id',
-        },
-        joinColumn: {
-            name: 'onCallDutyPolicyId',
-            referencedColumnName: '_id',
-        },
-    })
-    public labels?: Array<Label> = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicy,
+            Permission.CanEditOnCallDutyPolicyCustomField,
         ],
     })
     @TableColumn({
         required: false,
         type: TableColumnType.LongText,
         title: 'Description',
-        description: 'Friendly description that will help you remember',
+        description:
+            'Friendly description of this custom field that will help you remember',
     })
     @Column({
         nullable: true,
@@ -255,49 +195,44 @@ export default class OnCallDutyPolicy extends BaseModel {
     })
     public description?: string = undefined;
 
-    @Index()
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
     @TableColumn({
-        required: true,
-        unique: true,
-        type: TableColumnType.Slug,
-        title: 'Slug',
-        description: 'Friendly globally unique name for your object',
+        required: false,
+        type: TableColumnType.CustomFieldType,
+        title: 'Custom Field Type',
+        description: 'Is this field Text, Number or Boolean?',
     })
     @Column({
-        nullable: false,
-        type: ColumnType.Slug,
-        length: ColumnLength.Slug,
-        unique: true,
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
-    public slug?: string = undefined;
+    public type?: CustomFieldType = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -327,14 +262,13 @@ export default class OnCallDutyPolicy extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
+            Permission.CanCreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
+            Permission.CanReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -353,7 +287,12 @@ export default class OnCallDutyPolicy extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadOnCallDutyPolicyCustomField,
+        ],
         update: [],
     })
     @TableColumn({
@@ -380,7 +319,12 @@ export default class OnCallDutyPolicy extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadOnCallDutyPolicyCustomField,
+        ],
         update: [],
     })
     @TableColumn({
@@ -395,106 +339,4 @@ export default class OnCallDutyPolicy extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicy,
-        ],
-    })
-    @TableColumn({
-        required: true,
-        isDefaultValueColumn: true,
-        type: TableColumnType.Boolean,
-        title: 'Repeat Policy If No One Acknowledges',
-        description: 'Repeat the policy if no one acknowledges the alert',
-    })
-    @Column({
-        nullable: false,
-        default: false,
-        type: ColumnType.Boolean,
-    })
-    public repeatPolicyIfNoOneAcknowledges?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicy,
-        ],
-    })
-    @TableColumn({
-        required: true,
-        isDefaultValueColumn: true,
-        type: TableColumnType.Boolean,
-        title: 'Repeat Policy Times If No One Acknowledges',
-        description:
-            'Repeat the policy X number of times if no one acknowledges the alert',
-    })
-    @Column({
-        nullable: false,
-        default: 0,
-        type: ColumnType.Number,
-    })
-    public repeatPolicyIfNoOneAcknowledgesNoOfTimes?: number = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicy,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicy,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicy,
-        ],
-    })
-    @TableColumn({
-        isDefaultValueColumn: false,
-        required: false,
-        type: TableColumnType.JSON,
-        title: 'Custom Fields',
-        description: 'Custom Fields on this resource.',
-    })
-    @Column({
-        type: ColumnType.JSON,
-        nullable: true,
-    })
-    public customFields?: JSONObject = undefined;
 }

@@ -63,6 +63,11 @@ enum Permission {
     CanEditMonitorCustomField = 'CanEditMonitorCustomField',
     CanReadMonitorCustomField = 'CanReadMonitorCustomField',
 
+    CanCreateOnCallDutyPolicyCustomField = 'CanCreateOnCallDutyPolicyCustomField',
+    CanDeleteOnCallDutyPolicyCustomField = 'CanDeleteOnCallDutyPolicyCustomField',
+    CanEditOnCallDutyPolicyCustomField = 'CanEditOnCallDutyPolicyCustomField',
+    CanReadOnCallDutyPolicyCustomField = 'CanReadOnCallDutyPolicyCustomField',
+
     CanCreateScheduledMaintenanceCustomField = 'CanCreateScheduledMaintenanceCustomField',
     CanDeleteScheduledMaintenanceCustomField = 'CanDeleteScheduledMaintenanceCustomField',
     CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
@@ -1688,6 +1693,39 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectProbe,
                 title: 'Can Read Probe',
                 description: 'This permission  can read probe of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateOnCallDutyPolicyCustomField,
+                title: 'Can Create On Call Policy Custom Field',
+                description:
+                    'This permission can create On Call Policy Custom Field this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteOnCallDutyPolicyCustomField,
+                title: 'Can Delete On Call Policy Custom Field',
+                description:
+                    'This permission  can delete On Call Policy Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditOnCallDutyPolicyCustomField,
+                title: 'Can Edit On Call Policy Custom Field',
+                description:
+                    'This permission can edit On Call Policy Custom Field of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadOnCallDutyPolicyCustomField,
+                title: 'Can Read On Call Policy Custom Field',
+                description:
+                    'This permission  can read On Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

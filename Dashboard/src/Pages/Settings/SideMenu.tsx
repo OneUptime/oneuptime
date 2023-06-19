@@ -67,6 +67,19 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.TableCells}
                 />
             </SideMenuSection>
+            <SideMenuSection title="On-Call Policy">
+                <SideMenuItem
+                    link={{
+                        title: 'Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
+            </SideMenuSection>
             <SideMenuSection title="Incidents">
                 <SideMenuItem
                     link={{

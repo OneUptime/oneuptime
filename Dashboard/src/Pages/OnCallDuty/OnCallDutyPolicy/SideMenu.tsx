@@ -58,6 +58,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
                 <SideMenuItem
                     link={{
+                        title: 'Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'Delete Policy',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[

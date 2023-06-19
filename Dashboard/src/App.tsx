@@ -101,6 +101,7 @@ import SettingsInvoices from './Pages/Settings/Invoices';
 import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
 import StatusPageCustomFields from './Pages/Settings/StatusPageCustomFields';
 import IncidentCustomFields from './Pages/Settings/IncidentCustomFields';
+import OnCallDutyPolicyCustomFields from './Pages/Settings/OnCallDutyPolicyCustomFields';
 import ScheduledMaintenanceCustomFields from './Pages/Settings/ScheduledMaintenanceCusomFields';
 
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
@@ -118,6 +119,7 @@ import OnCallDutyPolicyViewDelete from './Pages/OnCallDuty/OnCallDutyPolicy/Dele
 import OnCallDutyPolicyViewLogs from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs';
 import OnCallDutyPolicyViewLogsView from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogView';
 import OnCallDutyPolicyViewEscalation from './Pages/OnCallDuty/OnCallDutyPolicy/Escalation';
+import OnCallDutyPolicyViewCustomFields from './Pages/OnCallDuty/OnCallDutyPolicy/CustomFields';
 
 // Monitors
 import MonitorPage from './Pages/Monitor/Monitors';
@@ -1185,6 +1187,25 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewCustomFields
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
                         RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString() || ''
                     }
                     element={
@@ -1660,6 +1681,25 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyCustomFields
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />

@@ -278,8 +278,12 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
     ),
 
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/custom-fields`
+    ),
+
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
@@ -427,6 +431,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/monitor-custom-fields`
+    ),
+
+    [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-policy-custom-fields`
     ),
 
     [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(

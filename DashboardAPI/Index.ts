@@ -315,6 +315,11 @@ import OnCallDutyPolicyEscalationRuleUserService, {
     Service as OnCallDutyPolicyEscalationRuleUserServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleUserService';
 
+import OnCallDutyPolicyCustomField from 'Model/Models/OnCallDutyPolicyCustomField';
+import OnCallDutyPolicyCustomFieldService, {
+    Service as OnCallDutyPolicyCustomFieldServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -617,6 +622,17 @@ app.use(
     new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
         EmailVerificationToken,
         EmailVerificationTokenService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyCustomField,
+        OnCallDutyPolicyCustomFieldServiceType
+    >(
+        OnCallDutyPolicyCustomField,
+        OnCallDutyPolicyCustomFieldService
     ).getRouter()
 );
 
