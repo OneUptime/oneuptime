@@ -1,7 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import ComponentMetadata from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import DatabaseService from '../../../../Services/DatabaseService';
 import { ExpressRequest, ExpressResponse } from '../../../../Utils/Express';
 import Response from '../../../../Utils/Response';
@@ -12,6 +12,10 @@ import WorkflowService from '../../../../Services/WorkflowService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Workflow from 'Model/Models/Workflow';
 import ClusterKeyAuthorization from '../../../../Middleware/ClusterKeyAuthorization';
+import { JSONObject } from 'Common/Types/JSON';
+import { RunOptions, RunReturnType } from '../../ComponentCode';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import Select from '../../../Database/Select';
 
 export default class OnTriggerBaseModel<
     TBaseModel extends BaseModel
@@ -19,12 +23,14 @@ export default class OnTriggerBaseModel<
     public modelId: string = '';
     public type: string = '';
 
+    public service: DatabaseService<TBaseModel> | null = null;
+
     public constructor(
         modelService: DatabaseService<TBaseModel>,
         type: string
     ) {
         super();
-
+        this.service = modelService;
         this.modelId = `${Text.pascalCaseToDashes(
             modelService.getModel().tableName!
         )}`;
@@ -66,6 +72,80 @@ export default class OnTriggerBaseModel<
         );
     }
 
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
+        const data: JSONObject = args['data'] as JSONObject;
+
+        const successPort: Port | undefined = this.getMetadata().outPorts.find(
+            (p: Port) => {
+                return p.id === 'success';
+            }
+        );
+
+        if (!successPort) {
+            throw options.onError(
+                new BadDataException('Success port not found')
+            );
+        }
+
+        if (
+            !data['_id'] ||
+            !args['select'] ||
+            Object.keys(args['select']).length === 0
+        ) {
+            return {
+                returnValues: {
+                    model: data
+                        ? JSONFunctions.toJSON(
+                              data as any,
+                              this.service!.entityType
+                          )
+                        : null,
+                },
+                executePort: successPort,
+            };
+        }
+
+        let select: Select<TBaseModel> = args['select'] as Select<TBaseModel>;
+
+        if (select) {
+            select = JSONFunctions.deserialize(
+                args['select'] as JSONObject
+            ) as Select<TBaseModel>;
+        }
+
+        const model: TBaseModel | null = await this.service!.findOneById({
+            id: new ObjectID(args['_id'] as string),
+            props: {
+                isRoot: true,
+            },
+            select: {
+                _id: true,
+                ...select,
+            },
+        });
+
+        if (!model) {
+            throw new BadDataException(
+                ('Model not found with id ' + args['_id']) as string
+            );
+        }
+
+        return {
+            returnValues: {
+                model: data
+                    ? JSONFunctions.toJSON(
+                          model as any,
+                          this.service!.entityType
+                      )
+                    : null,
+            },
+            executePort: successPort,
+        };
+    }
+
     public async initTrigger(
         req: ExpressRequest,
         res: ExpressResponse,
@@ -94,6 +174,8 @@ export default class OnTriggerBaseModel<
 
         for (const workflow of workflows) {
             /// Run Graph.
+
+            /// Find the object and send data.
 
             const executeWorkflow: ExecuteWorkflowType = {
                 workflowId: workflow.id!,
