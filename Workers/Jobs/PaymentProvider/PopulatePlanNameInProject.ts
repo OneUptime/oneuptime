@@ -6,7 +6,9 @@ import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from 'CommonServer/Config';
 import logger from 'CommonServer/Utils/Logger';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
-import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 
 RunCron(
     'PaymentProvider:CheckSubscriptionStatus',
@@ -19,11 +21,11 @@ RunCron(
 
         const projects: Array<Project> = await ProjectService.findBy({
             query: {
-                planName: QueryHelper.isNull()
+                planName: QueryHelper.isNull(),
             },
             select: {
                 _id: true,
-                paymentProviderPlanId: true
+                paymentProviderPlanId: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -37,13 +39,14 @@ RunCron(
             try {
                 if (project.paymentProviderPlanId) {
                     // get subscription detail.
-                    const planName: PlanSelect = SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId as string);
-
+                    const planName: PlanSelect = SubscriptionPlan.getPlanSelect(
+                        project.paymentProviderPlanId as string
+                    );
 
                     await ProjectService.updateOneById({
                         id: project.id!,
                         data: {
-                            planName: planName
+                            planName: planName,
                         },
                         props: {
                             isRoot: true,

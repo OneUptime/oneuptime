@@ -707,9 +707,7 @@ export default class Model extends TenantModel {
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
         ],
-        update: [
-           
-        ],
+        update: [],
     })
     @TableColumn({
         required: false,
@@ -719,7 +717,7 @@ export default class Model extends TenantModel {
         canReadOnRelationQuery: true,
     })
     @Column({
-        nullable: false,
+        nullable: true,
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
