@@ -47,7 +47,6 @@ import API from 'Common/Utils/API';
 import Protocol from 'Common/Types/API/Protocol';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Text from 'Common/Types/Text';
 
@@ -502,7 +501,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async onTrigger(
-        model: TBaseModel,
+        id: ObjectID,
         projectId: ObjectID,
         triggerType: DatabaseTriggerType
     ): Promise<void> {
@@ -517,7 +516,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 )
             ),
             {
-                data: JSONFunctions.toJSON(model, this.entityType),
+                data: {
+                    _id: id.toString(),
+                },
             },
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
@@ -601,7 +602,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         )))
             ) {
                 await this.onTrigger(
-                    createBy.data,
+                    createBy.data.id!,
                     createBy.props.tenantId ||
                         createBy.data.getValue<ObjectID>(
                             this.getModel().getTenantColumn()!
@@ -937,7 +938,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         deleteBy.props.tenantId
                     ) {
                         await this.onTrigger(
-                            item,
+                            item.id!,
                             deleteBy.props.tenantId ||
                                 item.getValue<ObjectID>(
                                     this.getModel().getTenantColumn()!
@@ -1213,7 +1214,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         ))
                 ) {
                     await this.onTrigger(
-                        item,
+                        item.id!,
                         updateBy.props.tenantId ||
                             item.getValue<ObjectID>(
                                 this.getModel().getTenantColumn()!

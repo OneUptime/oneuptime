@@ -196,99 +196,70 @@ export default class RunWorkflow {
                     );
                 }
 
-                // execute this stack.
+                // now actually run this component.
+
+                let args: JSONObject = this.getComponentArguments(
+                    storageMap,
+                    stackItem.node
+                );
+
                 if (stackItem.node.componentType === ComponentType.Trigger) {
-                    // this is already executed. So, place its arguments inside of storage map.
-                    storageMap.local.components[stackItem.node.id] = {
-                        returnValues: runProps.arguments,
+                    // If this is the trigger. Then pass workflow argument to this component as args to execute.
+                    args = {
+                        ...args,
+                        ...runProps.arguments,
                     };
+                }
 
-                    this.log('Trigger args:');
-                    this.log(runProps.arguments);
+                this.log('Component Args:');
+                this.log(args);
+                this.log('Component Logs: ' + executeComponentId);
 
-                    // need port to be executed.
-                    const nodesToBeExecuted: Array<string> | undefined =
-                        Object.keys(stackItem.outPorts)
-                            .map((outport: string) => {
-                                return stackItem.outPorts[outport] || [];
-                            })
-                            .flat();
+                const result: RunReturnType = await this.runComponent(
+                    args,
+                    stackItem.node,
+                    setDidErrorOut
+                );
 
-                    if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
-                        nodesToBeExecuted.forEach((item: string) => {
-                            // if its not in the stack, then add it to execution stack.
-                            if (
-                                !fifoStackOfComponentsPendingExecution.includes(
-                                    item
-                                )
-                            ) {
-                                fifoStackOfComponentsPendingExecution.push(
-                                    item
-                                );
-                            }
-                        });
-                    }
-                } else {
-                    // now actually run this component.
-
-                    const args: JSONObject = this.getComponentArguments(
-                        storageMap,
-                        stackItem.node
+                if (didWorkflowErrorOut) {
+                    throw new BadDataException(
+                        'Workflow stopped because of an error'
                     );
+                }
 
-                    this.log('Component Args:');
-                    this.log(args);
-                    this.log('Component Logs: ' + executeComponentId);
-                    const result: RunReturnType = await this.runComponent(
-                        args,
-                        stackItem.node,
-                        setDidErrorOut
-                    );
+                this.log(
+                    'Completed Execution Component: ' + executeComponentId
+                );
+                this.log('Data Returned');
+                this.log(result.returnValues);
+                this.log(
+                    'Executing Port: ' + result.executePort?.title || '<None>'
+                );
 
-                    if (didWorkflowErrorOut) {
-                        throw new BadDataException(
-                            'Workflow stopped because of an error'
-                        );
-                    }
+                storageMap.local.components[stackItem.node.id] = {
+                    returnValues: result.returnValues,
+                };
 
-                    this.log(
-                        'Completed Execution Component: ' + executeComponentId
-                    );
-                    this.log('Data Returned');
-                    this.log(result.returnValues);
-                    this.log(
-                        'Executing Port: ' + result.executePort?.title ||
-                            '<None>'
-                    );
+                const portToBeExecuted: Port | undefined = result.executePort;
 
-                    storageMap.local.components[stackItem.node.id] = {
-                        returnValues: result.returnValues,
-                    };
+                if (!portToBeExecuted) {
+                    break; // stop the workflow, the process has ended.
+                }
 
-                    const portToBeExecuted: Port | undefined =
-                        result.executePort;
+                const nodesToBeExecuted: Array<string> | undefined =
+                    stackItem.outPorts[portToBeExecuted.id];
 
-                    if (!portToBeExecuted) {
-                        break; // stop the workflow, the process has ended.
-                    }
-
-                    const nodesToBeExecuted: Array<string> | undefined =
-                        stackItem.outPorts[portToBeExecuted.id];
-
-                    if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
-                        nodesToBeExecuted.forEach((item: string) => {
-                            // if its not in the stack, then add it to execution stack.
-                            if (
-                                !fifoStackOfComponentsPendingExecution.includes(
-                                    item
-                                )
-                            ) {
-                                fifoStackOfComponentsPendingExecution.push(
-                                    item
-                                );
-                            }
-                        });
-                    }
+                if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
+                    nodesToBeExecuted.forEach((item: string) => {
+                        // if its not in the stack, then add it to execution stack.
+                        if (
+                            !fifoStackOfComponentsPendingExecution.includes(
+                                item
+                            )
+                        ) {
+                            fifoStackOfComponentsPendingExecution.push(item);
+                        }
+                    });
                 }
             }
 
@@ -308,7 +279,7 @@ export default class RunWorkflow {
             });
         } catch (err: any) {
             logger.error(err);
-            this.log(err.toString());
+            this.log(err.message || err.toString());
 
             if (!runProps.workflowLogId) {
                 return;
@@ -471,6 +442,26 @@ export default class RunWorkflow {
                 }
 
                 argumentContent = argumentContentCopy;
+            }
+
+            if (
+                typeof argumentContent === 'string' &&
+                (argument.type === ComponentInputType.JSON ||
+                    argument.type === ComponentInputType.Query ||
+                    argument.type === ComponentInputType.Select)
+            ) {
+                try {
+                    argumentContent = JSON.parse(argumentContent);
+                } catch (err: any) {
+                    throw new BadDataException(
+                        'Invalid JSON provided for argument ' +
+                            argument.id +
+                            '. JSON parse error: ' +
+                            err.message +
+                            '. JSON: ' +
+                            argumentContent
+                    );
+                }
             }
 
             argumentObj[argument.id] = argumentContent;

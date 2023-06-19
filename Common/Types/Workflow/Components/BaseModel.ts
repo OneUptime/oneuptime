@@ -33,7 +33,7 @@ export default class BaseModelComponent {
                         placeholder: 'Example: {"columnName": "value", ...}',
                     },
                     {
-                        type: ComponentInputType.Query,
+                        type: ComponentInputType.Select,
                         name: 'Select Fields',
                         description: `Select on ${model.singularName}`,
                         required: true,
@@ -92,7 +92,7 @@ export default class BaseModelComponent {
                         placeholder: 'Example: {"columnName": "value", ...}',
                     },
                     {
-                        type: ComponentInputType.Query,
+                        type: ComponentInputType.Select,
                         name: 'Select Fields',
                         description: `Select on ${model.singularName}`,
                         required: true,
@@ -288,7 +288,16 @@ export default class BaseModelComponent {
                 iconProp: IconProp.Bolt,
                 tableName: model.tableName!,
                 componentType: ComponentType.Trigger,
-                arguments: [],
+                arguments: [
+                    {
+                        type: ComponentInputType.Select,
+                        name: 'Select Fields',
+                        description: `Select on ${model.singularName}`,
+                        required: true,
+                        id: 'select',
+                        placeholder: 'Example: {"columnName": true, ...}',
+                    },
+                ],
                 returnValues: [
                     {
                         id: 'data',
@@ -422,7 +431,16 @@ export default class BaseModelComponent {
                 iconProp: IconProp.Bolt,
                 tableName: model.tableName!,
                 componentType: ComponentType.Trigger,
-                arguments: [],
+                arguments: [
+                    {
+                        type: ComponentInputType.Select,
+                        name: 'Select Fields',
+                        description: `Select on ${model.singularName}`,
+                        required: true,
+                        id: 'select',
+                        placeholder: 'Example: {"columnName": true, ...}',
+                    },
+                ],
                 returnValues: [
                     {
                         id: 'data',
