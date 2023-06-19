@@ -976,15 +976,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
         withDeleted?: boolean | undefined
     ): Promise<Array<TBaseModel>> {
         try {
+            let automaticallyAddedCreatedAtInSelect: boolean = false;
+
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
                 };
+
+                if (!(findBy.select as any)['createdAt']) {
+                    (findBy.select as any)['createdAt'] = true;
+                    automaticallyAddedCreatedAtInSelect = true;
+                }
             }
+
             const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
                 ? { findBy, carryForward: [] }
                 : await this.onBeforeFind(findBy);
-            const onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
+            const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
             const carryForward: any = onFind.carryForward;
 
             if (
@@ -996,10 +1004,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!(onBeforeFind.select as any)['_id']) {
                 (onBeforeFind.select as any)['_id'] = true;
-            }
-
-            if (!(onBeforeFind.select as any)['createdAt']) {
-                (onBeforeFind.select as any)['createdAt'] = true;
             }
 
             const result: {
@@ -1044,6 +1048,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 decryptedItems,
                 onBeforeFind
             );
+
+            for (const item of decryptedItems) {
+                if (automaticallyAddedCreatedAtInSelect) {
+                    delete (item as any).createdAt;
+                }
+            }
+
             if (!findBy.props.ignoreHooks) {
                 decryptedItems = await (
                     await this.onFindSuccess(
