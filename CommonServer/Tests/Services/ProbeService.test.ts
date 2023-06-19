@@ -223,6 +223,7 @@ describe('probeService', () => {
             select: {
                 _id: true,
                 name: true,
+                createdAt: true,
             },
             props: { isRoot: true },
         });

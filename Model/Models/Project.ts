@@ -19,6 +19,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
@@ -695,4 +696,30 @@ export default class Model extends TenantModel {
         type: ColumnType.Boolean,
     })
     public notEnabledSmsOrCallNotificationSentToOwners?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'Plan Name',
+        description: 'Name of the plan this project is subscribed to.',
+        canReadOnRelationQuery: true,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public planName?: PlanSelect = undefined;
 }

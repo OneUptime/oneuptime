@@ -75,6 +75,10 @@ export class Service extends DatabaseService<Model> {
             ) {
                 throw new BadDataException('Plan is invalid.');
             }
+
+            data.data.planName = SubscriptionPlan.getPlanSelect(
+                data.data.paymentProviderPlanId
+            );
         }
 
         // check if the user has the project with the same name. If yes, reject.
@@ -198,6 +202,9 @@ export class Service extends DatabaseService<Model> {
                         data: {
                             paymentProviderSubscriptionId: subscription.id,
                             trialEndsAt: subscription.trialEndsAt || new Date(),
+                            planName: SubscriptionPlan.getPlanSelect(
+                                updateBy.data.paymentProviderPlanId! as string
+                            ),
                         },
                         props: {
                             isRoot: true,
