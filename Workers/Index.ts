@@ -8,6 +8,7 @@ import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 // Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 import './Jobs/PaymentProvider/UpdateTeamMembersIfNull';
+import './Jobs/PaymentProvider/PopulatePlanNameInProject';
 
 // Announcements.
 import './Jobs/Announcement/SendEmailToSubscribers';
