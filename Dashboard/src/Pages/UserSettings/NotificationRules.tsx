@@ -196,7 +196,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     userId: User.getUserId().toString(),
                                     incidentSeverityId:
                                         incidentSeverity.id!.toString(),
-                                        ruleType: NotificationRuleType.INCIDENT_ASSIGNED,
+                                    ruleType:
+                                        NotificationRuleType.INCIDENT_ASSIGNED,
                                 }}
                                 onBeforeCreate={(
                                     model: UserNotifiacationRule
@@ -204,7 +205,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     model.projectId =
                                         DashboardNavigation.getProjectId()!;
                                     model.userId = User.getUserId();
-                                    model.ruleType = NotificationRuleType.INCIDENT_ASSIGNED;
+                                    model.ruleType =
+                                        NotificationRuleType.INCIDENT_ASSIGNED;
                                     model.incidentSeverityId =
                                         incidentSeverity.id!;
 
