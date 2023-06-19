@@ -4,7 +4,9 @@
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { ExpressRouter } from '../../Utils/Express';
-import ComponentCode from './ComponentCode';
+import ComponentCode, { RunOptions, RunReturnType } from './ComponentCode';
+import { Port } from 'Common/Types/Workflow/Component';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export interface ExecuteWorkflowType {
     workflowId: ObjectID;
@@ -42,6 +44,30 @@ export default class TrigegrCode extends ComponentCode {
 
     public constructor() {
         super();
+    }
+
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
+        const successPort: Port | undefined = this.getMetadata().outPorts.find(
+            (p: Port) => {
+                return p.id === 'success';
+            }
+        );
+
+        if (!successPort) {
+            throw options.onError(
+                new BadDataException('Success port not found')
+            );
+        }
+
+        return {
+            returnValues: {
+                ...args,
+            },
+            executePort: successPort,
+        };
     }
 
     public async setupComponent(props: InitProps): Promise<void> {

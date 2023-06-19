@@ -47,7 +47,6 @@ import API from 'Common/Utils/API';
 import Protocol from 'Common/Types/API/Protocol';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Text from 'Common/Types/Text';
 
@@ -518,7 +517,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async onTrigger(
-        model: TBaseModel,
+        id: ObjectID,
         projectId: ObjectID,
         triggerType: DatabaseTriggerType
     ): Promise<void> {
@@ -533,7 +532,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 )
             ),
             {
-                data: JSONFunctions.toJSON(model, this.entityType),
+                data: {
+                    _id: id.toString(),
+                },
             },
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
@@ -618,7 +619,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         )))
             ) {
                 await this.onTrigger(
-                    createBy.data,
+                    createBy.data.id!,
                     createBy.props.tenantId ||
                         createBy.data.getValue<ObjectID>(
                             this.getModel().getTenantColumn()!
@@ -954,7 +955,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         deleteBy.props.tenantId
                     ) {
                         await this.onTrigger(
-                            item,
+                            item.id!,
                             deleteBy.props.tenantId ||
                                 item.getValue<ObjectID>(
                                     this.getModel().getTenantColumn()!
@@ -992,15 +993,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
         withDeleted?: boolean | undefined
     ): Promise<Array<TBaseModel>> {
         try {
+            let automaticallyAddedCreatedAtInSelect: boolean = false;
+
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
                 };
+
+                if (!(findBy.select as any)['createdAt']) {
+                    (findBy.select as any)['createdAt'] = true;
+                    automaticallyAddedCreatedAtInSelect = true;
+                }
             }
+
             const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
                 ? { findBy, carryForward: [] }
                 : await this.onBeforeFind(findBy);
-            const onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
+            const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
             const carryForward: any = onFind.carryForward;
 
             if (
@@ -1012,10 +1021,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!(onBeforeFind.select as any)['_id']) {
                 (onBeforeFind.select as any)['_id'] = true;
-            }
-
-            if (!(onBeforeFind.select as any)['createdAt']) {
-                (onBeforeFind.select as any)['createdAt'] = true;
             }
 
             const result: {
@@ -1060,6 +1065,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 decryptedItems,
                 onBeforeFind
             );
+
+            for (const item of decryptedItems) {
+                if (automaticallyAddedCreatedAtInSelect) {
+                    delete (item as any).createdAt;
+                }
+            }
+
             if (!findBy.props.ignoreHooks) {
                 decryptedItems = await (
                     await this.onFindSuccess(
@@ -1230,7 +1242,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         ))
                 ) {
                     await this.onTrigger(
-                        item,
+                        item.id!,
                         updateBy.props.tenantId ||
                             item.getValue<ObjectID>(
                                 this.getModel().getTenantColumn()!

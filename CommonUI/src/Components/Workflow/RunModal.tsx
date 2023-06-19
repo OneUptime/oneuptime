@@ -75,6 +75,8 @@ const RunModal: FunctionComponent<ComponentProps> = (
                                         args.type ===
                                             ComponentInputType.Query ||
                                         args.type ===
+                                            ComponentInputType.Select ||
+                                        args.type ===
                                             ComponentInputType.StringDictionary) &&
                                     component.returnValues[args.id] &&
                                     typeof component.returnValues[args.id] ===
