@@ -98,7 +98,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
-    onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined;
+    onBeforeCreate?:
+        | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
+        | undefined;
     onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -568,9 +570,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         for (const moreField of selectMoreFields) {
-            if (model.getTableColumnMetadata(moreField) && model.isEntityColumn(moreField)) {
-                (selectFields as Dictionary<boolean>)[moreField] = (props.selectMoreFields as any)[moreField];
-            } else if(model.getTableColumnMetadata(moreField)){
+            if (
+                model.getTableColumnMetadata(moreField) &&
+                model.isEntityColumn(moreField)
+            ) {
+                (selectFields as Dictionary<boolean>)[moreField] = (
+                    props.selectMoreFields as any
+                )[moreField];
+            } else if (model.getTableColumnMetadata(moreField)) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
             } else {
                 throw new BadDataException(
@@ -603,7 +610,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ];
             }
         }
-
 
         return relationSelect;
     };
@@ -1264,9 +1270,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <div className='mt-5 mb-5'>
-            {getCardComponent()}
-            </div>
+            <div className="mt-5 mb-5">{getCardComponent()}</div>
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>
@@ -1310,7 +1314,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             await props.onCreateSuccess(item);
                         }
                     }}
-                    onBeforeCreate={async (item: TBaseModel, miscDataProps: JSONObject) => {
+                    onBeforeCreate={async (
+                        item: TBaseModel,
+                        miscDataProps: JSONObject
+                    ) => {
                         if (
                             showTableAs === ShowTableAs.OrderedStatesList &&
                             props.orderedStatesListProps?.orderField &&
@@ -1323,7 +1330,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         }
 
                         if (props.onBeforeCreate) {
-                            item = await props.onBeforeCreate(item, miscDataProps);
+                            item = await props.onBeforeCreate(
+                                item,
+                                miscDataProps
+                            );
                         }
 
                         return item;

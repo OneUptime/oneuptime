@@ -82,7 +82,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?:
-        | ((item: TBaseModel | BaseModel, miscDataProps: JSONObject) => Promise<TBaseModel | BaseModel>)
+        | ((
+              item: TBaseModel | BaseModel,
+              miscDataProps: JSONObject
+          ) => Promise<TBaseModel | BaseModel>)
         | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
@@ -453,7 +456,10 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             ) as BaseModel;
 
             if (props.onBeforeCreate && props.formType === FormType.Create) {
-                tBaseModel = await props.onBeforeCreate(tBaseModel, miscDataProps);
+                tBaseModel = await props.onBeforeCreate(
+                    tBaseModel,
+                    miscDataProps
+                );
             }
 
             result = await ModelAPI.createOrUpdate<TBaseModel>(

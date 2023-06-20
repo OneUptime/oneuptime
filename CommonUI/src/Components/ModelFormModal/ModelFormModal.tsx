@@ -26,7 +26,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
-    onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined;
+    onBeforeCreate?:
+        | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
+        | undefined;
     footer?: ReactElement | undefined;
 }
 

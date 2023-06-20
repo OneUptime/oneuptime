@@ -17,32 +17,45 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<OnCreate<Model>> {
-        if (!createBy.data.userCallId && !createBy.data.userCall && !createBy.data.userEmail && !createBy.data.userSms && !createBy.data.userSmsId && !createBy.data.userEmailId) {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
+        if (
+            !createBy.data.userCallId &&
+            !createBy.data.userCall &&
+            !createBy.data.userEmail &&
+            !createBy.data.userSms &&
+            !createBy.data.userSmsId &&
+            !createBy.data.userEmailId
+        ) {
             throw new BadDataException('Call, SMS, or Email is required');
         }
 
         return {
             createBy,
-            carryForward: null
-        }
+            carryForward: null,
+        };
     }
 
-    public async addDefaultNotifictionRuleForUser(projectId: ObjectID, userId: ObjectID, email: Email): Promise<void> {
-
-        const incidentSeverities: Array<IncidentSeverity> = await IncidentSeverityService.findBy({
-            query: {
-                projectId,
-            },
-            props: {
-                isRoot: true
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-                _id: true
-            }
-        });
+    public async addDefaultNotifictionRuleForUser(
+        projectId: ObjectID,
+        userId: ObjectID,
+        email: Email
+    ): Promise<void> {
+        const incidentSeverities: Array<IncidentSeverity> =
+            await IncidentSeverityService.findBy({
+                query: {
+                    projectId,
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
+                    _id: true,
+                },
+            });
 
         //check userEmail
 
@@ -50,12 +63,12 @@ export class Service extends DatabaseService<Model> {
             query: {
                 projectId,
                 userId,
-                email
+                email,
             },
             props: {
-                isRoot: true
-            }
-        })
+                isRoot: true,
+            },
+        });
 
         if (!userEmail) {
             userEmail = new UserEmail();
@@ -67,15 +80,13 @@ export class Service extends DatabaseService<Model> {
             userEmail = await UserEmailService.create({
                 data: userEmail,
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
         }
 
-
-        // create for incident severities. 
+        // create for incident severities.
         for (const incidentSeverity of incidentSeverities) {
-
             const notificationRule: Model = new Model();
 
             notificationRule.projectId = projectId;
@@ -83,17 +94,18 @@ export class Service extends DatabaseService<Model> {
             notificationRule.userEmailId = userEmail.id!;
             notificationRule.incidentSeverityId = incidentSeverity.id!;
             notificationRule.notifyAfterMinutes = 0;
-            notificationRule.ruleType = NotificationRuleType.ON_CALL_INCIDENT_CREATED;
+            notificationRule.ruleType =
+                NotificationRuleType.ON_CALL_INCIDENT_CREATED;
 
             await this.create({
                 data: notificationRule,
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
         }
 
-        // on and off call. 
+        // on and off call.
         const onCallRule: Model = new Model();
 
         onCallRule.projectId = projectId;
@@ -105,27 +117,25 @@ export class Service extends DatabaseService<Model> {
         await this.create({
             data: onCallRule,
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
 
+        // on and off call.
+        const offCallRule: Model = new Model();
 
-         // on and off call. 
-         const offCallRule: Model = new Model();
+        offCallRule.projectId = projectId;
+        offCallRule.userId = userId;
+        offCallRule.userEmailId = userEmail.id!;
+        offCallRule.notifyAfterMinutes = 0;
+        offCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_OFF_CALL;
 
-         offCallRule.projectId = projectId;
-         offCallRule.userId = userId;
-         offCallRule.userEmailId = userEmail.id!;
-         offCallRule.notifyAfterMinutes = 0;
-         offCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_OFF_CALL;
- 
-         await this.create({
-             data: offCallRule,
-             props: {
-                 isRoot: true
-             }
-         });
-
+        await this.create({
+            data: offCallRule,
+            props: {
+                isRoot: true,
+            },
+        });
     }
 }
 export default new Service();

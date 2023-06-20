@@ -519,7 +519,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<UserNotificationRule, UserNotificationRuleServiceType>(

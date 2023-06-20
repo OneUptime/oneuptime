@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserSMS';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import ProjectService from './ProjectService';
 import Project from 'Model/Models/Project';
@@ -9,10 +9,49 @@ import SmsService from './SmsService';
 import logger from '../Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
 import Text from 'Common/Types/Text';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import UserNotificationRuleService from './UserNotificationRuleService';
+import DeleteBy from '../Types/Database/DeleteBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        const itemsToDelete: Array<Model> = await this.findBy({
+            query: deleteBy.query,
+            select: {
+                _id: true,
+                projectId: true,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        for (const item of itemsToDelete) {
+            await UserNotificationRuleService.deleteBy({
+                query: {
+                    userSmsId: item.id!,
+                    projectId: item.projectId!,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+
+        return {
+            deleteBy,
+            carryForward: null,
+        };
     }
 
     protected override async onBeforeCreate(

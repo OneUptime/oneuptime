@@ -49,255 +49,221 @@ const Settings: FunctionComponent<PageComponentProps> = (
         setNotificationMethodsDropdownOptions,
     ] = useState<Array<DropdownOption>>([]);
 
-
     const getModelTable: Function = (options: {
         incidentSeverity?: IncidentSeverity;
         ruleType: NotificationRuleType;
         title: string;
         description: string;
     }): ReactElement => {
-        return <ModelTable<UserNotificationRule>
-            modelType={UserNotificationRule}
+        return (
+            <ModelTable<UserNotificationRule>
+                modelType={UserNotificationRule}
+                query={{
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    userId: User.getUserId().toString(),
+                    ruleType: options.ruleType,
+                    incidentSeverityId:
+                        options.incidentSeverity?.id?.toString() || undefined,
+                }}
+                onBeforeCreate={(
+                    model: UserNotificationRule,
+                    miscDataProps: JSONObject
+                ): UserNotificationRule => {
+                    model.projectId = DashboardNavigation.getProjectId()!;
+                    model.userId = User.getUserId();
+                    model.ruleType = options.ruleType;
+                    if (options.incidentSeverity?.id) {
+                        model.incidentSeverityId = options.incidentSeverity?.id;
+                    }
 
-            query={{
-                projectId:
-                    DashboardNavigation.getProjectId()?.toString(),
-                userId: User.getUserId().toString(),
-                incidentSeverityId:
-                    options.incidentSeverity?.id?.toString() || undefined,
-                ruleType:
-                    options.ruleType,
-            }}
-            onBeforeCreate={(
-                model: UserNotificationRule,
-                miscDataProps: JSONObject
-            ): UserNotificationRule => {
-                model.projectId =
-                    DashboardNavigation.getProjectId()!;
-                model.userId = User.getUserId();
-                model.ruleType = options.ruleType;
-                if (options.incidentSeverity?.id) {
-                    model.incidentSeverityId = options.incidentSeverity?.id
-                }
-
-
-                if (
-                    miscDataProps[
-                    'notificationMethod'
-                    ]
-                ) {
-                    const userEmail: UserEmail | undefined =
-                        userEmails.find(
-                            (userEmail: UserEmail) => {
+                    if (miscDataProps['notificationMethod']) {
+                        const userEmail: UserEmail | undefined =
+                            userEmails.find((userEmail: UserEmail) => {
                                 return (
                                     userEmail.id!.toString() ===
                                     miscDataProps[
                                         'notificationMethod'
-                                    ]
-                                        ?.toString()
+                                    ]?.toString()
                                 );
-                            }
-                        );
+                            });
 
-                    if (userEmail) {
-                        model.userEmailId = userEmail.id!;
-                    }
+                        if (userEmail) {
+                            model.userEmailId = userEmail.id!;
+                        }
 
-                    const userSMS: UserSMS | undefined =
-                        userSMSs.find(
+                        const userSMS: UserSMS | undefined = userSMSs.find(
                             (userSMS: UserSMS) => {
                                 return (
                                     userSMS.id!.toString() ===
                                     miscDataProps[
                                         'notificationMethod'
-                                    ]
-                                        ?.toString()
+                                    ]?.toString()
                                 );
                             }
                         );
 
-                    if (userSMS) {
-                        model.userSmsId = userSMS.id!;
-                    }
+                        if (userSMS) {
+                            model.userSmsId = userSMS.id!;
+                        }
 
-                    const userCall: UserCall | undefined =
-                        userCalls.find(
+                        const userCall: UserCall | undefined = userCalls.find(
                             (userCall: UserCall) => {
                                 return (
                                     userCall.id!.toString() ===
                                     miscDataProps[
                                         'notificationMethod'
-                                    ]
-                                        ?.toString()
+                                    ]?.toString()
                                 );
                             }
                         );
 
-                    if (userCall) {
-                        model.userCallId = userCall.id!;
+                        if (userCall) {
+                            model.userCallId = userCall.id!;
+                        }
                     }
-                }
 
-                return model;
-            }}
-            sortOrder={SortOrder.Ascending}
-            sortBy="notifyAfterMinutes"
-            createVerb={'Add'}
-            id="notification-rules"
-            name={`User Settings > Notification Rules > ${options.incidentSeverity?.name || options.ruleType}`}
-            isDeleteable={true}
-            isEditable={false}
-            isCreateable={true}
-            cardProps={{
-                icon: IconProp.AdjustmentVertical,
-                title:
-                    options.title,
-                description:
-                    options.description,
-            }}
-            noItemsMessage={
-                'No notification rules found. Please add one to receive notifications.'
-            }
-            formFields={[
-                {
-                    field: {
-                        notificationMethod: true,
-                    },
-                    forceShow: true,
-                    overideFieldKey: 'notificationMethod',
-                    title: 'Notification Method',
-                    description: 'How do you want to be notified?',
-                    fieldType: FormFieldSchemaType.Dropdown,
-                    required: true,
-                    placeholder: 'Notification Method',
-                    dropdownOptions:
-                        notificationMethodsDropdownOptions,
-                },
-                {
-                    field: {
-                        notifyAfterMinutes: true,
-                    },
-                    title: 'Notify me after',
-                    fieldType: FormFieldSchemaType.Dropdown,
-                    required: true,
-                    placeholder: 'Immediately',
-                    dropdownOptions:
-                        NotifyAfterDropdownOptions,
-                },
-            ]}
-            showRefreshButton={true}
-            showFilterButton={false}
-            selectMoreFields={{
-                userEmail: {
-                    email: true,
-                },
-                userSms: {
-                    phone: true,
-                },
-            }}
-            columns={[
-                {
-                    field: {
-                        userCall: {
-                            phone: true,
+                    return model;
+                }}
+                sortOrder={SortOrder.Ascending}
+                sortBy="notifyAfterMinutes"
+                createVerb={'Add'}
+                id="notification-rules"
+                name={`User Settings > Notification Rules > ${
+                    options.incidentSeverity?.name || options.ruleType
+                }`}
+                isDeleteable={true}
+                isEditable={false}
+                isCreateable={true}
+                cardProps={{
+                    icon: IconProp.AdjustmentVertical,
+                    title: options.title,
+                    description: options.description,
+                }}
+                noItemsMessage={
+                    'No notification rules found. Please add one to receive notifications.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            notificationMethod: true,
                         },
+                        forceShow: true,
+                        overideFieldKey: 'notificationMethod',
+                        title: 'Notification Method',
+                        description: 'How do you want to be notified?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Notification Method',
+                        dropdownOptions: notificationMethodsDropdownOptions,
                     },
-                    title: 'Notification Method',
-                    type: FieldType.Text,
-                    getElement: (
-                        item: JSONObject
-                    ): ReactElement => {
-                        return (
-                            <div>
-                                {item['userEmail'] &&
-                                    (
-                                        item[
-                                        'userEmail'
-                                        ] as JSONObject
-                                    )['email'] && (
-                                        <p>
-                                            Email: {(
-                                                item[
-                                                'userEmail'
-                                                ] as JSONObject
-                                            )[
-                                                'email'
-                                            ]?.toString()}
-                                        </p>
-                                    )}
-                                {item['userCall'] &&
-                                    (
-                                        item[
-                                        'userCall'
-                                        ] as JSONObject
-                                    )['phone'] && (
-                                        <p>
-                                            Call: {(
-                                                item[
-                                                'userCall'
-                                                ] as JSONObject
-                                            )[
-                                                'phone'
-                                            ]?.toString()}
-                                        </p>
-                                    )}
-                                {item['userSms'] &&
-                                    (
-                                        item[
-                                        'userSms'
-                                        ] as JSONObject
-                                    )['phone'] && (
-                                        <p>
-                                            SMS: {(
-                                                item[
-                                                'userSms'
-                                                ] as JSONObject
-                                            )[
-                                                'phone'
-                                            ]?.toString()}
-                                        </p>
-                                    )}
-                            </div>
-                        );
+                    {
+                        field: {
+                            notifyAfterMinutes: true,
+                        },
+                        title: 'Notify me after',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Immediately',
+                        dropdownOptions: NotifyAfterDropdownOptions,
                     },
-                    isFilterable: false,
-                },
-                {
-                    field: {
-                        notifyAfterMinutes: true,
+                ]}
+                showRefreshButton={true}
+                showFilterButton={false}
+                selectMoreFields={{
+                    userEmail: {
+                        email: true,
                     },
-                    title: 'Notify After',
-                    type: FieldType.Text,
-                    getElement: (
-                        item: JSONObject
-                    ): ReactElement => {
-                        return (
-                            <div>
-                                {item[
-                                    'notifyAfterMinutes'
-                                ] === 0 && (
+                    userSms: {
+                        phone: true,
+                    },
+                }}
+                columns={[
+                    {
+                        field: {
+                            userCall: {
+                                phone: true,
+                            },
+                        },
+                        title: 'Notification Method',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <div>
+                                    {item['userEmail'] &&
+                                        (item['userEmail'] as JSONObject)[
+                                            'email'
+                                        ] && (
+                                            <p>
+                                                Email:{' '}
+                                                {(
+                                                    item[
+                                                        'userEmail'
+                                                    ] as JSONObject
+                                                )['email']?.toString()}
+                                            </p>
+                                        )}
+                                    {item['userCall'] &&
+                                        (item['userCall'] as JSONObject)[
+                                            'phone'
+                                        ] && (
+                                            <p>
+                                                Call:{' '}
+                                                {(
+                                                    item[
+                                                        'userCall'
+                                                    ] as JSONObject
+                                                )['phone']?.toString()}
+                                            </p>
+                                        )}
+                                    {item['userSms'] &&
+                                        (item['userSms'] as JSONObject)[
+                                            'phone'
+                                        ] && (
+                                            <p>
+                                                SMS:{' '}
+                                                {(
+                                                    item[
+                                                        'userSms'
+                                                    ] as JSONObject
+                                                )['phone']?.toString()}
+                                            </p>
+                                        )}
+                                </div>
+                            );
+                        },
+                        isFilterable: false,
+                    },
+                    {
+                        field: {
+                            notifyAfterMinutes: true,
+                        },
+                        title: 'Notify After',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <div>
+                                    {item['notifyAfterMinutes'] === 0 && (
                                         <p>Immediately</p>
                                     )}
-                                {(item[
-                                    'notifyAfterMinutes'
-                                ] as number) > 0 && (
+                                    {(item['notifyAfterMinutes'] as number) >
+                                        0 && (
                                         <p>
                                             {
                                                 item[
-                                                'notifyAfterMinutes'
+                                                    'notifyAfterMinutes'
                                                 ] as number
                                             }{' '}
                                             minutes
                                         </p>
                                     )}
-                            </div>
-                        );
+                                </div>
+                            );
+                        },
                     },
-                },
-            ]}
-        />
-    }
-
+                ]}
+            />
+        );
+    };
 
     const init: Function = async (): Promise<void> => {
         // Ping an API here.
@@ -377,7 +343,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 ...userEmails.data,
                 ...userSMSes.data,
             ].map((model: BaseModel) => {
-
                 const isUserCall: boolean = model instanceof UserCall;
                 const isUserSms: boolean = model instanceof UserSMS;
 
@@ -389,15 +354,14 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 };
 
                 if (isUserCall) {
-                    option.label = "Call: " + option.label;
+                    option.label = 'Call: ' + option.label;
                 } else if (isUserSms) {
-                    option.label = "SMS: " + option.label;
+                    option.label = 'SMS: ' + option.label;
                 } else {
-                    option.label = "Email: " + option.label;
+                    option.label = 'Email: ' + option.label;
                 }
 
                 return option;
-
             });
 
             setNotificationMethodsDropdownOptions(dropdownOptions);
@@ -441,9 +405,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Notification Rules',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                        PageMap.USER_SETTINGS_ON_CALL_RULES
-                        ] as Route
+                        RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route
                     ),
                 },
             ]}
@@ -456,7 +418,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             <div key={i}>
                                 {getModelTable({
                                     incidentSeverity: incidentSeverity,
-                                    rule: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
+                                    ruleType:
+                                        NotificationRuleType.ON_CALL_INCIDENT_CREATED,
                                     title:
                                         'When I am on call and ' +
                                         incidentSeverity.name +
@@ -475,27 +438,22 @@ const Settings: FunctionComponent<PageComponentProps> = (
             <div>
                 {getModelTable({
                     incidentSeverity: undefined,
-                    rule: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
-                    title:
-                        'When I go on call...',
+                    ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+                    title: 'When I go on call...',
                     description:
                         'Here are the rules to notify you when you go on call.',
                 })}
-
             </div>
 
             <div>
                 {getModelTable({
                     incidentSeverity: undefined,
-                    rule: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
-                    title:
-                        'When I go off call...',
+                    ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+                    title: 'When I go off call...',
                     description:
                         'Here are the rules to notify you when you go off call.',
                 })}
-
             </div>
-
         </Page>
     );
 };

@@ -1,16 +1,55 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserEmail';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from '../Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Text from 'Common/Types/Text';
+import DeleteBy from '../Types/Database/DeleteBy';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import UserNotificationRuleService from './UserNotificationRuleService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        const itemsToDelete: Array<Model> = await this.findBy({
+            query: deleteBy.query,
+            select: {
+                _id: true,
+                projectId: true,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        for (const item of itemsToDelete) {
+            await UserNotificationRuleService.deleteBy({
+                query: {
+                    userEmailId: item.id!,
+                    projectId: item.projectId!,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+
+        return {
+            deleteBy,
+            carryForward: null,
+        };
     }
 
     protected override async onCreateSuccess(

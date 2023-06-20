@@ -81,7 +81,7 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-        if(onUpdate && onUpdate.updateBy.data.isEmailVerified) {
+        if (onUpdate && onUpdate.updateBy.data.isEmailVerified) {
             // if the email is verified then create default policies for this user.
 
             const newUsers: Array<Model> = await this.findBy({
@@ -99,29 +99,30 @@ export class Service extends DatabaseService<Model> {
 
             for (const user of newUsers) {
                 // emai is verified. create default policies for this user.
-                const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
-                    query: {
-                        userId: user.id!,
-                    },
-                    select: {
-                        projectId: true
-                    },
-                    limit: LIMIT_MAX,
-                    skip: 0,
-                    props: {
-                        isRoot: true,
-                    }
+                const teamMembers: Array<TeamMember> =
+                    await TeamMemberService.findBy({
+                        query: {
+                            userId: user.id!,
+                        },
+                        select: {
+                            projectId: true,
+                        },
+                        limit: LIMIT_MAX,
+                        skip: 0,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
-                });
-
-
-                for(const member of teamMembers){
+                for (const member of teamMembers) {
                     // create default policies for this user.
-                    await UserNotificationRuleService.addDefaultNotifictionRuleForUser(member.projectId!, user.id!, user.email!)
+                    await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                        member.projectId!,
+                        user.id!,
+                        user.email!
+                    );
                 }
             }
-
-            
         }
 
         if (onUpdate && onUpdate.updateBy.data.email) {
