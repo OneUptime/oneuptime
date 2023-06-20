@@ -58,6 +58,10 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
+        if (!createBy.props.isRoot && createBy.data.isVerified) {
+            throw new BadDataException('isVerified cannot be set to true');
+        }
+
         // check if this project has SMS and Call mEnabled.
 
         const project: Project | null = await ProjectService.findOneById({

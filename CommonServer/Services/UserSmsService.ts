@@ -59,6 +59,10 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnCreate<Model>> {
         // check if this project has SMS and Call mEnabled.
 
+        if (!createBy.props.isRoot && createBy.data.isVerified) {
+            throw new BadDataException('isVerified cannot be set to true');
+        }
+
         const project: Project | null = await ProjectService.findOneById({
             id: createBy.data.projectId!,
             props: {

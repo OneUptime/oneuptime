@@ -155,7 +155,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             select: {
                 userId: true,
                 user: {
-                    email: true, 
+                    email: true,
                     isEmailVerified: true,
                 },
                 projectId: true,
@@ -171,8 +171,15 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         for (const item of items) {
             await this.refreshTokens(item.userId!, item.projectId!);
 
-            if(updateBy.data.hasAcceptedInvitation && item.user?.isEmailVerified) {
-                await UserNotificationRuleService.addDefaultNotifictionRuleForUser(item.projectId!, item.userId!, item.user?.email!);
+            if (
+                updateBy.data.hasAcceptedInvitation &&
+                item.user?.isEmailVerified
+            ) {
+                await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                    item.projectId!,
+                    item.userId!,
+                    item.user?.email!
+                );
             }
         }
 

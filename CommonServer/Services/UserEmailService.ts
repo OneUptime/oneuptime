@@ -10,6 +10,7 @@ import Text from 'Common/Types/Text';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import UserNotificationRuleService from './UserNotificationRuleService';
+import CreateBy from '../Types/Database/CreateBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -52,12 +53,28 @@ export class Service extends DatabaseService<Model> {
         };
     }
 
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
+        if (!createBy.props.isRoot && createBy.data.isVerified) {
+            throw new BadDataException('isVerified cannot be set to true');
+        }
+
+        return {
+            createBy,
+            carryForward: null,
+        };
+    }
+
     protected override async onCreateSuccess(
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-        // send verification email
-        this.sendVerificationCode(createdItem);
+        if (createdItem.isVerified) {
+            // send verification code
+            this.sendVerificationCode(createdItem);
+        }
+
         return createdItem;
     }
 

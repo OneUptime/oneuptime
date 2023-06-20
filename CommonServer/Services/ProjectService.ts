@@ -326,7 +326,7 @@ export class Service extends DatabaseService<Model> {
                 },
             });
         }
-        
+
         createdItem = await this.addDefaultIncidentSeverity(createdItem);
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
@@ -334,7 +334,7 @@ export class Service extends DatabaseService<Model> {
         createdItem = await this.addDefaultScheduledMaintenanceState(
             createdItem
         );
-        
+
         return createdItem;
     }
 
@@ -611,14 +611,18 @@ export class Service extends DatabaseService<Model> {
             props: {
                 isRoot: true,
             },
-            select:{
+            select: {
                 isEmailVerified: true,
-                email: true
-            }
+                email: true,
+            },
         });
 
-        if(user && user.isEmailVerified){
-            await UserNotificationRuleService.addDefaultNotifictionRuleForUser(createdItem.id!, user.id!, user.email!);
+        if (user && user.isEmailVerified) {
+            await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                createdItem.id!,
+                user.id!,
+                user.email!
+            );
         }
 
         return createdItem;
