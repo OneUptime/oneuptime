@@ -568,7 +568,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         for (const moreField of selectMoreFields) {
-            if (model.getTableColumnMetadata(moreField)) {
+            if (model.getTableColumnMetadata(moreField) && model.isEntityColumn(moreField)) {
+                (selectFields as Dictionary<boolean>)[moreField] = (props.selectMoreFields as any)[moreField];
+            } else if(model.getTableColumnMetadata(moreField)){
                 (selectFields as Dictionary<boolean>)[moreField] = true;
             } else {
                 throw new BadDataException(
@@ -601,6 +603,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ];
             }
         }
+
 
         return relationSelect;
     };
