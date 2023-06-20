@@ -103,6 +103,7 @@ export class Service extends DatabaseService<Model> {
                     await TeamMemberService.findBy({
                         query: {
                             userId: user.id!,
+                            hasAcceptedInvitation: true
                         },
                         select: {
                             projectId: true,

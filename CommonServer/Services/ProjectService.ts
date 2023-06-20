@@ -47,6 +47,8 @@ import MailService from './MailService';
 import logger from '../Utils/Logger';
 import Email from 'Common/Types/Email';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import UserService from './UserService';
+import UserNotificationRuleService from './UserNotificationRuleService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -324,15 +326,15 @@ export class Service extends DatabaseService<Model> {
                 },
             });
         }
-
+        
+        createdItem = await this.addDefaultIncidentSeverity(createdItem);
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
         createdItem = await this.addDefaultIncidentState(createdItem);
         createdItem = await this.addDefaultScheduledMaintenanceState(
             createdItem
         );
-        createdItem = await this.addDefaultIncidentSeverity(createdItem);
-
+        
         return createdItem;
     }
 
@@ -603,6 +605,21 @@ export class Service extends DatabaseService<Model> {
         await AccessTokenService.refreshUserAllPermissions(
             createdItem.createdByUserId!
         );
+
+        const user: User | null = await UserService.findOneById({
+            id: createdItem.createdByUserId!,
+            props: {
+                isRoot: true,
+            },
+            select:{
+                isEmailVerified: true,
+                email: true
+            }
+        });
+
+        if(user && user.isEmailVerified){
+            await UserNotificationRuleService.addDefaultNotifictionRuleForUser(createdItem.id!, user.id!, user.email!);
+        }
 
         return createdItem;
     }
