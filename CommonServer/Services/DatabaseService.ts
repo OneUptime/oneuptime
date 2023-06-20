@@ -1000,6 +1000,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createdAt: SortOrder.Descending,
                 };
 
+                if (!findBy.select) {
+                    findBy.select = {} as any;
+                }
+
                 if (!(findBy.select as any)['createdAt']) {
                     (findBy.select as any)['createdAt'] = true;
                     automaticallyAddedCreatedAtInSelect = true;

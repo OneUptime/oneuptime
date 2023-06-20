@@ -105,3 +105,7 @@ We <3 contributions big and small. In priority order (although everything is app
 - Write tests for some of our codebase. [See issues here](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)
 - Work on any issue you like. [See issues here](https://github.com/OneUptime/oneuptime/issues)
 - Open new issues and create new feature requests that you would like to see. [Open issues here](https://github.com/OneUptime/oneuptime/issues)
+
+## Donate
+
+If you like the project, please consider a small donation. Every single dollar will be used to ship new features or maintain existing ones. 100% of the work we do is open-source. [Please donate here](https://github.com/sponsors/OneUptime)
