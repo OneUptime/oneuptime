@@ -24,14 +24,14 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Notification Rules',
+                        title: 'On-Call Rules',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.USER_SETTINGS_NOTIFICATION_RULES
+                                PageMap.USER_SETTINGS_ON_CALL_RULES
                             ] as Route
                         ),
                     }}
-                    icon={IconProp.AdjustmentVertical}
+                    icon={IconProp.Call}
                 />
             </SideMenuSection>
         </SideMenu>

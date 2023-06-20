@@ -149,7 +149,7 @@ import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import PageComponentProps from './Pages/PageComponentProps';
 
 import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
-import UserSettingsNotificationRules from './Pages/UserSettings/NotificationRules';
+import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -2022,7 +2022,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_RULES
+                            PageMap.USER_SETTINGS_ON_CALL_RULES
                         ]?.toString() || ''
                     }
                     element={
@@ -2030,7 +2030,7 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_RULES
+                                    PageMap.USER_SETTINGS_ON_CALL_RULES
                                 ] as Route
                             }
                         />

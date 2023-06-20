@@ -306,8 +306,8 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/notification-methods`
     ),
 
-    [PageMap.USER_SETTINGS_NOTIFICATION_RULES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/notification-rules`
+    [PageMap.USER_SETTINGS_ON_CALL_RULES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-rules`
     ),
 
     // Settings Routes
