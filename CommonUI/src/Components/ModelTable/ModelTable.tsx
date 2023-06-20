@@ -98,7 +98,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
-    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined;
     onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -1261,7 +1261,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
+            <div className='mt-5 mb-5'>
             {getCardComponent()}
+            </div>
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>
@@ -1305,7 +1307,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             await props.onCreateSuccess(item);
                         }
                     }}
-                    onBeforeCreate={async (item: TBaseModel) => {
+                    onBeforeCreate={async (item: TBaseModel, miscDataProps: JSONObject) => {
                         if (
                             showTableAs === ShowTableAs.OrderedStatesList &&
                             props.orderedStatesListProps?.orderField &&
@@ -1318,7 +1320,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         }
 
                         if (props.onBeforeCreate) {
-                            item = await props.onBeforeCreate(item);
+                            item = await props.onBeforeCreate(item, miscDataProps);
                         }
 
                         return item;

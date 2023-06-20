@@ -113,7 +113,7 @@ const SMS: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 id="user-sms"
-                name="User Settings > Notifiation Methods > SMS"
+                name="User Settings > Notification Methods > SMS"
                 isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}

@@ -34,8 +34,8 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 })
 @TableMetadata({
     tableName: 'UserEmail',
-    singularName: 'Email',
-    pluralName: 'Emails',
+    singularName: 'Email for Notifications',
+    pluralName: 'Emails for Notifications',
     icon: IconProp.Email,
     tableDescription: 'Emails which will be used for notifications.',
 })

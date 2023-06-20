@@ -6,7 +6,7 @@ import ModelForm, {
 } from '../Forms/ModelForm';
 import BaseModel from 'Common/Models/BaseModel';
 import ButtonType from '../Button/ButtonTypes';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
+import { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
 import FormValues from '../Forms/Types/FormValues';
@@ -26,7 +26,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
-    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined;
     footer?: ReactElement | undefined;
 }
 

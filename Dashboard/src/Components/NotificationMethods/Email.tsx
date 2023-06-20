@@ -113,7 +113,7 @@ const Email: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 id="user-emails"
-                name="User Settings > Notifiation Methods > Emails"
+                name="User Settings > Notification Methods > Emails"
                 isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}

@@ -31,6 +31,7 @@ import NotifyAfterDropdownOptions from '../../Components/NotificationRule/Notify
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -187,7 +188,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {incidentSeverities.map(
                     (incidentSeverity: IncidentSeverity, i: number) => {
                         return (
-                            <div key={i} className='mt-5 mb-5'>
+                            <div key={i}>
                             <ModelTable<UserNotificationRule>
                                 modelType={UserNotificationRule}
                                 
@@ -201,7 +202,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                         NotificationRuleType.INCIDENT_ASSIGNED,
                                 }}
                                 onBeforeCreate={(
-                                    model: UserNotificationRule
+                                    model: UserNotificationRule, 
+                                    miscDataProps: JSONObject
                                 ): UserNotificationRule => {
                                     model.projectId =
                                         DashboardNavigation.getProjectId()!;
@@ -212,19 +214,18 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                         incidentSeverity.id!;
 
                                     if (
-                                        model.getColumnValue(
-                                            'notifiationMethod'
-                                        )
+                                        miscDataProps[
+                                            'notificationMethod'
+                                        ]
                                     ) {
                                         const userEmail: UserEmail | undefined =
                                             userEmails.find(
                                                 (userEmail: UserEmail) => {
                                                     return (
                                                         userEmail.id!.toString() ===
-                                                        model
-                                                            .getColumnValue(
-                                                                'notifiationMethod'
-                                                            )
+                                                        miscDataProps[
+                                                            'notificationMethod'
+                                                        ]
                                                             ?.toString()
                                                     );
                                                 }
@@ -239,10 +240,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                                 (userSMS: UserSMS) => {
                                                     return (
                                                         userSMS.id!.toString() ===
-                                                        model
-                                                            .getColumnValue(
-                                                                'notifiationMethod'
-                                                            )
+                                                        miscDataProps[
+                                                            'notificationMethod'
+                                                        ]
                                                             ?.toString()
                                                     );
                                                 }
@@ -257,10 +257,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                                 (userCall: UserCall) => {
                                                     return (
                                                         userCall.id!.toString() ===
-                                                        model
-                                                            .getColumnValue(
-                                                                'notifiationMethod'
-                                                            )
+                                                        miscDataProps[
+                                                            'notificationMethod'
+                                                        ]
                                                             ?.toString()
                                                     );
                                                 }
@@ -273,9 +272,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
                                     return model;
                                 }}
+                                sortOrder={SortOrder.Ascending}
+                                sortBy="notifyAfterMinutes"
                                 createVerb={'Add'}
                                 id="notification-rules"
-                                name={`User Settings > Notifiation Rules > Incident Severity > ${incidentSeverity.name}`}
+                                name={`User Settings > Notification Rules > Incident Severity > ${incidentSeverity.name}`}
                                 isDeleteable={true}
                                 isEditable={false}
                                 isCreateable={true}
@@ -296,9 +297,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 formFields={[
                                     {
                                         field: {
-                                            notifiationMethod: true,
+                                            notificationMethod: true,
                                         },
-                                        title: 'Email',
+                                        forceShow: true,
+                                        overideFieldKey: 'notificationMethod',
+                                        title: 'Notification Method',
                                         fieldType: FormFieldSchemaType.Dropdown,
                                         required: true,
                                         placeholder: 'Notification Method',
@@ -319,7 +322,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 ]}
                                 showRefreshButton={true}
                                 showFilterButton={false}
-                                showMoreFields={{
+                                selectMoreFields={{
                                     userEmail: {
                                         email: true,
                                     },

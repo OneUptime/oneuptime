@@ -37,8 +37,8 @@ import IncidentSeverity from './IncidentSeverity';
 })
 @TableMetadata({
     tableName: 'UserNotificationRule',
-    singularName: 'User Notification Rule',
-    pluralName: 'User Notification Rules',
+    singularName: 'Notification Rule',
+    pluralName: 'Notification Rules',
     icon: IconProp.Email,
     tableDescription: 'Rules which will be used to send notifications.',
 })

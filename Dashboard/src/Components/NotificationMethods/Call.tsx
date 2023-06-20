@@ -113,7 +113,7 @@ const Call: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 id="user-call"
-                name="User Settings > Notifiation Methods > Call"
+                name="User Settings > Notification Methods > Call"
                 isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}
