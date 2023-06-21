@@ -47,6 +47,22 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
+        if (!createBy.data.monitorType) {
+            throw new BadDataException(
+                'Monitor type required to create monitor.'
+            );
+        }
+
+        if (!Object.values(MonitorType).includes(createBy.data.monitorType)) {
+            throw new BadDataException(
+                `Invalid monitor type "${
+                    createBy.data.monitorType
+                }". Valid monitor types are ${Object.values(MonitorType).join(
+                    ', '
+                )}.`
+            );
+        }
+
         if (!createBy.props.tenantId) {
             throw new BadDataException('ProjectId required to create monitor.');
         }
