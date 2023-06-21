@@ -478,6 +478,19 @@ export default class Model extends TenantModel {
         nullable: true,
         unique: false,
     })
+    public seatLimit?: number = undefined; // this is used for stopping customers from adding more users than their plan allows. For ex: Some enterprise customers have a limit of 100 users. This is used to enforce that limit.
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+    })
     public currentActiveMonitorsCount?: number = undefined;
 
     @ColumnAccessControl({

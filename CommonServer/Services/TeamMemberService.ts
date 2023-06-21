@@ -41,6 +41,32 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     protected override async onBeforeCreate(
         createBy: CreateBy<TeamMember>
     ): Promise<OnCreate<TeamMember>> {
+        // check if this project can have more members.
+
+        if (IsBillingEnabled && createBy.data.projectId) {
+            const project: Project | null = await ProjectService.findOneById({
+                id: createBy.data.projectId!,
+                select: {
+                    seatLimit: true,
+                    paymentProviderSubscriptionSeats: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (
+                project &&
+                project.seatLimit &&
+                project.paymentProviderSubscriptionSeats &&
+                project.paymentProviderSubscriptionSeats >= project.seatLimit
+            ) {
+                throw new BadDataException(
+                    'You have reached the user limit. You cannot invite any more users to this project. Please contact billing@oneuptime.com to increase your user limit.'
+                );
+            }
+        }
+
         createBy.data.hasAcceptedInvitation = false;
 
         if (createBy.miscDataProps && createBy.miscDataProps['email']) {
