@@ -52,6 +52,9 @@ router.post(
                         nextPingAt: QueryHelper.lessThanEqualToOrNull(
                             OneUptimeDate.getCurrentDate()
                         ),
+                        monitor: {
+                            disableActiveMonitoring: false, // do not fetch if disabled is true.
+                        },
                         project: {
                             // get only active projects
                             paymentProviderSubscriptionStatus:
