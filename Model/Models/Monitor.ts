@@ -639,7 +639,6 @@ export default class Monitor extends BaseModel {
     })
     public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
