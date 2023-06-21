@@ -262,7 +262,7 @@ import StatusPageDomainService, {
 
 // User Notification methods.
 import UserEmailAPI from 'CommonServer/API/UserEmailAPI';
-import UserSMSAPI from 'CommonServer/API/UserSMSAPI';
+import UserSMSAPI from 'CommonServer/API/UserSmsAPI';
 import UserCallAPI from 'CommonServer/API/UserCallAPI';
 
 // Import API
