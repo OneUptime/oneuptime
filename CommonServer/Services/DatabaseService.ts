@@ -151,7 +151,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return true;
     }
 
-    protected checkRequiredFields(data: TBaseModel): void {
+    protected generateDefaultValues(data: TBaseModel): TBaseModel {
+        const tableColumns: Array<string> = data.getTableColumns().columns;
+
+        for (const column of tableColumns) {
+            const metadata: TableColumnMetadata =
+                data.getTableColumnMetadata(column);
+            if (metadata.forceGetDefaultValueOnCreate) {
+                (data as any)[column] = metadata.forceGetDefaultValueOnCreate();
+            }
+        }
+
+        return data;
+    }
+
+    protected checkRequiredFields(data: TBaseModel): TBaseModel {
         // Check required fields.
 
         const relatationalColumns: Dictionary<string> = {};
@@ -203,6 +217,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
+
+        return data;
     }
 
     protected async onBeforeCreate(
@@ -546,7 +562,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
         }
 
-        this.checkRequiredFields(data);
+        data = this.generateDefaultValues(data);
+        data = this.checkRequiredFields(data);
 
         if (!this.isValid(data)) {
             throw new BadDataException('Data is not valid');

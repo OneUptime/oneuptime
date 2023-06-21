@@ -23,7 +23,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Info}
@@ -35,7 +35,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.INCIDENT_VIEW_STATE_TIMELINE
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.List}
@@ -46,7 +46,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Team}
@@ -59,7 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Private Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Lock}
@@ -69,7 +69,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Public Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Public}
@@ -84,7 +84,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.TableCells}
@@ -95,7 +95,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Incident',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Trash}

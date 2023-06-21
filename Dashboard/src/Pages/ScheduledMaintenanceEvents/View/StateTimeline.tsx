@@ -35,21 +35,21 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Scheduled Maintenance Events',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View Scheduled Maintenance Event',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
@@ -58,7 +58,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         RouteMap[
                             PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                         ] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
             ]}

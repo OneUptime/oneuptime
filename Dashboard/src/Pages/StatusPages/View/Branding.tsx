@@ -29,28 +29,28 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Status Pages',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGES] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View Status Page',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Essential Branding',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
             ]}

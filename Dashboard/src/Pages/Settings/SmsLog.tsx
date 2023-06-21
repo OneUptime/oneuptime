@@ -109,9 +109,9 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Call & SMS',
+                    title: 'SMS Logs',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                        RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
                     ),
                 },
             ]}

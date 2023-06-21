@@ -67,6 +67,20 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.TableCells}
                 />
             </SideMenuSection>
+            <SideMenuSection title="On-Call Policy">
+                <SideMenuItem
+                    link={{
+                        title: 'Custom Fields',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap
+                                    .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.TableCells}
+                />
+            </SideMenuSection>
             <SideMenuSection title="Incidents">
                 <SideMenuItem
                     link={{
@@ -170,6 +184,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.SMS}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Call Logs',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Call}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">

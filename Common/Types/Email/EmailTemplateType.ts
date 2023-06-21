@@ -32,6 +32,7 @@ enum EmailTemplateType {
     StatusPageOwnerAdded = 'StatusPageOwnerAdded.hbs',
     StatusPageOwnerAnnouncementPosted = 'StatusPageOwnerAnnouncementPosted.hbs',
     SimpleMessage = 'SimpleMessage.hbs',
+    VerificationCode = 'VerificationCode.hbs',
 }
 
 export default EmailTemplateType;

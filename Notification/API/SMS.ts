@@ -24,6 +24,7 @@ router.post(
             {
                 projectId: body['projectId'] as ObjectID,
                 from: body['from'] as Phone,
+                isSensitive: (body['isSensitive'] as boolean) || false,
             }
         );
 

@@ -31,7 +31,8 @@ import StatusPageOwnerTeam from './StatusPageOwnerTeam';
 import StatusPageOwnerUser from './StatusPageOwnerUser';
 
 // On Call Duty
-import OnCallDuty from './OnCallDuty';
+import OnCallDutyPolicy from './OnCallDutyPolicy';
+import OnCallDutyPolicyCustomField from './OnCallDutyPolicyCustomField';
 
 // Monitors
 import Monitor from './Monitor';
@@ -88,6 +89,14 @@ import ProjectSSO from './ProjectSso';
 // SMS
 import SmsLog from './SmsLog';
 
+// Notification Methods
+import UserEmail from './UserEmail';
+import UserSms from './UserSMS';
+import UserCall from './UserCall';
+import CallLog from './CallLog';
+import UserNotificationRule from './UserNotificationRule';
+import DataMigration from './DataMigration';
+
 export default [
     User,
     Probe,
@@ -101,7 +110,10 @@ export default [
     ApiKeyPermission,
     ProjectSmtpConfig,
     StatusPage,
-    OnCallDuty,
+
+    OnCallDutyPolicy,
+    OnCallDutyPolicyCustomField,
+
     Monitor,
     MonitorStatus,
     MonitorCustomField,
@@ -161,4 +173,12 @@ export default [
     StatusPageOwnerUser,
 
     SmsLog,
+    CallLog,
+
+    UserEmail,
+    UserSms,
+    UserCall,
+    UserNotificationRule,
+
+    DataMigration,
 ];

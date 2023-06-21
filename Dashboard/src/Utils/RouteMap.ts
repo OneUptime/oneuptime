@@ -258,14 +258,56 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
+
     [PageMap.ON_CALL_DUTY]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
+    [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/custom-fields`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs`
+    ),
+
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/escalations`
+    ),
+
     [PageMap.REPORTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/reports/`
     ),
     [PageMap.ERROR_TRACKER]: new Route(
         `/dashboard/${RouteParams.ProjectID}/error-tracker/`
+    ),
+
+    // User Settings Routes
+    [PageMap.USER_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/user-settings/notification-methods`
+    ),
+
+    [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-methods`
+    ),
+
+    [PageMap.USER_SETTINGS_ON_CALL_RULES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-rules`
     ),
 
     // Settings Routes
@@ -283,6 +325,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_SMS_LOGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/sms-logs`
+    ),
+
+    [PageMap.SETTINGS_CALL_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/call-logs`
     ),
 
     //api keys.
@@ -387,6 +433,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/monitor-custom-fields`
     ),
 
+    [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-policy-custom-fields`
+    ),
+
     [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incident-custom-fields`
     ),
@@ -420,7 +470,13 @@ export class RouteUtil {
         return false;
     }
 
-    public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
+    public static populateRouteParams(
+        route: Route,
+        props?: {
+            modelId?: ObjectID;
+            subModelId?: ObjectID;
+        }
+    ): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
         const tempRoute: Route = new Route(route.toString());
@@ -429,10 +485,17 @@ export class RouteUtil {
             route = tempRoute.addRouteParam(RouteParams.ProjectID, project._id);
         }
 
-        if (modelId) {
+        if (props && props.modelId) {
             route = tempRoute.addRouteParam(
                 RouteParams.ModelID,
-                modelId.toString()
+                props.modelId.toString()
+            );
+        }
+
+        if (props && props.subModelId) {
+            route = tempRoute.addRouteParam(
+                RouteParams.SubModelID,
+                props.subModelId.toString()
             );
         }
 

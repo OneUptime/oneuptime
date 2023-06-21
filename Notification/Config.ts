@@ -36,4 +36,10 @@ export const SMSDefaultCostInCents: number = process.env[
     ? parseInt(process.env['SMS_DEFAULT_COST_IN_CENTS'])
     : 0;
 
+export const CallDefaultCostInCentsPerMinute: number = process.env[
+    'CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE'
+]
+    ? parseInt(process.env['CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE'])
+    : 0;
+
 export const SendGridApiKey: string = process.env['SENDGRID_API_KEY'] || '';

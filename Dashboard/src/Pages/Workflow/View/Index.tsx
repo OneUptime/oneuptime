@@ -33,28 +33,28 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.HOME] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Workflows',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.WORKFLOWS] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'View Workflow',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.WORKFLOW_VIEW] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
                 {
                     title: 'Builder',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
-                        modelId
+                        { modelId }
                     ),
                 },
             ]}

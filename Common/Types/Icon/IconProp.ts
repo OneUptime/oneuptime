@@ -94,6 +94,12 @@ enum IconProp {
     TransparentCube = 'TransparentCube',
     Logs = 'Logs',
     Bolt = 'Bolt',
+    BarsArrowUp = 'BarsArrowUp',
+    BarsArrowDown = 'BarsArrowDown',
+    Bell = 'Bell',
+    BellRinging = 'BellRinging',
+    AdjustmentVertical = 'AdjustmentVertical',
+    AdjustmentHorizontal = 'AdjustmentHorizontal',
 }
 
 export default IconProp;

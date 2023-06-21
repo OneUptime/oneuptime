@@ -80,6 +80,11 @@ import SmsLogService, {
     Service as SmsLogServiceType,
 } from 'CommonServer/Services/SmsLogService';
 
+import CallLog from 'Model/Models/CallLog';
+import CallLogService, {
+    Service as CallLogServiceType,
+} from 'CommonServer/Services/CallLogService';
+
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import StatusPageSSOService, {
     Service as StatusPageSSOServiceType,
@@ -109,6 +114,11 @@ import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
 import StatusPageHeaderLinkService, {
     Service as StatusPageHeaderLinkServiceType,
 } from 'CommonServer/Services/StatusPageHeaderLinkService';
+
+import UserNotificationRule from 'Model/Models/UserNotificationRule';
+import UserNotificationRuleService, {
+    Service as UserNotificationRuleServiceType,
+} from 'CommonServer/Services/UserNotificationRuleService';
 
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService, {
@@ -160,10 +170,10 @@ import MonitorService, {
     Service as MonitorServiceType,
 } from 'CommonServer/Services/MonitorService';
 
-import OnCallDuty from 'Model/Models/OnCallDuty';
-import OnCallDutyService, {
-    Service as OnCallDutyServiceType,
-} from 'CommonServer/Services/OnCallDutyService';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutyPolicyService, {
+    Service as OnCallDutyPolicyServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyService';
 
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService, {
@@ -250,6 +260,11 @@ import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from 'CommonServer/Services/StatusPageDomainService';
 
+// User Notification methods.
+import UserEmailAPI from 'CommonServer/API/UserEmailAPI';
+import UserSMSAPI from 'CommonServer/API/UserSmsAPI';
+import UserCallAPI from 'CommonServer/API/UserCallAPI';
+
 // Import API
 
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
@@ -275,10 +290,40 @@ import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
 
+import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
+import OnCallDutyPolicyExecutionLogTimelineService, {
+    Service as OnCallDutyPolicyExecutionLogTimelineServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyExecutionLogTimelineService';
+
 import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCustomField';
 import ScheduledMaintenanceCustomFieldService, {
     Service as ScheduledMaintenanceCustomFieldServiceType,
 } from 'CommonServer/Services/ScheduledMaintenanceCustomFieldService';
+
+import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
+import OnCallDutyPolicyExecutionLogService, {
+    Service as OnCallDutyPolicyExecutionLogServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyExecutionLogService';
+
+import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import OnCallDutyPolicyEscalationRuleService, {
+    Service as OnCallDutyPolicyEscalationRuleServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleService';
+
+import OnCallDutyPolicyEscalationRuleTeam from 'Model/Models/OnCallDutyPolicyEscalationRuleTeam';
+import OnCallDutyPolicyEscalationRuleTeamService, {
+    Service as OnCallDutyPolicyEscalationRuleTeamServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleTeamService';
+
+import OnCallDutyPolicyEscalationRuleUser from 'Model/Models/OnCallDutyPolicyEscalationRuleUser';
+import OnCallDutyPolicyEscalationRuleUserService, {
+    Service as OnCallDutyPolicyEscalationRuleUserServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleUserService';
+
+import OnCallDutyPolicyCustomField from 'Model/Models/OnCallDutyPolicyCustomField';
+import OnCallDutyPolicyCustomFieldService, {
+    Service as OnCallDutyPolicyCustomFieldServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -476,6 +521,14 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<UserNotificationRule, UserNotificationRuleServiceType>(
+        UserNotificationRule,
+        UserNotificationRuleService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(
         StatusPageFooterLink,
         StatusPageFooterLinkService
@@ -587,6 +640,17 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyCustomField,
+        OnCallDutyPolicyCustomFieldServiceType
+    >(
+        OnCallDutyPolicyCustomField,
+        OnCallDutyPolicyCustomFieldService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ProjectSmtpConfig, ProjectSMTPConfigServiceType>(
         ProjectSmtpConfig,
         ProjectSmtpConfigService
@@ -616,6 +680,14 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<CallLog, CallLogServiceType>(
+        CallLog,
+        CallLogService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageSSO, StatusPageSSOServiceType>(
         StatusPageSSO,
         StatusPageSSOService
@@ -631,7 +703,9 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
-
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
 
 app.use(
@@ -687,17 +761,17 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
-        OnCallDuty,
-        OnCallDutyService
+    new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
+        OnCallDutyPolicy,
+        OnCallDutyPolicyService
     ).getRouter()
 );
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
-        OnCallDuty,
-        OnCallDutyService
+    new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
+        OnCallDutyPolicy,
+        OnCallDutyPolicyService
     ).getRouter()
 );
 
@@ -714,9 +788,64 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRuleUser,
+        OnCallDutyPolicyEscalationRuleUserServiceType
+    >(
+        OnCallDutyPolicyEscalationRuleUser,
+        OnCallDutyPolicyEscalationRuleUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRuleTeam,
+        OnCallDutyPolicyEscalationRuleTeamServiceType
+    >(
+        OnCallDutyPolicyEscalationRuleTeam,
+        OnCallDutyPolicyEscalationRuleTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyExecutionLog,
+        OnCallDutyPolicyExecutionLogServiceType
+    >(
+        OnCallDutyPolicyExecutionLog,
+        OnCallDutyPolicyExecutionLogService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyExecutionLogTimeline,
+        OnCallDutyPolicyExecutionLogTimelineServiceType
+    >(
+        OnCallDutyPolicyExecutionLogTimeline,
+        OnCallDutyPolicyExecutionLogTimelineService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
         IncidentCustomField,
         IncidentCustomFieldService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicyEscalationRuleServiceType
+    >(
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicyEscalationRuleService
     ).getRouter()
 );
 

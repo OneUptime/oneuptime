@@ -22,6 +22,7 @@ import { BaseEntity } from 'typeorm';
 import EqualToOrNull from './Database/EqualToOrNull';
 import NotEqual from './Database/NotEqual';
 import { CheckOn, FilterType } from './Monitor/CriteriaFilter';
+import CallRequest from './Call/CallRequest';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',
@@ -122,6 +123,7 @@ export type JSONValue =
     | Array<JSONValue>
     | Array<Permission>
     | Array<JSONValue>
+    | CallRequest
     | undefined
     | null;
 

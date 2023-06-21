@@ -19,6 +19,7 @@ export interface TableColumnMetadata {
     type: TableColumnType;
     canReadOnRelationQuery?: boolean;
     modelType?: { new (): BaseModel };
+    forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
 }
 
 export default (props: TableColumnMetadata): ReflectionMetadataType => {

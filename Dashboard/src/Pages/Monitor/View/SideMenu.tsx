@@ -23,7 +23,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Info}
@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Team}
@@ -43,7 +43,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Criteria',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Criteria}
@@ -53,7 +53,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Interval',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Clock}
@@ -68,7 +68,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.MONITOR_VIEW_STATUS_TIMELINE
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.List}
@@ -78,7 +78,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Incidents',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Alert}
@@ -91,7 +91,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Probes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Signal}
@@ -103,7 +103,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.TableCells}
@@ -113,7 +113,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Monitor',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Trash}

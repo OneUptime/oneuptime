@@ -31,6 +31,7 @@ import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import TeamMember from 'Model/Models/TeamMember';
+import UserNotificationRuleService from './UserNotificationRuleService';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -153,6 +154,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             },
             select: {
                 userId: true,
+                user: {
+                    email: true,
+                    isEmailVerified: true,
+                },
                 projectId: true,
             },
             limit: LIMIT_MAX,
@@ -165,6 +170,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
         for (const item of items) {
             await this.refreshTokens(item.userId!, item.projectId!);
+
+            if (
+                updateBy.data.hasAcceptedInvitation &&
+                item.user?.isEmailVerified
+            ) {
+                await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                    item.projectId!,
+                    item.userId!,
+                    item.user?.email!
+                );
+            }
         }
 
         return { updateBy, carryForward: onUpdate.carryForward };

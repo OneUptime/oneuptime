@@ -15,6 +15,9 @@ import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import OneUptimeDate from 'Common/Types/Date';
 import EmailVerificationTokenService from './EmailVerificationTokenService';
 import Route from 'Common/Types/API/Route';
+import TeamMember from 'Model/Models/TeamMember';
+import TeamMemberService from './TeamMemberService';
+import UserNotificationRuleService from './UserNotificationRuleService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -75,6 +78,51 @@ export class Service extends DatabaseService<Model> {
                 }).catch((err: Error) => {
                     logger.error(err);
                 });
+            }
+        }
+
+        if (onUpdate && onUpdate.updateBy.data.isEmailVerified) {
+            // if the email is verified then create default policies for this user.
+
+            const newUsers: Array<Model> = await this.findBy({
+                query: onUpdate.updateBy.query,
+                select: {
+                    _id: true,
+                    email: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+            });
+
+            for (const user of newUsers) {
+                // emai is verified. create default policies for this user.
+                const teamMembers: Array<TeamMember> =
+                    await TeamMemberService.findBy({
+                        query: {
+                            userId: user.id!,
+                            hasAcceptedInvitation: true,
+                        },
+                        select: {
+                            projectId: true,
+                        },
+                        limit: LIMIT_MAX,
+                        skip: 0,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+
+                for (const member of teamMembers) {
+                    // create default policies for this user.
+                    await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                        member.projectId!,
+                        user.id!,
+                        user.email!
+                    );
+                }
             }
         }
 

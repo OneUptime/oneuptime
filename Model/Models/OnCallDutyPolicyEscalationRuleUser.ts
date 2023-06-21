@@ -1,88 +1,75 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
-import Label from './Label';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import OnCallDutyPolicy from './OnCallDutyPolicy';
 
 @EnableDocumentation()
-@AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectOnCallDuty,
+        Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectOnCallDuty,
+        Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectOnCallDuty,
+        Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleUser,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectOnCallDuty,
+        Permission.CanEditProjectOnCallDutyPolicyEscalationRuleUser,
     ],
 })
-@CrudApiEndpoint(new Route('/on-call-duty'))
-@SlugifyColumn('name', 'slug')
+@CrudApiEndpoint(new Route('/on-call-duty-policy-esclation-rule-user'))
 @Entity({
-    name: 'OnCallDuty',
+    name: 'OnCallDutyPolicyEscalationRuleUser',
 })
 @TableMetadata({
-    tableName: 'OnCallDuty',
-    singularName: 'On Call Duty',
-    pluralName: 'On Call Duties',
+    tableName: 'OnCallDutyPolicyEscalationRuleUser',
+    singularName: 'On Call Duty Escalation Rule',
+    pluralName: 'On Call Duty Esdcalation Rules',
     icon: IconProp.Call,
     tableDescription:
-        'Manage on-call duty, schedules and roster for your project',
+        'Manage on-call duty escalation rule for the on-call policy.',
 })
-export default class OnCallDuty extends BaseModel {
+export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -113,13 +100,13 @@ export default class OnCallDuty extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -144,159 +131,144 @@ export default class OnCallDuty extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDuty,
-        ],
-    })
-    @Index()
-    @TableColumn({
-        required: true,
-        type: TableColumnType.ShortText,
-        title: 'Name',
-        description: 'Any friendly name of this object',
-        canReadOnRelationQuery: true,
-    })
-    @Column({
-        nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
-    })
-    public name?: string = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDuty,
-        ],
-    })
-    @TableColumn({
-        required: false,
-        type: TableColumnType.EntityArray,
-        modelType: Label,
-        title: 'Labels',
-        description:
-            'Relation to Labels Array where this object is categorized in.',
-    })
-    @ManyToMany(
-        () => {
-            return Label;
-        },
-        { eager: false }
-    )
-    @JoinTable({
-        name: 'OnCallDutyLabel',
-        inverseJoinColumn: {
-            name: 'labelId',
-            referencedColumnName: '_id',
-        },
-        joinColumn: {
-            name: 'onCallDutyId',
-            referencedColumnName: '_id',
-        },
-    })
-    public labels?: Array<Label> = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDuty,
-        ],
-    })
-    @TableColumn({
-        required: false,
-        type: TableColumnType.LongText,
-        title: 'Description',
-        description: 'Friendly description that will help you remember',
-    })
-    @Column({
-        nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
-    })
-    public description?: string = undefined;
-
-    @Index()
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
     @TableColumn({
-        required: true,
-        unique: true,
-        type: TableColumnType.Slug,
-        title: 'Slug',
-        description: 'Friendly globally unique name for your object',
+        manyToOneRelationColumn: 'onCallDutyPolicyId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicy,
+        title: 'On Call Policy',
+        description:
+            'Relation to On Call Policy where this escalation rule belongs.',
     })
-    @Column({
-        nullable: false,
-        type: ColumnType.Slug,
-        length: ColumnLength.Slug,
-        unique: true,
-    })
-    public slug?: string = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicy;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyId' })
+    public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'On Call Policy ID',
+        description:
+            'ID of your On Call Policy where this escalation rule belongs.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userId',
+        type: TableColumnType.Entity,
+        modelType: User,
+        title: 'User',
+        description: 'Relation to User who is in this escalation rule.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userId' })
+    public user?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'User ID',
+        description: 'ID of the user who is in this escalation rule.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -327,13 +299,13 @@ export default class OnCallDuty extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDuty,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
         ],
         update: [],
     })
@@ -376,22 +348,4 @@ export default class OnCallDuty extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [],
-        update: [],
-    })
-    @TableColumn({
-        type: TableColumnType.ObjectID,
-        title: 'Deleted by User ID',
-        description:
-            'User ID who deleted this object (if this object was deleted by a User)',
-    })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public deletedByUserId?: ObjectID = undefined;
 }

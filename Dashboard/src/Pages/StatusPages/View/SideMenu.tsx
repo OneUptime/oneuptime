@@ -23,7 +23,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Info}
@@ -36,7 +36,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Anouncement}
@@ -46,7 +46,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Team}
@@ -61,7 +61,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_RESOURCES
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.AltGlobe}
@@ -71,7 +71,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Groups',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Folder}
@@ -86,7 +86,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Email}
@@ -98,8 +98,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                             ] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.SendMessage}
                 />
@@ -111,8 +111,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                             ] as Route,
-                            props.modelId
-                        ),
+                             {modelId: props.modelId}
+                    ),
                     }}
                     icon={IconProp.Webhook}
                 /> */}
@@ -124,7 +124,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Settings}
@@ -139,7 +139,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_BRANDING
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Image}
@@ -152,7 +152,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Code}
@@ -163,7 +163,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Custom Domains',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Globe}
@@ -176,7 +176,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.ArrowCircleUp}
@@ -189,7 +189,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.ArrowCircleDown}
@@ -204,7 +204,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.User}
@@ -215,7 +215,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'SSO',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Lock}
@@ -228,7 +228,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Settings}
@@ -243,7 +243,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Email}
@@ -258,7 +258,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.TableCells}
@@ -271,7 +271,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_SETTINGS
                             ] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Settings}
@@ -282,7 +282,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Status Page',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
-                            props.modelId
+                            { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Trash}

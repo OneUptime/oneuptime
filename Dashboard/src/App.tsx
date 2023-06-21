@@ -95,11 +95,13 @@ import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 import SettingsBilling from './Pages/Settings/Billing';
 import SettingsSSO from './Pages/Settings/SSO';
 import SettingsSmsLog from './Pages/Settings/SmsLog';
+import SettingsCallLog from './Pages/Settings/CallLog';
 import SettingsCallSms from './Pages/Settings/CallSms';
 import SettingsInvoices from './Pages/Settings/Invoices';
 import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
 import StatusPageCustomFields from './Pages/Settings/StatusPageCustomFields';
 import IncidentCustomFields from './Pages/Settings/IncidentCustomFields';
+import OnCallDutyPolicyCustomFields from './Pages/Settings/OnCallDutyPolicyCustomFields';
 import ScheduledMaintenanceCustomFields from './Pages/Settings/ScheduledMaintenanceCusomFields';
 
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
@@ -109,8 +111,15 @@ import ProjectInvitations from './Pages/Global/ProjectInvitations';
 import UserProfileOverview from './Pages/Global/UserProfile/Index';
 import UserProfilePicture from './Pages/Global/UserProfile/Picture';
 import UserProfilePassword from './Pages/Global/UserProfile/Password';
+
 // On Call Duty
-import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
+import OnCallDutyPoliciesPage from './Pages/OnCallDuty/OnCallDutyPolicies';
+import OnCallDutyPolicyView from './Pages/OnCallDuty/OnCallDutyPolicy/Index';
+import OnCallDutyPolicyViewDelete from './Pages/OnCallDuty/OnCallDutyPolicy/Delete';
+import OnCallDutyPolicyViewLogs from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs';
+import OnCallDutyPolicyViewLogsView from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogView';
+import OnCallDutyPolicyViewEscalation from './Pages/OnCallDuty/OnCallDutyPolicy/Escalation';
+import OnCallDutyPolicyViewCustomFields from './Pages/OnCallDuty/OnCallDutyPolicy/CustomFields';
 
 // Monitors
 import MonitorPage from './Pages/Monitor/Monitors';
@@ -138,6 +147,9 @@ import Sso from './Pages/Onboarding/SSO';
 import API from 'CommonUI/src/Utils/API/API';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import PageComponentProps from './Pages/PageComponentProps';
+
+import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
+import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -1175,6 +1187,25 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewCustomFields
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
                         RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString() || ''
                     }
                     element={
@@ -1398,6 +1429,20 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.SETTINGS_CALL_LOGS]?.toString() || ''
+                    }
+                    element={
+                        <SettingsCallLog
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
                             }
                         />
                     }
@@ -1643,6 +1688,25 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyCustomFields
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
                     path={RouteMap[PageMap.SETTINGS_BILLING]?.toString() || ''}
                     element={
                         <SettingsBilling
@@ -1727,10 +1791,117 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.ON_CALL_DUTY]?.toString() || ''}
                     element={
-                        <OnCallDutyPage
+                        <OnCallDutyPoliciesPage
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.ON_CALL_DUTY_POLICIES]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <OnCallDutyPoliciesPage
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_POLICY_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewDelete
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewEscalation
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewLogs
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewLogsView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                                ] as Route
                             }
                         />
                     }
@@ -1813,6 +1984,54 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.ACTIVE_INCIDENTS] as Route
+                            }
+                        />
+                    }
+                />
+
+                {/* User Settings */}
+
+                <PageRoute
+                    path={RouteMap[PageMap.USER_SETTINGS]?.toString() || ''}
+                    element={
+                        <UserSettingsNotificationMethods
+                            {...commonPageProps}
+                            pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotificationMethods
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_ON_CALL_RULES
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotificationRules
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.USER_SETTINGS_ON_CALL_RULES
+                                ] as Route
                             }
                         />
                     }

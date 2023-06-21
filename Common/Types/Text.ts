@@ -16,6 +16,22 @@ export default class Text {
         return result;
     }
 
+    public static generateRandomNumber(length?: number): string {
+        if (!length) {
+            length = 10;
+        }
+
+        let result: string = '';
+        const characters: string = '12134567890';
+        const charactersLength: number = characters.length;
+        for (let i: number = 0; i < length; i++) {
+            result += characters.charAt(
+                Math.floor(Math.random() * charactersLength)
+            );
+        }
+        return result;
+    }
+
     public static convertNumberToWords(num: number): string {
         const words: Array<string> = [
             'first',
