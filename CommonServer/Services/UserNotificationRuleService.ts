@@ -87,6 +87,24 @@ export class Service extends DatabaseService<Model> {
 
         // create for incident severities.
         for (const incidentSeverity of incidentSeverities) {
+            //check if this rule already exists.
+            const existingRule: Model | null = await this.findOneBy({
+                query: {
+                    projectId,
+                    userId,
+                    userEmailId: userEmail.id!,
+                    incidentSeverityId: incidentSeverity.id!,
+                    ruleType: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (existingRule) {
+                continue; // skip this rule.
+            }
+
             const notificationRule: Model = new Model();
 
             notificationRule.projectId = projectId;
@@ -105,37 +123,67 @@ export class Service extends DatabaseService<Model> {
             });
         }
 
-        // on and off call.
-        const onCallRule: Model = new Model();
-
-        onCallRule.projectId = projectId;
-        onCallRule.userId = userId;
-        onCallRule.userEmailId = userEmail.id!;
-        onCallRule.notifyAfterMinutes = 0;
-        onCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_ON_CALL;
-
-        await this.create({
-            data: onCallRule,
+        //check if this rule already exists.
+        const existingRuleOnCall: Model | null = await this.findOneBy({
+            query: {
+                projectId,
+                userId,
+                userEmailId: userEmail.id!,
+                ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+            },
             props: {
                 isRoot: true,
             },
         });
 
-        // on and off call.
-        const offCallRule: Model = new Model();
+        if (!existingRuleOnCall) {
+            // on and off call.
+            const onCallRule: Model = new Model();
 
-        offCallRule.projectId = projectId;
-        offCallRule.userId = userId;
-        offCallRule.userEmailId = userEmail.id!;
-        offCallRule.notifyAfterMinutes = 0;
-        offCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_OFF_CALL;
+            onCallRule.projectId = projectId;
+            onCallRule.userId = userId;
+            onCallRule.userEmailId = userEmail.id!;
+            onCallRule.notifyAfterMinutes = 0;
+            onCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_ON_CALL;
 
-        await this.create({
-            data: offCallRule,
+            await this.create({
+                data: onCallRule,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+
+        //check if this rule already exists.
+        const existingRuleOffCall: Model | null = await this.findOneBy({
+            query: {
+                projectId,
+                userId,
+                userEmailId: userEmail.id!,
+                ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+            },
             props: {
                 isRoot: true,
             },
         });
+
+        if (!existingRuleOffCall) {
+            // on and off call.
+            const offCallRule: Model = new Model();
+
+            offCallRule.projectId = projectId;
+            offCallRule.userId = userId;
+            offCallRule.userEmailId = userEmail.id!;
+            offCallRule.notifyAfterMinutes = 0;
+            offCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_OFF_CALL;
+
+            await this.create({
+                data: offCallRule,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
     }
 }
 export default new Service();

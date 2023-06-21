@@ -95,6 +95,7 @@ import UserSms from './UserSMS';
 import UserCall from './UserCall';
 import CallLog from './CallLog';
 import UserNotificationRule from './UserNotificationRule';
+import DataMigration from './DataMigration';
 
 export default [
     User,
@@ -178,4 +179,6 @@ export default [
     UserSms,
     UserCall,
     UserNotificationRule,
+
+    DataMigration,
 ];

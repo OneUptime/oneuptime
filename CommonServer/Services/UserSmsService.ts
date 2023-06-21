@@ -97,7 +97,10 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-        this.sendVerificationCode(createdItem);
+        if (!createdItem.isVerified) {
+            this.sendVerificationCode(createdItem);
+        }
+
         return createdItem;
     }
 

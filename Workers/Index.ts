@@ -59,6 +59,7 @@ import './Jobs/ScheduledMaintenanceOwners/SendNotePostedEmail';
 import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
 import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
 import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
+import RunDatabaseMigrations from './Utils/DataMigration';
 
 const APP_NAME: string = 'workers';
 
@@ -78,6 +79,8 @@ const init: Function = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await RunDatabaseMigrations();
 
         // Job process.
         QueueWorker.getWorker(
