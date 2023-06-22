@@ -73,7 +73,7 @@ const Page: FunctionComponent<ComponentProps> = (
                                 {props.children}
                             </div>
                         )}
-                        {props.isLoading && <PageLoader isVisible={true} />}
+                        {props.isLoading && <div className='col-span-10'><PageLoader isVisible={true} /></div>}
                     </div>
                 </main>
             )}
