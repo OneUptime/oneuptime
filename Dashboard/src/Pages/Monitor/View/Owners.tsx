@@ -22,6 +22,7 @@ import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import User from 'Model/Models/User';
 import UserElement from '../../../Components/User/User';
 import ProjectUser from '../../../Utils/ProjectUser';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 
 const MonitorOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -66,6 +67,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             <ModelTable<MonitorOwnerTeam>
                 modelType={MonitorOwnerTeam}
                 id="table-monitor-owner-team"

@@ -21,6 +21,7 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -64,6 +65,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             <ModelTable<Incident>
                 modelType={Incident}
                 id="incidents-table"

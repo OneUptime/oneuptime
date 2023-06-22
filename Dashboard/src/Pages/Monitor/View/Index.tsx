@@ -29,6 +29,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from 'CommonUI/src/Utils/API/API';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -112,6 +113,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             {/* Monitor View  */}
             <CardModelDetail
                 name="Monitor Details"

@@ -31,6 +31,7 @@ import ProbeElement from '../../../Components/Probe/Probe';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -276,6 +277,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             {getPageContent()}
         </ModelPage>
     );

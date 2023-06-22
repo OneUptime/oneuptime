@@ -11,6 +11,7 @@ import CustomFieldsDetail from 'CommonUI/src/Components/CustomFields/CustomField
 import Monitor from 'Model/Models/Monitor';
 import MonitorCustomField from 'Model/Models/MonitorCustomField';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 
 const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -55,6 +56,7 @@ const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             <CustomFieldsDetail
                 title="Monitor Custom Fields"
                 description="Custom fields help you add new fields to your resources in OneUptime."

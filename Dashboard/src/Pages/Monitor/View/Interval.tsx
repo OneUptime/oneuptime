@@ -25,6 +25,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -187,6 +188,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             {getPageContent()}
         </ModelPage>
     );

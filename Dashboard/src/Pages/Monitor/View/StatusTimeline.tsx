@@ -19,6 +19,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 const MonitorDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -62,6 +63,7 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <DisabledWarning monitorId={modelId} />
             <ModelTable<MonitorStatusTimeline>
                 modelType={MonitorStatusTimeline}
                 id="table-monitor-status-timeline"

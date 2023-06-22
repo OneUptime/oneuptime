@@ -24,6 +24,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
+    onSaveSuccess?: undefined | ((item: TBaseModel) => void);
     editButtonText?: undefined | string;
     formSteps?: undefined | Array<FormStep<TBaseModel>>;
     formFields?: undefined | Fields<TBaseModel>;
@@ -100,9 +101,12 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
                         setShowModal(false);
                     }}
                     submitButtonText={`Save Changes`}
-                    onSuccess={(_item: TBaseModel) => {
+                    onSuccess={(item: TBaseModel) => {
                         setShowModal(false);
                         setRefresher(!refresher);
+                        if (props.onSaveSuccess) {
+                            props.onSaveSuccess(item);
+                        }
                     }}
                     name={props.name}
                     modelType={props.modelDetailProps.modelType}

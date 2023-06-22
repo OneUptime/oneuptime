@@ -60,7 +60,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     modelType={Monitor}
                     countQuery={{
                         projectId: props.project?._id,
-                        disableActiveMonitoring: true
+                        disableActiveMonitoring: true,
                     }}
                 />
             </SideMenuSection>
