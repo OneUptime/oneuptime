@@ -632,11 +632,11 @@ export class Service extends DatabaseService<Model> {
         await this.updateOneById({
             id: projectId,
             data: {
-                lastActive: OneUptimeDate.getCurrentDate()
+                lastActive: OneUptimeDate.getCurrentDate(),
             },
             props: {
                 isRoot: true,
-            }
+            },
         });
     }
 

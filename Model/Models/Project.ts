@@ -736,7 +736,6 @@ export default class Model extends TenantModel {
     })
     public planName?: PlanSelect = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

@@ -122,7 +122,7 @@ export default class UserMiddleware {
             oneuptimeRequest.tenantId = tenantId;
 
             // update last active of project
-            ProjectService.updateLastActive(tenantId);
+            await ProjectService.updateLastActive(tenantId);
         }
 
         if (ProjectMiddleware.hasApiKey(req)) {
