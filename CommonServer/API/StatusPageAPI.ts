@@ -609,6 +609,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
+                                    createdAt: true,
                                     note: true,
                                     incidentId: true,
                                 },
@@ -792,6 +793,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
+                                    createdAt: true,
                                     note: true,
                                     scheduledMaintenanceId: true,
                                 },
@@ -1340,6 +1342,7 @@ export default class StatusPageAPI extends BaseAPI<
                         projectId: statusPage.projectId!,
                     },
                     select: {
+                        createdAt: true,
                         note: true,
                         scheduledMaintenanceId: true,
                     },
@@ -1696,6 +1699,7 @@ export default class StatusPageAPI extends BaseAPI<
                     projectId: statusPage.projectId!,
                 },
                 select: {
+                    createdAt: true,
                     note: true,
                     incidentId: true,
                 },
