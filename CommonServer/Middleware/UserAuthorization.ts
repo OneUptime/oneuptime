@@ -121,7 +121,8 @@ export default class UserMiddleware {
         if (tenantId) {
             oneuptimeRequest.tenantId = tenantId;
 
-            // check if the force sso for login is present and if it is, check if the sso token is present and if it is then allow, otherwise decline.
+            // update last active of project
+            ProjectService.updateLastActive(tenantId);
         }
 
         if (ProjectMiddleware.hasApiKey(req)) {

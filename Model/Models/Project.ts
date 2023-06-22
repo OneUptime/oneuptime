@@ -735,4 +735,19 @@ export default class Model extends TenantModel {
         length: ColumnLength.ShortText,
     })
     public planName?: PlanSelect = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public lastActive?: Date = undefined;
 }

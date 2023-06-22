@@ -628,6 +628,18 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
+    public async updateLastActive(projectId: ObjectID): Promise<void> {
+        await this.updateOneById({
+            id: projectId,
+            data: {
+                lastActive: OneUptimeDate.getCurrentDate()
+            },
+            props: {
+                isRoot: true,
+            }
+        });
+    }
+
     public async getOwners(projectId: ObjectID): Promise<Array<User>> {
         if (!projectId) {
             throw new BadDataException('Project ID is required');
