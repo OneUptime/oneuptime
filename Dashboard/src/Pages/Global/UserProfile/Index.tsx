@@ -61,25 +61,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Jeff Smith',
                         required: true,
                         title: 'Full Name',
-                    },
-                    {
-                        field: {
-                            companyName: true,
-                        },
-                        fieldType: FormFieldSchemaType.Text,
-                        placeholder: 'Acme, Inc.',
-                        required: true,
-                        title: 'Company Name',
-                    },
-                    {
-                        field: {
-                            companyPhoneNumber: true,
-                        },
-                        fieldType: FormFieldSchemaType.Phone,
-                        required: true,
-                        placeholder: '+1-123-456-7890',
-                        title: 'Phone Number',
-                    },
+                    }
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -97,19 +79,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 email: true,
                             },
                             title: 'Email',
-                        },
-                        {
-                            field: {
-                                companyName: true,
-                            },
-                            title: 'Company Name',
-                        },
-                        {
-                            field: {
-                                companyPhoneNumber: true,
-                            },
-                            title: 'Company Phone Number',
-                        },
+                        }
                     ],
                     modelId: UserUtil.getUserId(),
                 }}
