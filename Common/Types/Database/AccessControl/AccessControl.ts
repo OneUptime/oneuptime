@@ -17,3 +17,9 @@ export interface BillingAccessControl {
     update: PlanSelect;
     delete: PlanSelect;
 }
+
+export interface ColumnBillingAccessControl {
+    create: PlanSelect;
+    read: PlanSelect;
+    update: PlanSelect;
+}

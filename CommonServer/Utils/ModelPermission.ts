@@ -13,7 +13,10 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import QueryHelper from '../Types/Database/QueryHelper';
 import Columns from 'Common/Types/Database/Columns';
 import Dictionary from 'Common/Types/Dictionary';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import {
+    ColumnAccessControl,
+    ColumnBillingAccessControl,
+} from 'Common/Types/Database/AccessControl/AccessControl';
 import RelationSelect from '../Types/Database/RelationSelect';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
@@ -184,6 +187,72 @@ export default class ModelPermission {
                 throw new BadDataException(
                     `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`
                 );
+            }
+
+            if (
+                IsBillingEnabled &&
+                props.currentPlan &&
+                model.getColumnBillingAccessControl(key)
+            ) {
+                const billingAccessControl: ColumnBillingAccessControl =
+                    model.getColumnBillingAccessControl(key);
+
+                if (
+                    requestType === DatabaseRequestType.Create &&
+                    billingAccessControl.create
+                ) {
+                    if (
+                        !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                            billingAccessControl.create,
+                            props.currentPlan,
+                            getAllEnvVars()
+                        )
+                    ) {
+                        throw new PaymentRequiredException(
+                            'Please upgrade your plan to ' +
+                                billingAccessControl.create +
+                                ' to access this feature'
+                        );
+                    }
+                }
+
+                if (
+                    requestType === DatabaseRequestType.Read &&
+                    billingAccessControl.read
+                ) {
+                    if (
+                        !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                            billingAccessControl.read,
+                            props.currentPlan,
+                            getAllEnvVars()
+                        )
+                    ) {
+                        throw new PaymentRequiredException(
+                            'Please upgrade your plan to ' +
+                                billingAccessControl.read +
+                                ' to access this feature'
+                        );
+                    }
+                }
+
+                if (
+                    requestType === DatabaseRequestType.Update &&
+                    billingAccessControl.update
+                ) {
+                    if (
+                        !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                            billingAccessControl.update,
+                            props.currentPlan,
+                            getAllEnvVars()
+                        )
+                    ) {
+                        throw new PaymentRequiredException(
+                            'Please upgrade your plan to ' +
+                                billingAccessControl.update +
+                                ' to access this feature'
+                        );
+                    }
+                }
             }
         }
     }

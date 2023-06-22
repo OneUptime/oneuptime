@@ -32,6 +32,8 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import { JSONObject } from 'Common/Types/JSON';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import ProjectSmtpConfig from './ProjectSmtpConfig';
+import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -723,6 +725,11 @@ export default class StatusPage extends BaseModel {
         nullable: true,
         type: ColumnType.HTML,
     })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
+    })
     public headerHTML?: string = undefined;
 
     @ColumnAccessControl({
@@ -755,6 +762,11 @@ export default class StatusPage extends BaseModel {
         nullable: true,
         type: ColumnType.HTML,
     })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
+    })
     public footerHTML?: string = undefined;
 
     @ColumnAccessControl({
@@ -786,6 +798,11 @@ export default class StatusPage extends BaseModel {
     @Column({
         nullable: true,
         type: ColumnType.CSS,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
     })
     public customCSS?: string = undefined;
 
@@ -820,6 +837,11 @@ export default class StatusPage extends BaseModel {
         nullable: true,
         type: ColumnType.JavaScript,
     })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
+    })
     public customJavaScript?: string = undefined;
 
     @ColumnAccessControl({
@@ -851,6 +873,11 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Boolean,
         default: true,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
     })
     public isPublicStatusPage?: boolean = undefined;
 

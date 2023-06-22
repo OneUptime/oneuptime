@@ -61,7 +61,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Jeff Smith',
                         required: true,
                         title: 'Full Name',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -79,7 +79,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 email: true,
                             },
                             title: 'Email',
-                        }
+                        },
                     ],
                     modelId: UserUtil.getUserId(),
                 }}

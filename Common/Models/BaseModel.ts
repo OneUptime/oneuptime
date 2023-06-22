@@ -28,13 +28,17 @@ import Permission, {
     UserPermission,
     UserTenantAccessPermission,
 } from '../Types/Permission';
-import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
+import {
+    ColumnAccessControl,
+    ColumnBillingAccessControl,
+} from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
 import { EnableWorkflowOn } from '../Types/Model/EnableWorkflow';
 import IconProp from '../Types/Icon/IconProp';
 import Text from '../Types/Text';
+import { getColumnBillingAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnBillingAccessControl';
 
 export type DbTypes =
     | string
@@ -200,6 +204,14 @@ export default class BaseModel extends BaseEntity {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
         return dictionary[columnName] as TableColumnMetadata;
+    }
+
+    public getColumnBillingAccessControl(
+        columnName: string
+    ): ColumnBillingAccessControl {
+        const dictionary: Dictionary<ColumnBillingAccessControl> =
+            getColumnBillingAccessControlForAllColumns(this);
+        return dictionary[columnName] as ColumnBillingAccessControl;
     }
 
     public getColumnAccessControlFor(
