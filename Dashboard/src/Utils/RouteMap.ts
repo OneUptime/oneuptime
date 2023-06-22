@@ -231,6 +231,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/monitors/inoperational`
     ),
 
+    [PageMap.MONITORS_DISABLED]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/disabled`
+    ),
+
     [PageMap.MONITOR_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}`
     ),

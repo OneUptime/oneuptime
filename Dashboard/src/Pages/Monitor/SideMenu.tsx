@@ -48,6 +48,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         },
                     }}
                 />
+                <CountModelSideMenuItem<Monitor>
+                    link={{
+                        title: 'Disabled Monitors',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.MONITORS_DISABLED] as Route
+                        ),
+                    }}
+                    icon={IconProp.Error}
+                    badgeType={BadgeType.DANGER}
+                    modelType={Monitor}
+                    countQuery={{
+                        projectId: props.project?._id,
+                        disableActiveMonitoring: true
+                    }}
+                />
             </SideMenuSection>
         </SideMenu>
     );
