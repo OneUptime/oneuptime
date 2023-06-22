@@ -18,7 +18,15 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Free,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
