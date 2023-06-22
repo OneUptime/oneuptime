@@ -20,6 +20,9 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import Phone from 'Common/Types/Phone';
+import Email from 'Common/Types/Email';
+import Name from 'Common/Types/Name';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
@@ -749,4 +752,63 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public lastActive?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Phone })
+    @Column({
+        type: ColumnType.Phone,
+        length: ColumnLength.Phone,
+        nullable: true,
+        unique: false,
+        transformer: Phone.getDatabaseTransformer(),
+    })
+    public createdOwnerPhone?: Phone = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Email })
+    @Column({
+        type: ColumnType.Email,
+        length: ColumnLength.Email,
+        nullable: true,
+        unique: false,
+        transformer: Email.getDatabaseTransformer(),
+    })
+    public createdOwnerEmail?: Email = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Name })
+    @Column({
+        type: ColumnType.Name,
+        length: ColumnLength.Name,
+        nullable: true,
+        unique: false,
+        transformer: Name.getDatabaseTransformer(),
+    })
+    public createdOwnerName?: Name = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public createdOwnerCompanyName?: string = undefined;
 }

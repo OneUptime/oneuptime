@@ -123,6 +123,28 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
+        const user: User | null = await UserService.findOneById({
+            id: data.props.userId,
+            select: {
+                name: true,
+                email: true,
+                companyPhoneNumber: true,
+                companyName: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!user) {
+            throw new BadDataException('User not found.');
+        }
+
+        data.data.createdOwnerName = user.name!;
+        data.data.createdOwnerEmail = user.email!;
+        data.data.createdOwnerPhone = user.companyPhoneNumber!;
+        data.data.createdOwnerCompanyName = user.companyName!;
+
         return Promise.resolve({ createBy: data, carryForward: null });
     }
 

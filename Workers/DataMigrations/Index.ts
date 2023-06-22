@@ -1,3 +1,4 @@
+import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
 import DataMigrationBase from './DataMigrationBase';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
 
@@ -5,6 +6,7 @@ import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotification
 
 const DataMigrations: Array<DataMigrationBase> = [
     new MigrateDefaultUserNotificationRule(),
+    new AddOwnerInfoToProjects(),
 ];
 
 export default DataMigrations;
