@@ -66,7 +66,7 @@ const Input: FunctionComponent<ComponentProps> = (
                     dateString = OneUptimeDate.asDateForDatabaseQuery(value);
                 }
                 setDisplayValue(dateString);
-            } else if (value && !value.includes(' - ')) {
+            } else if (value && value.includes && !value.includes(' - ')) {
                 // " - " is for InBetween dates.
                 const date: Date = OneUptimeDate.fromString(value);
                 let dateString: string = '';
@@ -76,7 +76,7 @@ const Input: FunctionComponent<ComponentProps> = (
                     dateString = OneUptimeDate.asDateForDatabaseQuery(date);
                 }
                 setDisplayValue(dateString);
-            } else if (!value.includes(' - ')) {
+            } else if (!value || (value.includes && !value.includes(' - '))) {
                 setDisplayValue('');
             }
         } else {
