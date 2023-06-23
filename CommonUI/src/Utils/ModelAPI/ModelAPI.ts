@@ -355,7 +355,10 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            return result.data as TBaseModel;
+            return JSONFunctions.fromJSONObject(
+                result.data as JSONObject,
+                modelType
+            );
         }
 
         this.checkStatusCode(result);

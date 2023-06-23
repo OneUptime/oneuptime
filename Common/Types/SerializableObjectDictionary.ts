@@ -26,9 +26,11 @@ import HashedString from './HashedString';
 import InBetween from './Database/InBetween';
 import NotNull from './Database/NotNull';
 import IsNull from './Database/IsNull';
+import OneUptimeDate from './Date';
 
 const SerializableObjectDictionary: Dictionary<any> = {
     [ObjectType.Phone]: Phone,
+    [ObjectType.DateTime]: OneUptimeDate,
     [ObjectType.ObjectID]: ObjectID,
     [ObjectType.Name]: Name,
     [ObjectType.EqualToOrNull]: EqualToOrNull,

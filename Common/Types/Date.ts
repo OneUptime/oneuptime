@@ -1,5 +1,5 @@
 import BadDataException from './Exception/BadDataException';
-import { JSONObject } from './JSON';
+import { JSONObject, ObjectType } from './JSON';
 import PositiveNumber from './PositiveNumber';
 import moment from 'moment-timezone';
 
@@ -63,6 +63,21 @@ export default class OneUptimeDate {
             SS: number = ten(date.getSeconds());
 
         return YYYY + '-' + MM + '-' + DD + 'T' + HH + ':' + II + ':' + SS;
+    }
+
+    public static fromJSON(json: JSONObject): Date {
+        if (json['_type'] === ObjectType.DateTime) {
+            return OneUptimeDate.fromString(json['value'] as string);
+        }
+
+        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
+    }
+
+    public static toJSON(date: Date): JSONObject {
+        return {
+            _type: ObjectType.DateTime,
+            value: OneUptimeDate.toString(date),
+        };
     }
 
     public static addRemoveMinutes(date: Date, minutes: number): Date {
