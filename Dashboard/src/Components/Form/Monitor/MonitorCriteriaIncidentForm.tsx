@@ -79,6 +79,16 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         required: true,
                         placeholder: 'Incident Severity',
                     },
+                    {
+                        field: {
+                            autoResolveIncident: true,
+                        },
+                        title: 'Auto Resolve Incident',
+                        stepId: 'incident-details',
+                        description: 'Automatically resolve this incident when this criteria is no longer met.',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                    },
                 ]}
             />
 

@@ -117,6 +117,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                         title: `${arg.monitorType} monitor is offline`,
                         description: `${arg.monitorType} monitor is currently offline.`,
                         incidentSeverityId: arg.incidentSeverityId,
+                        autoResolveIncident: false
                     },
                 ],
                 changeMonitorStatus: true,
@@ -151,6 +152,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                         title: `${arg.monitorType} monitor is offline`,
                         description: `${arg.monitorType} monitor is currently offline.`,
                         incidentSeverityId: arg.incidentSeverityId,
+                        autoResolveIncident: false
                     },
                 ],
                 changeMonitorStatus: true,
