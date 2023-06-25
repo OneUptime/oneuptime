@@ -23,6 +23,30 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         super(IncidentStateTimeline, postgresDatabase);
     }
 
+    public async getResolvedStateIdForProject(projectId: ObjectID): Promise<ObjectID> {
+        const resolvedState: IncidentState | null =
+            await IncidentStateService.findOneBy({
+                query: {
+                    projectId: projectId,
+                    isResolvedState: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+        if (!resolvedState) {
+            throw new BadDataException(
+                'No resolved state found for the project'
+            );
+        }
+
+        return resolvedState.id!;
+    }
+
     protected override async onBeforeCreate(
         createBy: CreateBy<MonitorStatusTimeline>
     ): Promise<OnCreate<MonitorStatusTimeline>> {
