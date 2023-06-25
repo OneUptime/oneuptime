@@ -5,5 +5,5 @@ export interface CriteriaIncident {
     description: string;
     incidentSeverityId?: ObjectID | undefined;
     autoResolveIncident?: boolean | undefined;
-    id: string; 
+    id: string;
 }

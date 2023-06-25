@@ -811,11 +811,8 @@ export default class Incident extends BaseModel {
     })
     public createdStateLog?: JSONObject = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -830,11 +827,37 @@ export default class Incident extends BaseModel {
         required: false,
         isDefaultValueColumn: false,
         title: 'Created Criteria ID',
-        description: 'If this incident was created by a Probe, this is the ID of the criteria that created it.',
+        description:
+            'If this incident was created by a Probe, this is the ID of the criteria that created it.',
     })
     @Column({
         type: ColumnType.LongText,
         nullable: true,
     })
     public createdCriteriaId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.LongText,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Created Incident Template ID',
+        description:
+            'If this incident was created by a Probe, this is the ID of the incident template that was used for creation.',
+    })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+    })
+    public createdIncidentTemplateId?: string = undefined;
 }

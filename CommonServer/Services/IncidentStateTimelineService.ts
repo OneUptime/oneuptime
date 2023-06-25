@@ -23,7 +23,9 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         super(IncidentStateTimeline, postgresDatabase);
     }
 
-    public async getResolvedStateIdForProject(projectId: ObjectID): Promise<ObjectID> {
+    public async getResolvedStateIdForProject(
+        projectId: ObjectID
+    ): Promise<ObjectID> {
         const resolvedState: IncidentState | null =
             await IncidentStateService.findOneBy({
                 query: {

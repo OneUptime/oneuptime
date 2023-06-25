@@ -25,17 +25,17 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 initialValues={
                     props.initialValue
                         ? {
-                            ...props.initialValue,
-                            incidentSeverityId:
-                                props.incidentSeverityDropdownOptions.find(
-                                    (i: DropdownOption) => {
-                                        return (
-                                            i.value.toString() ===
-                                            props.initialValue?.incidentSeverityId?.toString()!
-                                        );
-                                    }
-                                ),
-                        }
+                              ...props.initialValue,
+                              incidentSeverityId:
+                                  props.incidentSeverityDropdownOptions.find(
+                                      (i: DropdownOption) => {
+                                          return (
+                                              i.value.toString() ===
+                                              props.initialValue?.incidentSeverityId?.toString()!
+                                          );
+                                      }
+                                  ),
+                          }
                         : {}
                 }
                 onChange={(values: FormValues<CriteriaIncident>) => {

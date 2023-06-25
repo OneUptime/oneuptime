@@ -19,7 +19,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
                 title: '',
                 description: '',
                 incidentSeverityId: undefined,
-                id: ObjectID.generate().toString()
+                id: ObjectID.generate().toString(),
             },
         ]
     );
