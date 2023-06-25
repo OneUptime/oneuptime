@@ -20,6 +20,7 @@ import MonitorStatus from './MonitorStatus';
 import Monitor from './Monitor';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('monitor')
@@ -420,4 +421,26 @@ export default class MonitorStatusTimeline extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public statusChangeLog?: JSONObject = undefined;
 }

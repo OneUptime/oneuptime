@@ -156,6 +156,9 @@ export default class ProbeMonitorResponseService {
             monitorStatusTimeline.monitorStatusId =
                 monitorSteps.data.defaultMonitorStatusId!;
             monitorStatusTimeline.projectId = monitor.projectId!;
+            monitorStatusTimeline.statusChangeLog = JSON.parse(
+                JSON.stringify(probeMonitorResponse)
+            );
             await MonitorStatusTimelineService.create({
                 data: monitorStatusTimeline,
                 props: {
@@ -243,7 +246,9 @@ export default class ProbeMonitorResponseService {
                 monitorStatusTimeline.monitorId = input.monitor.id!;
                 monitorStatusTimeline.monitorStatusId = monitorStatusId;
                 monitorStatusTimeline.projectId = input.monitor.projectId!;
-
+                monitorStatusTimeline.statusChangeLog = JSON.parse(
+                    JSON.stringify(input.probeMonitorResponse)
+                );
                 await MonitorStatusTimelineService.create({
                     data: monitorStatusTimeline,
                     props: {
