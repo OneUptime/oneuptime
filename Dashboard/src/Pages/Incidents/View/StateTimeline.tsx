@@ -99,7 +99,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                             setRootCause(
                                 item['rootCause']
                                     ? item['rootCause'].toString()
-                                    : 'No root cause. This monitor status could be created manually.'
+                                    : 'No root cause identified.'
                             );
                             setShowRootCause(true);
 
@@ -121,7 +121,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                                           null,
                                           2
                                       )
-                                    : 'This incident state was created manually.'
+                                    : 'No logs for this state event.'
                             );
                             setShowViewLogsModal(true);
 

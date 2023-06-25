@@ -120,7 +120,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                                           null,
                                           2
                                       )
-                                    : 'This monitor status was created manually.'
+                                    : 'No logs for this status event.'
                             );
                             setShowViewLogsModal(true);
 
