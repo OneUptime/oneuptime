@@ -32,7 +32,7 @@ export default class ProbeMonitorResponseService {
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
             criteriaMetId: undefined,
-            rootCause: null
+            rootCause: null,
         };
 
         // fetch monitor
@@ -189,7 +189,7 @@ export default class ProbeMonitorResponseService {
 
         for (const criteriaInstance of criteria.data
             .monitorCriteriaInstanceArray) {
-            const rootCause: string |null =
+            const rootCause: string | null =
                 await this.processMonitorCriteiaInstance({
                     probeMonitorResponse: input.probeMonitorResponse,
                     monitorStep: input.monitorStep,
@@ -215,7 +215,8 @@ export default class ProbeMonitorResponseService {
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
-    }): Promise<string | null> { // returns root cause if any. Otherwise criteria is not met. 
+    }): Promise<string | null> {
+        // returns root cause if any. Otherwise criteria is not met.
         // process monitor criteria instance here.
 
         const rootCause: string | null =
@@ -318,8 +319,9 @@ export default class ProbeMonitorResponseService {
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
-    }): Promise<string | null> { // returns root cause if any. Otherwise criteria is not met.
-        let finalResult: string | null = null;
+    }): Promise<string | null> {
+        // returns root cause if any. Otherwise criteria is not met.
+        let finalResult: string | null = 'All Criteria Met.';
 
         if (
             FilterCondition.Any === input.criteriaInstance.data?.filterCondition
@@ -339,13 +341,12 @@ export default class ProbeMonitorResponseService {
                     criteriaFilter: criteriaFilter,
                 });
 
-
-                const didMeetCriteria: boolean = !!rootCause;
+            const didMeetCriteria: boolean = Boolean(rootCause);
 
             if (
                 FilterCondition.Any ===
                     input.criteriaInstance.data?.filterCondition &&
-                    didMeetCriteria === true
+                didMeetCriteria === true
             ) {
                 finalResult = rootCause;
             }
@@ -353,10 +354,19 @@ export default class ProbeMonitorResponseService {
             if (
                 FilterCondition.All ===
                     input.criteriaInstance.data?.filterCondition &&
-                    didMeetCriteria === false
+                didMeetCriteria === false
             ) {
                 finalResult = null;
                 break;
+            }
+
+            if (
+                FilterCondition.All ===
+                    input.criteriaInstance.data?.filterCondition &&
+                didMeetCriteria &&
+                rootCause
+            ) {
+                finalResult += rootCause + ' ';
             }
         }
 
@@ -370,7 +380,8 @@ export default class ProbeMonitorResponseService {
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
         criteriaFilter: CriteriaFilter;
-    }): Promise<string | null> { // returns root cause if any. Otherwise criteria is not met.
+    }): Promise<string | null> {
+        // returns root cause if any. Otherwise criteria is not met.
         // process monitor criteria filter here.
         let value: number | string | undefined = input.criteriaFilter.value;
         //check is online filter
@@ -379,7 +390,7 @@ export default class ProbeMonitorResponseService {
             input.criteriaFilter.filterType === FilterType.True
         ) {
             if (input.probeMonitorResponse.isOnline) {
-                return "Monitor is online.";
+                return 'Monitor is online.';
             }
             return null;
         }
@@ -389,7 +400,7 @@ export default class ProbeMonitorResponseService {
             input.criteriaFilter.filterType === FilterType.False
         ) {
             if (!input.probeMonitorResponse.isOnline) {
-                return "Monitor is offline.";
+                return 'Monitor is offline.';
             }
             return null;
         }

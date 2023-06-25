@@ -22,6 +22,7 @@ import Monitor from 'Model/Models/Monitor';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 const StatusTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -30,6 +31,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
 
     const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
     const [logs, setLogs] = useState<string>('');
+
+    const [showRootCause, setShowRootCause] = useState<boolean>(false);
+    const [rootCause, setRootCause] = useState<string>('');
 
     return (
         <ModelPage
@@ -82,6 +86,24 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                     statusChangeLog: true,
                 }}
                 actionButtons={[
+                    {
+                        title: 'View Cause',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        icon: IconProp.TransparentCube,
+                        onClick: async (
+                            item: JSONObject,
+                            onCompleteAction: Function
+                        ) => {
+                            setRootCause(
+                                item['rootCause']
+                                    ? item['rootCause'].toString()
+                                    : 'No root cause. This monitor status could be created manually.'
+                            );
+                            setShowRootCause(true);
+
+                            onCompleteAction();
+                        },
+                    },
                     {
                         title: 'View Logs',
                         buttonStyleType: ButtonStyleType.NORMAL,
@@ -207,6 +229,19 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         })}
                     </div>
                 </Modal>
+            )}
+
+            {showRootCause && (
+                <ConfirmModal
+                    title={'Root Cause'}
+                    description={rootCause}
+                    isLoading={false}
+                    onSubmit={() => {
+                        setShowRootCause(false);
+                    }}
+                    submitButtonText={'Close'}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                />
             )}
         </ModelPage>
     );

@@ -761,9 +761,7 @@ export default class Incident extends BaseModel {
     public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [
-        
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -829,6 +827,4 @@ export default class Incident extends BaseModel {
         unique: false,
     })
     public incidentResolvedLog?: JSONObject = undefined;
-
-
 }

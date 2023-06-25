@@ -444,11 +444,8 @@ export default class MonitorStatusTimeline extends BaseModel {
     })
     public statusChangeLog?: JSONObject = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-        
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -470,5 +467,4 @@ export default class MonitorStatusTimeline extends BaseModel {
         nullable: true,
     })
     public rootCause?: string = undefined;
-
 }
