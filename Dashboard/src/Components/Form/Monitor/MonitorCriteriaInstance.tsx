@@ -336,6 +336,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                     title: '',
                                     description: '',
                                     incidentSeverityId: undefined,
+                                    id: ObjectID.generate().toString()
                                 },
                             ]);
                         }
