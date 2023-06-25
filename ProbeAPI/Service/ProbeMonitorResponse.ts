@@ -32,6 +32,7 @@ export default class ProbeMonitorResponseService {
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
             criteriaMetId: undefined,
+            rootCause: null
         };
 
         // fetch monitor
@@ -188,7 +189,7 @@ export default class ProbeMonitorResponseService {
 
         for (const criteriaInstance of criteria.data
             .monitorCriteriaInstanceArray) {
-            const isCriteriaFilterMet: boolean =
+            const rootCause: string |null =
                 await this.processMonitorCriteiaInstance({
                     probeMonitorResponse: input.probeMonitorResponse,
                     monitorStep: input.monitorStep,
@@ -197,9 +198,10 @@ export default class ProbeMonitorResponseService {
                     criteriaInstance: criteriaInstance,
                 });
 
-            if (isCriteriaFilterMet) {
+            if (rootCause) {
                 input.probeApiIngestResponse.criteriaMetId =
                     criteriaInstance.data?.id;
+                input.probeApiIngestResponse.rootCause = rootCause;
                 break;
             }
         }
@@ -213,10 +215,10 @@ export default class ProbeMonitorResponseService {
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
-    }): Promise<boolean> {
+    }): Promise<string | null> { // returns root cause if any. Otherwise criteria is not met. 
         // process monitor criteria instance here.
 
-        const isCriteriaFiltersMet: boolean =
+        const rootCause: string | null =
             await this.isMonitorInstanceCriteriaFiltersMet({
                 probeMonitorResponse: input.probeMonitorResponse,
                 monitorStep: input.monitorStep,
@@ -225,7 +227,7 @@ export default class ProbeMonitorResponseService {
                 criteriaInstance: input.criteriaInstance,
             });
 
-        if (isCriteriaFiltersMet) {
+        if (rootCause) {
             // criteria filters are met, now process the actions.
 
             if (
@@ -249,6 +251,8 @@ export default class ProbeMonitorResponseService {
                 monitorStatusTimeline.statusChangeLog = JSON.parse(
                     JSON.stringify(input.probeMonitorResponse)
                 );
+                monitorStatusTimeline.rootCause = rootCause;
+
                 await MonitorStatusTimelineService.create({
                     data: monitorStatusTimeline,
                     props: {
@@ -291,6 +295,7 @@ export default class ProbeMonitorResponseService {
                             criteriaIncident.incidentSeverityId!;
                         incident.monitors = [input.monitor];
                         incident.projectId = input.monitor.projectId!;
+                        incident.rootCause = rootCause;
 
                         await IncidentService.create({
                             data: incident,
@@ -304,7 +309,7 @@ export default class ProbeMonitorResponseService {
         }
 
         // do nothing as there's no criteria to process.
-        return isCriteriaFiltersMet;
+        return rootCause;
     }
 
     private static async isMonitorInstanceCriteriaFiltersMet(input: {
@@ -313,18 +318,18 @@ export default class ProbeMonitorResponseService {
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
-    }): Promise<boolean> {
-        let finalResult: boolean = true;
+    }): Promise<string | null> { // returns root cause if any. Otherwise criteria is not met.
+        let finalResult: string | null = null;
 
         if (
             FilterCondition.Any === input.criteriaInstance.data?.filterCondition
         ) {
-            finalResult = false; // set to false as we need to check if any of the filters are met.
+            finalResult = null; // set to false as we need to check if any of the filters are met.
         }
 
         for (const criteriaFilter of input.criteriaInstance.data?.filters ||
             []) {
-            const criteriaResult: boolean =
+            const rootCause: string | null =
                 await this.isMonitorInstanceCriteriaFilterMet({
                     probeMonitorResponse: input.probeMonitorResponse,
                     monitorStep: input.monitorStep,
@@ -334,20 +339,23 @@ export default class ProbeMonitorResponseService {
                     criteriaFilter: criteriaFilter,
                 });
 
+
+                const didMeetCriteria: boolean = !!rootCause;
+
             if (
                 FilterCondition.Any ===
                     input.criteriaInstance.data?.filterCondition &&
-                criteriaResult === true
+                    didMeetCriteria === true
             ) {
-                return true;
+                finalResult = rootCause;
             }
 
             if (
                 FilterCondition.All ===
                     input.criteriaInstance.data?.filterCondition &&
-                criteriaResult === false
+                    didMeetCriteria === false
             ) {
-                finalResult = false;
+                finalResult = null;
                 break;
             }
         }
@@ -362,7 +370,7 @@ export default class ProbeMonitorResponseService {
         probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
         criteriaFilter: CriteriaFilter;
-    }): Promise<boolean> {
+    }): Promise<string | null> { // returns root cause if any. Otherwise criteria is not met.
         // process monitor criteria filter here.
         let value: number | string | undefined = input.criteriaFilter.value;
         //check is online filter
@@ -371,9 +379,9 @@ export default class ProbeMonitorResponseService {
             input.criteriaFilter.filterType === FilterType.True
         ) {
             if (input.probeMonitorResponse.isOnline) {
-                return true;
+                return "Monitor is online.";
             }
-            return false;
+            return null;
         }
 
         if (
@@ -381,15 +389,15 @@ export default class ProbeMonitorResponseService {
             input.criteriaFilter.filterType === FilterType.False
         ) {
             if (!input.probeMonitorResponse.isOnline) {
-                return true;
+                return "Monitor is offline.";
             }
-            return false;
+            return null;
         }
 
         // check response time filter
         if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
             if (!value) {
-                return false;
+                return null;
             }
 
             if (typeof value === Typeof.String) {
@@ -397,12 +405,12 @@ export default class ProbeMonitorResponseService {
                     value = parseInt(value as string);
                 } catch (err) {
                     logger.error(err);
-                    return false;
+                    return null;
                 }
             }
 
             if (typeof value !== Typeof.Number) {
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
@@ -411,9 +419,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs >
                         (value as number)
                 ) {
-                    return true;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is greater than ${value} ms.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.LessThan) {
@@ -422,9 +430,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs <
                         (value as number)
                 ) {
-                    return true;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is less than ${value} ms.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.EqualTo) {
@@ -433,9 +441,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs ===
                         (value as number)
                 ) {
-                    return true;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is equal to ${value} ms.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
@@ -444,9 +452,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs !==
                         (value as number)
                 ) {
-                    return true;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is not equal to ${value} ms.`;
                 }
-                return false;
+                return null;
             }
 
             if (
@@ -458,9 +466,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs >=
                         (value as number)
                 ) {
-                    return true;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is greater than or equal to ${value} ms.`;
                 }
-                return false;
+                return null;
             }
 
             if (
@@ -471,16 +479,16 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs <=
                         (value as number)
                 ) {
-                    return true;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is less than or equal to ${value} ms.`;
                 }
-                return false;
+                return null;
             }
         }
 
         //check reponse code
         if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
             if (!value) {
-                return false;
+                return null;
             }
 
             if (typeof value === Typeof.String) {
@@ -488,12 +496,12 @@ export default class ProbeMonitorResponseService {
                     value = parseInt(value as string);
                 } catch (err) {
                     logger.error(err);
-                    return false;
+                    return null;
                 }
             }
 
             if (typeof value !== Typeof.Number) {
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
@@ -501,9 +509,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode > (value as number)
                 ) {
-                    return true;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is greater than ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.LessThan) {
@@ -511,9 +519,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode < (value as number)
                 ) {
-                    return true;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is less than ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.EqualTo) {
@@ -522,9 +530,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode ===
                         (value as number)
                 ) {
-                    return true;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is equal to ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
@@ -533,9 +541,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode !==
                         (value as number)
                 ) {
-                    return true;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is not equal to ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (
@@ -546,9 +554,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode >= (value as number)
                 ) {
-                    return true;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is greater than or equal to ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (
@@ -558,9 +566,9 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode <= (value as number)
                 ) {
-                    return true;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is less than or equal to ${value}.`;
                 }
-                return false;
+                return null;
             }
         }
 
@@ -573,7 +581,7 @@ export default class ProbeMonitorResponseService {
             }
 
             if (!responseBody) {
-                return false;
+                return null;
             }
 
             // contains
@@ -583,9 +591,9 @@ export default class ProbeMonitorResponseService {
                     responseBody &&
                     (responseBody as string).includes(value as string)
                 ) {
-                    return true;
+                    return `Response body contains ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotContains) {
@@ -594,9 +602,9 @@ export default class ProbeMonitorResponseService {
                     responseBody &&
                     !(responseBody as string).includes(value as string)
                 ) {
-                    return true;
+                    return `Response body does not contain ${value}.`;
                 }
-                return false;
+                return null;
             }
         }
 
@@ -614,9 +622,9 @@ export default class ProbeMonitorResponseService {
                     headerKeys &&
                     headerKeys.includes(value as string)
                 ) {
-                    return true;
+                    return `Response header contains ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotContains) {
@@ -625,9 +633,9 @@ export default class ProbeMonitorResponseService {
                     headerKeys &&
                     !headerKeys.includes(value as string)
                 ) {
-                    return true;
+                    return `Response header does not contain ${value}.`;
                 }
-                return false;
+                return null;
             }
         }
 
@@ -645,9 +653,9 @@ export default class ProbeMonitorResponseService {
                     headerValues &&
                     headerValues.includes(value as string)
                 ) {
-                    return true;
+                    return `Response header value contains ${value}.`;
                 }
-                return false;
+                return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotContains) {
@@ -656,12 +664,12 @@ export default class ProbeMonitorResponseService {
                     headerValues &&
                     !headerValues.includes(value as string)
                 ) {
-                    return true;
+                    return `Response header value does not contain ${value}.`;
                 }
-                return false;
+                return null;
             }
         }
 
-        return false;
+        return null;
     }
 }

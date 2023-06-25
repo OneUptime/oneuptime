@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -19,10 +19,15 @@ import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Incident from 'Model/Models/Incident';
-const IncidentDelete: FunctionComponent<PageComponentProps> = (
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+
+const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+    const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
+    const [logs, setLogs] = useState<string>('');
 
     return (
         <ModelPage
@@ -74,6 +79,33 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     incidentId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
+                selectMoreFields={{
+                    stateChangeLog: true,
+                }}
+                actionButtons={[
+                    {
+                        title: 'View Logs',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        icon: IconProp.List,
+                        onClick: async (
+                            item: JSONObject,
+                            onCompleteAction: Function
+                        ) => {
+                            setLogs(
+                                item['stateChangeLog']
+                                    ? JSON.stringify(
+                                          item['stateChangeLog'],
+                                          null,
+                                          2
+                                      )
+                                    : 'This incident state was created manually.'
+                            );
+                            setShowViewLogsModal(true);
+
+                            onCompleteAction();
+                        },
+                    },
+                ]}
                 onBeforeCreate={(
                     item: IncidentStateTimeline
                 ): Promise<IncidentStateTimeline> => {
@@ -155,8 +187,27 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
+            {showViewLogsModal && (
+                <Modal
+                    title={'Why did the status change?'}
+                    description="Here is more information about why the status changed for this monitor."
+                    isLoading={false}
+                    modalWidth={ModalWidth.Large}
+                    onSubmit={() => {
+                        setShowViewLogsModal(false);
+                    }}
+                    submitButtonText={'Close'}
+                    submitButtonStyleType={ButtonStyleType.NORMAL}
+                >
+                    <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                        {logs.split('\n').map((log: string, i: number) => {
+                            return <div key={i}>{log}</div>;
+                        })}
+                    </div>
+                </Modal>
+            )}
         </ModelPage>
     );
 };
 
-export default IncidentDelete;
+export default IncidentViewStateTimeline;

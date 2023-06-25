@@ -5,4 +5,5 @@ export default interface ProbeApiIngestResponse {
     ingestedMonitorStepId?: ObjectID | undefined;
     nextMonitorStepId?: ObjectID | undefined;
     criteriaMetId?: string | undefined;
+    rootCause: string | null;
 }

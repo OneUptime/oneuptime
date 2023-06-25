@@ -759,4 +759,76 @@ export default class Incident extends BaseModel {
         default: false,
     })
     public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+        
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.LongText,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Root Cause',
+        description: 'What is the root cause of this incident?',
+    })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+    })
+    public rootCause?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public incidentCreatedLog?: JSONObject = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public incidentResolvedLog?: JSONObject = undefined;
+
+
 }

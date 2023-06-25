@@ -443,4 +443,32 @@ export default class MonitorStatusTimeline extends BaseModel {
         unique: false,
     })
     public statusChangeLog?: JSONObject = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+        
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.LongText,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Root Cause',
+        description: 'What is the root cause of this status change?',
+    })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+    })
+    public rootCause?: string = undefined;
+
 }

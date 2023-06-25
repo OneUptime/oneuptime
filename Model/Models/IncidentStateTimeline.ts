@@ -19,6 +19,7 @@ import IncidentState from './IncidentState';
 import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('incident')
@@ -439,4 +440,26 @@ export default class IncidentStateTimeline extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentStateTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public stateChangeLog?: JSONObject = undefined;
 }
