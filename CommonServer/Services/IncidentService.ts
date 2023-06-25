@@ -124,6 +124,8 @@ export class Service extends DatabaseService<Model> {
                 }) || [],
                 createdItem.changeMonitorStatusToId,
                 true, // notifyMonitorOwners
+                createdItem.rootCause,
+                createdItem.createdStateLog,
                 onCreate.createBy.props
             );
         }

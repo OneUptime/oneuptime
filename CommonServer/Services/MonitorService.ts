@@ -25,6 +25,7 @@ import Typeof from 'Common/Types/Typeof';
 import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
+import { JSONObject } from 'Common/Types/JSON';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -113,6 +114,8 @@ export class Service extends DatabaseService<Model> {
             [createdItem.id],
             createdItem.currentMonitorStatusId,
             false, // notifyOwners = false
+            "Monitor created.",
+            undefined, 
             onCreate.createBy.props
         );
 
@@ -341,6 +344,8 @@ export class Service extends DatabaseService<Model> {
         monitorIds: Array<ObjectID>,
         monitorStatusId: ObjectID,
         notifyOwners: boolean,
+        rootCause: string | undefined,
+        statusChangeLog: JSONObject | undefined,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         for (const monitorId of monitorIds) {
@@ -351,6 +356,13 @@ export class Service extends DatabaseService<Model> {
             statusTimeline.monitorStatusId = monitorStatusId;
             statusTimeline.projectId = projectId;
             statusTimeline.isOwnerNotified = !notifyOwners;
+
+            if (statusChangeLog) {
+                statusTimeline.statusChangeLog = statusChangeLog;
+            }
+            if (rootCause) {
+                statusTimeline.rootCause = rootCause;
+            }
 
             await MonitorStatusTimelineService.create({
                 data: statusTimeline,
