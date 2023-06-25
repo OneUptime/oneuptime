@@ -114,8 +114,8 @@ export class Service extends DatabaseService<Model> {
             [createdItem.id],
             createdItem.currentMonitorStatusId,
             false, // notifyOwners = false
-            "This status was created when the monitor was created.",
-            undefined, 
+            'This status was created when the monitor was created.',
+            undefined,
             onCreate.createBy.props
         );
 

@@ -124,7 +124,10 @@ export class Service extends DatabaseService<Model> {
                 }) || [],
                 createdItem.changeMonitorStatusToId,
                 true, // notifyMonitorOwners
-                createdItem.rootCause || 'Status was changed because incident '+createdItem.id.toString()+' was created.',
+                createdItem.rootCause ||
+                    'Status was changed because incident ' +
+                        createdItem.id.toString() +
+                        ' was created.',
                 createdItem.createdStateLog,
                 onCreate.createBy.props
             );

@@ -254,7 +254,8 @@ export class Service extends DatabaseService<Model> {
                 }) || [],
                 item.changeMonitorStatusToId,
                 true, // notify owners
-                "Changed because of scheduled maintenance event: "+item.id.toString(),
+                'Changed because of scheduled maintenance event: ' +
+                    item.id.toString(),
                 undefined,
                 props
             );
