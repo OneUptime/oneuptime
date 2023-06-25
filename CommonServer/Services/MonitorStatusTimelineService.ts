@@ -16,19 +16,22 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         super(MonitorStatusTimeline, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<MonitorStatusTimeline>): Promise<OnCreate<MonitorStatusTimeline>> {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<MonitorStatusTimeline>
+    ): Promise<OnCreate<MonitorStatusTimeline>> {
         if (
-            (createBy.data.createdByUserId || createBy.data.createdByUser || createBy.props.userId) &&
+            (createBy.data.createdByUserId ||
+                createBy.data.createdByUser ||
+                createBy.props.userId) &&
             !createBy.data.rootCause
         ) {
+            let userId: ObjectID | undefined = createBy.data.createdByUserId;
 
-            let userId = createBy.data.createdByUserId;
-
-            if(createBy.props.userId){
+            if (createBy.props.userId) {
                 userId = createBy.props.userId;
             }
 
-            if(createBy.data.createdByUser && createBy.data.createdByUser.id){
+            if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
                 userId = createBy.data.createdByUser.id;
             }
 
@@ -51,7 +54,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             }
         }
 
-        return {createBy, carryForward: null};
+        return { createBy, carryForward: null };
     }
 
     protected override async onCreateSuccess(

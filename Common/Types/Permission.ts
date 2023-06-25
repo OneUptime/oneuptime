@@ -249,20 +249,17 @@ enum Permission {
     CanReadIncidentState = 'CanReadIncidentState',
     CanDeleteIncidentState = 'CanDeleteIncidentState',
 
-
-
     // Incident Status Permissions (Owner + Admin Permission by default)
     CanCreateIncidentStateTimeline = 'CanCreateIncidentStateTimeline',
     CanEditIncidentStateTimeline = 'CanEditIncidentStateTimeline',
     CanReadIncidentStateTimeline = 'CanReadIncidentStateTimeline',
     CanDeleteIncidentStateTimeline = 'CanDeleteIncidentStateTimeline',
 
-
-        // Incident Status Permissions (Owner + Admin Permission by default)
-        CanCreateMonitorStatusTimeline = 'CanCreateMonitorStatusTimeline',
-        CanEditMonitorStatusTimeline = 'CanEditMonitorStatusTimeline',
-        CanReadMonitorStatusTimeline = 'CanReadMonitorStatusTimeline',
-        CanDeleteMonitorStatusTimeline = 'CanDeleteMonitorStatusTimeline',
+    // Incident Status Permissions (Owner + Admin Permission by default)
+    CanCreateMonitorStatusTimeline = 'CanCreateMonitorStatusTimeline',
+    CanEditMonitorStatusTimeline = 'CanEditMonitorStatusTimeline',
+    CanReadMonitorStatusTimeline = 'CanReadMonitorStatusTimeline',
+    CanDeleteMonitorStatusTimeline = 'CanDeleteMonitorStatusTimeline',
 
     // MonitorStatus Permissions (Owner + Admin Permission by default)
     CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
@@ -655,8 +652,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-            
             {
                 permission: Permission.CanCreateIncidentStateTimeline,
                 title: 'Can Create Incident State Timeline',
@@ -689,7 +684,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateMonitorStatusTimeline,

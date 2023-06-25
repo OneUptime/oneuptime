@@ -297,7 +297,9 @@ export default class ProbeMonitorResponseService {
                         incident.monitors = [input.monitor];
                         incident.projectId = input.monitor.projectId!;
                         incident.rootCause = rootCause;
-                        incident.createdStateLog = JSON.parse(JSON.stringify(input.probeMonitorResponse, null, 2));
+                        incident.createdStateLog = JSON.parse(
+                            JSON.stringify(input.probeMonitorResponse, null, 2)
+                        );
 
                         await IncidentService.create({
                             data: incident,
@@ -431,7 +433,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs >
                         (value as number)
                 ) {
-                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is greater than ${value} ms.`;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is greater than the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -442,7 +444,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs <
                         (value as number)
                 ) {
-                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is less than ${value} ms.`;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is less than the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -453,7 +455,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs ===
                         (value as number)
                 ) {
-                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is equal to ${value} ms.`;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms.`;
                 }
                 return null;
             }
@@ -464,7 +466,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs !==
                         (value as number)
                 ) {
-                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is not equal to ${value} ms.`;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is not equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -478,7 +480,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs >=
                         (value as number)
                 ) {
-                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is greater than or equal to ${value} ms.`;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is greater than or equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -491,7 +493,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseTimeInMs <=
                         (value as number)
                 ) {
-                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is less than or equal to ${value} ms.`;
+                    return `Response time is ${input.probeMonitorResponse.responseTimeInMs} ms which is less than or equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -521,7 +523,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode > (value as number)
                 ) {
-                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is greater than ${value}.`;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is greater than the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -531,7 +533,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode < (value as number)
                 ) {
-                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is less than ${value}.`;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is less than the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -542,7 +544,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode ===
                         (value as number)
                 ) {
-                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is equal to ${value}.`;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode}.`;
                 }
                 return null;
             }
@@ -553,7 +555,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode !==
                         (value as number)
                 ) {
-                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is not equal to ${value}.`;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is not equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -566,7 +568,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode >= (value as number)
                 ) {
-                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is greater than or equal to ${value}.`;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is greater than or equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -578,7 +580,7 @@ export default class ProbeMonitorResponseService {
                     input.probeMonitorResponse.responseCode &&
                     input.probeMonitorResponse.responseCode <= (value as number)
                 ) {
-                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is less than or equal to ${value}.`;
+                    return `Response status code is ${input.probeMonitorResponse.responseCode} which is less than or equal to the criteria value of ${value}.`;
                 }
                 return null;
             }

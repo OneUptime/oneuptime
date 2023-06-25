@@ -789,7 +789,6 @@ export default class Incident extends BaseModel {
     })
     public rootCause?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -811,5 +810,4 @@ export default class Incident extends BaseModel {
         unique: false,
     })
     public createdStateLog?: JSONObject = undefined;
-
 }

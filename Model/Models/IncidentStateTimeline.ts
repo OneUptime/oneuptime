@@ -463,7 +463,6 @@ export default class IncidentStateTimeline extends BaseModel {
     })
     public stateChangeLog?: JSONObject = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

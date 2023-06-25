@@ -62,17 +62,18 @@ export class Service extends DatabaseService<Model> {
         createBy.data.currentIncidentStateId = incidentState.id;
 
         if (
-            (createBy.data.createdByUserId || createBy.data.createdByUser || createBy.props.userId) &&
+            (createBy.data.createdByUserId ||
+                createBy.data.createdByUser ||
+                createBy.props.userId) &&
             !createBy.data.rootCause
         ) {
+            let userId: ObjectID | undefined = createBy.data.createdByUserId;
 
-            let userId = createBy.data.createdByUserId;
-
-            if(createBy.props.userId){
+            if (createBy.props.userId) {
                 userId = createBy.props.userId;
             }
 
-            if(createBy.data.createdByUser && createBy.data.createdByUser.id){
+            if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
                 userId = createBy.data.createdByUser.id;
             }
 
@@ -305,14 +306,13 @@ export class Service extends DatabaseService<Model> {
         statusTimeline.isOwnerNotified = !notifyOwners;
         statusTimeline.isStatusPageSubscribersNotified =
             !notifyStatusPageSubscribers;
-            
+
         if (stateChangeLog) {
             statusTimeline.stateChangeLog = stateChangeLog;
         }
         if (rootCause) {
             statusTimeline.rootCause = rootCause;
         }
-
 
         await IncidentStateTimelineService.create({
             data: statusTimeline,

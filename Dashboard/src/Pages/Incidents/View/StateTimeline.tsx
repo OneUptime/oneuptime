@@ -33,7 +33,6 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     const [showRootCause, setShowRootCause] = useState<boolean>(false);
     const [rootCause, setRootCause] = useState<string>('');
 
-
     return (
         <ModelPage
             title="Incident"
@@ -118,10 +117,10 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                             setLogs(
                                 item['stateChangeLog']
                                     ? JSON.stringify(
-                                        item['stateChangeLog'],
-                                        null,
-                                        2
-                                    )
+                                          item['stateChangeLog'],
+                                          null,
+                                          2
+                                      )
                                     : 'This incident state was created manually.'
                             );
                             setShowViewLogsModal(true);
@@ -190,12 +189,12 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                                 <Pill
                                     color={
                                         (item['incidentState'] as JSONObject)[
-                                        'color'
+                                            'color'
                                         ] as Color
                                     }
                                     text={
                                         (item['incidentState'] as JSONObject)[
-                                        'name'
+                                            'name'
                                         ] as string
                                     }
                                 />
