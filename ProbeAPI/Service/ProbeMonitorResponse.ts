@@ -33,6 +33,9 @@ export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
         probeMonitorResponse: ProbeMonitorResponse
     ): Promise<ProbeApiIngestResponse> {
+
+        debugger;
+
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
             criteriaMetId: undefined,
@@ -198,6 +201,8 @@ export default class ProbeMonitorResponseService {
             probeApiIngestResponse: response,
         });
 
+        debugger;
+
         if (response.criteriaMetId && response.rootCause) {
             await this.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
                 monitor: monitor,
@@ -338,7 +343,7 @@ export default class ProbeMonitorResponseService {
                     })
                 );
 
-                if (!hasAlreadyOpenIncident) {
+                if (hasAlreadyOpenIncident) {
                     continue;
                 }
 
@@ -359,6 +364,8 @@ export default class ProbeMonitorResponseService {
 
                 incident.createdCriteriaId =
                     input.criteriaInstance.data.id.toString();
+
+                incident.createdIncidentTemplateId = criteriaIncident.id.toString();
 
                 await IncidentService.create({
                     data: incident,
