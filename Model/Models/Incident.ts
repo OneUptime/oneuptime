@@ -761,7 +761,12 @@ export default class Incident extends BaseModel {
     public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

@@ -62,14 +62,23 @@ export class Service extends DatabaseService<Model> {
         createBy.data.currentIncidentStateId = incidentState.id;
 
         if (
-            (createBy.data.createdByUserId || createBy.data.createdByUser) &&
+            (createBy.data.createdByUserId || createBy.data.createdByUser || createBy.props.userId) &&
             !createBy.data.rootCause
         ) {
+
+            let userId = createBy.data.createdByUserId;
+
+            if(createBy.props.userId){
+                userId = createBy.props.userId;
+            }
+
+            if(createBy.data.createdByUser && createBy.data.createdByUser.id){
+                userId = createBy.data.createdByUser.id;
+            }
+
             const user: User | null = await UserService.findOneBy({
                 query: {
-                    _id: createBy.data.createdByUserId
-                        ? createBy.data.createdByUserId.toString()
-                        : createBy.data.createdByUser?._id?.toString()!,
+                    _id: userId?.toString()!,
                 },
                 select: {
                     _id: true,

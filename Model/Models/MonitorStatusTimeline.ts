@@ -30,25 +30,25 @@ import { JSONObject } from 'Common/Types/JSON';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectMonitor,
+        Permission.CanCreateMonitorStatusTimeline,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectMonitor,
+        Permission.CanReadMonitorStatusTimeline,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectMonitor,
+        Permission.CanDeleteMonitorStatusTimeline,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectMonitor,
+        Permission.CanEditMonitorStatusTimeline,
     ],
 })
 @EnableWorkflow({
@@ -76,13 +76,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -113,13 +113,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -144,13 +144,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -181,13 +181,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -211,13 +211,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -248,13 +248,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -321,19 +321,19 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitor,
+            Permission.CanEditMonitorStatusTimeline,
         ],
     })
     @TableColumn({
@@ -362,19 +362,19 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitor,
+            Permission.CanEditMonitorStatusTimeline,
         ],
     })
     @Index()
@@ -397,13 +397,13 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitor,
+            Permission.CanCreateMonitorStatusTimeline,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -428,7 +428,7 @@ export default class MonitorStatusTimeline extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })
@@ -445,12 +445,17 @@ export default class MonitorStatusTimeline extends BaseModel {
     public statusChangeLog?: JSONObject = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorStatusTimeline,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitor,
+            Permission.CanReadMonitorStatusTimeline,
         ],
         update: [],
     })

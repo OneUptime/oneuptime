@@ -14,10 +14,51 @@ import MonitorStatusService from './MonitorStatusService';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
+import CreateBy from '../Types/Database/CreateBy';
+import UserService from './UserService';
+import User from 'Model/Models/User';
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(IncidentStateTimeline, postgresDatabase);
+    }
+
+    protected override async onBeforeCreate(createBy: CreateBy<MonitorStatusTimeline>): Promise<OnCreate<MonitorStatusTimeline>> {
+        if (
+            (createBy.data.createdByUserId || createBy.data.createdByUser || createBy.props.userId) &&
+            !createBy.data.rootCause
+        ) {
+
+            let userId = createBy.data.createdByUserId;
+
+            if (createBy.props.userId) {
+                userId = createBy.props.userId;
+            }
+
+            if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
+                userId = createBy.data.createdByUser.id;
+            }
+
+            const user: User | null = await UserService.findOneBy({
+                query: {
+                    _id: userId?.toString()!,
+                },
+                select: {
+                    _id: true,
+                    name: true,
+                    email: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (user) {
+                createBy.data.rootCause = `Incident state created by ${user.name} (${user.email})`;
+            }
+        }
+
+        return { createBy, carryForward: null };
     }
 
     protected override async onCreateSuccess(
