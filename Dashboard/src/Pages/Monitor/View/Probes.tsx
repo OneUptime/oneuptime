@@ -32,12 +32,15 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-
+    const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
+    const [logs, setLogs] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [error, setError] = useState<string>('');
@@ -168,6 +171,33 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     'No probes found for this resource. However, you can add some probes to monitor this resource.'
                 }
                 viewPageRoute={Navigation.getCurrentRoute()}
+                selectMoreFields={{
+                    lastMonitoringLog: true,
+                }}
+                actionButtons={[
+                    {
+                        title: 'View Logs',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        icon: IconProp.List,
+                        onClick: async (
+                            item: JSONObject,
+                            onCompleteAction: Function
+                        ) => {
+                            setLogs(
+                                item['lastMonitoringLog']
+                                    ? JSON.stringify(
+                                          item['lastMonitoringLog'],
+                                          null,
+                                          2
+                                      )
+                                    : 'Not monitored yet'
+                            );
+                            setShowViewLogsModal(true);
+
+                            onCompleteAction();
+                        },
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
@@ -279,6 +309,25 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
         >
             <DisabledWarning monitorId={modelId} />
             {getPageContent()}
+            {showViewLogsModal && (
+                <Modal
+                    title={'Monitoring Logs'}
+                    description="Here are the latest monitoring log for this resource."
+                    isLoading={false}
+                    modalWidth={ModalWidth.Large}
+                    onSubmit={() => {
+                        setShowViewLogsModal(false);
+                    }}
+                    submitButtonText={'Close'}
+                    submitButtonStyleType={ButtonStyleType.NORMAL}
+                >
+                    <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                        {logs.split('\n').map((log: string, i: number) => {
+                            return <div key={i}>{log}</div>;
+                        })}
+                    </div>
+                </Modal>
+            )}
         </ModelPage>
     );
 };

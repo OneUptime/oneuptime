@@ -10,4 +10,5 @@ export default interface ProbeMonitorResponse {
     responseBody?: string | JSONObject | undefined;
     monitorStepId: ObjectID;
     monitorId: ObjectID;
+    probeId: ObjectID;
 }

@@ -15,6 +15,7 @@ import WebsiteMonitor, {
 import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import logger from 'CommonServer/Utils/Logger';
+import ProbeUtil from '../Probe';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -69,6 +70,7 @@ export default class MonitorUtil {
         const result: ProbeMonitorResponse = {
             monitorStepId: monitorStep.id,
             monitorId: monitor.id!,
+            probeId: ProbeUtil.getProbeId(),
         };
 
         if (!monitorStep.data || !monitorStep.data?.monitorDestination) {

@@ -79,7 +79,8 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                     {
                         key: 'autoResolveIncident',
                         title: 'Auto Resolve Incident',
-                        description: 'Automatically resolve this incident when this criteria is no longer met.',
+                        description:
+                            'Automatically resolve this incident when this criteria is no longer met.',
                         fieldType: FieldType.Boolean,
                         placeholder: 'No',
                     },

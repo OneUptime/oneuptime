@@ -21,6 +21,9 @@ import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
+import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
+import OneUptimeDate from 'Common/Types/Date';
+import MonitorProbe from 'Model/Models/MonitorProbe';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -49,6 +52,46 @@ export default class ProbeMonitorResponseService {
         if (!monitor) {
             throw new BadDataException('Monitor not found');
         }
+
+        // save the last log to MonitorProbe.
+
+        // get last log. We do this because there are many monitoring steps and we need to store those.
+        const monitorProbe: MonitorProbe | null =
+            await MonitorProbeService.findOneBy({
+                query: {
+                    monitorId: monitor.id!,
+                    probeId: probeMonitorResponse.probeId!,
+                },
+                select: {
+                    lastMonitoringLog: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!monitorProbe) {
+            throw new BadDataException('Probe is not assigned to this monitor');
+        }
+
+        await MonitorProbeService.updateOneBy({
+            query: {
+                monitorId: monitor.id!,
+                probeId: probeMonitorResponse.probeId!,
+            },
+            data: {
+                lastMonitoringLog: {
+                    ...(monitorProbe.lastMonitoringLog || {}),
+                    [probeMonitorResponse.monitorStepId.toString()]: {
+                        ...JSON.parse(JSON.stringify(probeMonitorResponse)),
+                        monitoredAt: OneUptimeDate.getCurrentDate(),
+                    },
+                } as any,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
 
         // save data to Clickhouse.
 

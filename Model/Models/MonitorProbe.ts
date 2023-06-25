@@ -18,6 +18,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import Monitor from './Monitor';
 import Probe from './Probe';
+import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -445,4 +446,26 @@ export default class MonitorProbe extends AccessControlModel {
         default: true,
     })
     public isEnabled?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorProbe,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public lastMonitoringLog?: JSONObject = undefined;
 }
