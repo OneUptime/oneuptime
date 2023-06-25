@@ -462,4 +462,29 @@ export default class IncidentStateTimeline extends BaseModel {
         unique: false,
     })
     public stateChangeLog?: JSONObject = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentStateTimeline,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.LongText,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Root Cause',
+        description: 'What is the root cause of this status change?',
+    })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+    })
+    public rootCause?: string = undefined;
 }

@@ -84,6 +84,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 selectMoreFields={{
                     statusChangeLog: true,
+                    rootCause: true,
                 }}
                 actionButtons={[
                     {

@@ -39,6 +39,7 @@ RunCron(
                 incidentSeverity: {
                     name: true,
                 },
+                rootCause: true,
             },
         });
 
@@ -80,6 +81,9 @@ RunCron(
                     incident.description! || ''
                 ),
                 incidentSeverity: incident.incidentSeverity!.name!,
+                rootCause:
+                    incident.rootCause ||
+                    'No root cause identified for this incident',
                 incidentViewLink: IncidentService.getIncidentLinkInDashboard(
                     incident.projectId!,
                     incident.id!

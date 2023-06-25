@@ -406,6 +406,34 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <CardModelDetail
+                name="Root Cause"
+                cardProps={{
+                    title: 'Root Cause',
+                    description:
+                        'Why did this incident happen? Here is the root cause of this incident.',
+                    icon: IconProp.TransparentCube,
+                }}
+                isEditable={false}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: Incident,
+                    id: 'model-detail-incident-root-cause',
+                    fields: [
+                        {
+                            field: {
+                                rootCause: true,
+                            },
+                            title: 'Root Cause',
+                            placeholder:
+                                'No root cause identified for this incident.',
+                            fieldType: FieldType.LongText,
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
         </ModelPage>
     );
 };

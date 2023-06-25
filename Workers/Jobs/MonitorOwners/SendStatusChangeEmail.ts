@@ -46,6 +46,7 @@ RunCron(
                     monitorStatus: {
                         name: true,
                     },
+                    rootCause: true,
                 },
             });
 
@@ -100,6 +101,9 @@ RunCron(
                     monitorStatusTimeline.projectId!,
                     monitor.id!
                 ).toString(),
+                rootCause:
+                    monitorStatusTimeline.rootCause ||
+                    'No root cause identified.',
             };
 
             if (doesResourceHasOwners === true) {

@@ -21,6 +21,8 @@ import URL from 'Common/Types/API/URL';
 import User from 'Model/Models/User';
 import TeamMemberService from './TeamMemberService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import UserService from './UserService';
+import { JSONObject } from 'Common/Types/JSON';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -58,6 +60,31 @@ export class Service extends DatabaseService<Model> {
         }
 
         createBy.data.currentIncidentStateId = incidentState.id;
+
+        if (
+            (createBy.data.createdByUserId || createBy.data.createdByUser) &&
+            !createBy.data.rootCause
+        ) {
+            const user: User | null = await UserService.findOneBy({
+                query: {
+                    _id: createBy.data.createdByUserId
+                        ? createBy.data.createdByUserId.toString()
+                        : createBy.data.createdByUser?._id?.toString()!,
+                },
+                select: {
+                    _id: true,
+                    name: true,
+                    email: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (user) {
+                createBy.data.rootCause = `Incident created by ${user.name} (${user.email})`;
+            }
+        }
 
         return { createBy, carryForward: null };
     }
@@ -97,6 +124,8 @@ export class Service extends DatabaseService<Model> {
             createdItem.currentIncidentStateId,
             false,
             false,
+            createdItem.rootCause,
+            createdItem.createdStateLog,
             {
                 isRoot: true,
             }
@@ -254,7 +283,9 @@ export class Service extends DatabaseService<Model> {
         incidentStateId: ObjectID,
         notifyStatusPageSubscribers: boolean,
         notifyOwners: boolean,
-        props: DatabaseCommonInteractionProps
+        rootCause: string | undefined,
+        stateChangeLog: JSONObject | undefined,
+        props: DatabaseCommonInteractionProps | undefined
     ): Promise<void> {
         const statusTimeline: IncidentStateTimeline =
             new IncidentStateTimeline();
@@ -265,10 +296,18 @@ export class Service extends DatabaseService<Model> {
         statusTimeline.isOwnerNotified = !notifyOwners;
         statusTimeline.isStatusPageSubscribersNotified =
             !notifyStatusPageSubscribers;
+            
+        if (stateChangeLog) {
+            statusTimeline.stateChangeLog = stateChangeLog;
+        }
+        if (rootCause) {
+            statusTimeline.rootCause = rootCause;
+        }
+
 
         await IncidentStateTimelineService.create({
             data: statusTimeline,
-            props: props,
+            props: props || {},
         });
     }
 }

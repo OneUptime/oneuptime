@@ -784,27 +784,6 @@ export default class Incident extends BaseModel {
     })
     public rootCause?: string = undefined;
 
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        isDefaultValueColumn: false,
-        required: false,
-        type: TableColumnType.JSON,
-    })
-    @Column({
-        type: ColumnType.JSON,
-        nullable: true,
-        unique: false,
-    })
-    public incidentCreatedLog?: JSONObject = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -826,5 +805,6 @@ export default class Incident extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public incidentResolvedLog?: JSONObject = undefined;
+    public createdStateLog?: JSONObject = undefined;
+
 }

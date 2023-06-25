@@ -297,6 +297,7 @@ export default class ProbeMonitorResponseService {
                         incident.monitors = [input.monitor];
                         incident.projectId = input.monitor.projectId!;
                         incident.rootCause = rootCause;
+                        incident.createdStateLog = JSON.parse(JSON.stringify(input.probeMonitorResponse, null, 2));
 
                         await IncidentService.create({
                             data: incident,

@@ -21,6 +21,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import Incident from 'Model/Models/Incident';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -28,6 +29,10 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
     const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
     const [logs, setLogs] = useState<string>('');
+
+    const [showRootCause, setShowRootCause] = useState<boolean>(false);
+    const [rootCause, setRootCause] = useState<string>('');
+
 
     return (
         <ModelPage
@@ -81,8 +86,27 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                 }}
                 selectMoreFields={{
                     stateChangeLog: true,
+                    rootCause: true,
                 }}
                 actionButtons={[
+                    {
+                        title: 'View Cause',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        icon: IconProp.TransparentCube,
+                        onClick: async (
+                            item: JSONObject,
+                            onCompleteAction: Function
+                        ) => {
+                            setRootCause(
+                                item['rootCause']
+                                    ? item['rootCause'].toString()
+                                    : 'No root cause. This monitor status could be created manually.'
+                            );
+                            setShowRootCause(true);
+
+                            onCompleteAction();
+                        },
+                    },
                     {
                         title: 'View Logs',
                         buttonStyleType: ButtonStyleType.NORMAL,
@@ -94,10 +118,10 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                             setLogs(
                                 item['stateChangeLog']
                                     ? JSON.stringify(
-                                          item['stateChangeLog'],
-                                          null,
-                                          2
-                                      )
+                                        item['stateChangeLog'],
+                                        null,
+                                        2
+                                    )
                                     : 'This incident state was created manually.'
                             );
                             setShowViewLogsModal(true);
@@ -166,12 +190,12 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                                 <Pill
                                     color={
                                         (item['incidentState'] as JSONObject)[
-                                            'color'
+                                        'color'
                                         ] as Color
                                     }
                                     text={
                                         (item['incidentState'] as JSONObject)[
-                                            'name'
+                                        'name'
                                         ] as string
                                     }
                                 />
@@ -205,6 +229,19 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         })}
                     </div>
                 </Modal>
+            )}
+
+            {showRootCause && (
+                <ConfirmModal
+                    title={'Root Cause'}
+                    description={rootCause}
+                    isLoading={false}
+                    onSubmit={() => {
+                        setShowRootCause(false);
+                    }}
+                    submitButtonText={'Close'}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                />
             )}
         </ModelPage>
     );
