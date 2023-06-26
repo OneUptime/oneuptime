@@ -1270,7 +1270,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <div className="mt-5 mb-5">{getCardComponent()}</div>
+            <div className="mb-10">{getCardComponent()}</div>
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>

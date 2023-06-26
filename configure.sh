@@ -186,6 +186,9 @@ fi
 # Create .env file if it does not exist. 
 touch config.env
 
+# Reload terminal with newly installed packages.
+source ~/.bashrc
+
 #Run a scirpt to merge config.env.tpl to config.env
 ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 
