@@ -212,7 +212,7 @@ export default class Incident extends BaseModel {
         type: TableColumnType.Markdown,
         title: 'Description',
         description:
-            'Short description of this incident. THis is in markdown and will be visible on the status page.',
+            'Short description of this incident. This is in markdown and will be visible on the status page.',
     })
     @Column({
         nullable: true,
