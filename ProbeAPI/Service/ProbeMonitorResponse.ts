@@ -36,8 +36,6 @@ export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
         probeMonitorResponse: ProbeMonitorResponse
     ): Promise<ProbeApiIngestResponse> {
-        
-
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
             criteriaMetId: undefined,

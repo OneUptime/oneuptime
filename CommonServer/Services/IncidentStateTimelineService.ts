@@ -94,7 +94,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         onCreate: OnCreate<IncidentStateTimeline>,
         createdItem: IncidentStateTimeline
     ): Promise<IncidentStateTimeline> {
-        
         if (!createdItem.incidentId) {
             throw new BadDataException('incidentId is null');
         }

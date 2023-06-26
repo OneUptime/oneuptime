@@ -18,9 +18,9 @@ export default class Domain extends DomainCommon {
                         return reject(err);
                     }
 
-                    logger.info("Verify TXT Record");
-                    logger.info("Domain "+domain.toString());
-                    logger.info("Data: ")
+                    logger.info('Verify TXT Record');
+                    logger.info('Domain ' + domain.toString());
+                    logger.info('Data: ');
                     logger.info(data);
 
                     let isVerified: boolean = false;
