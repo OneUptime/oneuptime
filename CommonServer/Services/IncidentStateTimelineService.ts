@@ -94,6 +94,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         onCreate: OnCreate<IncidentStateTimeline>,
         createdItem: IncidentStateTimeline
     ): Promise<IncidentStateTimeline> {
+        
         if (!createdItem.incidentId) {
             throw new BadDataException('incidentId is null');
         }
@@ -165,6 +166,35 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
                 if (resolvedMonitorState) {
                     for (const monitor of incident.monitors) {
+                        //check state of the monitor.
+
+                        const latestState: MonitorStatusTimeline | null =
+                            await MonitorStatusTimelineService.findOneBy({
+                                query: {
+                                    monitorId: monitor.id!,
+                                    projectId: incident.projectId!,
+                                },
+                                select: {
+                                    _id: true,
+                                    monitorStatusId: true,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Descending,
+                                },
+                            });
+
+                        if (
+                            latestState &&
+                            latestState.monitorStatusId?.toString() ===
+                                resolvedMonitorState.id!.toString()
+                        ) {
+                            // already on this state. Skip.
+                            continue;
+                        }
+
                         const monitorStatusTimeline: MonitorStatusTimeline =
                             new MonitorStatusTimeline();
                         monitorStatusTimeline.monitorId = monitor.id!;

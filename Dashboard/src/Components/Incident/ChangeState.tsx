@@ -61,14 +61,20 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
         }
     }, [props.incidentTimeline]);
 
-    if (
-        incidentTimeline &&
-        incidentTimeline.createdByUser &&
-        incidentTimeline.createdAt
-    ) {
+    if (incidentTimeline && incidentTimeline.createdAt) {
         return (
             <div>
-                <UserElement user={incidentTimeline.createdByUser} />
+                {incidentTimeline.createdByUser && (
+                    <UserElement user={incidentTimeline.createdByUser} />
+                )}
+                {!incidentTimeline.createdByUser && (
+                    <p>
+                        {props.incidentType === IncidentType.Ack
+                            ? 'Acknowledged'
+                            : 'Resolved'}{' '}
+                        by OneUptime
+                    </p>
+                )}
                 {OneUptimeDate.getDateAsLocalFormattedString(
                     incidentTimeline.createdAt
                 )}

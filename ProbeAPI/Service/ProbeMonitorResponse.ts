@@ -28,13 +28,15 @@ import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Dictionary from 'Common/Types/Dictionary';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentSeverityService from 'CommonServer/Services/IncidentSeverityService';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
         probeMonitorResponse: ProbeMonitorResponse
     ): Promise<ProbeApiIngestResponse> {
-
-        debugger;
+        
 
         let response: ProbeApiIngestResponse = {
             monitorId: probeMonitorResponse.monitorId,
@@ -201,8 +203,6 @@ export default class ProbeMonitorResponseService {
             probeApiIngestResponse: response,
         });
 
-        debugger;
-
         if (response.criteriaMetId && response.rootCause) {
             await this.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
                 monitor: monitor,
@@ -353,8 +353,38 @@ export default class ProbeMonitorResponseService {
 
                 incident.title = criteriaIncident.title;
                 incident.description = criteriaIncident.description;
-                incident.incidentSeverityId =
-                    criteriaIncident.incidentSeverityId!;
+
+                if (!criteriaIncident.incidentSeverityId) {
+                    // pick the critical criteria.
+
+                    const severity: IncidentSeverity | null =
+                        await IncidentSeverityService.findOneBy({
+                            query: {
+                                projectId: input.monitor.projectId!,
+                            },
+                            sort: {
+                                order: SortOrder.Ascending,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                            select: {
+                                _id: true,
+                            },
+                        });
+
+                    if (!severity) {
+                        throw new BadDataException(
+                            'Project does not have incident severity'
+                        );
+                    } else {
+                        incident.incidentSeverityId = severity.id!;
+                    }
+                } else {
+                    incident.incidentSeverityId =
+                        criteriaIncident.incidentSeverityId!;
+                }
+
                 incident.monitors = [input.monitor];
                 incident.projectId = input.monitor.projectId!;
                 incident.rootCause = input.rootCause;
@@ -365,7 +395,8 @@ export default class ProbeMonitorResponseService {
                 incident.createdCriteriaId =
                     input.criteriaInstance.data.id.toString();
 
-                incident.createdIncidentTemplateId = criteriaIncident.id.toString();
+                incident.createdIncidentTemplateId =
+                    criteriaIncident.id.toString();
 
                 await IncidentService.create({
                     data: incident,
