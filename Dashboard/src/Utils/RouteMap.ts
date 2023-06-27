@@ -270,8 +270,13 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.ON_CALL_DUTY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
+
     [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
+    ),
+
+    [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/execution-logs`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW]: new Route(

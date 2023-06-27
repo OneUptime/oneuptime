@@ -114,6 +114,7 @@ import UserProfilePassword from './Pages/Global/UserProfile/Password';
 
 // On Call Duty
 import OnCallDutyPoliciesPage from './Pages/OnCallDuty/OnCallDutyPolicies';
+import OnCallDutyExecutionLogs from './Pages/OnCallDuty/OnCallDutyExecutionLogs';
 import OnCallDutyPolicyView from './Pages/OnCallDuty/OnCallDutyPolicy/Index';
 import OnCallDutyPolicyViewDelete from './Pages/OnCallDuty/OnCallDutyPolicy/Delete';
 import OnCallDutyPolicyViewLogs from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs';
@@ -1822,8 +1823,24 @@ const App: FunctionComponent = () => {
                     element={
                         <OnCallDutyPoliciesPage
                             {...commonPageProps}
+                            pageRoute={RouteMap[PageMap.ON_CALL_DUTY] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_EXECUTION_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyExecutionLogs
+                            {...commonPageProps}
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS
+                                ] as Route
                             }
                         />
                     }

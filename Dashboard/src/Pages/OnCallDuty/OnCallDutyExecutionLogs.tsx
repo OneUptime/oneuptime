@@ -37,9 +37,11 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Policies',
+                    title: 'Execution Logs',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                        ] as Route
                     ),
                 },
             ]}
