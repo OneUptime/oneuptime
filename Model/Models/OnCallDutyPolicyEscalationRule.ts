@@ -354,4 +354,70 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Number,
+        title: 'Escalate After (in minutes)',
+        description:
+            'How long should we wait before we execute the next escalation rule?',
+        canReadOnRelationQuery: true,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.Number,
+    })
+    public escalateAfterInMinutes?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        type: TableColumnType.Number,
+        title: 'Order',
+        description: 'Order of this rule',
+    })
+    @Column({
+        type: ColumnType.Number,
+    })
+    public order?: number = undefined;
 }
