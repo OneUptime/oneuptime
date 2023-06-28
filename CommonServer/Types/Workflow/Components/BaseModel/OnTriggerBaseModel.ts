@@ -117,7 +117,7 @@ export default class OnTriggerBaseModel<
         }
 
         const model: TBaseModel | null = await this.service!.findOneById({
-            id: new ObjectID(args['_id'] as string),
+            id: new ObjectID(data['_id'] as string),
             props: {
                 isRoot: true,
             },
