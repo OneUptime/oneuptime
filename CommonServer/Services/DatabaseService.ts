@@ -1173,6 +1173,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async findOneById(
         findOneById: FindOneByID<TBaseModel>
     ): Promise<TBaseModel | null> {
+        if (!findOneById.id) {
+            throw new BadDataException('findOneById.id is required');
+        }
+
         return await this.findOneBy({
             query: {
                 _id: findOneById.id.toString() as any,
@@ -1296,6 +1300,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async updateOneById(
         updateById: UpdateByID<TBaseModel>
     ): Promise<void> {
+        if (!updateById.id) {
+            throw new BadDataException('updateById.id is required');
+        }
+
         await this.updateOneBy({
             query: {
                 _id: updateById.id.toString() as any,
