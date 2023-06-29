@@ -186,6 +186,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
+        debugger;
         if (
             updateBy.data.order &&
             !updateBy.props.isRoot &&

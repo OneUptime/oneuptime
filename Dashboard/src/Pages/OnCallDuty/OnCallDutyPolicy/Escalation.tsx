@@ -18,6 +18,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../../Utils/ProjectUser';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -71,6 +72,8 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={false}
+                sortBy="order"
+                sortOrder={SortOrder.Ascending}
                 showViewIdButton={true}
                 isViewable={false}
                 enableDragAndDrop={true}
@@ -114,6 +117,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
 
                 ]}
                 formFields={[
+                    
                     {
                         field: {
                             name: true,
@@ -179,8 +183,9 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             escalateAfterInMinutes: true,
                         },
                         stepId: 'escalation',
-                        title: 'Escalate After (in minutes)',
+                        title: 'Escalate after (in minutes)',
                         fieldType: FormFieldSchemaType.Number,
+                        placeholder: 30,
                         required: true,
                         description:
                             'The amount of time to wait before escalating to the next escalation rule.',
@@ -189,6 +194,15 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showTableAs={ShowTableAs.List}
                 columns={[
+                    {
+                        field: {
+                            order: true,
+                        },
+                        isFilterable: false,
+                        title: 'Escalation Rule Order',
+                        description: 'The order of the escalation rule.',
+                        type: FieldType.Number,
+                    },
                     {
                         field: {
                             name: true,
@@ -212,7 +226,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             escalateAfterInMinutes: true,
                         },
                         isFilterable: true,
-                        title: 'Escalate After (in minutes)',
+                        title: 'Escalate after (in minutes)',
                         description: 'The amount of minutes to wait before escalating to the next escalation rule.',
                         type: FieldType.Number,
                     }
