@@ -52,8 +52,8 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
 })
 @TableMetadata({
     tableName: 'OnCallDutyPolicyEscalationRule',
-    singularName: 'On Call Duty Escalation Rule',
-    pluralName: 'On Call Duty Esdcalation Rules',
+    singularName: 'Escalation Rule',
+    pluralName: 'Escalation Rules',
     icon: IconProp.Call,
     tableDescription:
         'Manage on-call duty escalation rule for the on-call policy.',

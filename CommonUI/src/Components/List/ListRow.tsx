@@ -5,10 +5,17 @@ import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
 import ConfirmModal from '../Modal/ConfirmModal';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 export interface ComponentProps {
     item: JSONObject;
     fields: Array<Field>;
     actionButtons?: Array<ActionButtonSchema> | undefined;
+    enableDragAndDrop?: boolean | undefined;
+    dragAndDropScope?: string | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
 }
 
 const ListRow: FunctionComponent<ComponentProps> = (
@@ -22,70 +29,104 @@ const ListRow: FunctionComponent<ComponentProps> = (
 
     const [error, setError] = useState<string>('');
 
-    return (
-        <div className="bg-white px-4 py-6 shadow sm:rounded-lg sm:px-6">
-            <div>
-                <Detail item={props.item} fields={props.fields} />
-            </div>
+    const getRow: Function = (provided?: DraggableProvided): ReactElement => {
 
-            <div className="flex mt-5 -ml-3">
-                {props.actionButtons?.map(
-                    (button: ActionButtonSchema, i: number) => {
-                        if (button.isVisible && !button.isVisible(props.item)) {
-                            return <></>;
+        return (
+            <div {...provided?.draggableProps} ref={provided?.innerRef} className="bg-white px-4 py-6 shadow sm:rounded-lg sm:px-6">
+                <div>
+                    {props.enableDragAndDrop && (
+                        <td
+                            className="ml-3 w-10"
+                            {...provided?.dragHandleProps}
+                        >
+                            <Icon
+                                icon={IconProp.Drag}
+                                thick={ThickProp.Thick}
+                                className=" h-6 w-6 text-gray-500 hover:text-gray-700 m-auto cursor-ns-resize"
+                            />
+                        </td>
+                    )}
+                    <Detail item={props.item} fields={props.fields} />
+                </div>
+
+                <div className="flex mt-5 -ml-3">
+                    {props.actionButtons?.map(
+                        (button: ActionButtonSchema, i: number) => {
+                            if (button.isVisible && !button.isVisible(props.item)) {
+                                return <></>;
+                            }
+
+                            return (
+                                <div key={i}>
+                                    <Button
+                                        buttonSize={ButtonSize.Small}
+                                        title={button.title}
+                                        icon={button.icon}
+                                        buttonStyle={button.buttonStyleType}
+                                        isLoading={isButtonLoading[i]}
+                                        onClick={() => {
+                                            if (button.onClick) {
+                                                isButtonLoading[i] = true;
+                                                setIsButtonLoading(isButtonLoading);
+                                                button.onClick(
+                                                    props.item,
+                                                    () => {
+                                                        // on aciton complete
+                                                        isButtonLoading[i] = false;
+                                                        setIsButtonLoading(
+                                                            isButtonLoading
+                                                        );
+                                                    },
+                                                    (err: Error) => {
+                                                        isButtonLoading[i] = false;
+                                                        setIsButtonLoading(
+                                                            isButtonLoading
+                                                        );
+                                                        setError(
+                                                            (err as Error).message
+                                                        );
+                                                    }
+                                                );
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            );
                         }
-
-                        return (
-                            <div key={i}>
-                                <Button
-                                    buttonSize={ButtonSize.Small}
-                                    title={button.title}
-                                    icon={button.icon}
-                                    buttonStyle={button.buttonStyleType}
-                                    isLoading={isButtonLoading[i]}
-                                    onClick={() => {
-                                        if (button.onClick) {
-                                            isButtonLoading[i] = true;
-                                            setIsButtonLoading(isButtonLoading);
-                                            button.onClick(
-                                                props.item,
-                                                () => {
-                                                    // on aciton complete
-                                                    isButtonLoading[i] = false;
-                                                    setIsButtonLoading(
-                                                        isButtonLoading
-                                                    );
-                                                },
-                                                (err: Error) => {
-                                                    isButtonLoading[i] = false;
-                                                    setIsButtonLoading(
-                                                        isButtonLoading
-                                                    );
-                                                    setError(
-                                                        (err as Error).message
-                                                    );
-                                                }
-                                            );
-                                        }
-                                    }}
-                                />
-                            </div>
-                        );
-                    }
+                    )}
+                </div>
+                {error && (
+                    <ConfirmModal
+                        title={`Error`}
+                        description={error}
+                        submitButtonText={'Close'}
+                        onSubmit={() => {
+                            return setError('');
+                        }}
+                    />
                 )}
             </div>
-            {error && (
-                <ConfirmModal
-                    title={`Error`}
-                    description={error}
-                    submitButtonText={'Close'}
-                    onSubmit={() => {
-                        return setError('');
-                    }}
-                />
-            )}
-        </div>
-    );
+        );
+    };
+
+    if (props.enableDragAndDrop) {
+        return (
+            <Draggable
+                draggableId={
+                    (props.item[props.dragDropIdField || ''] as string) || ''
+                }
+                index={
+                    (props.item[props.dragDropIndexField || 0] as number) || 0
+                }
+            >
+                {(provided: DraggableProvided) => {
+                    return getRow(provided);
+                }}
+            </Draggable>
+        );
+    }
+
+    return getRow();
 };
 
 export default ListRow;

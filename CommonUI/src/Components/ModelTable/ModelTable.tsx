@@ -1129,6 +1129,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 pluralLabel={props.pluralName || model.pluralName || 'Items'}
                 error={error}
                 currentPageNumber={currentPageNumber}
+                enableDragAndDrop={props.enableDragAndDrop}
+                onDragDrop={async (id: string, newOrder: number) => {
+                    if (!props.dragDropIndexField) {
+                        return;
+                    }
+
+                    setIsLoading(true);
+
+                    await ModelAPI.updateById(
+                        props.modelType,
+                        new ObjectID(id),
+                        {
+                            [props.dragDropIndexField]: newOrder,
+                        }
+                    );
+
+                    fetchItems();
+                }}
+                dragDropIdField={'_id'}
+                dragDropIndexField={props.dragDropIndexField}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
                 data={JSONFunctions.toJSONObjectArray(data, props.modelType)}
@@ -1270,7 +1290,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <div className="mb-10">{getCardComponent()}</div>
+            <div className="mb-5 mt-5">{getCardComponent()}</div>
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>

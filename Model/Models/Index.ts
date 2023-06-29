@@ -33,6 +33,11 @@ import StatusPageOwnerUser from './StatusPageOwnerUser';
 // On Call Duty
 import OnCallDutyPolicy from './OnCallDutyPolicy';
 import OnCallDutyPolicyCustomField from './OnCallDutyPolicyCustomField';
+import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
+import OnCallDutyPolicyEscalationRuleTeam from './OnCallDutyPolicyEscalationRuleTeam';
+import OnCallDutyPolicyEscalationRuleUser from './OnCallDutyPolicyEscalationRuleUser';
+import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
+import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
 
 // Monitors
 import Monitor from './Monitor';
@@ -113,6 +118,11 @@ export default [
 
     OnCallDutyPolicy,
     OnCallDutyPolicyCustomField,
+    OnCallDutyPolicyEscalationRule,
+    OnCallDutyPolicyEscalationRuleTeam,
+    OnCallDutyPolicyEscalationRuleUser,
+    OnCallDutyPolicyExecutionLog,
+    OnCallDutyPolicyExecutionLogTimeline,
 
     Monitor,
     MonitorStatus,

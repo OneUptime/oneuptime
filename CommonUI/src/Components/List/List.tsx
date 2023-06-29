@@ -6,6 +6,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ListBody from './ListBody';
 import Field from '../Detail/Field';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -16,6 +17,10 @@ export interface ComponentProps {
     currentPageNumber: number;
     totalItemsCount: number;
     itemsOnPage: number;
+    enableDragAndDrop?: boolean | undefined;
+    dragDropIndexField?: string | undefined;
+    dragDropIdField?: string | undefined;
+    onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
     error: string;
     isLoading: boolean;
     singularLabel: string;
@@ -61,13 +66,28 @@ const List: FunctionComponent<ComponentProps> = (
                 data={props.data}
                 fields={props.fields}
                 actionButtons={props.actionButtons}
+                enableDragAndDrop={props.enableDragAndDrop}
+                dragAndDropScope={`${props.id}-dnd`}
+                dragDropIdField={props.dragDropIdField}
+                dragDropIndexField={props.dragDropIndexField}
             />
         );
     };
 
     return (
         <div>
-            {getListbody()}
+            <DragDropContext
+                onDragEnd={(result: DropResult) => {
+                    result.destination?.index &&
+                        props.onDragDrop &&
+                        props.onDragDrop(
+                            result.draggableId,
+                            result.destination.index
+                        );
+                }}
+            >
+                {getListbody()}
+            </DragDropContext>
             {!props.disablePagination && (
                 <div className=" -ml-6 mt-5 -mr-6 -mb-6">
                     <Pagination

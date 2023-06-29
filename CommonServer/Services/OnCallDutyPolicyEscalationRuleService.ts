@@ -15,10 +15,82 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import UpdateBy from '../Types/Database/UpdateBy';
 import Query from '../Types/Database/Query';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import OnCallDutyPolicyEscalationRuleUser from 'Model/Models/OnCallDutyPolicyEscalationRuleUser';
+import OnCallDutyPolicyEscalationRuleUserService from './OnCallDutyPolicyEscalationRuleUserService';
+import OnCallDutyPolicyEscalationRuleTeam from 'Model/Models/OnCallDutyPolicyEscalationRuleTeam';
+import OnCallDutyPolicyEscalationRuleTeamService from './OnCallDutyPolicyEscalationRuleTeamService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    protected override async onCreateSuccess(onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
+        if (!createdItem.projectId) {
+            throw new BadDataException('projectId is required');
+        }
+
+        if (!createdItem.id) {
+            throw new BadDataException('id is required');
+        }
+
+        // add people in escalation rule.
+
+        if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps['teams'] ||
+                onCreate.createBy.miscDataProps['users'])
+        ) {
+            await this.addUsersAndTeams(
+                createdItem.projectId,
+                createdItem.id,
+                createdItem.onCallDutyPolicyId!,
+                (onCreate.createBy.miscDataProps[
+                    'ownerUsers'
+                ] as Array<ObjectID>) || [],
+                (onCreate.createBy.miscDataProps[
+                    'ownerTeams'
+                ] as Array<ObjectID>) || [],
+                onCreate.createBy.props
+            );
+        }
+
+        return createdItem;
+    }
+
+    public async addUsersAndTeams(projectId: ObjectID, escalationRuleId: ObjectID, onCallDutyPolicyId: ObjectID, usersIds: Array<ObjectID>, teamIds: Array<ObjectID>, props: DatabaseCommonInteractionProps): Promise<void> {
+
+        for (const userId of usersIds) {
+            await this.addUser(projectId, escalationRuleId, onCallDutyPolicyId, userId, props);
+        }
+
+        for (const teamId of teamIds) {
+            await this.addTeam(projectId, escalationRuleId, onCallDutyPolicyId, teamId, props);
+        }
+
+
+    }
+
+    public async addTeam(projectId: ObjectID, escalationRuleId: ObjectID, onCallDutyPolicyId: ObjectID, teamId: ObjectID, props: DatabaseCommonInteractionProps) {
+        const teamInRule: OnCallDutyPolicyEscalationRuleTeam = new OnCallDutyPolicyEscalationRuleTeam();
+        teamInRule.projectId = projectId;
+        teamInRule.onCallDutyPolicyId = onCallDutyPolicyId;
+        teamInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
+        teamInRule.teamId = teamId;
+
+        await OnCallDutyPolicyEscalationRuleTeamService.create({ data: teamInRule, props });
+
+    }
+
+    public async addUser(projectId: ObjectID, escalationRuleId: ObjectID, onCallDutyPolicyId: ObjectID, userId: ObjectID, props: DatabaseCommonInteractionProps) {
+        const userInRule: OnCallDutyPolicyEscalationRuleUser = new OnCallDutyPolicyEscalationRuleUser();
+        userInRule.projectId = projectId;
+        userInRule.onCallDutyPolicyId = onCallDutyPolicyId;
+        userInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
+        userInRule.userId = userId;
+
+        await OnCallDutyPolicyEscalationRuleUserService.create({ data: userInRule, props });
     }
 
     protected override async onBeforeCreate(
