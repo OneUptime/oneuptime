@@ -7,6 +7,7 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ListBody from './ListBody';
 import Field from '../Detail/Field';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { ListDetailProps } from './ListRow';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -28,6 +29,7 @@ export interface ComponentProps {
     actionButtons?: undefined | Array<ActionButtonSchema>;
     onRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
+    listDetailOptions?: undefined | ListDetailProps;
 }
 
 const List: FunctionComponent<ComponentProps> = (
@@ -70,6 +72,7 @@ const List: FunctionComponent<ComponentProps> = (
                 dragAndDropScope={`${props.id}-dnd`}
                 dragDropIdField={props.dragDropIdField}
                 dragDropIndexField={props.dragDropIndexField}
+                listDetailOptions={props.listDetailOptions}
             />
         );
     };

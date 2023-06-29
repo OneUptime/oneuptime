@@ -61,6 +61,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
+import { ListDetailProps } from '../List/ListRow';
 
 export enum ShowTableAs {
     Table,
@@ -79,6 +80,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
+    listDetailOptions?: undefined | ListDetailProps;
     selectMoreFields?: Select<TBaseModel>;
     initialItemsOnPage?: number;
     isDeleteable: boolean;
@@ -1129,6 +1131,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 pluralLabel={props.pluralName || model.pluralName || 'Items'}
                 error={error}
                 currentPageNumber={currentPageNumber}
+                listDetailOptions={props.listDetailOptions}
                 enableDragAndDrop={props.enableDragAndDrop}
                 onDragDrop={async (id: string, newOrder: number) => {
                     if (!props.dragDropIndexField) {

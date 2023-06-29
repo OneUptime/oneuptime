@@ -26,7 +26,10 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onCreateSuccess(onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
+    protected override async onCreateSuccess(
+        onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
         if (!createdItem.projectId) {
             throw new BadDataException('projectId is required');
         }
@@ -59,38 +62,73 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public async addUsersAndTeams(projectId: ObjectID, escalationRuleId: ObjectID, onCallDutyPolicyId: ObjectID, usersIds: Array<ObjectID>, teamIds: Array<ObjectID>, props: DatabaseCommonInteractionProps): Promise<void> {
-
+    public async addUsersAndTeams(
+        projectId: ObjectID,
+        escalationRuleId: ObjectID,
+        onCallDutyPolicyId: ObjectID,
+        usersIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
         for (const userId of usersIds) {
-            await this.addUser(projectId, escalationRuleId, onCallDutyPolicyId, userId, props);
+            await this.addUser(
+                projectId,
+                escalationRuleId,
+                onCallDutyPolicyId,
+                userId,
+                props
+            );
         }
 
         for (const teamId of teamIds) {
-            await this.addTeam(projectId, escalationRuleId, onCallDutyPolicyId, teamId, props);
+            await this.addTeam(
+                projectId,
+                escalationRuleId,
+                onCallDutyPolicyId,
+                teamId,
+                props
+            );
         }
-
-
     }
 
-    public async addTeam(projectId: ObjectID, escalationRuleId: ObjectID, onCallDutyPolicyId: ObjectID, teamId: ObjectID, props: DatabaseCommonInteractionProps) {
-        const teamInRule: OnCallDutyPolicyEscalationRuleTeam = new OnCallDutyPolicyEscalationRuleTeam();
+    public async addTeam(
+        projectId: ObjectID,
+        escalationRuleId: ObjectID,
+        onCallDutyPolicyId: ObjectID,
+        teamId: ObjectID,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        const teamInRule: OnCallDutyPolicyEscalationRuleTeam =
+            new OnCallDutyPolicyEscalationRuleTeam();
         teamInRule.projectId = projectId;
         teamInRule.onCallDutyPolicyId = onCallDutyPolicyId;
         teamInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
         teamInRule.teamId = teamId;
 
-        await OnCallDutyPolicyEscalationRuleTeamService.create({ data: teamInRule, props });
-
+        await OnCallDutyPolicyEscalationRuleTeamService.create({
+            data: teamInRule,
+            props,
+        });
     }
 
-    public async addUser(projectId: ObjectID, escalationRuleId: ObjectID, onCallDutyPolicyId: ObjectID, userId: ObjectID, props: DatabaseCommonInteractionProps) {
-        const userInRule: OnCallDutyPolicyEscalationRuleUser = new OnCallDutyPolicyEscalationRuleUser();
+    public async addUser(
+        projectId: ObjectID,
+        escalationRuleId: ObjectID,
+        onCallDutyPolicyId: ObjectID,
+        userId: ObjectID,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        const userInRule: OnCallDutyPolicyEscalationRuleUser =
+            new OnCallDutyPolicyEscalationRuleUser();
         userInRule.projectId = projectId;
         userInRule.onCallDutyPolicyId = onCallDutyPolicyId;
         userInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
         userInRule.userId = userId;
 
-        await OnCallDutyPolicyEscalationRuleUserService.create({ data: userInRule, props });
+        await OnCallDutyPolicyEscalationRuleUserService.create({
+            data: userInRule,
+            props,
+        });
     }
 
     protected override async onBeforeCreate(
@@ -186,7 +224,6 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
-        debugger;
         if (
             updateBy.data.order &&
             !updateBy.props.isRoot &&

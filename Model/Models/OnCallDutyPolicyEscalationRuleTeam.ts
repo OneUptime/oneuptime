@@ -259,7 +259,6 @@ export default class OnCallDutyPolicyEscalationRuleTeam extends BaseModel {
     })
     public teamId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

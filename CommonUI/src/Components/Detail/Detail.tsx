@@ -274,7 +274,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         <div
             className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
                 props.showDetailsInNumberOfColumns || 1
-            }`}
+            } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

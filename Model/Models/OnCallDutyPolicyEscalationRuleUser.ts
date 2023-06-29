@@ -195,9 +195,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
     })
     public onCallDutyPolicyId?: ObjectID = undefined;
 
-
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -265,7 +262,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [

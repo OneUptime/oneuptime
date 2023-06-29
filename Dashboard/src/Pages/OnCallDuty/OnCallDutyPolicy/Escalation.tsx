@@ -9,7 +9,9 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import OnCallDutyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -57,7 +59,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Delete On Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
                         ] as Route,
                         { modelId }
                     ),
@@ -78,6 +80,9 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 enableDragAndDrop={true}
                 dragDropIndexField="order"
+                listDetailOptions={{
+                    showDetailsInNumberOfColumns: 2,
+                }}
                 query={{
                     onCallDutyPolicyId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
@@ -114,10 +119,8 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Escalation',
                         id: 'escalation',
                     },
-
                 ]}
                 formFields={[
-                    
                     {
                         field: {
                             name: true,
@@ -227,9 +230,10 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         },
                         isFilterable: true,
                         title: 'Escalate after (in minutes)',
-                        description: 'The amount of minutes to wait before escalating to the next escalation rule.',
+                        description:
+                            'The amount of minutes to wait before escalating to the next escalation rule.',
                         type: FieldType.Number,
-                    }
+                    },
                 ]}
             />
 
@@ -237,7 +241,8 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 name="On Call Policy > On Call Policy Details"
                 cardProps={{
                     title: 'Repeat Policy',
-                    description: "Repeat policies are used to determine how often an on call policy should be repeated.",
+                    description:
+                        'Repeat policies are used to determine how often an on call policy should be repeated.',
                     icon: IconProp.Call,
                 }}
                 isEditable={true}
@@ -249,7 +254,8 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Repeat Policy If No One Acknowledges',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
-                        description: 'If enabled, the on call policy will repeat if no one acknowledges the incident.',
+                        description:
+                            'If enabled, the on call policy will repeat if no one acknowledges the incident.',
                         validation: {
                             minLength: 2,
                         },
@@ -261,10 +267,10 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Number of Times to Repeat',
                         fieldType: FormFieldSchemaType.Number,
                         required: false,
-                        description: 'The number of times to repeat the on call policy if no one acknowledges the incident.',
-                        placeholder: 3
+                        description:
+                            'The number of times to repeat the on call policy if no one acknowledges the incident.',
+                        placeholder: 3,
                     },
-
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -277,8 +283,9 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Repeat Policy If No One Acknowledges',
                             fieldType: FieldType.Boolean,
-                            description: 'If enabled, the on call policy will repeat if no one acknowledges the incident.',
-                            placeholder: 'No'
+                            description:
+                                'If enabled, the on call policy will repeat if no one acknowledges the incident.',
+                            placeholder: 'No',
                         },
                         {
                             field: {
@@ -287,13 +294,13 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             title: 'Number of Times to Repeat',
                             fieldType: FieldType.Number,
                             placeholder: '0',
-                            description: 'The number of times to repeat the on call policy if no one acknowledges the incident.',
+                            description:
+                                'The number of times to repeat the on call policy if no one acknowledges the incident.',
                         },
                     ],
                     modelId: modelId,
                 }}
             />
-
         </ModelPage>
     );
 };
