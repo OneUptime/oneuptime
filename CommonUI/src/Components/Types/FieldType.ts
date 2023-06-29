@@ -29,6 +29,8 @@ enum FieldType {
     DictionaryOfStrings = 'DictionaryOfStrings',
     JSON = 'JSON',
     USDCents = 'USDCents',
+    Element = 'Element',
+    Minutes = 'Minutes',
 }
 
 export default FieldType;

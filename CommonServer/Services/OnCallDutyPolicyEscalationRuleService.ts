@@ -49,12 +49,10 @@ export class Service extends DatabaseService<Model> {
                 createdItem.projectId,
                 createdItem.id,
                 createdItem.onCallDutyPolicyId!,
-                (onCreate.createBy.miscDataProps[
-                    'ownerUsers'
-                ] as Array<ObjectID>) || [],
-                (onCreate.createBy.miscDataProps[
-                    'ownerTeams'
-                ] as Array<ObjectID>) || [],
+                (onCreate.createBy.miscDataProps['users'] as Array<ObjectID>) ||
+                    [],
+                (onCreate.createBy.miscDataProps['teams'] as Array<ObjectID>) ||
+                    [],
                 onCreate.createBy.props
             );
         }

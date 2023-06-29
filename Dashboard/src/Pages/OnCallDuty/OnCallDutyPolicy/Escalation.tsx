@@ -21,6 +21,9 @@ import Team from 'Model/Models/Team';
 import ProjectUser from '../../../Utils/ProjectUser';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import { JSONObject } from 'Common/Types/JSON';
+import TeamView from '../../../Components/OnCallPolicy/EscalationRule/TeamView';
+import UserView from '../../../Components/OnCallPolicy/EscalationRule/UserView';
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -224,6 +227,25 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description: 'The description of the escalation rule.',
                         type: FieldType.Text,
                     },
+
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Teams',
+                        description:
+                            'Teams who will be notified when incident is triggered.',
+                        type: FieldType.Element,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <TeamView
+                                    escalationRuleId={
+                                        new ObjectID(item['_id'] as string)
+                                    }
+                                />
+                            );
+                        },
+                    },
                     {
                         field: {
                             escalateAfterInMinutes: true,
@@ -232,7 +254,25 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Escalate after (in minutes)',
                         description:
                             'The amount of minutes to wait before escalating to the next escalation rule.',
-                        type: FieldType.Number,
+                        type: FieldType.Minutes,
+                    },
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Users',
+                        description:
+                            'Users who will be notified when incident is triggered.',
+                        type: FieldType.Element,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <UserView
+                                    escalationRuleId={
+                                        new ObjectID(item['_id'] as string)
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />
