@@ -30,6 +30,7 @@ import Hostname from 'Common/Types/API/Hostname';
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
     incidentSeverityDropdownOptions: Array<DropdownOption>;
+    onCallPolicyDropdownOptions: Array<DropdownOption>;
     initialValue?: undefined | MonitorStep;
     onChange?: undefined | ((value: MonitorStep) => void);
     // onDelete?: undefined | (() => void);
@@ -309,6 +310,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     }
                     incidentSeverityDropdownOptions={
                         props.incidentSeverityDropdownOptions
+                    }
+                    onCallPolicyDropdownOptions={
+                        props.onCallPolicyDropdownOptions
                     }
                     initialValue={monitorStep?.data?.monitorCriteria}
                     onChange={(value: MonitorCriteria) => {

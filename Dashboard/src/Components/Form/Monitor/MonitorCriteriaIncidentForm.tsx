@@ -11,6 +11,7 @@ export interface ComponentProps {
     initialValue?: undefined | CriteriaIncident;
     onChange?: undefined | ((value: CriteriaIncident) => void);
     incidentSeverityDropdownOptions: Array<DropdownOption>;
+    onCallPolicyDropdownOptions: Array<DropdownOption>;
     // onDelete?: undefined | (() => void);
 }
 
@@ -78,6 +79,19 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         dropdownOptions: props.incidentSeverityDropdownOptions,
                         required: true,
                         placeholder: 'Incident Severity',
+                    },
+                    {
+                        field: {
+                            onCallPolicyIds: true,
+                        },
+                        title: 'On Call Policy',
+                        stepId: 'incident-details',
+                        description:
+                            'Execute these on call policies when this incident is created.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownOptions: props.onCallPolicyDropdownOptions,
+                        required: false,
+                        placeholder: 'Select On Call Policies',
                     },
                     {
                         field: {

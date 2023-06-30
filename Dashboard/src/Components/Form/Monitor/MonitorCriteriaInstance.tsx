@@ -35,6 +35,7 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
     incidentSeverityDropdownOptions: Array<DropdownOption>;
+    onCallPolicyDropdownOptions: Array<DropdownOption>;
     monitorType: MonitorType;
     initialValue?: undefined | MonitorCriteriaInstance;
     onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
@@ -363,6 +364,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         }
                         incidentSeverityDropdownOptions={
                             props.incidentSeverityDropdownOptions
+                        }
+                        onCallPolicyDropdownOptions={
+                            props.onCallPolicyDropdownOptions
                         }
                         onChange={(value: Array<CriteriaIncident>) => {
                             monitorCriteriaInstance.setIncidents(value);
