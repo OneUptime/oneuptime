@@ -34,6 +34,7 @@ import Label from './Label';
 import IncidentSeverity from './IncidentSeverity';
 import { JSONObject } from 'Common/Types/JSON';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import OnCallDutyPolicy from './OnCallDutyPolicy';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -406,6 +407,52 @@ export default class Incident extends BaseModel {
         },
     })
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectIncident,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Monitor,
+        title: 'On Call Duty Policies',
+        description: 'List of on call duty policy affected by this incident.',
+    })
+    @ManyToMany(
+        () => {
+            return OnCallDutyPolicy;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'IncidentOnCallDutyPolicy',
+        inverseJoinColumn: {
+            name: 'monitorId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'onCallDutyPolicyId',
+            referencedColumnName: '_id',
+        },
+    })
+    public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this incident.
 
     @ColumnAccessControl({
         create: [

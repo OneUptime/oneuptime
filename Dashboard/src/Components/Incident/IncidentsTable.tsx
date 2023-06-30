@@ -22,6 +22,7 @@ import EventName from '../../Utils/EventName';
 import DashboardNavigation from '../../Utils/Navigation';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -65,6 +66,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 {
                     title: 'Resources Affected',
                     id: 'resources-affected',
+                },
+                {
+                    title: 'On Call',
+                    id: 'on-call',
                 },
                 {
                     title: 'Owners',
@@ -129,6 +134,23 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     required: true,
                     placeholder: 'Monitors affected',
+                },
+                {
+                    field: {
+                        onCallDutyPolicies: true,
+                    },
+                    title: 'On Call Policy',
+                    stepId: 'on-call',
+                    description:
+                        'Select on call duty policy to execute when this incident is created.',
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    dropdownModal: {
+                        type: OnCallDutyPolicy,
+                        labelField: 'name',
+                        valueField: '_id',
+                    },
+                    required: false,
+                    placeholder: 'Select on call policies',
                 },
                 {
                     field: {
