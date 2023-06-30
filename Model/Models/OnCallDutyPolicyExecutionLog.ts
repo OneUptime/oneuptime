@@ -19,6 +19,7 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
 import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 import Incident from './Incident';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
+import Team from './Team';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -321,4 +322,156 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID = undefined;
+
+
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'acknowledgedByUserId',
+        type: TableColumnType.Entity,
+        title: 'Acknowledged by User',
+        description:
+            'Relation to User who acknowledged this policy execution (if this policy was acknowledged by a User)',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'acknowledgedByUserId' })
+    public acknowledgedByUser?: User = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who acknowledged this object (if this object was acknowledged by a User)',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public acknowledgedByUserId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
+
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public acknowledgedAt?: Date = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'acknowledgedByTeamId',
+        type: TableColumnType.Entity,
+        title: 'Acknowledged by Team',
+        description:
+            'Relation to Team who acknowledged this policy execution (if this policy was acknowledged by a Team)',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'acknowledgedByTeamId' })
+    public acknowledgedByTeam?: Team = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by Team ID',
+        description:
+            'Team ID who acknowledged this object (if this object was acknowledged by a Team)',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public acknowledgedByTeamId?: ObjectID = undefined;
+
+
 }
