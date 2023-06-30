@@ -30,6 +30,8 @@ import LabelsElement from '../../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../../Utils/EventName';
+import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -266,7 +268,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Monitors Affected',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <MonitorsElement
@@ -277,6 +279,30 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                                 ] as JSONArray) || [],
                                                 Monitor
                                             ) as Array<Monitor>
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                onCallDutyPolicies: {
+                                    name: true,
+                                    _id: true,
+                                },
+                            },
+                            title: 'On Call Duty Policies',
+                            fieldType: FieldType.Element,
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <OnCallDutyPoliciesView
+                                        onCallPolicies={
+                                            JSONFunctions.fromJSON(
+                                                (item[
+                                                    'onCallDutyPolicies'
+                                                ] as JSONArray) || [],
+                                                OnCallDutyPolicy
+                                            ) as Array<OnCallDutyPolicy>
                                         }
                                     />
                                 );
@@ -314,7 +340,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             title: 'Acknowledge Incident',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject,
@@ -338,7 +364,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             title: 'Resolve Incident',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject,
