@@ -5,11 +5,13 @@ import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstanc
 import Text from 'Common/Types/Text';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps {
     monitorCriteria: MonitorCriteria;
     monitorStatusOptions: Array<MonitorStatus>;
     incidentSeverityOptions: Array<IncidentSeverity>;
+    onCallPolicyOptions: Array<OnCallDutyPolicy>;
 }
 
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
@@ -39,6 +41,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                         <MonitorCriteriaInstanceElement
                                             monitorStatusOptions={
                                                 props.monitorStatusOptions
+                                            }
+                                            onCallPolicyOptions={
+                                                props.onCallPolicyOptions
                                             }
                                             incidentSeverityOptions={
                                                 props.incidentSeverityOptions

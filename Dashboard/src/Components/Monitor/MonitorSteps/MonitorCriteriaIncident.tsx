@@ -7,10 +7,14 @@ import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Black } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutyPoliciesView from '../../OnCallPolicy/OnCallPolicies';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     incident: CriteriaIncident;
     incidentSeverityOptions: Array<IncidentSeverity>;
+    onCallPolicyOptions: Array<OnCallDutyPolicy>;
 }
 
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
@@ -83,6 +87,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                             'Automatically resolve this incident when this criteria is no longer met.',
                         fieldType: FieldType.Boolean,
                         placeholder: 'No',
+                    },
+                    {
+                        key: 'onCallPolicyIds',
+                        title: 'On Call Policies',
+                        description:
+                            'These are the on call policies that will be executed when this incident is created.',
+                        fieldType: FieldType.Element,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return <OnCallDutyPoliciesView onCallPolicies={props.onCallPolicyOptions.filter((policy)=> {
+                                return (item['onCallPolicyIds'] as Array<ObjectID> || []).map((id)=> id.toString()).includes(policy.id?.toString() || '');
+                            })}  />;
+                        }
                     },
                 ]}
             />

@@ -14,12 +14,14 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Field from 'CommonUI/src/Components/Detail/Field';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps {
     monitorStatusOptions: Array<MonitorStatus>;
     incidentSeverityOptions: Array<IncidentSeverity>;
     monitorStep: MonitorStep;
     monitorType: MonitorType;
+    onCallPolicyOptions: Array<OnCallDutyPolicy>;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -130,6 +132,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
 
                 <MonitorCriteriaElement
+                    onCallPolicyOptions={props.onCallPolicyOptions}
                     monitorStatusOptions={props.monitorStatusOptions}
                     incidentSeverityOptions={props.incidentSeverityOptions}
                     monitorCriteria={props.monitorStep?.data?.monitorCriteria!}

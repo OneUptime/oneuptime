@@ -21,6 +21,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import { Black } from 'Common/Types/BrandColors';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps extends CustomElementProps {
     monitorSteps: MonitorSteps;
@@ -36,6 +37,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
     const [incidentSeverityOptions, setIncidentSeverityOptions] =
         React.useState<Array<IncidentSeverity>>([]);
+
+    const [onCallPolicyOptions, setOnCallPolicyOptions] = React.useState<Array<OnCallDutyPolicy>>([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>('');
@@ -84,9 +87,27 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     {}
                 );
 
+            const onCallPolicyList: ListResult<OnCallDutyPolicy> =
+                await ModelAPI.getList(
+                    OnCallDutyPolicy,
+                    {},
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        name: true,
+                    },
+                    {}
+                );
+
             if (incidentSeverityList.data) {
                 setIncidentSeverityOptions(
                     incidentSeverityList.data as Array<IncidentSeverity>
+                );
+            }
+
+            if (onCallPolicyList.data) {
+                setOnCallPolicyOptions(
+                    onCallPolicyList.data as Array<OnCallDutyPolicy>
                 );
             }
         } catch (err) {
@@ -122,6 +143,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             monitorStatusOptions={monitorStatusOptions}
                             incidentSeverityOptions={incidentSeverityOptions}
                             monitorStep={i}
+                            onCallPolicyOptions={onCallPolicyOptions}
                         />
                     );
                 }
@@ -141,29 +163,29 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         <div className="mt-3">
                             {props.monitorSteps.data
                                 ?.defaultMonitorStatusId && (
-                                <Statusbubble
-                                    color={
-                                        (monitorStatusOptions.find(
-                                            (option: IncidentSeverity) => {
-                                                return (
-                                                    option.id?.toString() ===
-                                                    props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                                                );
-                                            }
-                                        )?.color as Color) || Black
-                                    }
-                                    text={
-                                        (monitorStatusOptions.find(
-                                            (option: IncidentSeverity) => {
-                                                return (
-                                                    option.id?.toString() ===
-                                                    props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                                                );
-                                            }
-                                        )?.name as string) || ''
-                                    }
-                                />
-                            )}
+                                    <Statusbubble
+                                        color={
+                                            (monitorStatusOptions.find(
+                                                (option: IncidentSeverity) => {
+                                                    return (
+                                                        option.id?.toString() ===
+                                                        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                                                    );
+                                                }
+                                            )?.color as Color) || Black
+                                        }
+                                        text={
+                                            (monitorStatusOptions.find(
+                                                (option: IncidentSeverity) => {
+                                                    return (
+                                                        option.id?.toString() ===
+                                                        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                                                    );
+                                                }
+                                            )?.name as string) || ''
+                                        }
+                                    />
+                                )}
 
                             {!props.monitorSteps.data?.defaultMonitorStatusId &&
                                 defaultMonitorStatus && (
