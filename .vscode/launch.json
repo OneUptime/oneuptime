@@ -43,6 +43,20 @@
         },
         {
             "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/LinkShortner",
+            "name": "Link Shortner: Debug with Docker",
+            "port": 9826,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/TestServer",
             "name": "Test Server: Debug with Docker",
             "port": 9141,
