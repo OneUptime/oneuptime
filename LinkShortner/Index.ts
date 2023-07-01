@@ -5,8 +5,10 @@ import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import logger from 'CommonServer/Utils/Logger';
 
-
 const APP_NAME: string = 'l';
+
+
+app.use([`/${APP_NAME}/`, '/'], LinkShortnerAPI);
 
 const app: ExpressApplication = Express.getExpressApp();
 
