@@ -8,13 +8,12 @@ import URL from 'Common/Types/API/URL';
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
-        this.hardDeleteItemsOlderThanInDays("createdAt", 3); //expire links in 3 days. 
+        this.hardDeleteItemsOlderThanInDays('createdAt', 3); //expire links in 3 days.
     }
 
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-
         createBy.data.shortId = Text.generateRandomText(8);
 
         return { createBy: createBy, carryForward: [] };

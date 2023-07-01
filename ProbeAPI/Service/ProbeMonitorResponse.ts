@@ -398,7 +398,7 @@ export default class ProbeMonitorResponseService {
                     criteriaIncident.id.toString();
 
                 incident.onCallDutyPolicies =
-                    criteriaIncident.onCallPolicyIds?.map((id) => {
+                    criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
                         const onCallPolicy: OnCallDutyPolicy =
                             new OnCallDutyPolicy();
                         onCallPolicy._id = id.toString();

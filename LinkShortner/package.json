@@ -17,7 +17,7 @@
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "Model": "file:../Model",
-    "ts-node": "^10.9.1",
+    "ts-node": "^10.9.1"
   },
   "devDependencies": {
     "@types/jest": "^27.5.0",

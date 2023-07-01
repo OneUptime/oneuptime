@@ -98,13 +98,13 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                             return (
                                 <OnCallDutyPoliciesView
                                     onCallPolicies={props.onCallPolicyOptions.filter(
-                                        (policy) => {
+                                        (policy: OnCallDutyPolicy) => {
                                             return (
                                                 (item[
                                                     'onCallPolicyIds'
                                                 ] as Array<ObjectID>) || []
                                             )
-                                                .map((id) => {
+                                                .map((id: ObjectID) => {
                                                     return id.toString();
                                                 })
                                                 .includes(

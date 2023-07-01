@@ -1,5 +1,4 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/OnCallDutyPolicy';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
@@ -7,9 +6,9 @@ import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<OnCallDutyPolicy> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
+        super(OnCallDutyPolicy, postgresDatabase);
     }
 
     public async executePolicy(

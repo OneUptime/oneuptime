@@ -14,9 +14,7 @@ import URL from 'Common/Types/API/URL';
 
 @TableAccessControl({
     create: [],
-    read: [
-     
-    ],
+    read: [],
     delete: [],
     update: [],
 })
@@ -33,13 +31,9 @@ import URL from 'Common/Types/API/URL';
         'Short links are used to redirect users to a specific long link in OneUptime.',
 })
 export default class SmsLog extends BaseModel {
-   
-
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @Index()
@@ -59,9 +53,7 @@ export default class SmsLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({
