@@ -38,7 +38,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     const [incidentSeverityOptions, setIncidentSeverityOptions] =
         React.useState<Array<IncidentSeverity>>([]);
 
-    const [onCallPolicyOptions, setOnCallPolicyOptions] = React.useState<Array<OnCallDutyPolicy>>([]);
+    const [onCallPolicyOptions, setOnCallPolicyOptions] = React.useState<
+        Array<OnCallDutyPolicy>
+    >([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>('');
@@ -163,29 +165,29 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         <div className="mt-3">
                             {props.monitorSteps.data
                                 ?.defaultMonitorStatusId && (
-                                    <Statusbubble
-                                        color={
-                                            (monitorStatusOptions.find(
-                                                (option: IncidentSeverity) => {
-                                                    return (
-                                                        option.id?.toString() ===
-                                                        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                                                    );
-                                                }
-                                            )?.color as Color) || Black
-                                        }
-                                        text={
-                                            (monitorStatusOptions.find(
-                                                (option: IncidentSeverity) => {
-                                                    return (
-                                                        option.id?.toString() ===
-                                                        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                                                    );
-                                                }
-                                            )?.name as string) || ''
-                                        }
-                                    />
-                                )}
+                                <Statusbubble
+                                    color={
+                                        (monitorStatusOptions.find(
+                                            (option: IncidentSeverity) => {
+                                                return (
+                                                    option.id?.toString() ===
+                                                    props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                                                );
+                                            }
+                                        )?.color as Color) || Black
+                                    }
+                                    text={
+                                        (monitorStatusOptions.find(
+                                            (option: IncidentSeverity) => {
+                                                return (
+                                                    option.id?.toString() ===
+                                                    props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                                                );
+                                            }
+                                        )?.name as string) || ''
+                                    }
+                                />
+                            )}
 
                             {!props.monitorSteps.data?.defaultMonitorStatusId &&
                                 defaultMonitorStatus && (

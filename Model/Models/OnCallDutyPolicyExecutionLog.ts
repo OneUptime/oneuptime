@@ -252,6 +252,30 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         update: [],
     })
     @TableColumn({
+        required: true,
+        type: TableColumnType.LongText,
+        title: 'Status Message',
+        description: 'Status message of this execution',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public statusMessage?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
+        update: [],
+    })
+    @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
         modelType: User,
@@ -323,7 +347,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -346,9 +369,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-
-
 
     @ColumnAccessControl({
         create: [],
@@ -377,7 +397,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     @JoinColumn({ name: 'acknowledgedByUserId' })
     public acknowledgedByUser?: User = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -401,7 +420,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     })
     public acknowledgedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -420,7 +438,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         unique: false,
     })
     public acknowledgedAt?: Date = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -449,7 +466,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     @JoinColumn({ name: 'acknowledgedByTeamId' })
     public acknowledgedByTeam?: Team = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -472,6 +488,4 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public acknowledgedByTeamId?: ObjectID = undefined;
-
-
 }

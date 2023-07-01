@@ -23,6 +23,7 @@ import TeamMemberService from './TeamMemberService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import UserService from './UserService';
 import { JSONObject } from 'Common/Types/JSON';
+import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -165,6 +166,18 @@ export class Service extends DatabaseService<Model> {
                 false,
                 onCreate.createBy.props
             );
+        }
+
+        if (
+            createdItem.onCallDutyPolicies?.length &&
+            createdItem.onCallDutyPolicies?.length > 0
+        ) {
+            for (const policy of createdItem.onCallDutyPolicies) {
+                await OnCallDutyPolicyService.executePolicy(
+                    new ObjectID(policy._id as string),
+                    { triggeredByIncidentId: createdItem.id! }
+                );
+            }
         }
 
         return createdItem;

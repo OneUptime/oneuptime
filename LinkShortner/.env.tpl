@@ -1,0 +1,1 @@
+PORT={{ .Env.LINK_SHORTNER_PORT }}

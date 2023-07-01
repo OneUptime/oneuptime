@@ -95,10 +95,26 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                             'These are the on call policies that will be executed when this incident is created.',
                         fieldType: FieldType.Element,
                         getElement: (item: JSONObject): ReactElement => {
-                            return <OnCallDutyPoliciesView onCallPolicies={props.onCallPolicyOptions.filter((policy)=> {
-                                return (item['onCallPolicyIds'] as Array<ObjectID> || []).map((id)=> id.toString()).includes(policy.id?.toString() || '');
-                            })}  />;
-                        }
+                            return (
+                                <OnCallDutyPoliciesView
+                                    onCallPolicies={props.onCallPolicyOptions.filter(
+                                        (policy) => {
+                                            return (
+                                                (item[
+                                                    'onCallPolicyIds'
+                                                ] as Array<ObjectID>) || []
+                                            )
+                                                .map((id) => {
+                                                    return id.toString();
+                                                })
+                                                .includes(
+                                                    policy.id?.toString() || ''
+                                                );
+                                        }
+                                    )}
+                                />
+                            );
+                        },
                     },
                 ]}
             />

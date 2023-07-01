@@ -22,6 +22,10 @@ import OnCallDutyPolicyEscalationRuleTeam from 'Model/Models/OnCallDutyPolicyEsc
 import OnCallDutyPolicyEscalationRuleTeamService from './OnCallDutyPolicyEscalationRuleTeamService';
 
 export class Service extends DatabaseService<Model> {
+    public async executeRule(ruleId: ObjectID): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
