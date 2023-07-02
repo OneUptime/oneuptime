@@ -44,11 +44,12 @@ export class Service extends DatabaseService<Model> {
 
         if (executionRule) {
             await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-                executionRule.id!, 
+                executionRule.id!,
                 {
                     projectId: createdItem.projectId!,
                     triggeredByIncidentId: createdItem.triggeredByIncidentId,
-                    userNotificationEventType: UserNotificationEventType.IncidentCreated,
+                    userNotificationEventType:
+                        UserNotificationEventType.IncidentCreated,
                     onCallPolicyExecutionLogId: createdItem.id!,
                     onCallPolicyId: createdItem.onCallDutyPolicyId!,
                 }

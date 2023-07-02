@@ -1,7 +1,7 @@
-enum UserNotificationStatus { 
+enum UserNotificationStatus {
     Sent = 'Sent',
     Acknowledged = 'Acknowledged',
-    Error = 'Error'
+    Error = 'Error',
 }
 
 export default UserNotificationStatus;

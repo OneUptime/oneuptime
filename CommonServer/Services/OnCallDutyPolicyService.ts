@@ -16,16 +16,20 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         policyId: ObjectID,
         options: {
             triggeredByIncidentId?: ObjectID | undefined;
-            userNotificationEventType: UserNotificationEventType
+            userNotificationEventType: UserNotificationEventType;
         }
     ): Promise<void> {
         // execute this policy
 
-
-        if (UserNotificationEventType.IncidentCreated === options.userNotificationEventType && !options.triggeredByIncidentId) {
-            throw new BadDataException('triggeredByIncidentId is required when userNotificationEventType is IncidentCreated');
+        if (
+            UserNotificationEventType.IncidentCreated ===
+                options.userNotificationEventType &&
+            !options.triggeredByIncidentId
+        ) {
+            throw new BadDataException(
+                'triggeredByIncidentId is required when userNotificationEventType is IncidentCreated'
+            );
         }
-
 
         const policy: OnCallDutyPolicy | null = await this.findOneById({
             id: policyId,

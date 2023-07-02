@@ -12,20 +12,190 @@ import UserEmailService from './UserEmailService';
 import UserEmail from 'Model/Models/UserEmail';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import UserNotificationLog from 'Model/Models/UserNotificationLog';
+import UserNotificationLogService from './UserNotificationLogService';
+import UserNotificationLogTimeline from 'Model/Models/UserNotificationLogTimeline';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import CallRequest from 'Common/Types/Call/CallRequest';
+import EmailMessage from 'Common/Types/Email/EmailMessage';
+import SMS from 'Common/Types/SMS/SMS';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
 
-    public async startUserNotificationRulesExecution(userId: ObjectID, options: {
+
+    public async executeNotificationRuleItem(userNotificationRuleId: ObjectID, options: {
+        projectId: ObjectID;
         triggeredByIncidentId?: ObjectID | undefined;
         userNotificationEventType: UserNotificationEventType;
-        onCallPolicyExecutionLogId?: ObjectID | undefined,
-        onCallPolicyId: ObjectID | undefined,
-        onCallPolicyEscalationRuleId?: ObjectID | undefined,
-    }){
+        onCallPolicyExecutionLogId?: ObjectID | undefined;
+        onCallPolicyId: ObjectID | undefined;
+        onCallPolicyEscalationRuleId?: ObjectID | undefined;
+        userNotificationLogId: ObjectID;
+        userBelongsToTeamId?: ObjectID | undefined;
+    }): Promise<void> {
+
+        // 
+
+        const logTimelineItem: UserNotificationLogTimeline = new UserNotificationLogTimeline();
+        logTimelineItem.projectId = options.projectId;
+        logTimelineItem.userNotificationLogId = options.userNotificationLogId;
+        logTimelineItem.userNotificationRuleId = userNotificationRuleId;
+        logTimelineItem.userNotificationLogId = options.userNotificationLogId;
+        logTimelineItem.userNotificationEventType = options.userNotificationEventType;
+
+        if (options.userBelongsToTeamId) {
+            logTimelineItem.userBelongsToTeamId = options.userBelongsToTeamId;
+        }
+
+        if (options.onCallPolicyId) {
+            logTimelineItem.onCallDutyPolicyId = options.onCallPolicyId;
+        }
+
+        if (options.onCallPolicyEscalationRuleId) {
+            logTimelineItem.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+        }
+
+        if (options.onCallPolicyExecutionLogId) {
+            logTimelineItem.onCallDutyPolicyExecutionLogId = options.onCallPolicyExecutionLogId;
+        }
+
+        if (options.triggeredByIncidentId) {
+            logTimelineItem.triggeredByIncidentId = options.triggeredByIncidentId;
+        }
+
+
+        // add status and status message and save.
+
+
+
+        // find notification rule item. 
+        const notificationRuleItem: Model | null = await this.findOneById({
+            id: userNotificationRuleId!,
+            select: {
+                _id: true,
+                userCall: {
+                    phone: true,
+                    isVerified: true,
+                },
+                userSms: {
+                    phone: true,
+                    isVerified: true,
+                },
+                userEmail: {
+                    email: true,
+                    isVerified: true,
+                }
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!notificationRuleItem) {
+            throw new BadDataException('Notification rule item not found.');
+        }
+
+
+        if (notificationRuleItem.userEmail?.email && notificationRuleItem.userEmail?.isVerified) {
+            // send email. 
+        }
+
+        // if you have an email but is not verified, then create a log. 
+        if (notificationRuleItem.userEmail?.email && !notificationRuleItem.userEmail?.isVerified) {
+            // create an error log.
+            logTimelineItem.status = UserNotificationStatus.Error;
+            logTimelineItem.statusMessage = `Email notification not sent because email ${notificationRuleItem.userEmail?.email.toString()} is not verified.`;
+        }
+
+        // send sms.
+        if (notificationRuleItem.userSms?.phone && notificationRuleItem.userSms?.isVerified) {
+            // send sms. 
+        }
+
+        if (notificationRuleItem.userSms?.phone && !notificationRuleItem.userSms?.isVerified) {
+            // create a log.
+            logTimelineItem.status = UserNotificationStatus.Error;
+            logTimelineItem.statusMessage = `SMS not sent because phone ${notificationRuleItem.userSms?.phone.toString()} is not verified.`;
+        }
+
+        // send call.
+        if (notificationRuleItem.userCall?.phone && notificationRuleItem.userCall?.isVerified) {
+            // send call. 
+        }
+
+        if (notificationRuleItem.userCall?.phone && !notificationRuleItem.userCall?.isVerified) {
+            // create a log.
+            logTimelineItem.status = UserNotificationStatus.Error;
+            logTimelineItem.statusMessage = `Call not sent because phone ${notificationRuleItem.userCall?.phone.toString()} is not verified.`;
+        }
+
+    }
+
+    public async generateCallTemplate(): Promise<CallRequest> {
+
+    }
+
+    public async generateSmsTemplate(): Promise<SMS> {
         
+    }
+
+    public async generateEmailTemplate(): Promise<EmailMessage> {
+    
+    }
+
+
+    public async startUserNotificationRulesExecution(
+        userId: ObjectID,
+        options: {
+            projectId: ObjectID;
+            triggeredByIncidentId?: ObjectID | undefined;
+            userNotificationEventType: UserNotificationEventType;
+            onCallPolicyExecutionLogId?: ObjectID | undefined;
+            onCallPolicyId: ObjectID | undefined;
+            onCallPolicyEscalationRuleId?: ObjectID | undefined;
+            userBelongsToTeamId?: ObjectID | undefined;
+        }
+    ): Promise<void> {
+
+        // add user notification log. 
+        const userNotificationLog: UserNotificationLog = new UserNotificationLog();
+
+        userNotificationLog.userId = userId;
+        userNotificationLog.projectId = options.projectId;
+        if (options.triggeredByIncidentId) {
+            userNotificationLog.triggeredByIncidentId = options.triggeredByIncidentId;
+        }
+
+        userNotificationLog.userNotificationEventType = options.userNotificationEventType;
+
+        if (options.onCallPolicyExecutionLogId) {
+            userNotificationLog.onCallDutyPolicyId = options.onCallPolicyExecutionLogId;
+        }
+
+        if (options.onCallPolicyId) {
+            userNotificationLog.onCallDutyPolicyId = options.onCallPolicyId;
+        }
+
+        if (options.onCallPolicyEscalationRuleId) {
+            userNotificationLog.onCallDutyPolicyEscalationRuleId =
+                options.onCallPolicyEscalationRuleId;
+        }
+
+        if(options.userBelongsToTeamId){
+            userNotificationLog.userBelongsToTeamId = options.userBelongsToTeamId;
+        }
+
+
+        await UserNotificationLogService.create({
+            data: userNotificationLog,
+            props: {
+                isRoot: true
+            }
+        });
+
     }
 
     protected override async onBeforeCreate(

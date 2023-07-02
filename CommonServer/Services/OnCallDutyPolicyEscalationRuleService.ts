@@ -28,76 +28,89 @@ import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyE
 import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
 
 export class Service extends DatabaseService<Model> {
-    public async startRuleExecution(ruleId: ObjectID, options: {
-        projectId: ObjectID,
-        triggeredByIncidentId?: ObjectID | undefined,
-        userNotificationEventType: UserNotificationEventType,
-        onCallPolicyExecutionLogId: ObjectID,
-        onCallPolicyId: ObjectID,
-    }): Promise<void> {
+    public async startRuleExecution(
+        ruleId: ObjectID,
+        options: {
+            projectId: ObjectID;
+            triggeredByIncidentId?: ObjectID | undefined;
+            userNotificationEventType: UserNotificationEventType;
+            onCallPolicyExecutionLogId: ObjectID;
+            onCallPolicyId: ObjectID;
+        }
+    ): Promise<void> {
+        // add log timeline.
 
-        // add log timeline. 
-
-        const log: OnCallDutyPolicyExecutionLogTimeline = new OnCallDutyPolicyExecutionLogTimeline();
+        const log: OnCallDutyPolicyExecutionLogTimeline =
+            new OnCallDutyPolicyExecutionLogTimeline();
 
         log.projectId = options.projectId;
         log.onCallDutyPolicyExecutionLogId = options.onCallPolicyExecutionLogId;
         log.onCallDutyPolicyId = options.onCallPolicyId;
         log.onCallDutyPolicyEscalationRuleId = ruleId;
 
-        if(options.triggeredByIncidentId){
+        if (options.triggeredByIncidentId) {
             log.triggeredByIncidentId = options.triggeredByIncidentId;
         }
 
-        log.statusMessage = "Executing escalaton rule."
+        log.statusMessage = 'Executing escalaton rule.';
 
         await OnCallDutyPolicyExecutionLogTimelineService.create({
             data: log,
             props: {
                 isRoot: true,
-            }
+            },
         });
 
-        if (UserNotificationEventType.IncidentCreated === options.userNotificationEventType && !options.triggeredByIncidentId) {
-            throw new BadDataException('triggeredByIncidentId is required when userNotificationEventType is IncidentCreated');
+        if (
+            UserNotificationEventType.IncidentCreated ===
+                options.userNotificationEventType &&
+            !options.triggeredByIncidentId
+        ) {
+            throw new BadDataException(
+                'triggeredByIncidentId is required when userNotificationEventType is IncidentCreated'
+            );
         }
 
-        const usersInRule = await OnCallDutyPolicyEscalationRuleUserService.findBy({
-            query: {
-                onCallDutyPolicyEscalationRuleId: ruleId,
+        const usersInRule =
+            await OnCallDutyPolicyEscalationRuleUserService.findBy({
+                query: {
+                    onCallDutyPolicyEscalationRuleId: ruleId,
+                },
+                props: {
+                    isRoot: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                select: {
+                    userId: true,
+                },
+            });
 
-            },
-            props: {
-                isRoot: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            select: {
-                userId: true
-            }
-        });
+        const teamsInRule =
+            await OnCallDutyPolicyEscalationRuleTeamService.findBy({
+                query: {
+                    onCallDutyPolicyEscalationRuleId: ruleId,
+                },
+                props: {
+                    isRoot: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                select: {
+                    teamId: true,
+                },
+            });
 
-        const teamsInRule = await OnCallDutyPolicyEscalationRuleTeamService.findBy({
-            query: {
-                onCallDutyPolicyEscalationRuleId: ruleId,
+        // get unique users and notify all the users.
 
-            },
-            props: {
-                isRoot: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            select: {
-                teamId: true
-            }
-        });
-
-        // get unique users and notify all the users. 
-
-        const uniqueUserIds: Array<ObjectID> = []
+        const uniqueUserIds: Array<ObjectID> = [];
 
         for (const user of usersInRule) {
-            if (!uniqueUserIds.find((userId) => user.userId?.toString() === userId.toString())) {
+            if (
+                !uniqueUserIds.find((userId) => {
+                    return user.userId?.toString() === userId.toString();
+                })
+            ) {
                 uniqueUserIds.push(user.userId!);
             }
         }
@@ -105,28 +118,40 @@ export class Service extends DatabaseService<Model> {
         const userTeamMap: Dictionary<string> = {};
 
         for (const teamInRule of teamsInRule) {
-
-            const usersInTeam = await TeamMemberService.getUsersInTeam(teamInRule.teamId!);
+            const usersInTeam = await TeamMemberService.getUsersInTeam(
+                teamInRule.teamId!
+            );
 
             for (const user of usersInTeam) {
-                userTeamMap[user.id!.toString()] = (teamInRule.teamId!).toString();
-                if (!uniqueUserIds.find((userId) => user.id?.toString() === userId.toString())) {
+                userTeamMap[user.id!.toString()] =
+                    teamInRule.teamId!.toString();
+                if (
+                    !uniqueUserIds.find((userId) => {
+                        return user.id?.toString() === userId.toString();
+                    })
+                ) {
                     uniqueUserIds.push(user.id!);
                 }
             }
         }
 
         for (const userId of uniqueUserIds) {
-            // execute this rule. 
-            await UserNotificationRuleService.startUserNotificationRulesExecution(userId, {
-                userNotificationEventType: options.userNotificationEventType!,
-                triggeredByIncidentId: options.triggeredByIncidentId || undefined,
-                onCallPolicyExecutionLogId: options.onCallPolicyExecutionLogId,
-                onCallPolicyId: options.onCallPolicyId,
-                onCallPolicyEscalationRuleId: ruleId,
-            });
+            // execute this rule.
+            await UserNotificationRuleService.startUserNotificationRulesExecution(
+                userId,
+                {
+                    userNotificationEventType:
+                        options.userNotificationEventType!,
+                    triggeredByIncidentId:
+                        options.triggeredByIncidentId || undefined,
+                    onCallPolicyExecutionLogId:
+                        options.onCallPolicyExecutionLogId,
+                    onCallPolicyId: options.onCallPolicyId,
+                    onCallPolicyEscalationRuleId: ruleId,
+                    userBelongsToTeamId: userTeamMap[userId.toString()] ? new ObjectID(userTeamMap[userId.toString()] as string) : undefined,
+                }
+            );
         }
-
     }
 
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -157,9 +182,9 @@ export class Service extends DatabaseService<Model> {
                 createdItem.id,
                 createdItem.onCallDutyPolicyId!,
                 (onCreate.createBy.miscDataProps['users'] as Array<ObjectID>) ||
-                [],
+                    [],
                 (onCreate.createBy.miscDataProps['teams'] as Array<ObjectID>) ||
-                [],
+                    [],
                 onCreate.createBy.props
             );
         }

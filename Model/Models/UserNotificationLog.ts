@@ -16,17 +16,19 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
-import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 import Incident from './Incident';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
+import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
+import Team from './Team';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [],
-    read: [
-        Permission.CurrentUser
-    ],
+    read: [Permission.CurrentUser],
     delete: [],
     update: [],
 })
@@ -42,13 +44,9 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
     tableDescription: 'Log events for user notifications',
 })
 export default class UserNotificationLog extends BaseModel {
-
-
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -56,8 +54,7 @@ export default class UserNotificationLog extends BaseModel {
         type: TableColumnType.Entity,
         modelType: User,
         title: 'User',
-        description:
-            'Relation to User who this log belongs to',
+        description: 'Relation to User who this log belongs to',
     })
     @ManyToOne(
         (_type: string) => {
@@ -75,16 +72,13 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'User ID',
-        description:
-            'User ID who this log belongs to',
+        description: 'User ID who this log belongs to',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -96,9 +90,52 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userBelongsToTeamId',
+        type: TableColumnType.Entity,
+        modelType: Team,
+        title: 'Which team did the user belong to when the alert was sent?',
+        description: 'Which team did the user belong to when the alert was sent?',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userBelongsToTeamId' })
+    public userBelongsToTeam?: Team = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Which team did the user belong to when the alert was sent?',
+        description: 'Which team did the user belong to when the alert was sent?',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userBelongsToTeamId?: ObjectID = undefined;
+
+    
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -125,9 +162,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @Index()
@@ -148,9 +183,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -177,9 +210,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @Index()
@@ -198,11 +229,118 @@ export default class UserNotificationLog extends BaseModel {
     })
     public onCallDutyPolicyId?: ObjectID = undefined;
 
+
+
+
+
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyPolicyExecutionLogId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicyExecutionLog,
+        title: 'On Call Policy Execution Log',
+        description:
+            'Relation to On Call Policy Execution Log which belongs to this execution log event.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicyExecutionLog;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyExecutionLogId' })
+    public onCallDutyPolicyExecutionLog?: OnCallDutyPolicyExecutionLog = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'On Call Policy Execution Log ID',
+        description:
+            'ID of your On Call Policy execution log which belongs to this log event.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyExecutionLogId?: ObjectID = undefined;
+
+
+
+
+
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyPolicyEscalationRuleId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicyEscalationRule,
+        title: 'On Call Policy Escalation Rule',
+        description:
+            'Relation to On Call Policy Escalation Rule which belongs to this execution log event.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicyEscalationRule;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyEscalationRuleId' })
+    public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'On Call Policy Escalation Rule ID',
+        description:
+            'ID of your On Call Policy Escalation Rule which belongs to this log event.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
+
+
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -229,9 +367,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -249,9 +385,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -266,13 +400,31 @@ export default class UserNotificationLog extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public status?: UserNotificationStatus = undefined;
+    public status?: UserNotificationExecutionStatus = undefined;
+    
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Notification Event Type',
+        description: 'Notification Event Type of this execution',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public userNotificationEventType?: UserNotificationEventType = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -291,9 +443,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -320,9 +470,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -367,9 +515,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -414,9 +560,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -434,9 +578,7 @@ export default class UserNotificationLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser
-        ],
+        read: [Permission.CurrentUser],
 
         update: [],
     })
@@ -447,5 +589,4 @@ export default class UserNotificationLog extends BaseModel {
         unique: false,
     })
     public acknowledgedAt?: Date = undefined;
-
 }

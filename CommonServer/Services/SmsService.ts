@@ -9,11 +9,11 @@ import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
+import SMS from 'Common/Types/SMS/SMS';
 
 export default class SmsService {
     public static async sendSms(
-        to: Phone,
-        message: string,
+        sms: SMS,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
@@ -21,8 +21,8 @@ export default class SmsService {
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
-            to: to.toString(),
-            message,
+            to: sms.to.toString(),
+            message: sms.message,
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
             isSensitive: options.isSensitive,

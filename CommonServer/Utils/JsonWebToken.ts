@@ -44,17 +44,28 @@ class JSONWebToken {
             };
         }
 
-        return jwt.sign(jsonObj, EncryptionSecret.toString(), {
+        return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
+    }
+
+    public static signJsonPayload(payload: JSONObject, expiresInSeconds: number): string {
+        return jwt.sign(payload, EncryptionSecret.toString(), {
             expiresIn: expiresInSeconds,
         });
     }
 
+    public static decodeJsonPayload(token: string): JSONObject {
+        const decodedToken: string = JSON.stringify(
+            jwt.verify(token, EncryptionSecret.toString()) as string
+        );
+        const decoded: JSONObject = JSONFunctions.parse(decodedToken);
+
+        return decoded; 
+    }
+
     public static decode(token: string): JSONWebTokenData {
         try {
-            const decodedToken: string = JSON.stringify(
-                jwt.verify(token, EncryptionSecret.toString()) as string
-            );
-            const decoded: JSONObject = JSONFunctions.parse(decodedToken);
+
+            const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token);
 
             if (decoded['statusPageId']) {
                 return {

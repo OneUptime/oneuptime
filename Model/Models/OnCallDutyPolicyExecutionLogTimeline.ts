@@ -47,7 +47,6 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
     tableDescription: 'Timeline events for on-call duty policy execution log.',
 })
 export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -106,9 +105,6 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
-    
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -166,10 +162,6 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyPolicyId?: ObjectID = undefined;
-
-
-
-
 
     @ColumnAccessControl({
         create: [],
@@ -475,7 +467,6 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     public statusMessage?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -560,10 +551,12 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [ Permission.ProjectOwner,
+        read: [
+            Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,],
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
         update: [],
     })
     @TableColumn({
@@ -580,10 +573,12 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [ Permission.ProjectOwner,
+        read: [
+            Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,],
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
         update: [],
     })
     @TableColumn({

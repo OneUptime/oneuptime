@@ -1,4 +1,4 @@
-enum UserNotificationEventType { 
+enum UserNotificationEventType {
     IncidentCreated = 'Incident Created',
 }
 

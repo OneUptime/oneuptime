@@ -336,9 +336,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         });
     }
 
-    public async getUsersInTeam(
-        teamId: ObjectID
-    ): Promise<Array<User>> {
+    public async getUsersInTeam(teamId: ObjectID): Promise<Array<User>> {
         const members: Array<TeamMember> = await this.findBy({
             query: {
                 teamId: teamId,

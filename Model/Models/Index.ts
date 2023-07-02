@@ -100,17 +100,15 @@ import UserSms from './UserSMS';
 import UserCall from './UserCall';
 import CallLog from './CallLog';
 
-
 // User Notification Rules
 import UserNotificationRule from './UserNotificationRule';
 import UserNotificationLog from './UserNotificationLog';
 import UserNotificationLogTimeline from './UserNotificationLogTimeline';
 
-
 // Date migration
 import DataMigration from './DataMigration';
 
-// Short link. 
+// Short link.
 import ShortLink from './ShortLink';
 
 export default [
@@ -200,12 +198,11 @@ export default [
     UserSms,
     UserCall,
 
-
     UserNotificationRule,
     UserNotificationLog,
     UserNotificationLogTimeline,
 
     DataMigration,
 
-    ShortLink
+    ShortLink,
 ];
