@@ -21,40 +21,87 @@ import Team from './Team';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 import Incident from './Incident';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
+import UserNotificationLog from './UserNotificationLog';
+import UserNotificationRule from './UserNotificationRule';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [],
     read: [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        Permission.CurrentUser
     ],
     delete: [],
     update: [],
 })
-@CrudApiEndpoint(new Route('/on-call-duty-policy-execution-log-timeline'))
+@CrudApiEndpoint(new Route('/user-notification-log-timeline'))
 @Entity({
-    name: 'OnCallDutyPolicyExecutionLogTimeline',
+    name: 'UserNotifiationLogTimeline',
 })
 @TableMetadata({
-    tableName: 'OnCallDutyPolicyExecutionLogTimeline',
-    singularName: 'On Call Duty Execution Log Timeline',
-    pluralName: 'On Call Duty Execution Log Timeline',
-    icon: IconProp.Call,
-    tableDescription: 'Timeline events for on-call duty policy execution log.',
+    tableName: 'UserNotifiationLogTimeline',
+    singularName: 'User Notification Log Timeline',
+    pluralName: 'User Notification Log Timelines',
+    icon: IconProp.Logs,
+    tableDescription: 'Timeline events for user notificaiton log.',
 })
-export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
+export default class UserNotificationLogTimeline extends BaseModel {
+
 
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userId',
+        type: TableColumnType.Entity,
+        modelType: User,
+        title: 'User',
+        description:
+            'Relation to User who this log belongs to',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userId' })
+    public user?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'User ID',
+        description:
+            'User ID who this log belongs to',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -83,10 +130,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -107,15 +151,126 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     public projectId?: ObjectID = undefined;
 
 
+
+
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userNotificationLogId',
+        type: TableColumnType.Entity,
+        modelType: UserNotificationLog,
+        title: 'User Notification Log',
+        description:
+            'Relation to User Notification Log Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return UserNotificationLog;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userNotificationLogId' })
+    public userNotificationLog?: UserNotificationLog = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'User Notification Log ID',
+        description:
+            'ID of your OneUptime User Notification Log in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userNotificationLogId?: ObjectID = undefined;
+
+
+
+
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userNotificationRuleId',
+        type: TableColumnType.Entity,
+        modelType: UserNotificationRule,
+        title: 'User Notification Rule',
+        description:
+            'Relation to User Notification Rule Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return UserNotificationRule;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userNotificationRuleId' })
+    public userNotificationRule?: UserNotificationRule = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'User Notification Rule ID',
+        description:
+            'ID of your OneUptime User Notification Rule in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userNotificationRuleId?: ObjectID = undefined;
+
+
     
 
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -144,10 +299,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -168,16 +320,10 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     public onCallDutyPolicyId?: ObjectID = undefined;
 
 
-
-
-
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -206,10 +352,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -232,10 +375,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -264,10 +404,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -290,10 +427,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -322,10 +456,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -345,66 +476,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
 
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'alertSentToUserId',
-        type: TableColumnType.Entity,
-        modelType: User,
-        title: 'Alert Sent To User',
-        description: 'Relation to User who we sent alert to.',
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return User;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'alertSentToUserId' })
-    public alertSentToUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        type: TableColumnType.ObjectID,
-        title: 'Alert Sent To User ID',
-        description: 'ID of the user who we sent alert to.',
-    })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public alertSentToUserId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -432,10 +508,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -454,10 +527,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -479,10 +549,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -511,10 +578,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+            Permission.CurrentUser
         ],
         update: [],
     })
@@ -560,10 +624,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [ Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,],
+        read: [ Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -580,10 +641,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [ Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,],
+        read: [ Permission.CurrentUser],
         update: [],
     })
     @TableColumn({

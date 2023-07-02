@@ -20,6 +20,11 @@ import ProjectService, {
     Service as ProjectServiceType,
 } from 'CommonServer/Services/ProjectService';
 
+import ShortLink from 'Model/Models/ShortLink';
+import ShortLinkService, {
+    Service as ShortLinkServiceType,
+} from 'CommonServer/Services/ShortLinkService';
+
 import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
 import IncidentOwnerTeamService, {
     Service as IncidentOwnerTeamServiceType,
@@ -339,6 +344,14 @@ app.use(
     new BaseAPI<Project, ProjectServiceType>(
         Project,
         ProjectService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<ShortLink, ShortLinkServiceType>(
+        ShortLink,
+        ShortLinkService
     ).getRouter()
 );
 

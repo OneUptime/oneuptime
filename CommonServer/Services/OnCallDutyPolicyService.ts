@@ -5,6 +5,7 @@ import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecution
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -14,10 +15,17 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     public async executePolicy(
         policyId: ObjectID,
         options: {
-            triggeredByIncidentId: ObjectID;
+            triggeredByIncidentId?: ObjectID | undefined;
+            userNotificationEventType: UserNotificationEventType
         }
     ): Promise<void> {
         // execute this policy
+
+
+        if (UserNotificationEventType.IncidentCreated === options.userNotificationEventType && !options.triggeredByIncidentId) {
+            throw new BadDataException('triggeredByIncidentId is required when userNotificationEventType is IncidentCreated');
+        }
+
 
         const policy: OnCallDutyPolicy | null = await this.findOneById({
             id: policyId,
@@ -42,7 +50,10 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
         log.projectId = policy.projectId!;
         log.onCallDutyPolicyId = policyId;
-        log.triggeredByIncidentId = options.triggeredByIncidentId;
+
+        if (options.triggeredByIncidentId) {
+            log.triggeredByIncidentId = options.triggeredByIncidentId;
+        }
 
         await OnCallDutyPolicyExecutionLogService.create({
             data: log,

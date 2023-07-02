@@ -11,10 +11,21 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import UserEmailService from './UserEmailService';
 import UserEmail from 'Model/Models/UserEmail';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    public async startUserNotificationRulesExecution(userId: ObjectID, options: {
+        triggeredByIncidentId?: ObjectID | undefined;
+        userNotificationEventType: UserNotificationEventType;
+        onCallPolicyExecutionLogId?: ObjectID | undefined,
+        onCallPolicyId: ObjectID | undefined,
+        onCallPolicyEscalationRuleId?: ObjectID | undefined,
+    }){
+        
     }
 
     protected override async onBeforeCreate(

@@ -5,6 +5,7 @@ import CreateBy from '../Types/Database/CreateBy';
 import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import OnCallDutyPolicyEscalationRuleService from './OnCallDutyPolicyEscalationRuleService';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -42,8 +43,15 @@ export class Service extends DatabaseService<Model> {
             });
 
         if (executionRule) {
-            await OnCallDutyPolicyEscalationRuleService.executeRule(
-                executionRule.id!
+            await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+                executionRule.id!, 
+                {
+                    projectId: createdItem.projectId!,
+                    triggeredByIncidentId: createdItem.triggeredByIncidentId,
+                    userNotificationEventType: UserNotificationEventType.IncidentCreated,
+                    onCallPolicyExecutionLogId: createdItem.id!,
+                    onCallPolicyId: createdItem.onCallDutyPolicyId!,
+                }
             );
         } else {
             await this.updateOneById({
