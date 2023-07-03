@@ -25,6 +25,7 @@ import UserNotificationLog from './UserNotificationLog';
 import UserNotificationRule from './UserNotificationRule';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -366,6 +367,58 @@ export default class UserNotificationLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
+        title: 'On Call Policy Execution Log Timeline ID',
+        description:
+            'ID of your On Call Policy Execution Log Timeline where this timeline event belongs.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyExecutionLogId?: ObjectID = undefined;
+
+
+
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyPolicyExecutionLogTimelineId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicyExecutionLogTimeline,
+        title: 'On Call Policy Execution Log Timeline',
+        description:
+            'Relation to On Call Policy Execution Log Timeline where this timeline event belongs.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicyExecutionLogTimeline;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyExecutionLogTimelineId' })
+    public onCallDutyPolicyExecutionLogTimeline?: OnCallDutyPolicyExecutionLogTimeline = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
         title: 'On Call Policy Execution Log ID',
         description:
             'ID of your On Call Policy Execution Log where this timeline event belongs.',
@@ -375,7 +428,8 @@ export default class UserNotificationLogTimeline extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public onCallDutyPolicyExecutionLogId?: ObjectID = undefined;
+    public onCallDutyPolicyExecutionLogTimelineId?: ObjectID = undefined;
+
 
     @ColumnAccessControl({
         create: [],

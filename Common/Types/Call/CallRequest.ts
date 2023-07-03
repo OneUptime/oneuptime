@@ -1,5 +1,12 @@
+import URL from "../API/URL";
+
 export interface Say {
     sayMessage: string;
+}
+
+export interface OnCallInputRequest {
+    [x: string]: Say; // input. 
+    default: Say; // what if there is no input or invalid input. 
 }
 
 export interface GatherInput {
@@ -7,10 +14,8 @@ export interface GatherInput {
     numDigits: number;
     timeoutInSeconds: number;
     noInputMessage: string;
-    onInputCallRequest: {
-        [x: string]: Say; // input. 
-        default: Say; // what if there is no input or invalid input. 
-    };
+    onInputCallRequest: OnCallInputRequest;
+    responseUrl: URL;
 }
 
 export enum CallAction {

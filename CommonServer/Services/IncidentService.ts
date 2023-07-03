@@ -30,6 +30,54 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
+    public async acknowledgeIncident(incidentId: ObjectID, acknowledgedByUserId: ObjectID): Promise<void> {
+        const incident: Model | null = await this.findOneById({
+            id: incidentId,
+            select: {
+                projectId: true,
+            },
+            props: {
+                isRoot: true,
+            }
+        });
+
+        if (!incident || !incident.projectId) {
+            throw new BadDataException('Incident not found.');
+        }
+
+        const incidentState: IncidentState | null = await IncidentStateService.findOneBy({
+            query: {
+                projectId: incident.projectId,
+                isAcknowledgedState: true,
+            },
+            select: {
+                _id: true,
+            },
+            props: {
+                isRoot: true,
+            }
+        });
+
+
+        if (!incidentState || !incidentState.id) {
+            throw new BadDataException('Acknowledged state not found for this project. Please add acknowledged state from settings.');
+        }
+
+        const incidentStateTimeline: IncidentStateTimeline =
+            new IncidentStateTimeline();
+        incidentStateTimeline.projectId = incident.projectId;
+        incidentStateTimeline.incidentId = incidentId;
+        incidentStateTimeline.incidentStateId = incidentState.id;
+        incidentStateTimeline.createdByUserId = acknowledgedByUserId;
+
+        await IncidentStateTimelineService.create({
+            data: incidentStateTimeline,
+            props: {
+                isRoot: true,
+            }
+        });
+    }
+
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
@@ -126,9 +174,9 @@ export class Service extends DatabaseService<Model> {
                 createdItem.changeMonitorStatusToId,
                 true, // notifyMonitorOwners
                 createdItem.rootCause ||
-                    'Status was changed because incident ' +
-                        createdItem.id.toString() +
-                        ' was created.',
+                'Status was changed because incident ' +
+                createdItem.id.toString() +
+                ' was created.',
                 createdItem.createdStateLog,
                 onCreate.createBy.props
             );

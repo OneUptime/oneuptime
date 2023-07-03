@@ -11,18 +11,17 @@ import TwilioUtil from '../Utils/Twilio';
 import CallLog from 'Model/Models/CallLog';
 import CallStatus from 'Common/Types/Call/CallStatus';
 import CallRequest, { GatherInput, Say } from 'Common/Types/Call/CallRequest';
-import { Domain, HttpProtocol, IsBillingEnabled, NotificationRoute } from 'CommonServer/Config';
+import { IsBillingEnabled } from 'CommonServer/Config';
 import CallLogService from 'CommonServer/Services/CallLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
 import { CallInstance } from 'twilio/lib/rest/api/v2010/account/call';
-import URL from 'Common/Types/API/URL';
 import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import { JSONObject } from 'Common/Types/JSON';
+
 
 export default class CallService {
     public static async makeCall(
@@ -274,7 +273,7 @@ export default class CallService {
                 response.gather({
                     numDigits: (item as GatherInput).numDigits,
                     timeout: (item as GatherInput).timeoutInSeconds || 5,
-                    action: new URL(HttpProtocol, Domain, NotificationRoute).addRoute("gather-call-input").addQueryParam("token", JSONWebToken.signJsonPayload(JSONFunctions.serialize((item as GatherInput).onInputCallRequest as any), OneUptimeDate.getDayInSeconds())).toString(),
+                    action: (item as GatherInput).responseUrl.addQueryParam("token", JSONWebToken.signJsonPayload(JSONFunctions.serialize((item as GatherInput).onInputCallRequest as any), OneUptimeDate.getDayInSeconds())).toString(),
                     method: 'POST',
                 });
 
