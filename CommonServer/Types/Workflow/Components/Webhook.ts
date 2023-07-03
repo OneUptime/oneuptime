@@ -23,7 +23,10 @@ export default class WebhookTrigger extends TriggerCode {
         this.setMetadata(WebhookComponent);
     }
 
-    public override async run(args: JSONObject, options: RunOptions): Promise<RunReturnType> {
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {
                 return p.id === 'out';
@@ -31,9 +34,7 @@ export default class WebhookTrigger extends TriggerCode {
         );
 
         if (!successPort) {
-            throw options.onError(
-                new BadDataException('Out port not found')
-            );
+            throw options.onError(new BadDataException('Out port not found'));
         }
 
         return {
