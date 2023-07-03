@@ -32,6 +32,7 @@ import ComponentMetadata, {
     NodeDataProp,
     NodeType,
     ComponentCategory,
+    ComponentType,
 } from 'Common/Types/Workflow/Component';
 import API from 'CommonUI/src/Utils/API/API';
 import { WORKFLOW_URL } from 'CommonUI/src/Config';
@@ -137,7 +138,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             !nodes.find((node: Node) => {
                                 return (
                                     node.data.nodeType ===
-                                    NodeType.PlaceholderNode
+                                        NodeType.PlaceholderNode ||
+                                    node.data.componentType ===
+                                        ComponentType.Trigger
                                 );
                             })
                         ) {
