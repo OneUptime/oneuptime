@@ -1,11 +1,13 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import ComponentMetadata from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import WebhookComponents from 'Common/Types/Workflow/Components/Webhook';
 import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
 import Response from '../../../Utils/Response';
 import TriggerCode, { ExecuteWorkflowType, InitProps } from '../TriggerCode';
+import { JSONObject } from 'Common/Types/JSON';
+import { RunOptions, RunReturnType } from '../ComponentCode';
 
 export default class WebhookTrigger extends TriggerCode {
     public constructor() {
@@ -19,6 +21,28 @@ export default class WebhookTrigger extends TriggerCode {
             throw new BadDataException('Webhook trigger not found.');
         }
         this.setMetadata(WebhookComponent);
+    }
+
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
+        const successPort: Port | undefined = this.getMetadata().outPorts.find(
+            (p: Port) => {
+                return p.id === 'out';
+            }
+        );
+
+        if (!successPort) {
+            throw options.onError(new BadDataException('Out port not found'));
+        }
+
+        return {
+            returnValues: {
+                ...args,
+            },
+            executePort: successPort,
+        };
     }
 
     public override async init(props: InitProps): Promise<void> {

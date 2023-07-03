@@ -32,6 +32,7 @@ import ComponentMetadata, {
     NodeDataProp,
     NodeType,
     ComponentCategory,
+    ComponentType,
 } from 'Common/Types/Workflow/Component';
 import API from 'CommonUI/src/Utils/API/API';
 import { WORKFLOW_URL } from 'CommonUI/src/Config';
@@ -85,7 +86,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         // add a placeholder trigger node.
                         setNodes([getPlaceholderTriggerNode()]);
                     } else {
-                        const nodes: Array<Node> = (workflow.graph as any)[
+                        let nodes: Array<Node> = (workflow.graph as any)[
                             'nodes'
                         ] as Array<Node>;
 
@@ -107,16 +108,17 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 continue;
                             }
 
-                            const componentMetdata:
+                            let componentMetdata:
                                 | ComponentMetadata
-                                | undefined = allComponents.components.find(
-                                (component: ComponentMetadata) => {
-                                    return (
-                                        component.id ===
-                                        nodes[i]?.data.metadataId
-                                    );
+                                | undefined = undefined;
+
+                            for (const component of allComponents.components) {
+                                if (
+                                    component.id === nodes[i]?.data.metadataId
+                                ) {
+                                    componentMetdata = component;
                                 }
-                            );
+                            }
 
                             if (!componentMetdata) {
                                 throw new BadDataException(
@@ -128,6 +130,21 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             nodes[i]!.data.metadata = {
                                 ...componentMetdata,
                             };
+                        }
+
+                        // see if it has the trighger node.
+
+                        if (
+                            !nodes.find((node: Node) => {
+                                return (
+                                    node.data.nodeType ===
+                                        NodeType.PlaceholderNode ||
+                                    node.data.componentType ===
+                                        ComponentType.Trigger
+                                );
+                            })
+                        ) {
+                            nodes = [...nodes, getPlaceholderTriggerNode()];
                         }
 
                         setNodes(nodes);
