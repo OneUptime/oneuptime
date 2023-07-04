@@ -14,6 +14,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 import NotificationMiddleware from '../Middleware/NotificationMiddleware';
 import OneUptimeDate from 'Common/Types/Date';
+import URL from 'Common/Types/API/URL';
+import { DashboardRoute, Domain, HttpProtocol } from '../Config';
 
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
@@ -25,6 +27,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
         this.router.post(
             `/call/gather-input/:itemId`,
+            NotificationMiddleware.isValidCallNotificationRequest,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 req = req as OneUptimeRequest;
 
@@ -79,6 +82,59 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
 
                 return NotificationMiddleware.sendResponse(req, res, token as any);
+            }
+        );
+
+        this.router.post(
+            `/acknowledge/:itemId`,
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                req = req as OneUptimeRequest;
+
+                if (!req.params['itemId']) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadDataException('Invalid item ID')
+                    );
+                }
+
+                const itemId: ObjectID = new ObjectID(req.params['itemId']);
+
+                const timelineItem = await this.service.findOneById({
+                    id: itemId,
+                    select: {
+                        _id: true,
+                        projectId: true,
+                        triggeredByIncidentId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    }
+                });
+
+                if (!timelineItem) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadDataException('Invalid item Id')
+                    );
+                }
+
+
+                await this.service.updateOneById({
+                    id: itemId,
+                    data: {
+                        acknowledgedAt: OneUptimeDate.getCurrentDate(),
+                        isAcknowledged: true
+                    },
+                    props: {
+                        isRoot: true,
+                    }
+                });
+
+
+                // redirect to dashboard to incidents page. 
+                return Response.redirect(req, res, new URL(HttpProtocol, Domain, DashboardRoute.addRoute(`/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`)));
             }
         );
     }

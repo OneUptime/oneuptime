@@ -13,20 +13,20 @@ import CallRequest from 'Common/Types/Call/CallRequest';
 
 export default class CallService {
     public static async makeCall(
-        to: Phone,
         callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
+            userNotificationLogTimelineId?: ObjectID
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
-            to: to.toString(),
             callRequest: callRequest,
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
             isSensitive: options.isSensitive,
+            userNotificationLogTimelineId: options.userNotificationLogTimelineId?.toString()
         };
 
         return await API.post<EmptyResponseData>(

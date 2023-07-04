@@ -23,6 +23,7 @@ import UserNotificationEventType from 'Common/Types/UserNotification/UserNotific
 import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 import Team from './Team';
+import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -421,6 +422,55 @@ export default class UserNotificationLog extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public userNotificationEventType?: UserNotificationEventType = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyPolicyExecutionLogTimelineId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicyExecutionLogTimeline,
+        title: 'On Call Policy Execution Log Timeline',
+        description:
+            'Relation to On Call Policy Execution Log Timeline where this timeline event belongs.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicyExecutionLogTimeline;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyExecutionLogTimelineId' })
+    public onCallDutyPolicyExecutionLogTimeline?: OnCallDutyPolicyExecutionLogTimeline = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'On Call Policy Execution Log ID',
+        description:
+            'ID of your On Call Policy Execution Log where this timeline event belongs.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyExecutionLogTimelineId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],

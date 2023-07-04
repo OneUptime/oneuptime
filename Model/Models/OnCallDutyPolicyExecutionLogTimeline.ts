@@ -21,6 +21,9 @@ import Team from './Team';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 import Incident from './Incident';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
+
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -368,6 +371,31 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @JoinColumn({ name: 'alertSentToUserId' })
     public alertSentToUser?: User = undefined;
 
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Notification Event Type',
+        description: 'Type of event tat triggered this on call duty policy.',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public userNotificationEventType?: UserNotificationEventType = undefined;
+
     @ColumnAccessControl({
         create: [],
         read: [
@@ -401,11 +429,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'alertSentToTeamId',
+        manyToOneRelationColumn: 'userBelongsToTeamId',
         type: TableColumnType.Entity,
         modelType: Team,
-        title: 'Alert Sent To Team',
-        description: 'Relation to Team who we sent alert to.',
+        title: 'User Belongs To Team',
+        description: 'Which team does the user belogns to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -418,8 +446,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'alertSentToTeamId' })
-    public alertSentToTeam?: Team = undefined;
+    @JoinColumn({ name: 'userBelongsToTeamId' })
+    public userBelongsToTeam?: Team = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -433,15 +461,15 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: 'Alert Sent To Team ID',
-        description: 'ID of the team who we sent alert to.',
+        title: 'User Belongs To Team ID',
+        description: 'Which team ID does the user belogns to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public alertSentToTeamId?: ObjectID = undefined;
+    public userBelongsToTeamId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -466,6 +494,30 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         length: ColumnLength.LongText,
     })
     public statusMessage?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Status',
+        description: 'Status of this execution timeline event',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public status?: OnCallDutyExecutionLogTimelineStatus = undefined;
 
     @ColumnAccessControl({
         create: [],

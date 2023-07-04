@@ -9,11 +9,15 @@ import Email from 'Common/Types/Email/EmailMessage';
 import EmailServer from 'Common/Types/Email/EmailServer';
 import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class MailService {
     public static async sendMail(
         mail: Email,
-        mailServer?: EmailServer
+        mailServer?: EmailServer,
+        options?: {
+            userNotificationLogTimelineId?: ObjectID
+        }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             ...mail,
@@ -28,6 +32,10 @@ export default class MailService {
             body['SMTP_PORT'] = mailServer.port.toNumber();
             body['SMTP_HOST'] = mailServer.host.toString();
             body['SMTP_PASSWORD'] = mailServer.password;
+        }
+
+        if(options?.userNotificationLogTimelineId){
+            body['userNotificationLogTimelineId'] = options.userNotificationLogTimelineId.toString();
         }
 
         return await API.post<EmptyResponseData>(

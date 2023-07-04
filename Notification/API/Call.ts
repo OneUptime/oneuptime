@@ -20,7 +20,6 @@ router.post(
         const body: JSONObject = JSONFunctions.deserialize(req.body);
 
         await CallService.makeCall(
-            body['to'] as Phone,
             body['callRequest'] as CallRequest,
             {
                 projectId: body['projectId'] as ObjectID,

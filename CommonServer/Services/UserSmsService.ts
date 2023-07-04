@@ -146,8 +146,10 @@ export class Service extends DatabaseService<Model> {
     public sendVerificationCode(item: Model): void {
         // send verifiction sms.
         SmsService.sendSms(
-            item.phone!,
-            'Your verification code is ' + item.verificationCode,
+            {
+                to: item.phone!,
+                message: 'Your verification code is ' + item.verificationCode
+            },
             {
                 projectId: item.projectId,
                 isSensitive: true,

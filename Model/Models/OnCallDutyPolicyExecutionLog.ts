@@ -20,6 +20,7 @@ import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPoli
 import Incident from './Incident';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import Team from './Team';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -265,6 +266,31 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     })
     public statusMessage?: string = undefined;
 
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Notification Event Type',
+        description: 'Type of event tat triggered this on call duty policy.',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public userNotificationEventType?: UserNotificationEventType = undefined;
+
     @ColumnAccessControl({
         create: [],
         read: [
@@ -478,7 +504,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: 'Deleted by Team ID',
+        title: 'Acknowledged by Team ID',
         description:
             'Team ID who acknowledged this object (if this object was acknowledged by a Team)',
     })

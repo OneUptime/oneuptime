@@ -74,6 +74,7 @@ export class Service extends DatabaseService<Model> {
                 onCallPolicyId: createdItem.onCallDutyPolicyId,
                 onCallPolicyEscalationRuleId: createdItem.onCallDutyPolicyEscalationRuleId,
                 userBelongsToTeamId: createdItem.userBelongsToTeamId,
+                onCallDutyPolicyExecutionLogTimelineId: createdItem.onCallDutyPolicyExecutionLogTimelineId,
             });
         }
 

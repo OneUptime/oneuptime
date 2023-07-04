@@ -159,7 +159,6 @@ export class Service extends DatabaseService<Model> {
                 {
                     sayMessage: 'Thank you for using OneUptime. Goodbye.',
                 },
-                CallAction.Hangup,
             ],
         };
 

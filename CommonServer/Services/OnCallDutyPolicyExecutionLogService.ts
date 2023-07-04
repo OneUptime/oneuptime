@@ -43,6 +43,20 @@ export class Service extends DatabaseService<Model> {
             });
 
         if (executionRule) {
+
+            await this.updateOneById({
+                id: createdItem.id!,
+                data: {
+                    status: OnCallDutyPolicyStatus.Started,
+                    statusMessage:
+                        'Execution started...',
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+
             await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
                 executionRule.id!,
                 {
@@ -54,6 +68,21 @@ export class Service extends DatabaseService<Model> {
                     onCallPolicyId: createdItem.onCallDutyPolicyId!,
                 }
             );
+
+
+            await this.updateOneById({
+                id: createdItem.id!,
+                data: {
+                    status: OnCallDutyPolicyStatus.Running,
+                    statusMessage:
+                        'First escalation rule executed....',
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+
         } else {
             await this.updateOneById({
                 id: createdItem.id!,

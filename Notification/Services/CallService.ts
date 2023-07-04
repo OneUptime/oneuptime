@@ -25,7 +25,6 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class CallService {
     public static async makeCall(
-        to: Phone,
         callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
@@ -38,7 +37,7 @@ export default class CallService {
         const client: Twilio.Twilio = Twilio(TwilioAccountSid, TwilioAuthToken);
 
         const callLog: CallLog = new CallLog();
-        callLog.toNumber = to;
+        callLog.toNumber = callRequest.to;
         callLog.fromNumber = options.from || new Phone(TwilioPhoneNumber);
         callLog.callData =
             options && options.isSensitive
@@ -108,7 +107,7 @@ export default class CallService {
                             project.id!,
                             'Call notifications not enabled for ' +
                             (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
+                            `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
                         );
                     }
                     return;
@@ -153,7 +152,7 @@ export default class CallService {
                             project.id!,
                             'Low SMS and Call Balance for ' +
                             (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents ||
+                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents ||
                                 0) / 100
                             } USD. Required balance to send this SMS should is ${CallDefaultCostInCentsPerMinute / 100
                             } USD. Please enable auto recharge or recharge manually.`
@@ -191,7 +190,7 @@ export default class CallService {
                             project.id!,
                             'Low SMS and Call Balance for ' +
                             (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
+                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
                             } USD. Required balance is ${CallDefaultCostInCentsPerMinute / 100
                             } USD to make this call. Please enable auto recharge or recharge manually.`
                         );
@@ -202,7 +201,7 @@ export default class CallService {
 
             const twillioCall: CallInstance = await client.calls.create({
                 twiml: this.generateTwimlForCall(callRequest),
-                to: to.toString(),
+                to: callRequest.to.toString(),
                 from:
                     options && options.from
                         ? options.from.toString()
@@ -277,7 +276,7 @@ export default class CallService {
                     method: 'POST',
                 });
 
-                response.say((item as GatherInput).noInputMessage);                
+                response.say((item as GatherInput).noInputMessage);
             }
         }
 

@@ -33,6 +33,7 @@ enum EmailTemplateType {
     StatusPageOwnerAnnouncementPosted = 'StatusPageOwnerAnnouncementPosted.hbs',
     SimpleMessage = 'SimpleMessage.hbs',
     VerificationCode = 'VerificationCode.hbs',
+    AcknowledgeIncident = 'AcknowledgeIncident.hbs',
 }
 
 export default EmailTemplateType;

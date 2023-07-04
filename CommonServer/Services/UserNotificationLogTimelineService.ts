@@ -7,6 +7,12 @@ import UserNotificationLogService from './UserNotificationLogService';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
 import IncidentService from './IncidentService';
+import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
+import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
+import User from 'Model/Models/User';
+import UserService from './UserService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -40,11 +46,29 @@ export class Service extends DatabaseService<Model> {
 
                 // now we need to ack the parent log. 
 
+                const user: User | null = await UserService.findOneById({
+                    id: item.userId!,
+                    select: {
+                        _id: true,
+                        name: true,
+                        email: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    }
+                });
+
+                if(!user){
+                    throw new BadDataException('User not found.');
+                }
+
                 await UserNotificationLogService.updateOneById({
                     id: item.userNotificationLogId!,
                     data: {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
                         acknowledgedByUserId: item.userId!,
+                        status: UserNotificationExecutionStatus.Completed,
+                        statusMessage: 'Incident acknowledged by ' + user.name + ' (' + user.email + ')',
                     },
                     props: {
                         isRoot: true,
@@ -59,6 +83,8 @@ export class Service extends DatabaseService<Model> {
                     data: {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
                         acknowledgedByUserId: item.userId!,
+                        status: OnCallDutyPolicyStatus.SuccessfullyAcknowledged,
+                        statusMessage: 'Incident acknowledged by ' + user.name + ' (' + user.email + ')',
                     },
                     props: {
                         isRoot: true,
@@ -72,6 +98,8 @@ export class Service extends DatabaseService<Model> {
                     data: {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
                         isAcknowledged: true,
+                        status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+                        statusMessage: 'Incident acknowledged by ' + user.name + ' (' + user.email + ')',
                     },
                     props: {
                         isRoot: true,

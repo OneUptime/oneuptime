@@ -1,4 +1,5 @@
 import URL from "../API/URL";
+import Phone from "../Phone";
 
 export interface Say {
     sayMessage: string;
@@ -23,5 +24,6 @@ export enum CallAction {
 }
 
 export default interface CallRequest {
+    to: Phone,
     data: Array<Say | CallAction | GatherInput>;
 }

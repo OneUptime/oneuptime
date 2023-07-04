@@ -54,6 +54,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
         log.projectId = policy.projectId!;
         log.onCallDutyPolicyId = policyId;
+        log.userNotificationEventType = options.userNotificationEventType;
 
         if (options.triggeredByIncidentId) {
             log.triggeredByIncidentId = options.triggeredByIncidentId;
