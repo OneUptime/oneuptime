@@ -17,6 +17,9 @@ import logger from 'CommonServer/Utils/Logger';
 import { IsDevelopment } from 'CommonServer/Config';
 import { SendGridApiKey } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
+import ObjectID from 'Common/Types/ObjectID';
+import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -33,8 +36,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                    obj['SMTP_EMAIL'] +
-                    ' is not a valid email'
+                obj['SMTP_EMAIL'] +
+                ' is not a valid email'
             );
             return false;
         }
@@ -182,7 +185,10 @@ export default class MailService {
 
     public static async send(
         mail: EmailMessage,
-        emailServer?: EmailServer
+        emailServer?: EmailServer,
+        options?: {
+            userNotificationLogTimelineId?: ObjectID | undefined;
+        } | undefined
     ): Promise<void> {
         // default vars.
         if (!mail.vars) {
@@ -216,6 +222,36 @@ export default class MailService {
             emailServer = this.getGlobalSmtpSettings();
         }
 
-        await this.transportMail(mail, emailServer);
+        try {
+            await this.transportMail(mail, emailServer);
+
+            if (options?.userNotificationLogTimelineId) {
+                await UserNotificationLogTimelineService.updateOneById({
+                    data: {
+                        status: UserNotificationStatus.Sent,
+                        statusMessage: "Email sent successfully",
+                    },
+                    id: options.userNotificationLogTimelineId,
+                    props: {
+                        isRoot: true,
+                    }
+                })
+            }
+        } catch (err: any) {
+            if (options?.userNotificationLogTimelineId) {
+                await UserNotificationLogTimelineService.updateOneById({
+                    data: {
+                        status: UserNotificationStatus.Error,
+                        statusMessage: err.message || "Email failed to send",
+                    },
+                    id: options.userNotificationLogTimelineId,
+                    props: {
+                        isRoot: true,
+                    }
+                })
+            }
+
+            throw err;
+        }
     }
 }

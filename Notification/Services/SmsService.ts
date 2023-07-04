@@ -17,6 +17,8 @@ import { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
 import TwilioUtil from '../Utils/Twilio';
+import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class SmsService {
     public static async sendSms(
@@ -26,6 +28,7 @@ export default class SmsService {
             projectId?: ObjectID | undefined; // project id for sms log
             from: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
+            userNotificationLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
         TwilioUtil.checkEnvironmentVariables();
@@ -247,6 +250,19 @@ export default class SmsService {
                     isRoot: true,
                 },
             });
+        }
+
+        if(options.userNotificationLogTimelineId){
+            await UserNotificationLogTimelineService.updateOneById({
+                data: {
+                    status: smsLog.status === SmsStatus.Success ? UserNotificationStatus.Sent : UserNotificationStatus.Error,
+                    statusMessage: smsLog.statusMessage!,
+                },
+                id: options.userNotificationLogTimelineId,
+                props: {
+                    isRoot: true,
+                }
+            })
         }
     }
 }

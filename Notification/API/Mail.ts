@@ -13,6 +13,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
 import EmailServer from 'Common/Types/Email/EmailServer';
+import ObjectID from 'Common/Types/ObjectID';
 
 router.post(
     '/send',
@@ -34,7 +35,9 @@ router.post(
             mailServer = MailService.getEmailServer(req.body);
         }
 
-        await MailService.send(mail, mailServer);
+        await MailService.send(mail, mailServer, {
+            userNotificationLogTimelineId: body['userNotificationLogTimelineId'] as ObjectID || undefined
+        });
 
         return Response.sendEmptyResponse(req, res);
     }

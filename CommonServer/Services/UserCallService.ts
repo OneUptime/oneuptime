@@ -9,7 +9,7 @@ import CallService from './CallService';
 import logger from '../Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
 import Text from 'Common/Types/Text';
-import CallRequest, { CallAction } from 'Common/Types/Call/CallRequest';
+import CallRequest from 'Common/Types/Call/CallRequest';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import UserNotificationRuleService from './UserNotificationRuleService';
@@ -145,6 +145,7 @@ export class Service extends DatabaseService<Model> {
 
     public sendVerificationCode(item: Model): void {
         const callRequest: CallRequest = {
+            to: item.phone!,
             data: [
                 {
                     sayMessage:
@@ -163,7 +164,7 @@ export class Service extends DatabaseService<Model> {
         };
 
         // send verifiction sms.
-        CallService.makeCall(item.phone!, callRequest, {
+        CallService.makeCall(callRequest, {
             projectId: item.projectId,
             isSensitive: true,
         }).catch((err: Error) => {
@@ -171,4 +172,6 @@ export class Service extends DatabaseService<Model> {
         });
     }
 }
+
+
 export default new Service();
