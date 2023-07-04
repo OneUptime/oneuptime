@@ -19,9 +19,14 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
-        if (onUpdate.updateBy.data.acknowledgedAt && onUpdate.updateBy.data.isAcknowledged) {
-
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        _updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
+        if (
+            onUpdate.updateBy.data.acknowledgedAt &&
+            onUpdate.updateBy.data.isAcknowledged
+        ) {
             const items: Array<Model> = await this.findBy({
                 query: onUpdate.updateBy.query,
                 select: {
@@ -29,22 +34,21 @@ export class Service extends DatabaseService<Model> {
                     projectId: true,
                     userId: true,
                     userNotificationLogId: true,
-                    onCallDutyPolicyExecutionLogId: true, 
-                    triggeredByIncidentId: true, 
-                    onCallDutyPolicyExecutionLogTimelineId: true, 
+                    onCallDutyPolicyExecutionLogId: true,
+                    triggeredByIncidentId: true,
+                    onCallDutyPolicyExecutionLogTimelineId: true,
                 },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
                     isRoot: true,
-                }
+                },
             });
-
 
             for (const item of items) {
                 // this incident is acknowledged.
 
-                // now we need to ack the parent log. 
+                // now we need to ack the parent log.
 
                 const user: User | null = await UserService.findOneById({
                     id: item.userId!,
@@ -55,10 +59,10 @@ export class Service extends DatabaseService<Model> {
                     },
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
 
-                if(!user){
+                if (!user) {
                     throw new BadDataException('User not found.');
                 }
 
@@ -68,15 +72,19 @@ export class Service extends DatabaseService<Model> {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
                         acknowledgedByUserId: item.userId!,
                         status: UserNotificationExecutionStatus.Completed,
-                        statusMessage: 'Incident acknowledged by ' + user.name + ' (' + user.email + ')',
+                        statusMessage:
+                            'Incident acknowledged by ' +
+                            user.name +
+                            ' (' +
+                            user.email +
+                            ')',
                     },
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
 
-
-                //  and then oncall log. 
+                //  and then oncall log.
 
                 await OnCallDutyPolicyExecutionLogService.updateOneById({
                     id: item.onCallDutyPolicyExecutionLogId!,
@@ -84,33 +92,46 @@ export class Service extends DatabaseService<Model> {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
                         acknowledgedByUserId: item.userId!,
                         status: OnCallDutyPolicyStatus.SuccessfullyAcknowledged,
-                        statusMessage: 'Incident acknowledged by ' + user.name + ' (' + user.email + ')',
+                        statusMessage:
+                            'Incident acknowledged by ' +
+                            user.name +
+                            ' (' +
+                            user.email +
+                            ')',
                     },
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
-
 
                 // and then oncall log timeline.
-                await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
-                    id: item.onCallDutyPolicyExecutionLogTimelineId!,
-                    data: {
-                        acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
-                        isAcknowledged: true,
-                        status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
-                        statusMessage: 'Incident acknowledged by ' + user.name + ' (' + user.email + ')',
-                    },
-                    props: {
-                        isRoot: true,
+                await OnCallDutyPolicyExecutionLogTimelineService.updateOneById(
+                    {
+                        id: item.onCallDutyPolicyExecutionLogTimelineId!,
+                        data: {
+                            acknowledgedAt:
+                                onUpdate.updateBy.data.acknowledgedAt,
+                            isAcknowledged: true,
+                            status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+                            statusMessage:
+                                'Incident acknowledged by ' +
+                                user.name +
+                                ' (' +
+                                user.email +
+                                ')',
+                        },
+                        props: {
+                            isRoot: true,
+                        },
                     }
-                });
+                );
 
-
-                // incident. 
-                await IncidentService.acknowledgeIncident(item.triggeredByIncidentId!, item.userId!);
+                // incident.
+                await IncidentService.acknowledgeIncident(
+                    item.triggeredByIncidentId!,
+                    item.userId!
+                );
             }
-
         }
 
         return onUpdate;

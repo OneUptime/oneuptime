@@ -36,8 +36,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                obj['SMTP_EMAIL'] +
-                ' is not a valid email'
+                    obj['SMTP_EMAIL'] +
+                    ' is not a valid email'
             );
             return false;
         }
@@ -186,9 +186,11 @@ export default class MailService {
     public static async send(
         mail: EmailMessage,
         emailServer?: EmailServer,
-        options?: {
-            userNotificationLogTimelineId?: ObjectID | undefined;
-        } | undefined
+        options?:
+            | {
+                  userNotificationLogTimelineId?: ObjectID | undefined;
+              }
+            | undefined
     ): Promise<void> {
         // default vars.
         if (!mail.vars) {
@@ -229,26 +231,26 @@ export default class MailService {
                 await UserNotificationLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Sent,
-                        statusMessage: "Email sent successfully",
+                        statusMessage: 'Email sent successfully',
                     },
                     id: options.userNotificationLogTimelineId,
                     props: {
                         isRoot: true,
-                    }
-                })
+                    },
+                });
             }
         } catch (err: any) {
             if (options?.userNotificationLogTimelineId) {
                 await UserNotificationLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
-                        statusMessage: err.message || "Email failed to send",
+                        statusMessage: err.message || 'Email failed to send',
                     },
                     id: options.userNotificationLogTimelineId,
                     props: {
                         isRoot: true,
-                    }
-                })
+                    },
+                });
             }
 
             throw err;

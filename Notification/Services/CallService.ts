@@ -18,12 +18,11 @@ import Project from 'Model/Models/Project';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
 import { CallInstance } from 'twilio/lib/rest/api/v2010/account/call';
-import JSONWebToken from "CommonServer/Utils/JsonWebToken";
+import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
-
 
 export default class CallService {
     public static async makeCall(
@@ -109,7 +108,7 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Call notifications not enabled for ' +
-                            (project.name || ''),
+                                (project.name || ''),
                             `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
                         );
                     }
@@ -154,10 +153,12 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Low SMS and Call Balance for ' +
-                            (project.name || ''),
-                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents ||
-                                0) / 100
-                            } USD. Required balance to send this SMS should is ${CallDefaultCostInCentsPerMinute / 100
+                                (project.name || ''),
+                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
+                                (project.smsOrCallCurrentBalanceInUSDCents ||
+                                    0) / 100
+                            } USD. Required balance to send this SMS should is ${
+                                CallDefaultCostInCentsPerMinute / 100
                             } USD. Please enable auto recharge or recharge manually.`
                         );
                     }
@@ -169,9 +170,11 @@ export default class CallService {
                     CallDefaultCostInCentsPerMinute
                 ) {
                     callLog.status = CallStatus.LowBalance;
-                    callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
-                        } USD. Required balance is ${CallDefaultCostInCentsPerMinute / 100
-                        } USD to make this call.`;
+                    callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
+                        project.smsOrCallCurrentBalanceInUSDCents / 100
+                    } USD. Required balance is ${
+                        CallDefaultCostInCentsPerMinute / 100
+                    } USD to make this call.`;
                     await CallLogService.create({
                         data: callLog,
                         props: {
@@ -192,9 +195,11 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Low SMS and Call Balance for ' +
-                            (project.name || ''),
-                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
-                            } USD. Required balance is ${CallDefaultCostInCentsPerMinute / 100
+                                (project.name || ''),
+                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
+                                project.smsOrCallCurrentBalanceInUSDCents / 100
+                            } USD. Required balance is ${
+                                CallDefaultCostInCentsPerMinute / 100
                             } USD to make this call. Please enable auto recharge or recharge manually.`
                         );
                     }
@@ -220,13 +225,13 @@ export default class CallService {
                 if (twillioCall && parseInt(twillioCall.duration) > 60) {
                     callLog.callCostInUSDCents = Math.ceil(
                         Math.ceil(parseInt(twillioCall.duration) / 60) *
-                        CallDefaultCostInCentsPerMinute
+                            CallDefaultCostInCentsPerMinute
                     );
                 }
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
                     project.smsOrCallCurrentBalanceInUSDCents! -
-                    CallDefaultCostInCentsPerMinute
+                        CallDefaultCostInCentsPerMinute
                 );
 
                 await ProjectService.updateOneById({
@@ -257,17 +262,20 @@ export default class CallService {
             });
         }
 
-        if(options.userNotificationLogTimelineId){
+        if (options.userNotificationLogTimelineId) {
             await UserNotificationLogTimelineService.updateOneById({
                 data: {
-                    status: callLog.status === CallStatus.Success ? UserNotificationStatus.Sent : UserNotificationStatus.Error,
+                    status:
+                        callLog.status === CallStatus.Success
+                            ? UserNotificationStatus.Sent
+                            : UserNotificationStatus.Error,
                     statusMessage: callLog.statusMessage!,
                 },
                 id: options.userNotificationLogTimelineId,
                 props: {
                     isRoot: true,
-                }
-            })
+                },
+            });
         }
     }
 
@@ -280,15 +288,24 @@ export default class CallService {
                 response.say((item as Say).sayMessage);
             }
 
-
             if ((item as GatherInput) && (item as GatherInput).numDigits > 0) {
-
                 response.say((item as GatherInput).introMessage);
 
                 response.gather({
                     numDigits: (item as GatherInput).numDigits,
                     timeout: (item as GatherInput).timeoutInSeconds || 5,
-                    action: (item as GatherInput).responseUrl.addQueryParam("token", JSONWebToken.signJsonPayload(JSONFunctions.serialize((item as GatherInput).onInputCallRequest as any), OneUptimeDate.getDayInSeconds())).toString(),
+                    action: (item as GatherInput).responseUrl
+                        .addQueryParam(
+                            'token',
+                            JSONWebToken.signJsonPayload(
+                                JSONFunctions.serialize(
+                                    (item as GatherInput)
+                                        .onInputCallRequest as any
+                                ),
+                                OneUptimeDate.getDayInSeconds()
+                            )
+                        )
+                        .toString(),
                     method: 'POST',
                 });
 

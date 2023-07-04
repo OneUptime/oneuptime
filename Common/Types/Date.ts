@@ -53,8 +53,8 @@ export default class OneUptimeDate {
     public static toDateTimeLocalString(date: Date): string {
         date = this.fromString(date);
         const ten: Function = (i: number): string => {
-            return (i < 10 ? '0' : '') + i;
-        },
+                return (i < 10 ? '0' : '') + i;
+            },
             YYYY: number = date.getFullYear(),
             MM: number = ten(date.getMonth() + 1),
             DD: number = ten(date.getDate()),
@@ -396,28 +396,28 @@ export default class OneUptimeDate {
 
         timezoneDates.push(
             moment(date).tz('UTC').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'GMT')
+                ' ' +
+                (onlyShowDate ? '' : 'GMT')
         );
         timezoneDates.push(
             moment(date).tz('America/New_York').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'EST')
+                ' ' +
+                (onlyShowDate ? '' : 'EST')
         );
         timezoneDates.push(
             moment(date).tz('America/Los_Angeles').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'PST')
+                ' ' +
+                (onlyShowDate ? '' : 'PST')
         );
         timezoneDates.push(
             moment(date).tz('Asia/Kolkata').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'IST')
+                ' ' +
+                (onlyShowDate ? '' : 'IST')
         );
         timezoneDates.push(
             moment(date).tz('Australia/Sydney').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'AEST')
+                ' ' +
+                (onlyShowDate ? '' : 'AEST')
         );
 
         return timezoneDates;

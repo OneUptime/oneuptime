@@ -36,7 +36,9 @@ router.post(
         }
 
         await MailService.send(mail, mailServer, {
-            userNotificationLogTimelineId: body['userNotificationLogTimelineId'] as ObjectID || undefined
+            userNotificationLogTimelineId:
+                (body['userNotificationLogTimelineId'] as ObjectID) ||
+                undefined,
         });
 
         return Response.sendEmptyResponse(req, res);

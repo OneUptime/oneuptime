@@ -26,6 +26,7 @@ import UserNotificationRuleService from './UserNotificationRuleService';
 import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
 import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
 import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
+import User from 'Model/Models/User';
 
 export class Service extends DatabaseService<Model> {
     public async startRuleExecution(
@@ -40,27 +41,29 @@ export class Service extends DatabaseService<Model> {
     ): Promise<void> {
         // add log timeline.
 
+        const getNewLog: Function =
+            (): OnCallDutyPolicyExecutionLogTimeline => {
+                const log: OnCallDutyPolicyExecutionLogTimeline =
+                    new OnCallDutyPolicyExecutionLogTimeline();
 
-        const getNewLog: Function = (): OnCallDutyPolicyExecutionLogTimeline => {
-            const log: OnCallDutyPolicyExecutionLogTimeline =
-                new OnCallDutyPolicyExecutionLogTimeline();
+                log.projectId = options.projectId;
+                log.onCallDutyPolicyExecutionLogId =
+                    options.onCallPolicyExecutionLogId;
+                log.onCallDutyPolicyId = options.onCallPolicyId;
+                log.onCallDutyPolicyEscalationRuleId = ruleId;
+                log.userNotificationEventType =
+                    options.userNotificationEventType;
 
-            log.projectId = options.projectId;
-            log.onCallDutyPolicyExecutionLogId = options.onCallPolicyExecutionLogId;
-            log.onCallDutyPolicyId = options.onCallPolicyId;
-            log.onCallDutyPolicyEscalationRuleId = ruleId;
-            log.userNotificationEventType = options.userNotificationEventType;
+                if (options.triggeredByIncidentId) {
+                    log.triggeredByIncidentId = options.triggeredByIncidentId;
+                }
 
-            if (options.triggeredByIncidentId) {
-                log.triggeredByIncidentId = options.triggeredByIncidentId;
-            }
-
-            return log;
-        }
+                return log;
+            };
 
         if (
             UserNotificationEventType.IncidentCreated ===
-            options.userNotificationEventType &&
+                options.userNotificationEventType &&
             !options.triggeredByIncidentId
         ) {
             throw new BadDataException(
@@ -68,7 +71,7 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        const usersInRule =
+        const usersInRule: Array<OnCallDutyPolicyEscalationRuleUser> =
             await OnCallDutyPolicyEscalationRuleUserService.findBy({
                 query: {
                     onCallDutyPolicyEscalationRuleId: ruleId,
@@ -83,7 +86,7 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-        const teamsInRule =
+        const teamsInRule: Array<OnCallDutyPolicyEscalationRuleTeam> =
             await OnCallDutyPolicyEscalationRuleTeamService.findBy({
                 query: {
                     onCallDutyPolicyEscalationRuleId: ruleId,
@@ -100,25 +103,25 @@ export class Service extends DatabaseService<Model> {
 
         // get unique users and notify all the users.
 
-        const startUserNotifcationRuleExecution = async (userId: ObjectID, teamId: ObjectID | undefined): Promise<void> => {
-
-            // no users in this rule. Skipping. 
+        const startUserNotifcationRuleExecution: Function = async (
+            userId: ObjectID,
+            teamId: ObjectID | undefined
+        ): Promise<void> => {
+            // no users in this rule. Skipping.
             let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-            log.statusMessage = "Sending notification to user.";
+            log.statusMessage = 'Sending notification to user.';
             log.status = OnCallDutyExecutionLogTimelineStatus.Running;
             log.alertSentToUserId = userId;
             if (teamId) {
                 log.userBelongsToTeamId = teamId;
             }
 
-
             log = await OnCallDutyPolicyExecutionLogTimelineService.create({
                 data: log,
                 props: {
                     isRoot: true,
-                }
+                },
             });
-
 
             await UserNotificationRuleService.startUserNotificationRulesExecution(
                 userId,
@@ -137,7 +140,7 @@ export class Service extends DatabaseService<Model> {
                 }
             );
 
-            // notification sent to user. 
+            // notification sent to user.
             await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
                 id: log.id!,
                 data: {
@@ -145,30 +148,33 @@ export class Service extends DatabaseService<Model> {
                 },
                 props: {
                     isRoot: true,
-                }
-            }); 
-        }
+                },
+            });
+        };
 
         const uniqueUserIds: Array<ObjectID> = [];
 
         for (const teamInRule of teamsInRule) {
-            const usersInTeam = await TeamMemberService.getUsersInTeam(
-                teamInRule.teamId!
-            );
+            const usersInTeam: Array<User> =
+                await TeamMemberService.getUsersInTeam(teamInRule.teamId!);
 
             for (const user of usersInTeam) {
-
                 if (
-                    !uniqueUserIds.find((userId) => {
+                    !uniqueUserIds.find((userId: ObjectID) => {
                         return user.id?.toString() === userId.toString();
                     })
                 ) {
                     uniqueUserIds.push(user.id!);
-                    await startUserNotifcationRuleExecution(user.id!, teamInRule.teamId!);
+                    await startUserNotifcationRuleExecution(
+                        user.id!,
+                        teamInRule.teamId!
+                    );
                 } else {
-                    // no users in this rule. Skipping. 
-                    const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-                    log.statusMessage = "Skipped because notification sent to this user already.";
+                    // no users in this rule. Skipping.
+                    const log: OnCallDutyPolicyExecutionLogTimeline =
+                        getNewLog();
+                    log.statusMessage =
+                        'Skipped because notification sent to this user already.';
                     log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
                     log.alertSentToUserId = user.id!;
                     log.userBelongsToTeamId = teamInRule.teamId!;
@@ -177,25 +183,25 @@ export class Service extends DatabaseService<Model> {
                         data: log,
                         props: {
                             isRoot: true,
-                        }
+                        },
                     });
                 }
             }
         }
 
-
         for (const user of usersInRule) {
             if (
-                !uniqueUserIds.find((userId) => {
+                !uniqueUserIds.find((userId: ObjectID) => {
                     return user.userId?.toString() === userId.toString();
                 })
             ) {
                 uniqueUserIds.push(user.userId!);
                 await startUserNotifcationRuleExecution(user.id!, undefined);
             } else {
-                // no users in this rule. Skipping. 
+                // no users in this rule. Skipping.
                 const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-                log.statusMessage = "Skipped because notification sent to this user already.";
+                log.statusMessage =
+                    'Skipped because notification sent to this user already.';
                 log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
                 log.alertSentToUserId = user.id!;
 
@@ -203,25 +209,24 @@ export class Service extends DatabaseService<Model> {
                     data: log,
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
             }
         }
 
         if (uniqueUserIds.length === 0) {
-            // no users in this rule. Skipping. 
+            // no users in this rule. Skipping.
             const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-            log.statusMessage = "Skipped because no users in this rule.";
+            log.statusMessage = 'Skipped because no users in this rule.';
             log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
 
             await OnCallDutyPolicyExecutionLogTimelineService.create({
                 data: log,
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
-
     }
 
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -252,9 +257,9 @@ export class Service extends DatabaseService<Model> {
                 createdItem.id,
                 createdItem.onCallDutyPolicyId!,
                 (onCreate.createBy.miscDataProps['users'] as Array<ObjectID>) ||
-                [],
+                    [],
                 (onCreate.createBy.miscDataProps['teams'] as Array<ObjectID>) ||
-                [],
+                    [],
                 onCreate.createBy.props
             );
         }

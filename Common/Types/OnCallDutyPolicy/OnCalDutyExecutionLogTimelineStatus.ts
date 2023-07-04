@@ -1,5 +1,5 @@
 enum OnCallDutyExecutionLogTimelineStatus {
-    Skipped = 'Skipped', 
+    Skipped = 'Skipped',
     Started = 'Started',
     Running = 'Running',
     SuccessfullyAcknowledged = 'Successfully Acknowledged',

@@ -1,4 +1,3 @@
-
 import {
     ExpressRequest,
     ExpressResponse,
@@ -14,11 +13,12 @@ import { OnCallInputRequest } from 'Common/Types/Call/CallRequest';
 import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 export default class NotificationMiddleware {
-
-    public static async sendResponse(req: ExpressRequest, res: ExpressResponse, onCallInputRequest: OnCallInputRequest): Promise<void> {
-
-        const response = new VoiceResponse();
-
+    public static async sendResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        onCallInputRequest: OnCallInputRequest
+    ): Promise<void> {
+        const response: VoiceResponse = new VoiceResponse();
 
         if (onCallInputRequest[req.body['Digits']]) {
             response.say(onCallInputRequest[req.body['Digits']]!.sayMessage);
@@ -36,7 +36,6 @@ export default class NotificationMiddleware {
     ): Promise<void> {
         req = req as OneUptimeRequest;
 
-
         if (!req.body['Digits']) {
             return Response.sendErrorResponse(
                 req,
@@ -44,7 +43,6 @@ export default class NotificationMiddleware {
                 new BadDataException('Invalid input')
             );
         }
-
 
         if (!req.query['token']) {
             return Response.sendErrorResponse(
@@ -57,9 +55,9 @@ export default class NotificationMiddleware {
         const token: string = req.query['token'] as string;
 
         try {
-
-            (req as any).callTokenData = JSONFunctions.deserialize(JSONWebToken.decodeJsonPayload(token));
-
+            (req as any).callTokenData = JSONFunctions.deserialize(
+                JSONWebToken.decodeJsonPayload(token)
+            );
         } catch (e) {
             return Response.sendErrorResponse(
                 req,

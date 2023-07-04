@@ -17,7 +17,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
 import { DashboardRoute, Domain, HttpProtocol } from '../Config';
 
-
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
     UserNotificationLogTimeline,
     UserNotificationLogTimelineServiceType
@@ -43,17 +42,18 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
                 const itemId: ObjectID = new ObjectID(req.params['itemId']);
 
-                const timelineItem = await this.service.findOneById({
-                    id: itemId,
-                    select: {
-                        _id: true,
-                        projectId: true,
-                        triggeredByIncidentId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    }
-                });
+                const timelineItem: UserNotificationLogTimeline | null =
+                    await this.service.findOneById({
+                        id: itemId,
+                        select: {
+                            _id: true,
+                            projectId: true,
+                            triggeredByIncidentId: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
                 if (!timelineItem) {
                     return Response.sendErrorResponse(
@@ -63,8 +63,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                     );
                 }
 
-                // check digits. 
-
+                // check digits.
 
                 if (req.body['Digits'] === '1') {
                     // then ack incident
@@ -72,16 +71,19 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                         id: itemId,
                         data: {
                             acknowledgedAt: OneUptimeDate.getCurrentDate(),
-                            isAcknowledged: true
+                            isAcknowledged: true,
                         },
                         props: {
                             isRoot: true,
-                        }
+                        },
                     });
                 }
 
-
-                return NotificationMiddleware.sendResponse(req, res, token as any);
+                return NotificationMiddleware.sendResponse(
+                    req,
+                    res,
+                    token as any
+                );
             }
         );
 
@@ -100,17 +102,18 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
                 const itemId: ObjectID = new ObjectID(req.params['itemId']);
 
-                const timelineItem = await this.service.findOneById({
-                    id: itemId,
-                    select: {
-                        _id: true,
-                        projectId: true,
-                        triggeredByIncidentId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    }
-                });
+                const timelineItem: UserNotificationLogTimeline | null =
+                    await this.service.findOneById({
+                        id: itemId,
+                        select: {
+                            _id: true,
+                            projectId: true,
+                            triggeredByIncidentId: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
                 if (!timelineItem) {
                     return Response.sendErrorResponse(
@@ -120,21 +123,29 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                     );
                 }
 
-
                 await this.service.updateOneById({
                     id: itemId,
                     data: {
                         acknowledgedAt: OneUptimeDate.getCurrentDate(),
-                        isAcknowledged: true
+                        isAcknowledged: true,
                     },
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
 
-
-                // redirect to dashboard to incidents page. 
-                return Response.redirect(req, res, new URL(HttpProtocol, Domain, DashboardRoute.addRoute(`/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`)));
+                // redirect to dashboard to incidents page.
+                return Response.redirect(
+                    req,
+                    res,
+                    new URL(
+                        HttpProtocol,
+                        Domain,
+                        DashboardRoute.addRoute(
+                            `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`
+                        )
+                    )
+                );
             }
         );
     }

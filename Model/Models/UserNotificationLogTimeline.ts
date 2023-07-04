@@ -378,10 +378,6 @@ export default class UserNotificationLogTimeline extends BaseModel {
     })
     public onCallDutyPolicyExecutionLogId?: ObjectID = undefined;
 
-
-
-
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
@@ -407,7 +403,8 @@ export default class UserNotificationLogTimeline extends BaseModel {
         }
     )
     @JoinColumn({ name: 'onCallDutyPolicyExecutionLogTimelineId' })
-    public onCallDutyPolicyExecutionLogTimeline?: OnCallDutyPolicyExecutionLogTimeline = undefined;
+    public onCallDutyPolicyExecutionLogTimeline?: OnCallDutyPolicyExecutionLogTimeline =
+        undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -429,7 +426,6 @@ export default class UserNotificationLogTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyPolicyExecutionLogTimelineId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -457,7 +453,6 @@ export default class UserNotificationLogTimeline extends BaseModel {
     )
     @JoinColumn({ name: 'onCallDutyPolicyEscalationRuleId' })
     public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -509,7 +504,8 @@ export default class UserNotificationLogTimeline extends BaseModel {
         type: TableColumnType.Entity,
         modelType: Team,
         title: 'Which team did the user belong to when the alert was sent?',
-        description: 'Which team did the user belong to when the alert was sent?',
+        description:
+            'Which team did the user belong to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -533,7 +529,8 @@ export default class UserNotificationLogTimeline extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'Which team did the user belong to when the alert was sent?',
-        description: 'Which team did the user belong to when the alert was sent?',
+        description:
+            'Which team did the user belong to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -560,7 +557,6 @@ export default class UserNotificationLogTimeline extends BaseModel {
         length: ColumnLength.LongText,
     })
     public statusMessage?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [],

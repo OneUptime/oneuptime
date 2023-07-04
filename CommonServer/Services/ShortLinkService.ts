@@ -26,9 +26,12 @@ export class Service extends DatabaseService<Model> {
         return await this.create({ data: model, props: { isRoot: true } });
     }
 
-
-    public getShortenedUrl(model: Model): URL{
-        return new URL(HttpProtocol, Domain, LinkShortnerRoute.addRoute("/"+model.shortId?.toString()));
+    public getShortenedUrl(model: Model): URL {
+        return new URL(
+            HttpProtocol,
+            Domain,
+            LinkShortnerRoute.addRoute('/' + model.shortId?.toString())
+        );
     }
 
     public async getShortLinkFor(shortLinkId: string): Promise<Model | null> {

@@ -16,7 +16,7 @@ export default class MailService {
         mail: Email,
         mailServer?: EmailServer,
         options?: {
-            userNotificationLogTimelineId?: ObjectID
+            userNotificationLogTimelineId?: ObjectID;
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -34,8 +34,9 @@ export default class MailService {
             body['SMTP_PASSWORD'] = mailServer.password;
         }
 
-        if(options?.userNotificationLogTimelineId){
-            body['userNotificationLogTimelineId'] = options.userNotificationLogTimelineId.toString();
+        if (options?.userNotificationLogTimelineId) {
+            body['userNotificationLogTimelineId'] =
+                options.userNotificationLogTimelineId.toString();
         }
 
         return await API.post<EmptyResponseData>(

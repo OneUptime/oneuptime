@@ -24,7 +24,6 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 
-
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -371,7 +370,6 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @JoinColumn({ name: 'alertSentToUserId' })
     public alertSentToUser?: User = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -433,7 +431,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         type: TableColumnType.Entity,
         modelType: Team,
         title: 'User Belongs To Team',
-        description: 'Which team does the user belogns to when the alert was sent?',
+        description:
+            'Which team does the user belogns to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -462,7 +461,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'User Belongs To Team ID',
-        description: 'Which team ID does the user belogns to when the alert was sent?',
+        description:
+            'Which team ID does the user belogns to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,

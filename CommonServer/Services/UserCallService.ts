@@ -173,5 +173,4 @@ export class Service extends DatabaseService<Model> {
     }
 }
 
-
 export default new Service();

@@ -47,7 +47,10 @@ class JSONWebToken {
         return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
     }
 
-    public static signJsonPayload(payload: JSONObject, expiresInSeconds: number): string {
+    public static signJsonPayload(
+        payload: JSONObject,
+        expiresInSeconds: number
+    ): string {
         return jwt.sign(payload, EncryptionSecret.toString(), {
             expiresIn: expiresInSeconds,
         });
@@ -59,12 +62,11 @@ class JSONWebToken {
         );
         const decoded: JSONObject = JSONFunctions.parse(decodedToken);
 
-        return decoded; 
+        return decoded;
     }
 
     public static decode(token: string): JSONWebTokenData {
         try {
-
             const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token);
 
             if (decoded['statusPageId']) {

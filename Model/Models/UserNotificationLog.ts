@@ -88,7 +88,6 @@ export default class UserNotificationLog extends BaseModel {
     })
     public userId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
@@ -99,7 +98,8 @@ export default class UserNotificationLog extends BaseModel {
         type: TableColumnType.Entity,
         modelType: Team,
         title: 'Which team did the user belong to when the alert was sent?',
-        description: 'Which team did the user belong to when the alert was sent?',
+        description:
+            'Which team did the user belong to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -123,7 +123,8 @@ export default class UserNotificationLog extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'Which team did the user belong to when the alert was sent?',
-        description: 'Which team did the user belong to when the alert was sent?',
+        description:
+            'Which team did the user belong to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -131,8 +132,6 @@ export default class UserNotificationLog extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userBelongsToTeamId?: ObjectID = undefined;
-
-    
 
     @ColumnAccessControl({
         create: [],
@@ -230,10 +229,6 @@ export default class UserNotificationLog extends BaseModel {
     })
     public onCallDutyPolicyId?: ObjectID = undefined;
 
-
-
-
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
@@ -282,12 +277,6 @@ export default class UserNotificationLog extends BaseModel {
     })
     public onCallDutyPolicyExecutionLogId?: ObjectID = undefined;
 
-
-
-
-
-
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
@@ -335,9 +324,6 @@ export default class UserNotificationLog extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
-
-
-
 
     @ColumnAccessControl({
         create: [],
@@ -402,7 +388,6 @@ export default class UserNotificationLog extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public status?: UserNotificationExecutionStatus = undefined;
-    
 
     @ColumnAccessControl({
         create: [],
@@ -422,7 +407,6 @@ export default class UserNotificationLog extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public userNotificationEventType?: UserNotificationEventType = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -449,7 +433,8 @@ export default class UserNotificationLog extends BaseModel {
         }
     )
     @JoinColumn({ name: 'onCallDutyPolicyExecutionLogTimelineId' })
-    public onCallDutyPolicyExecutionLogTimeline?: OnCallDutyPolicyExecutionLogTimeline = undefined;
+    public onCallDutyPolicyExecutionLogTimeline?: OnCallDutyPolicyExecutionLogTimeline =
+        undefined;
 
     @ColumnAccessControl({
         create: [],

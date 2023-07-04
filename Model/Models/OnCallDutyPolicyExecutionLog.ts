@@ -266,7 +266,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     })
     public statusMessage?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [

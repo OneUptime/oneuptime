@@ -39,27 +39,30 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
+    public async executeNotificationRuleItem(
+        userNotificationRuleId: ObjectID,
+        options: {
+            projectId: ObjectID;
+            triggeredByIncidentId?: ObjectID | undefined;
+            userNotificationEventType: UserNotificationEventType;
+            onCallPolicyExecutionLogId?: ObjectID | undefined;
+            onCallPolicyId: ObjectID | undefined;
+            onCallPolicyEscalationRuleId?: ObjectID | undefined;
+            userNotificationLogId: ObjectID;
+            userBelongsToTeamId?: ObjectID | undefined;
+            onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+        }
+    ): Promise<void> {
+        //
 
-    public async executeNotificationRuleItem(userNotificationRuleId: ObjectID, options: {
-        projectId: ObjectID;
-        triggeredByIncidentId?: ObjectID | undefined;
-        userNotificationEventType: UserNotificationEventType;
-        onCallPolicyExecutionLogId?: ObjectID | undefined;
-        onCallPolicyId: ObjectID | undefined;
-        onCallPolicyEscalationRuleId?: ObjectID | undefined;
-        userNotificationLogId: ObjectID;
-        userBelongsToTeamId?: ObjectID | undefined;
-        onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
-    }): Promise<void> {
-
-        // 
-
-        const logTimelineItem: UserNotificationLogTimeline = new UserNotificationLogTimeline();
+        const logTimelineItem: UserNotificationLogTimeline =
+            new UserNotificationLogTimeline();
         logTimelineItem.projectId = options.projectId;
         logTimelineItem.userNotificationLogId = options.userNotificationLogId;
         logTimelineItem.userNotificationRuleId = userNotificationRuleId;
         logTimelineItem.userNotificationLogId = options.userNotificationLogId;
-        logTimelineItem.userNotificationEventType = options.userNotificationEventType;
+        logTimelineItem.userNotificationEventType =
+            options.userNotificationEventType;
 
         if (options.userBelongsToTeamId) {
             logTimelineItem.userBelongsToTeamId = options.userBelongsToTeamId;
@@ -70,27 +73,28 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (options.onCallPolicyEscalationRuleId) {
-            logTimelineItem.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+            logTimelineItem.onCallDutyPolicyEscalationRuleId =
+                options.onCallPolicyEscalationRuleId;
         }
 
         if (options.onCallPolicyExecutionLogId) {
-            logTimelineItem.onCallDutyPolicyExecutionLogId = options.onCallPolicyExecutionLogId;
+            logTimelineItem.onCallDutyPolicyExecutionLogId =
+                options.onCallPolicyExecutionLogId;
         }
 
         if (options.triggeredByIncidentId) {
-            logTimelineItem.triggeredByIncidentId = options.triggeredByIncidentId;
+            logTimelineItem.triggeredByIncidentId =
+                options.triggeredByIncidentId;
         }
 
         if (options.onCallDutyPolicyExecutionLogTimelineId) {
-            logTimelineItem.onCallDutyPolicyExecutionLogTimelineId = options.onCallDutyPolicyExecutionLogTimelineId;
+            logTimelineItem.onCallDutyPolicyExecutionLogTimelineId =
+                options.onCallDutyPolicyExecutionLogTimelineId;
         }
-
 
         // add status and status message and save.
 
-
-
-        // find notification rule item. 
+        // find notification rule item.
         const notificationRuleItem: Model | null = await this.findOneById({
             id: userNotificationRuleId!,
             select: {
@@ -106,7 +110,7 @@ export class Service extends DatabaseService<Model> {
                 userEmail: {
                     email: true,
                     isVerified: true,
-                }
+                },
             },
             props: {
                 isRoot: true,
@@ -119,7 +123,11 @@ export class Service extends DatabaseService<Model> {
 
         let incident: Incident | null = null;
 
-        if (options.userNotificationEventType === UserNotificationEventType.IncidentCreated && options.triggeredByIncidentId) {
+        if (
+            options.userNotificationEventType ===
+                UserNotificationEventType.IncidentCreated &&
+            options.triggeredByIncidentId
+        ) {
             incident = await IncidentService.findOneById({
                 id: options.triggeredByIncidentId!,
                 props: {
@@ -144,52 +152,64 @@ export class Service extends DatabaseService<Model> {
             });
         }
 
-
         if (!incident) {
             throw new BadDataException('Incident not found.');
         }
 
-
-        if (notificationRuleItem.userEmail?.email && notificationRuleItem.userEmail?.isVerified) {
-            // send email. 
-            if (options.userNotificationEventType === UserNotificationEventType.IncidentCreated && incident) {
-
+        if (
+            notificationRuleItem.userEmail?.email &&
+            notificationRuleItem.userEmail?.isVerified
+        ) {
+            // send email.
+            if (
+                options.userNotificationEventType ===
+                    UserNotificationEventType.IncidentCreated &&
+                incident
+            ) {
                 // create an error log.
                 logTimelineItem.status = UserNotificationStatus.Sending;
                 logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
 
-                const updatedLog: UserNotificationLogTimeline = await UserNotificationLogTimelineService.create({
-                    data: logTimelineItem,
-                    props: {
-                        isRoot: true,
-                    },
-                });
+                const updatedLog: UserNotificationLogTimeline =
+                    await UserNotificationLogTimelineService.create({
+                        data: logTimelineItem,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
-                const emailMessage: EmailMessage = await this.generateEmailTemplateForIncidentCreated(notificationRuleItem.userEmail?.email, incident, updatedLog.id!);
+                const emailMessage: EmailMessage =
+                    await this.generateEmailTemplateForIncidentCreated(
+                        notificationRuleItem.userEmail?.email,
+                        incident,
+                        updatedLog.id!
+                    );
 
                 // send email.
 
                 MailService.sendMail(emailMessage, undefined, {
                     userNotificationLogTimelineId: updatedLog.id!,
                 }).catch(async (err: Error) => {
-
                     await UserNotificationLogTimelineService.updateOneById({
                         id: updatedLog.id!,
                         data: {
                             status: UserNotificationStatus.Error,
-                            statusMessage: err.message || 'Error sending email.',
+                            statusMessage:
+                                err.message || 'Error sending email.',
                         },
                         props: {
                             isRoot: true,
-                        }
+                        },
                     });
                 });
-
             }
         }
 
-        // if you have an email but is not verified, then create a log. 
-        if (notificationRuleItem.userEmail?.email && !notificationRuleItem.userEmail?.isVerified) {
+        // if you have an email but is not verified, then create a log.
+        if (
+            notificationRuleItem.userEmail?.email &&
+            !notificationRuleItem.userEmail?.isVerified
+        ) {
             // create an error log.
             logTimelineItem.status = UserNotificationStatus.Error;
             logTimelineItem.statusMessage = `Email notification not sent because email ${notificationRuleItem.userEmail?.email.toString()} is not verified.`;
@@ -203,22 +223,34 @@ export class Service extends DatabaseService<Model> {
         }
 
         // send sms.
-        if (notificationRuleItem.userSms?.phone && notificationRuleItem.userSms?.isVerified) {
-            // send sms. 
-            if (options.userNotificationEventType === UserNotificationEventType.IncidentCreated && incident) {
-
+        if (
+            notificationRuleItem.userSms?.phone &&
+            notificationRuleItem.userSms?.isVerified
+        ) {
+            // send sms.
+            if (
+                options.userNotificationEventType ===
+                    UserNotificationEventType.IncidentCreated &&
+                incident
+            ) {
                 // create an error log.
                 logTimelineItem.status = UserNotificationStatus.Sending;
                 logTimelineItem.statusMessage = `Sending SMS to ${notificationRuleItem.userSms?.phone.toString()}.`;
 
-                const updatedLog: UserNotificationLogTimeline = await UserNotificationLogTimelineService.create({
-                    data: logTimelineItem,
-                    props: {
-                        isRoot: true,
-                    },
-                });
+                const updatedLog: UserNotificationLogTimeline =
+                    await UserNotificationLogTimelineService.create({
+                        data: logTimelineItem,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
-                const smsMessage: SMS = await this.generateSmsTemplateForIncidentCreated(notificationRuleItem.userSms?.phone!, incident, updatedLog.id!);
+                const smsMessage: SMS =
+                    await this.generateSmsTemplateForIncidentCreated(
+                        notificationRuleItem.userSms?.phone!,
+                        incident,
+                        updatedLog.id!
+                    );
 
                 // send email.
 
@@ -226,7 +258,6 @@ export class Service extends DatabaseService<Model> {
                     projectId: incident.projectId,
                     userNotificationLogTimelineId: updatedLog.id!,
                 }).catch(async (err: Error) => {
-
                     await UserNotificationLogTimelineService.updateOneById({
                         id: updatedLog.id!,
                         data: {
@@ -235,14 +266,16 @@ export class Service extends DatabaseService<Model> {
                         },
                         props: {
                             isRoot: true,
-                        }
+                        },
                     });
                 });
-
             }
         }
 
-        if (notificationRuleItem.userSms?.phone && !notificationRuleItem.userSms?.isVerified) {
+        if (
+            notificationRuleItem.userSms?.phone &&
+            !notificationRuleItem.userSms?.isVerified
+        ) {
             // create a log.
             logTimelineItem.status = UserNotificationStatus.Error;
             logTimelineItem.statusMessage = `SMS not sent because phone ${notificationRuleItem.userSms?.phone.toString()} is not verified.`;
@@ -256,20 +289,28 @@ export class Service extends DatabaseService<Model> {
         }
 
         // send call.
-        if (notificationRuleItem.userCall?.phone && notificationRuleItem.userCall?.isVerified) {
-
-            // send call. 
+        if (
+            notificationRuleItem.userCall?.phone &&
+            notificationRuleItem.userCall?.isVerified
+        ) {
+            // send call.
             logTimelineItem.status = UserNotificationStatus.Sending;
             logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
 
-            const updatedLog: UserNotificationLogTimeline = await UserNotificationLogTimelineService.create({
-                data: logTimelineItem,
-                props: {
-                    isRoot: true,
-                },
-            });
+            const updatedLog: UserNotificationLogTimeline =
+                await UserNotificationLogTimelineService.create({
+                    data: logTimelineItem,
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
-            const callRequest: CallRequest = await this.generateCallTemplateForIncidentCreated(notificationRuleItem.userCall?.phone!, incident, updatedLog.id!);
+            const callRequest: CallRequest =
+                await this.generateCallTemplateForIncidentCreated(
+                    notificationRuleItem.userCall?.phone!,
+                    incident,
+                    updatedLog.id!
+                );
 
             // send email.
 
@@ -277,7 +318,6 @@ export class Service extends DatabaseService<Model> {
                 projectId: incident.projectId,
                 userNotificationLogTimelineId: updatedLog.id!,
             }).catch(async (err: Error) => {
-
                 await UserNotificationLogTimelineService.updateOneById({
                     id: updatedLog.id!,
                     data: {
@@ -286,12 +326,15 @@ export class Service extends DatabaseService<Model> {
                     },
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
             });
         }
 
-        if (notificationRuleItem.userCall?.phone && !notificationRuleItem.userCall?.isVerified) {
+        if (
+            notificationRuleItem.userCall?.phone &&
+            !notificationRuleItem.userCall?.isVerified
+        ) {
             // create a log.
             logTimelineItem.status = UserNotificationStatus.Error;
             logTimelineItem.statusMessage = `Call not sent because phone ${notificationRuleItem.userCall?.phone.toString()} is not verified.`;
@@ -303,18 +346,21 @@ export class Service extends DatabaseService<Model> {
                 },
             });
         }
-
     }
 
-    public async generateCallTemplateForIncidentCreated(to: Phone, incident: Incident, userNotificationLogTimelineId: ObjectID): Promise<CallRequest> {
+    public async generateCallTemplateForIncidentCreated(
+        to: Phone,
+        incident: Incident,
+        userNotificationLogTimelineId: ObjectID
+    ): Promise<CallRequest> {
         const callRequest: CallRequest = {
             to: to,
             data: [
                 {
-                    sayMessage: 'This is a call from OneUptime'
+                    sayMessage: 'This is a call from OneUptime',
                 },
                 {
-                    sayMessage: 'A new incident has been created'
+                    sayMessage: 'A new incident has been created',
                 },
                 {
                     sayMessage: incident.title!,
@@ -325,37 +371,64 @@ export class Service extends DatabaseService<Model> {
                     timeoutInSeconds: 10,
                     noInputMessage: 'You have not entered any input. Good bye',
                     onInputCallRequest: {
-                        "1": {
-                            sayMessage: 'You have acknowledged this incident. Good bye'
+                        '1': {
+                            sayMessage:
+                                'You have acknowledged this incident. Good bye',
                         },
-                        "default": {
-                            sayMessage: 'Invalid input. Good bye'
-                        }
+                        default: {
+                            sayMessage: 'Invalid input. Good bye',
+                        },
                     },
-                    responseUrl: new URL(HttpProtocol, Domain, DashboardApiRoute.addRoute(new UserNotificationLogTimeline().crudApiPath!).addRoute("/call/gather-input/" + userNotificationLogTimelineId.toString()))
-                }
-            ]
-        }
+                    responseUrl: new URL(
+                        HttpProtocol,
+                        Domain,
+                        DashboardApiRoute.addRoute(
+                            new UserNotificationLogTimeline().crudApiPath!
+                        ).addRoute(
+                            '/call/gather-input/' +
+                                userNotificationLogTimelineId.toString()
+                        )
+                    ),
+                },
+            ],
+        };
 
         return callRequest;
     }
 
-
-    public async generateSmsTemplateForIncidentCreated(to: Phone, incident: Incident, userNotificationLogTimelineId: ObjectID): Promise<SMS> {
-        const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(new URL(HttpProtocol, Domain, DashboardApiRoute.addRoute(new UserNotificationLogTimeline().crudApiPath!).addRoute("/acknowledge/" + userNotificationLogTimelineId.toString())));
+    public async generateSmsTemplateForIncidentCreated(
+        to: Phone,
+        incident: Incident,
+        userNotificationLogTimelineId: ObjectID
+    ): Promise<SMS> {
+        const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+            new URL(
+                HttpProtocol,
+                Domain,
+                DashboardApiRoute.addRoute(
+                    new UserNotificationLogTimeline().crudApiPath!
+                ).addRoute(
+                    '/acknowledge/' + userNotificationLogTimelineId.toString()
+                )
+            )
+        );
         const url: URL = ShortLinkService.getShortenedUrl(shortUrl);
 
         const sms: SMS = {
             to,
-            message: `This is a message from OneUptime. A new incident has been created. ${incident.title}. To acknowledge this incident, please click on the following link ${url.toString()}`
-        }
+            message: `This is a message from OneUptime. A new incident has been created. ${
+                incident.title
+            }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+        };
 
         return sms;
-
     }
 
-    public async generateEmailTemplateForIncidentCreated(to: Email, incident: Incident, userNotificationLogTimelineId: ObjectID): Promise<EmailMessage> {
-
+    public async generateEmailTemplateForIncidentCreated(
+        to: Email,
+        incident: Incident,
+        userNotificationLogTimelineId: ObjectID
+    ): Promise<EmailMessage> {
         const vars: Dictionary<string> = {
             incidentTitle: incident.title!,
             projectName: incident.project!.name!,
@@ -371,16 +444,23 @@ export class Service extends DatabaseService<Model> {
                 incident.projectId!,
                 incident.id!
             ).toString(),
-            acknowledgeIncidentLink: new URL(HttpProtocol, Domain, DashboardApiRoute.addRoute(new UserNotificationLogTimeline().crudApiPath!).addRoute("/acknowledge/" + userNotificationLogTimelineId.toString())).toString()
+            acknowledgeIncidentLink: new URL(
+                HttpProtocol,
+                Domain,
+                DashboardApiRoute.addRoute(
+                    new UserNotificationLogTimeline().crudApiPath!
+                ).addRoute(
+                    '/acknowledge/' + userNotificationLogTimelineId.toString()
+                )
+            ).toString(),
         };
 
         const emailMessage: EmailMessage = {
             toEmail: to!,
-            templateType:
-                EmailTemplateType.AcknowledgeIncident,
+            templateType: EmailTemplateType.AcknowledgeIncident,
             vars: vars,
             subject: 'ACTION REQUIRED: Incident created - ' + incident.title!,
-        }
+        };
 
         return emailMessage;
     }
@@ -398,21 +478,24 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
-
-        // add user notification log. 
-        const userNotificationLog: UserNotificationLog = new UserNotificationLog();
+        // add user notification log.
+        const userNotificationLog: UserNotificationLog =
+            new UserNotificationLog();
 
         userNotificationLog.userId = userId;
         userNotificationLog.projectId = options.projectId;
 
         if (options.triggeredByIncidentId) {
-            userNotificationLog.triggeredByIncidentId = options.triggeredByIncidentId;
+            userNotificationLog.triggeredByIncidentId =
+                options.triggeredByIncidentId;
         }
 
-        userNotificationLog.userNotificationEventType = options.userNotificationEventType;
+        userNotificationLog.userNotificationEventType =
+            options.userNotificationEventType;
 
         if (options.onCallPolicyExecutionLogId) {
-            userNotificationLog.onCallDutyPolicyId = options.onCallPolicyExecutionLogId;
+            userNotificationLog.onCallDutyPolicyId =
+                options.onCallPolicyExecutionLogId;
         }
 
         if (options.onCallPolicyId) {
@@ -420,7 +503,8 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (options.onCallDutyPolicyExecutionLogTimelineId) {
-            userNotificationLog.onCallDutyPolicyExecutionLogTimelineId = options.onCallDutyPolicyExecutionLogTimelineId;
+            userNotificationLog.onCallDutyPolicyExecutionLogTimelineId =
+                options.onCallDutyPolicyExecutionLogTimelineId;
         }
 
         if (options.onCallPolicyEscalationRuleId) {
@@ -429,17 +513,16 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (options.userBelongsToTeamId) {
-            userNotificationLog.userBelongsToTeamId = options.userBelongsToTeamId;
+            userNotificationLog.userBelongsToTeamId =
+                options.userBelongsToTeamId;
         }
-
 
         await UserNotificationLogService.create({
             data: userNotificationLog,
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
-
     }
 
     protected override async onBeforeCreate(

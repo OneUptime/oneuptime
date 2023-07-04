@@ -252,17 +252,20 @@ export default class SmsService {
             });
         }
 
-        if(options.userNotificationLogTimelineId){
+        if (options.userNotificationLogTimelineId) {
             await UserNotificationLogTimelineService.updateOneById({
                 data: {
-                    status: smsLog.status === SmsStatus.Success ? UserNotificationStatus.Sent : UserNotificationStatus.Error,
+                    status:
+                        smsLog.status === SmsStatus.Success
+                            ? UserNotificationStatus.Sent
+                            : UserNotificationStatus.Error,
                     statusMessage: smsLog.statusMessage!,
                 },
                 id: options.userNotificationLogTimelineId,
                 props: {
                     isRoot: true,
-                }
-            })
+                },
+            });
         }
     }
 }
