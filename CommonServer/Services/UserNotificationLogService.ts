@@ -41,19 +41,10 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        let notificationRuleType: NotificationRuleType =
-            NotificationRuleType.ON_CALL_INCIDENT_CREATED;
-
-        if (
-            createdItem.userNotificationEventType ===
-            UserNotificationEventType.IncidentCreated
-        ) {
-            notificationRuleType =
-                NotificationRuleType.ON_CALL_INCIDENT_CREATED;
-        } else {
-            // Invlaid user notification event type.
-            throw new BadDataException('Invalid user notification event type.');
-        }
+        const notificationRuleType: NotificationRuleType =
+            this.getNotificationRuleType(
+                createdItem.userNotificationEventType!
+            );
 
         // find immediate notification rule and alert the user.
         const immediateNotificationRule: Array<UserNotificationRule> =
@@ -82,7 +73,7 @@ export class Service extends DatabaseService<Model> {
                     projectId: createdItem.projectId!,
                     triggeredByIncidentId: createdItem.triggeredByIncidentId,
                     userNotificationEventType:
-                        createdItem.userNotificationEventType,
+                        createdItem.userNotificationEventType!,
                     onCallPolicyExecutionLogId:
                         createdItem.onCallDutyPolicyExecutionLogId,
                     onCallPolicyId: createdItem.onCallDutyPolicyId,
@@ -107,6 +98,25 @@ export class Service extends DatabaseService<Model> {
         });
 
         return createdItem;
+    }
+
+    public getNotificationRuleType(
+        userNotificationEventType: UserNotificationEventType
+    ): NotificationRuleType {
+        let notificationRuleType: NotificationRuleType =
+            NotificationRuleType.ON_CALL_INCIDENT_CREATED;
+
+        if (
+            userNotificationEventType ===
+            UserNotificationEventType.IncidentCreated
+        ) {
+            notificationRuleType =
+                NotificationRuleType.ON_CALL_INCIDENT_CREATED;
+        } else {
+            // Invlaid user notification event type.
+            throw new BadDataException('Invalid user notification event type.');
+        }
+        return notificationRuleType;
     }
 }
 export default new Service();

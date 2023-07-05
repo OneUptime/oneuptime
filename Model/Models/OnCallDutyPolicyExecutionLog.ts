@@ -21,6 +21,7 @@ import Incident from './Incident';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import Team from './Team';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -513,4 +514,140 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public acknowledgedByTeamId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Number,
+        title: 'Executed Escalation Rule Order',
+        description: 'Which escalation rule was executed?',
+        canReadOnRelationQuery: true,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.Number,
+    })
+    public lastExecutedEscalationRuleOrder?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Date,
+        title: 'Last Escalation Rule Executed At',
+        description: 'When was the escalation rule executed?',
+        canReadOnRelationQuery: true,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.Date,
+    })
+    public lastEscalationRuleExecutedAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'lastExecutedEscalationRuleId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicyEscalationRule,
+        title: 'Last Executed Escalation Rule',
+        description:
+            'Relation to On Call Policy Last Executed Escalation Rule.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicyEscalationRule;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'lastExecutedEscalationRuleId' })
+    public lastExecutedEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Last Executed Escalation Rule ID',
+        description: 'ID of your On Call Policy Last Executed Escalation Rule.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public lastExecutedEscalationRuleId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Number,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Execute next escalation rule in minutes',
+        description:
+            'How many minutes should we wait before executing the next escalation rule?',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+    })
+    public executeNextEscalationRuleInMinutes?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Number,
+        required: true,
+        isDefaultValueColumn: true,
+        canReadOnRelationQuery: true,
+        title: 'On Call Policy Execution Repeat Count',
+        description: 'How many times did we execute this on call policy?',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        default: 1,
+    })
+    public onCallPolicyExecutionRepeatCount?: number = undefined;
 }

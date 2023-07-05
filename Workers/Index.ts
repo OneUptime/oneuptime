@@ -61,6 +61,12 @@ import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
 import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
 import RunDatabaseMigrations from './Utils/DataMigration';
 
+// On Call Duty Policy Executions.
+import './Jobs/OnCallDutyPolicyExecution/ExecuteOnCallDutyPolicy';
+
+// User Notifications Log
+import './Jobs/UserNotificationsLog/UpdateUserNotificationsLog';
+
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();

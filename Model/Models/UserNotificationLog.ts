@@ -24,6 +24,7 @@ import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 import Team from './Team';
 import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
+import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -624,4 +625,24 @@ export default class UserNotificationLog extends BaseModel {
         unique: false,
     })
     public acknowledgedAt?: Date = undefined;
+
+    /**
+     *
+     * In the format of {
+     *  [notificationRuleId]: DateOfExecution,
+     * }
+     */
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.JSON })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public executedNotificationRules?: JSONObject = undefined;
 }

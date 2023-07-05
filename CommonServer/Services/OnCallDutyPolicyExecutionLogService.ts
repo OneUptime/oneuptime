@@ -19,6 +19,8 @@ export class Service extends DatabaseService<Model> {
             createBy.data.status = OnCallDutyPolicyStatus.Scheduled;
         }
 
+        createBy.data.onCallPolicyExecutionRepeatCount = 1;
+
         return { createBy, carryForward: null };
     }
 

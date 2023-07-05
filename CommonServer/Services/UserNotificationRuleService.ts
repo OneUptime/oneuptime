@@ -33,6 +33,7 @@ import UserNotificationLogTimelineService from './UserNotificationLogTimelineSer
 import MailService from './MailService';
 import SmsService from './SmsService';
 import CallService from './CallService';
+import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -53,7 +54,51 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
-        //
+        // get user notifcation log and see if this rule has already been executed. If so then skip.
+
+        const userNotificationLog: UserNotificationLog | null =
+            await UserNotificationLogService.findOneById({
+                id: options.userNotificationLogId,
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                    executedNotificationRules: true,
+                },
+            });
+
+        if (!userNotificationLog) {
+            throw new BadDataException('User notification log not found.');
+        }
+
+        if (
+            Object.keys(
+                userNotificationLog.executedNotificationRules || {}
+            ).includes(userNotificationRuleId.toString())
+        ) {
+            // already executed.
+            return;
+        }
+
+        if (!userNotificationLog.executedNotificationRules) {
+            userNotificationLog.executedNotificationRules = {};
+        }
+
+        userNotificationLog.executedNotificationRules[
+            userNotificationRuleId.toString()
+        ] = OneUptimeDate.getCurrentDate();
+
+        await UserNotificationLogService.updateOneById({
+            id: userNotificationLog.id!,
+            data: {
+                executedNotificationRules:
+                    userNotificationLog.executedNotificationRules,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
 
         const logTimelineItem: UserNotificationLogTimeline =
             new UserNotificationLogTimeline();

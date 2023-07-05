@@ -379,6 +379,18 @@ export default class OneUptimeDate {
         );
     }
 
+    public static getDifferenceInMinutes(date: Date, date2: Date): number {
+        date = this.fromString(date);
+        date2 = this.fromString(date2);
+        const minutes: number = moment(date).diff(moment(date2), 'minutes');
+
+        if (minutes < 0) {
+            return minutes * -1;
+        }
+
+        return minutes;
+    }
+
     public static getDateAsFormattedArrayInMultipleTimezones(
         date: string | Date,
         onlyShowDate?: boolean

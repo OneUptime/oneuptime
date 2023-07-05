@@ -91,7 +91,7 @@ export class Service extends DatabaseService<Model> {
                     data: {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
                         acknowledgedByUserId: item.userId!,
-                        status: OnCallDutyPolicyStatus.SuccessfullyAcknowledged,
+                        status: OnCallDutyPolicyStatus.Completed,
                         statusMessage:
                             'Incident acknowledged by ' +
                             user.name +

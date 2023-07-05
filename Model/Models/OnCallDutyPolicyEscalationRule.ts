@@ -388,7 +388,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
         nullable: true,
         type: ColumnType.Number,
     })
-    public escalateAfterInMinutes?: string = undefined;
+    public escalateAfterInMinutes?: number = undefined;
 
     @ColumnAccessControl({
         create: [

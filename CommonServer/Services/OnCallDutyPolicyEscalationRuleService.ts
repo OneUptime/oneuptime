@@ -27,6 +27,8 @@ import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyE
 import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
 import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 import User from 'Model/Models/User';
+import OneUptimeDate from 'Common/Types/Date';
+import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 
 export class Service extends DatabaseService<Model> {
     public async startRuleExecution(
@@ -40,6 +42,38 @@ export class Service extends DatabaseService<Model> {
         }
     ): Promise<void> {
         // add log timeline.
+
+        const rule: Model | null = await this.findOneById({
+            id: ruleId,
+            select: {
+                _id: true,
+                order: true,
+                escalateAfterInMinutes: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!rule) {
+            throw new BadDataException(
+                `On Call Duty Policy Escalation Rule with id ${ruleId.toString()} not found`
+            );
+        }
+
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+            id: options.onCallPolicyExecutionLogId,
+            data: {
+                lastEscalationRuleExecutedAt: OneUptimeDate.getCurrentDate(),
+                lastExecutedEscalationRuleId: ruleId,
+                lastExecutedEscalationRuleOrder: rule.order!,
+                executeNextEscalationRuleInMinutes:
+                    rule.escalateAfterInMinutes || 0,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
 
         const getNewLog: Function =
             (): OnCallDutyPolicyExecutionLogTimeline => {
