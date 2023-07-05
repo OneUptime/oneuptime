@@ -323,6 +323,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/on-call-rules`
     ),
 
+    [PageMap.USER_SETTINGS_NOTIFICATION_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs`
+    ),
+
+    [PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs/${RouteParams.ModelID}`
+    ),
+
     // Settings Routes
     [PageMap.SETTINGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/`

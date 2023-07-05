@@ -153,6 +153,8 @@ import PageComponentProps from './Pages/PageComponentProps';
 
 import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
 import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
+import UserSettingsNotificationLogs from './Pages/UserSettings/NotificationLogs';
+import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/NotificationLogsTimeline';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -2043,6 +2045,43 @@ const App: FunctionComponent = () => {
                         <UserSettingsNotificationMethods
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotificationLogs
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotificationLogsTimeline
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                                ] as Route
+                            }
                         />
                     }
                 />

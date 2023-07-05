@@ -92,8 +92,9 @@ export class Service extends DatabaseService<Model> {
         await UserNotificationLogService.updateOneById({
             id: userNotificationLog.id!,
             data: {
-                executedNotificationRules:
-                    { ...userNotificationLog.executedNotificationRules },
+                executedNotificationRules: {
+                    ...userNotificationLog.executedNotificationRules,
+                },
             } as any,
             props: {
                 isRoot: true,
@@ -170,7 +171,7 @@ export class Service extends DatabaseService<Model> {
 
         if (
             options.userNotificationEventType ===
-            UserNotificationEventType.IncidentCreated &&
+                UserNotificationEventType.IncidentCreated &&
             options.triggeredByIncidentId
         ) {
             incident = await IncidentService.findOneById({
@@ -208,7 +209,7 @@ export class Service extends DatabaseService<Model> {
             // send email.
             if (
                 options.userNotificationEventType ===
-                UserNotificationEventType.IncidentCreated &&
+                    UserNotificationEventType.IncidentCreated &&
                 incident
             ) {
                 // create an error log.
@@ -275,7 +276,7 @@ export class Service extends DatabaseService<Model> {
             // send sms.
             if (
                 options.userNotificationEventType ===
-                UserNotificationEventType.IncidentCreated &&
+                    UserNotificationEventType.IncidentCreated &&
                 incident
             ) {
                 // create an error log.
@@ -431,7 +432,7 @@ export class Service extends DatabaseService<Model> {
                             new UserNotificationLogTimeline().crudApiPath!
                         ).addRoute(
                             '/call/gather-input/' +
-                            userNotificationLogTimelineId.toString()
+                                userNotificationLogTimelineId.toString()
                         )
                     ),
                 },
@@ -461,8 +462,9 @@ export class Service extends DatabaseService<Model> {
 
         const sms: SMS = {
             to,
-            message: `This is a message from OneUptime. A new incident has been created. ${incident.title
-                }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+            message: `This is a message from OneUptime. A new incident has been created. ${
+                incident.title
+            }. To acknowledge this incident, please click on the following link ${url.toString()}`,
         };
 
         return sms;
