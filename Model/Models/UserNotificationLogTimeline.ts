@@ -26,6 +26,9 @@ import UserNotificationRule from './UserNotificationRule';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
+import UserSMS from './UserSMS';
+import UserEmail from './UserEmail';
+import UserCall from './UserCall';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -682,4 +685,146 @@ export default class UserNotificationLogTimeline extends BaseModel {
         unique: false,
     })
     public acknowledgedAt?: Date = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userCallId',
+        type: TableColumnType.Entity,
+        modelType: UserCall,
+        title: 'User Call',
+        description:
+            'Relation to User Call Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return UserCall;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userCallId' })
+    public userCall?: UserCall = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'User Call ID',
+        description: 'ID of User Call in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userCallId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userSmsId',
+        type: TableColumnType.Entity,
+        modelType: UserSMS,
+        title: 'User SMS',
+        description:
+            'Relation to User SMS Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return UserSMS;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userSmsId' })
+    public userSms?: UserSMS = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'User SMS ID',
+        description: 'ID of User SMS in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userSmsId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'userEmailId',
+        type: TableColumnType.Entity,
+        modelType: UserEmail,
+        title: 'User Email',
+        description:
+            'Relation to User Email Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return UserEmail;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'userEmailId' })
+    public userEmail?: UserEmail = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'User Email ID',
+        description: 'ID of User Email in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public userEmailId?: ObjectID = undefined;
 }
