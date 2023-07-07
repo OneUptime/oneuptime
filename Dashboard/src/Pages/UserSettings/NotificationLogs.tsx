@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -20,10 +20,17 @@ import EscalationRuleView from '../../Components/OnCallPolicy/EscalationRule/Esc
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+
+    const [showViewStatusMessageModal, setShowViewStatusMessageModal] = useState<boolean>(false);
+    const [statusMessage, setStatusMessage] = useState<string>('');
+
     return (
         <Page
             title={'User Settings'}
@@ -44,7 +51,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Notification Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                        PageMap.USER_SETTINGS_NOTIFICATION_LOGS
                         ] as Route
                     ),
                 },
@@ -68,11 +75,36 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are all the notification logs. This will help you to debug any notification issues that you may face.',
                 }}
+                selectMoreFields={{
+                    statusMessage: true,
+                }}
                 noItemsMessage={'No notifications sent out so far.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
                 showFilterButton={true}
                 showViewIdButton={true}
+                actionButtons={[
+                    {
+                        title: 'View Status Message',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        onClick: async (
+                            item: JSONObject,
+                            onCompleteAction: Function,
+                            onError: (err: Error) => void
+                        ) => {
+                            try {
+                                setStatusMessage(item['statusMessage'] as string);
+                                setShowViewStatusMessageModal(true);
+
+                                onCompleteAction();
+                            } catch (err) {
+                                onCompleteAction();
+                                onError(err as Error);
+                            }
+                        },
+                    },
+                ]}
+                viewButtonText={'View Timeline'}
                 columns={[
                     {
                         field: {
@@ -98,7 +130,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     <OnCallDutyPolicyView
                                         onCallPolicy={
                                             item[
-                                                'onCallDutyPolicy'
+                                            'onCallDutyPolicy'
                                             ] as OnCallDutyPolicy
                                         }
                                     />
@@ -131,7 +163,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     <EscalationRuleView
                                         escalationRule={
                                             item[
-                                                'onCallDutyPolicyEscalationRule'
+                                            'onCallDutyPolicyEscalationRule'
                                             ] as OnCallDutyPolicyEscalationRule
                                         }
                                     />
@@ -216,6 +248,19 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
+
+            {showViewStatusMessageModal ? (
+                <ConfirmModal
+                    title={'Status Message'}
+                    description={
+                        statusMessage
+                    }
+                    submitButtonText={'Close'}
+                    onSubmit={async () => {
+                        setShowViewStatusMessageModal(false);
+                    }}
+                /> 
+            ): <></>}
         </Page>
     );
 };
