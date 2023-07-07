@@ -26,9 +26,8 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
-    const [showViewStatusMessageModal, setShowViewStatusMessageModal] = useState<boolean>(false);
+    const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
+        useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
     return (
@@ -51,7 +50,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Notification Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
                         ] as Route
                     ),
                 },
@@ -93,7 +92,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             onError: (err: Error) => void
                         ) => {
                             try {
-                                setStatusMessage(item['statusMessage'] as string);
+                                setStatusMessage(
+                                    item['statusMessage'] as string
+                                );
                                 setShowViewStatusMessageModal(true);
 
                                 onCompleteAction();
@@ -130,7 +131,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     <OnCallDutyPolicyView
                                         onCallPolicy={
                                             item[
-                                            'onCallDutyPolicy'
+                                                'onCallDutyPolicy'
                                             ] as OnCallDutyPolicy
                                         }
                                     />
@@ -163,7 +164,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     <EscalationRuleView
                                         escalationRule={
                                             item[
-                                            'onCallDutyPolicyEscalationRule'
+                                                'onCallDutyPolicyEscalationRule'
                                             ] as OnCallDutyPolicyEscalationRule
                                         }
                                     />
@@ -252,15 +253,15 @@ const Settings: FunctionComponent<PageComponentProps> = (
             {showViewStatusMessageModal ? (
                 <ConfirmModal
                     title={'Status Message'}
-                    description={
-                        statusMessage
-                    }
+                    description={statusMessage}
                     submitButtonText={'Close'}
                     onSubmit={async () => {
                         setShowViewStatusMessageModal(false);
                     }}
-                /> 
-            ): <></>}
+                />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

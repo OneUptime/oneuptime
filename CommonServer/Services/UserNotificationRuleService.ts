@@ -215,7 +215,8 @@ export class Service extends DatabaseService<Model> {
                 // create an error log.
                 logTimelineItem.status = UserNotificationStatus.Sending;
                 logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
-                logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
+                logTimelineItem.userEmailId =
+                    notificationRuleItem.userEmail.id!;
 
                 const updatedLog: UserNotificationLogTimeline =
                     await UserNotificationLogTimelineService.create({

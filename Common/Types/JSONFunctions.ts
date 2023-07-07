@@ -159,9 +159,13 @@ export default class JSONFunctions {
     }
 
     public static fromJSONObject<T extends BaseModel>(
-        json: JSONObject,
+        json: JSONObject | T,
         type: { new (): T }
     ): T {
+        if (json instanceof BaseModel) {
+            return json;
+        }
+
         return this.fromJSON<T>(json, type) as T;
     }
 

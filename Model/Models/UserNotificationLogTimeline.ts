@@ -686,7 +686,6 @@ export default class UserNotificationLogTimeline extends BaseModel {
     })
     public acknowledgedAt?: Date = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],

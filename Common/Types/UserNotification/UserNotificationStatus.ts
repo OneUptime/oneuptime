@@ -3,6 +3,7 @@ enum UserNotificationStatus {
     Acknowledged = 'Acknowledged',
     Error = 'Error',
     Sending = 'Sending',
+    Skipped = 'Skipped',
 }
 
 export default UserNotificationStatus;
