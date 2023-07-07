@@ -3,7 +3,7 @@ enum OnCallDutyExecutionLogTimelineStatus {
     Started = 'Started',
     Running = 'Running',
     SuccessfullyAcknowledged = 'Successfully Acknowledged',
-    NotificationSent = 'NotificationSent',
+    NotificationSent = 'Notification Sent',
     Error = 'Error',
 }
 
