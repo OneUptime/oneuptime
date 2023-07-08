@@ -22,8 +22,7 @@ import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import OnCallPolicyView from '../OnCallPolicy';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
-import PageMap from '../../../Utils/PageMap';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 export interface ComponentProps {
     onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -194,7 +193,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                     );
                 }
 
-                return <p>Not acknowledged</p>;
+                return <p>Not yet acknowledged</p>;
             },
         },
     ]);
@@ -221,12 +220,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                     onCallDutyPolicyId: true
                 }}
                 noItemsMessage={'This policy has not executed so far.'}
-                onViewPage={(item: OnCallDutyPolicyExecutionLog)=> {
-                    return RouteUtil.populateRouteParams(RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!, {
-                        modelId: item.onCallDutyPolicyId!,
-                        subModelId: item.id!
-                    })
-                }}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
                 showFilterButton={true}
                 showViewIdButton={true}
