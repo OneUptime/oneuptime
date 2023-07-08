@@ -6,6 +6,7 @@ import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -55,6 +56,8 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         log.projectId = policy.projectId!;
         log.onCallDutyPolicyId = policyId;
         log.userNotificationEventType = options.userNotificationEventType;
+        log.statusMessage = 'Scheduled.';
+        log.status = OnCallDutyPolicyStatus.Scheduled;
 
         if (options.triggeredByIncidentId) {
             log.triggeredByIncidentId = options.triggeredByIncidentId;

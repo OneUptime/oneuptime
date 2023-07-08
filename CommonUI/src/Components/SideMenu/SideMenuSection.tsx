@@ -9,10 +9,10 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ) => {
     return (
-        <>
+        <div>
             <h6 className="text-sm text-gray-500">{props.title}</h6>
             <div>{props.children}</div>
-        </>
+        </div>
     );
 };
 

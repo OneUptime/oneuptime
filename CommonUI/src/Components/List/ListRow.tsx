@@ -45,7 +45,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                 <div>
                     {props.enableDragAndDrop && (
                         <div className="flex">
-                            <td
+                            <div
                                 className="ml-0 -ml-2 w-10"
                                 {...provided?.dragHandleProps}
                             >
@@ -54,7 +54,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                                     thick={ThickProp.Thick}
                                     className=" h-6 w-6 text-gray-500 hover:text-gray-700 m-auto cursor-ns-resize"
                                 />
-                            </td>
+                            </div>
                             <Detail
                                 item={props.item}
                                 fields={props.fields}

@@ -811,14 +811,6 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
-        OnCallDutyPolicy,
-        OnCallDutyPolicyService
-    ).getRouter()
-);
-
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
         ScheduledMaintenanceCustomField,
         ScheduledMaintenanceCustomFieldServiceType

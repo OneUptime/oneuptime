@@ -43,7 +43,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-            <SideMenuSection title="Advanced">
+            <SideMenuSection title="Logs">
                 <SideMenuItem
                     link={{
                         title: 'Execution Logs',
@@ -56,6 +56,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Logs}
                 />
+            </SideMenuSection>
+
+            <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
                         title: 'Custom Fields',

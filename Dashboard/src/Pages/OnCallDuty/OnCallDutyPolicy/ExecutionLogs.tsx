@@ -24,11 +24,18 @@ import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPoli
 import UserElement from '../../../Components/User/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import User from 'Model/Models/User';
+import RouteParams from '../../../Utils/RouteParams';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+    const modelId: ObjectID = new ObjectID(
+        Navigation.getParamByName(
+            RouteParams.ModelID,
+            RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]! as Route
+        ) as string
+    );
     const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -77,7 +84,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 modelType={OnCallDutyPolicyExecutionLog}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
-                    onCallPolicyId: modelId.toString(),
+                    onCallDutyPolicyId: modelId.toString(),
                 }}
                 id="execution-logs-table"
                 name="On Call Policy > Logs"
@@ -162,6 +169,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
                         isFilterable: true,
+                        filterDropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                OnCallDutyPolicyStatus
+                            ),
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===
@@ -215,21 +226,22 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            acknowledgedBy: {
+                            acknowledgedByUser: {
                                 name: true,
                                 email: true,
                             },
                         },
                         title: 'Acknowledged By',
                         type: FieldType.Element,
+                        isFilterable: false,
                         getElement: (item: JSONObject): ReactElement => {
-                            if (item['acknowledgedBy']) {
+                            if (item['acknowledgedByUser']) {
                                 return (
                                     <UserElement
                                         user={
                                             JSONFunctions.fromJSON(
                                                 item[
-                                                    'acknowledgedBy'
+                                                    'acknowledgedByUser'
                                                 ] as JSONObject,
                                                 User
                                             ) as User

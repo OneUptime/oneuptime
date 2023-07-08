@@ -13,7 +13,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import USerNotificationStatus from 'Common/Types/UserNotification/USerNotificationStatus';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -122,43 +122,43 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (
-                                item['status'] === USerNotificationStatus.Sent
+                                item['status'] === UserNotificationStatus.Sent
                             ) {
                                 return (
                                     <Pill
                                         color={Green}
-                                        text={USerNotificationStatus.Sent}
+                                        text={UserNotificationStatus.Sent}
                                     />
                                 );
                             } else if (
                                 item['status'] ===
-                                USerNotificationStatus.Acknowledged
+                                UserNotificationStatus.Acknowledged
                             ) {
                                 return (
                                     <Pill
                                         color={Green}
                                         text={
-                                            USerNotificationStatus.Acknowledged
+                                            UserNotificationStatus.Acknowledged
                                         }
                                     />
                                 );
                             } else if (
-                                item['status'] === USerNotificationStatus.Error
+                                item['status'] === UserNotificationStatus.Error
                             ) {
                                 return (
                                     <Pill
                                         color={Yellow}
-                                        text={USerNotificationStatus.Error}
+                                        text={UserNotificationStatus.Error}
                                     />
                                 );
                             } else if (
                                 item['status'] ===
-                                USerNotificationStatus.Skipped
+                                UserNotificationStatus.Skipped
                             ) {
                                 return (
                                     <Pill
                                         color={Yellow}
-                                        text={USerNotificationStatus.Skipped}
+                                        text={UserNotificationStatus.Skipped}
                                     />
                                 );
                             }
@@ -166,7 +166,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             return (
                                 <Pill
                                     color={Red}
-                                    text={USerNotificationStatus.Error}
+                                    text={UserNotificationStatus.Error}
                                 />
                             );
                         },

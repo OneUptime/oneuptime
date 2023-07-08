@@ -398,12 +398,18 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
+        ],
         update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'acknowledgedByUserId',
         type: TableColumnType.Entity,
+        modelType: User,
         title: 'Acknowledged by User',
         description:
             'Relation to User who acknowledged this policy execution (if this policy was acknowledged by a User)',
@@ -598,14 +604,14 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     @Index()
     @TableColumn({
         type: TableColumnType.ObjectID,
-        required: true,
+        required: false,
         canReadOnRelationQuery: true,
         title: 'Last Executed Escalation Rule ID',
         description: 'ID of your On Call Policy Last Executed Escalation Rule.',
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public lastExecutedEscalationRuleId?: ObjectID = undefined;

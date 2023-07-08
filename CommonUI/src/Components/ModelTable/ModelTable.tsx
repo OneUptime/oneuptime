@@ -403,6 +403,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 }
 
                 if (
+                    column.filterDropdownOptions &&
+                    column.filterDropdownOptions.length > 0
+                ) {
+                    classicColumn.filterDropdownOptions =
+                        column.filterDropdownOptions;
+                    continue;
+                }
+
+                if (
                     !(
                         column.type === FieldType.Entity ||
                         column.type === FieldType.EntityArray
