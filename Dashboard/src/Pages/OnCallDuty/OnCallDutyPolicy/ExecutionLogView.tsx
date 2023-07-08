@@ -14,9 +14,6 @@ import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
-import UserNotificationLogTimeline from 'Model/Models/UserNotificationLogTimeline';
-import BaseModel from 'Common/Models/BaseModel';
-import NotificationMethodView from '../../../Components/NotificationMethods/NotificationMethod';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import RouteParams from '../../../Utils/RouteParams';
@@ -26,6 +23,8 @@ import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import EscalationRule from '../../../Components/OnCallPolicy/EscalationRule/EscalationRule';
+import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -92,19 +91,29 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            userCall: {
-                                phone: true,
+                            onCallDutyPolicyEscalationRule: {
+                                name: true,
+                                onCallDutyPolicyId: true,
                             },
                         },
-                        title: 'On Call Policy',
+                        title: 'Escalation Rule',
                         type: FieldType.Element,
-                        getElement: (item: BaseModel): ReactElement => {
-                            return (
-                                <NotificationMethodView
-                                    item={item}
-                                    modelType={UserNotificationLogTimeline}
-                                />
-                            );
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (
+                                item &&
+                                item['onCallDutyPolicyEscalationRule']
+                            ) {
+                                return (
+                                    <EscalationRule
+                                        escalationRule={
+                                            item[
+                                                'onCallDutyPolicyEscalationRule'
+                                            ] as OnCallDutyPolicyEscalationRule
+                                        }
+                                    />
+                                );
+                            }
+                            return <p>No escalation rule found.</p>;
                         },
                     },
                     {
