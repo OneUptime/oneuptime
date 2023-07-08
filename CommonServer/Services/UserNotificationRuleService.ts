@@ -34,6 +34,7 @@ import MailService from './MailService';
 import SmsService from './SmsService';
 import CallService from './CallService';
 import OneUptimeDate from 'Common/Types/Date';
+import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -544,7 +545,7 @@ export class Service extends DatabaseService<Model> {
             options.userNotificationEventType;
 
         if (options.onCallPolicyExecutionLogId) {
-            userNotificationLog.onCallDutyPolicyId =
+            userNotificationLog.onCallDutyPolicyExecutionLogId =
                 options.onCallPolicyExecutionLogId;
         }
 
@@ -566,6 +567,9 @@ export class Service extends DatabaseService<Model> {
             userNotificationLog.userBelongsToTeamId =
                 options.userBelongsToTeamId;
         }
+
+        userNotificationLog.status = UserNotificationExecutionStatus.Scheduled;
+        userNotificationLog.statusMessage = 'Scheduled';
 
         await UserNotificationLogService.create({
             data: userNotificationLog,

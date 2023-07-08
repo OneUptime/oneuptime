@@ -223,21 +223,21 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-        for (const user of usersInRule) {
+        for (const userRule of usersInRule) {
             if (
                 !uniqueUserIds.find((userId: ObjectID) => {
-                    return user.userId?.toString() === userId.toString();
+                    return userRule.userId?.toString() === userId.toString();
                 })
             ) {
-                uniqueUserIds.push(user.userId!);
-                await startUserNotifcationRuleExecution(user.id!, undefined);
+                uniqueUserIds.push(userRule.userId!);
+                await startUserNotifcationRuleExecution(userRule.userId!, undefined);
             } else {
                 // no users in this rule. Skipping.
                 const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
                 log.statusMessage =
                     'Skipped because notification sent to this user already.';
                 log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
-                log.alertSentToUserId = user.id!;
+                log.alertSentToUserId = userRule.userId!;
 
                 await OnCallDutyPolicyExecutionLogTimelineService.create({
                     data: log,

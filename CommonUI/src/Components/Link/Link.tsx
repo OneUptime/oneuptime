@@ -39,7 +39,7 @@ const Link: FunctionComponent<ComponentProps> = (
 
     return (
         <a
-            className={`cursor-pointer ${props.className || ''}`}
+            className={`cursor-pointer  ${props.className || ''}`}
             onMouseOver={props.onMouseOver}
             onMouseOut={props.onMouseOut}
             onMouseLeave={props.onMouseLeave}
