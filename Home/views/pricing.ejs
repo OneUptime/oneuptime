@@ -4,407 +4,528 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | One Complete Observability platform. </title>
-    <meta name="description"
-        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-        <%- include('head') -%>
+  <title>OneUptime | One Complete Observability platform. </title>
+  <meta name="description"
+    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <%- include('head') -%>
 
 </head>
 
 <body>
   <%- include('nav') -%>
     <div class="bg-white">
-        <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
-          <div class="sm:align-center sm:flex sm:flex-col">
-            <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Pricing Plans</h1>
-            <p class="mt-5 text-xl text-gray-500 sm:text-center">Get started for free with our generous free plan. Paid plans unlock additional features. Sign up free, no credit card required.</p>
-            <div class="relative mt-6 flex self-center rounded-lg bg-gray-100 p-0.5 sm:mt-8">
-              <button type="button" onclick="switchToMonthlyBilling()" id="monthly-billing-btn" class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Monthly billing</button>
-              <button type="button" onclick="switchToYearlyBilling()" id="yearly-billing-btn" class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Yearly billing</button>
-            </div>
+      <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
+        <div class="sm:align-center sm:flex sm:flex-col">
+          <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Pricing Plans</h1>
+          <p class="mt-5 text-xl text-gray-500 sm:text-center">Get started for free with our generous free plan. Paid
+            plans unlock additional features. Sign up free, no credit card required.</p>
+          <div class="relative mt-6 flex self-center rounded-lg bg-gray-100 p-0.5 sm:mt-8">
+            <button type="button" onclick="switchToMonthlyBilling()" id="monthly-billing-btn"
+              class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Monthly
+              billing</button>
+            <button type="button" onclick="switchToYearlyBilling()" id="yearly-billing-btn"
+              class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Yearly
+              billing</button>
           </div>
-          <div class="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
-            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
-              <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Free</h2>
-                <p class="mt-4 text-sm text-gray-500">All the basics you need to get started</p>
-                <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
-                  <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
-                </p>
-                <a href="/accounts/register" class="mt-8 block hover:text-white w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
-              </div>
-              <div class="px-6 pt-6 pb-8">
-                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
-                <ul role="list" class="mt-6 space-y-4">
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Unlimited Status Pages</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Unlimited Subscribers</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Unlimited Monitors</span>
-                  </li>
-
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Unlimited Status Page Viewers</span>
-                  </li>
-                </ul>
-              </div>
+        </div>
+        <div
+          class="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
+          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+            <div class="p-6">
+              <h2 class="text-lg font-medium leading-6 text-gray-900">Free</h2>
+              <p class="mt-4 text-sm text-gray-500">All the basics you need to get started</p>
+              <p class="mt-8">
+                <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
+              </p>
+              <a href="/accounts/register"
+                class="mt-8 block hover:text-white w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get
+                Started</a>
             </div>
-      
-            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
-              <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
-                <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
-                <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
-                  <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
-                </p>
-                <a href="/accounts/register" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free 14 day trial</a>
-              </div>
-              <div class="px-6 pt-6 pb-8">
-                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
-                <ul role="list" class="mt-6 space-y-4">
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Everything in Free Plan </span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">5000+ Integrations</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">API Access</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Advanced Workflows</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">1 Business Day Email Support</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">99.95% SLA</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-      
-            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
-              <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
-                <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
-                <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
-                  <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
-                </p>
-                <a href="/accounts/register" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free 14 day trial</a>
-              </div>
-              <div class="px-6 pt-6 pb-8">
-                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
-                <ul role="list" class="mt-6 space-y-4">
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Everything in Growth </span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Single Sign On (SSO)</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Unlimited Teams</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Advanced Access Control</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">6 hour Chat or Email Support</span>
-                  </li>
-
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">99.99% SLA</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Dedicated Account Executive</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-      
-            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
-              <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Enterprise</h2>
-                <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
-                <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
-                  <span class="text-base font-medium text-gray-500">/yr</span>
-                </p>
-                <a href="/enterprise/demo" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
-              </div>
-              <div class="px-6 pt-6 pb-8">
-                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
-                <ul role="list" class="mt-6 space-y-4">
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Everything in Scale Plan</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Custom Features</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Dedicated Engineer</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">1 hour Phone Support</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Custom Data Residency</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Dedicated Support Channel</span>
-                  </li>
-      
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Custom Data Retention</span>
-                  </li>
-                  <li class="flex space-x-3">
-                    <!-- Heroicon name: mini/check -->
-                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="text-sm text-gray-500">Annual Invoicing</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:flex lg:max-w-none">
-            <div class="p-8 sm:p-10 lg:flex-auto">
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900">Active Monitoring</h3>
-              <p class="mt-6 text-base leading-7 text-gray-600">Pricing for montoring website, API, IP addresses and more. We pass on the cost of monitoring to you, so you can focus on your core business activities and maintain uptime. </p>
-              <div class="mt-10 flex items-center gap-x-4">
-                <h4 class="flex-none text-sm font-semibold leading-6 text-indigo-600">What’s included</h4>
-                <div class="h-px flex-auto bg-gray-100"></div>
-              </div>
-              <ul role="list" class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+            <div class="px-6 pt-6 pb-8">
+              <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
                   </svg>
-                  Monitor from multiple locations.
+                  <span class="text-sm text-gray-500">Unlimited Status Pages</span>
                 </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
                   </svg>
-                  Monitor resource every minute.
+                  <span class="text-sm text-gray-500">Unlimited Subscribers</span>
                 </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
                   </svg>
-                  Logs stored for 90 days. Custom retention available for enterprise customers.
+                  <span class="text-sm text-gray-500">Unlimited Monitors</span>
                 </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
                   </svg>
-                  Set custom criteria based on response body, headers, status, etc.
+                  <span class="text-sm text-gray-500">Unlimited Status Page Viewers</span>
                 </li>
               </ul>
             </div>
-            <div class="-mt-2 p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
-              <div class="rounded-lg bg-gray-50 py-10 text-center ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
-                <div class="mx-auto max-w-xs px-8">
-                  <p class="text-base font-semibold text-gray-600">Only pay for what you use.</p>
-                  <p class="mt-6 flex items-baseline justify-center gap-x-2">
-                    <span class="text-5xl font-bold tracking-tight text-gray-900">$1</span>
-                    <span class="text-sm font-semibold leading-6 tracking-wide text-gray-600">/monitor per month</span>
-                  </p>
-                  <a href="/accounts/register" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free 14 day trial</a>
-                  <p class="mt-6 text-xs leading-5 text-gray-600">If you have more than 100 monitors, contact us for a discount.</p>
-                </div>
-              </div>
+          </div>
+
+          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+            <div class="p-6">
+              <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+              <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
+              <p class="mt-8">
+                <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
+              </p>
+              <a href="/accounts/register"
+                class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
+                14 day trial</a>
+            </div>
+            <div class="px-6 pt-6 pb-8">
+              <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Everything in Free Plan </span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">5000+ Integrations</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">API Access</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Advanced Workflows</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">1 Business Day Email Support</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">99.95% SLA</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+            <div class="p-6">
+              <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
+              <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
+              <p class="mt-8">
+                <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
+              </p>
+              <a href="/accounts/register"
+                class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
+                14 day trial</a>
+            </div>
+            <div class="px-6 pt-6 pb-8">
+              <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Everything in Growth </span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Single Sign On (SSO)</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Unlimited Teams</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Advanced Access Control</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">6 hour Chat or Email Support</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">99.99% SLA</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Dedicated Account Executive</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+            <div class="p-6">
+              <h2 class="text-lg font-medium leading-6 text-gray-900">Enterprise</h2>
+              <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
+              <p class="mt-8">
+                <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
+                <span class="text-base font-medium text-gray-500">/yr</span>
+              </p>
+              <a href="/enterprise/demo"
+                class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request
+                Demo</a>
+            </div>
+            <div class="px-6 pt-6 pb-8">
+              <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Everything in Scale Plan</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Custom Features</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Dedicated Engineer</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">1 hour Phone Support</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Custom Data Residency</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Dedicated Support Channel</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Custom Data Retention</span>
+                </li>
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-500">Annual Invoicing</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
 
-
-        
+        <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:flex lg:max-w-none">
+          <div class="p-8 sm:p-10 lg:flex-auto">
+            <h3 class="text-2xl font-bold tracking-tight text-gray-900">Active Monitoring</h3>
+            <p class="mt-6 text-base leading-7 text-gray-600">Pricing for montoring website, API, IP addresses and more.
+              We pass on the cost of monitoring to you, so you can focus on your core business activities and maintain
+              uptime. </p>
+            <div class="mt-10 flex items-center gap-x-4">
+              <h4 class="flex-none text-sm font-semibold leading-6 text-indigo-600">What’s included</h4>
+              <div class="h-px flex-auto bg-gray-100"></div>
+            </div>
+            <ul role="list" class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
+              <li class="flex gap-x-3">
+                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                  aria-hidden="true">
+                  <path fill-rule="evenodd"
+                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                    clip-rule="evenodd" />
+                </svg>
+                Monitor from multiple locations.
+              </li>
+              <li class="flex gap-x-3">
+                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                  aria-hidden="true">
+                  <path fill-rule="evenodd"
+                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                    clip-rule="evenodd" />
+                </svg>
+                Monitor resource every minute.
+              </li>
+              <li class="flex gap-x-3">
+                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                  aria-hidden="true">
+                  <path fill-rule="evenodd"
+                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                    clip-rule="evenodd" />
+                </svg>
+                Logs stored for 90 days. Custom retention available for enterprise customers.
+              </li>
+              <li class="flex gap-x-3">
+                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                  aria-hidden="true">
+                  <path fill-rule="evenodd"
+                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                    clip-rule="evenodd" />
+                </svg>
+                Set custom criteria based on response body, headers, status, etc.
+              </li>
+            </ul>
+          </div>
+          <div class="-mt-2 p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
+            <div
+              class="rounded-lg bg-gray-50 py-10 text-center ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
+              <div class="mx-auto max-w-xs px-8">
+                <p class="text-base font-semibold text-gray-600">Only pay for what you use.</p>
+                <p class="mt-6 flex items-baseline justify-center gap-x-2">
+                  <span class="text-5xl font-bold tracking-tight text-gray-900">$1</span>
+                  <span class="text-sm font-semibold leading-6 tracking-wide text-gray-600">/monitor per month</span>
+                </p>
+                <a href="/accounts/register"
+                  class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
+                  14 day trial</a>
+                <p class="mt-6 text-xs leading-5 text-gray-600">If you have more than 100 monitors, contact us for a
+                  discount.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
 
       
 
-   
-      <%- include('logo-roll') -%>
+
+
+    </div>
+
+
+
+
+
+    <%- include('logo-roll') -%>
 
       <div class="bg-white">
         <div class="mx-auto max-w-7xl py-24 px-6 sm:py-32 lg:px-8 lg:py-40">
           <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">All-in-one platform for all your SRE needs.</h2>
-            <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">With OneUptime, you get a complete SRE toolchain out-of-the-box. One interface. One conversation. One permission model. Thousands of features. You'll be amazed at everything OneUptime can do today. And we're just getting started.</p>
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">All-in-one platform for all your SRE
+              needs.</h2>
+            <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">With OneUptime, you get a complete SRE
+              toolchain out-of-the-box. One interface. One conversation. One permission model. Thousands of features.
+              You'll be amazed at everything OneUptime can do today. And we're just getting started.</p>
           </div>
           <dl class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8">
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Status Page</p>
               </dt>
-              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Status Page helps you be more transparent with your customers and showcase reliability. Communicate status, gain trust and increase revenue.</dd>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Status Page helps you be more transparent with
+                your customers and showcase reliability. Communicate status, gain trust and increase revenue.</dd>
             </div>
-      
+
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Incident Management</p>
               </dt>
-              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Protect revenue and improve customer experiences by resolving critical incidents faster and preventing future occurrences.</dd>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Protect revenue and improve customer experiences
+                by resolving critical incidents faster and preventing future occurrences.</dd>
             </div>
-      
+
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Monitoring</p>
               </dt>
-              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Analyze uptime & performance of your resources. Improve poorly performing resources. Get alerted by SMS, Email or Call when things go wrong.</dd>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Analyze uptime & performance of your resources.
+                Improve poorly performing resources. Get alerted by SMS, Email or Call when things go wrong.</dd>
             </div>
-      
+
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">On-Call & Alerts</p>
               </dt>
-              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Get instant phone, email and SMS alerts when resources are not operational. Alert right people at the right time.</dd>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Get instant phone, email and SMS alerts when
+                resources are not operational. Alert right people at the right time.</dd>
             </div>
-      
+
           </dl>
         </div>
       </div>
-      
+
 
       <div class="bg-white">
         <div class="mx-auto max-w-7xl bg-white py-16 sm:py-24 sm:px-6 lg:px-8">
@@ -418,70 +539,15 @@
                   <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">All the basics you need to get started.</p>
-                <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+                <a href="#"
+                  class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get
+                  Started</a>
               </div>
-      
-              <% for(var i=0; i<pricing.length; i++) {%>
-              <table class="w-full">
-                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
-                  <%= pricing[i].name %>
-                </caption>
-                <thead>
-                  <tr>
-                    <th class="sr-only" scope="col">Feature</th>
-                    <th class="sr-only" scope="col">Included</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  <% for(var j=0; j<pricing[i].data.length; j++) {%>
-                  <tr class="border-t border-gray-200">
-                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= pricing[i].data[j].name %></th>
-                    <td class="py-5 pr-6 sm:pr-4">
-                      <% if(pricing[i].data[j].plans.free === true){ %>
-                        <!-- Heroicon name: mini/check -->
-                     <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                     </svg>
-                    <% } else if(pricing[i].data[j].plans.free === false){ %>
-                     <!-- Heroicon name: mini/check -->
-                     <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                       <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                     </svg>
-                     <% } else if(pricing[i].data[j].plans.free === "Coming Soon") { %>
-                       <!-- Heroicon name: mini/check -->
-                       <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.free %></span>
-                   <% } else { %>
-                        <!-- Heroicon name: mini/check -->
-                        <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.free %></span>
-                    <% } %>
-                    </td>
-                  </tr>
-                  <% } %>
-                  
-                </tbody>
-              </table>
-              <% } %>
-    
-      
-              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
-                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
-              </div>
-            </section>
-      
-            <section>
-              <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
-                <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
-                  <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
-                </p>
-                <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
-                <a href="/accounts/register" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-              </div>
-      
+
               <% for(var i=0; i<pricing.length; i++) {%>
                 <table class="w-full">
-                  <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  <caption
+                    class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
                     <%= pricing[i].name %>
                   </caption>
                   <thead>
@@ -492,39 +558,129 @@
                   </thead>
                   <tbody class="divide-y divide-gray-200">
                     <% for(var j=0; j<pricing[i].data.length; j++) {%>
-                    <tr class="border-t border-gray-200">
-                      <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= pricing[i].data[j].name %></th>
-                      <td class="py-5 pr-6 sm:pr-4">
-                        <% if(pricing[i].data[j].plans.growth === true){ %>
-                          <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                       </svg>
-                      <% } else if(pricing[i].data[j].plans.growth === false){ %>
-                       <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                       </svg>
-                       <% } else if(pricing[i].data[j].plans.growth === "Coming Soon") { %>
-                         <!-- Heroicon name: mini/check -->
-                         <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.growth %></span>
-                     <% } else { %>
-                          <!-- Heroicon name: mini/check -->
-                          <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.growth %></span>
+                      <tr class="border-t border-gray-200">
+                        <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">
+                          <%= pricing[i].data[j].name %>
+                        </th>
+                        <td class="py-5 pr-6 sm:pr-4">
+                          <% if(pricing[i].data[j].plans.free===true){ %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.free===false){ %>
+                              <!-- Heroicon name: mini/check -->
+                              <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd"
+                                  d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                  clip-rule="evenodd" />
+                              </svg>
+                              <% } else if(pricing[i].data[j].plans.free==="Coming Soon" ) { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-400">
+                                  <%= pricing[i].data[j].plans.free %>
+                                </span>
+                                <% } else { %>
+                                  <!-- Heroicon name: mini/check -->
+                                  <span class="text-sm text-gray-700">
+                                    <%= pricing[i].data[j].plans.free %>
+                                  </span>
+                                  <% } %>
+                        </td>
+                      </tr>
                       <% } %>
-                      </td>
-                    </tr>
-                    <% } %>
-                    
+
                   </tbody>
                 </table>
                 <% } %>
-      
-              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
-                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-              </div>
+
+
+                  <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                    <a href="/accounts/register"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get
+                      Started</a>
+                  </div>
             </section>
-      
+
+            <section>
+              <div class="mb-8 px-6 sm:px-4">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+                <p class="mt-4">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
+                </p>
+                <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.
+                </p>
+                <a href="/accounts/register"
+                  class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                  14 days free</a>
+              </div>
+
+              <% for(var i=0; i<pricing.length; i++) {%>
+                <table class="w-full">
+                  <caption
+                    class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                    <%= pricing[i].name %>
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th class="sr-only" scope="col">Feature</th>
+                      <th class="sr-only" scope="col">Included</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <% for(var j=0; j<pricing[i].data.length; j++) {%>
+                      <tr class="border-t border-gray-200">
+                        <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">
+                          <%= pricing[i].data[j].name %>
+                        </th>
+                        <td class="py-5 pr-6 sm:pr-4">
+                          <% if(pricing[i].data[j].plans.growth===true){ %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.growth===false){ %>
+                              <!-- Heroicon name: mini/check -->
+                              <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd"
+                                  d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                  clip-rule="evenodd" />
+                              </svg>
+                              <% } else if(pricing[i].data[j].plans.growth==="Coming Soon" ) { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-400">
+                                  <%= pricing[i].data[j].plans.growth %>
+                                </span>
+                                <% } else { %>
+                                  <!-- Heroicon name: mini/check -->
+                                  <span class="text-sm text-gray-700">
+                                    <%= pricing[i].data[j].plans.growth %>
+                                  </span>
+                                  <% } %>
+                        </td>
+                      </tr>
+                      <% } %>
+
+                  </tbody>
+                </table>
+                <% } %>
+
+                  <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                    <a href="/accounts/register"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                      14 days free</a>
+                  </div>
+            </section>
+
             <section>
               <div class="mb-8 px-6 sm:px-4">
                 <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
@@ -533,12 +689,15 @@
                   <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
-                <a href="/accounts/register" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+                <a href="/accounts/register"
+                  class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                  14 days free</a>
               </div>
-      
+
               <% for(var i=0; i<pricing.length; i++) {%>
                 <table class="w-full">
-                  <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  <caption
+                    class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
                     <%= pricing[i].name %>
                   </caption>
                   <thead>
@@ -549,37 +708,51 @@
                   </thead>
                   <tbody class="divide-y divide-gray-200">
                     <% for(var j=0; j<pricing[i].data.length; j++) {%>
-                    <tr class="border-t border-gray-200">
-                      <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= pricing[i].data[j].name %></th>
-                      <td class="py-5 pr-6 sm:pr-4">
-                        <% if(pricing[i].data[j].plans.scale === true){ %>
-                          <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                       </svg>
-                      <% } else if(pricing[i].data[j].plans.scale === false){ %>
-                       <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                       </svg>
-                       <% } else if(pricing[i].data[j].plans.scale === "Coming Soon") { %>
-                         <!-- Heroicon name: mini/check -->
-                         <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.scale %></span>
-                     <% } else { %>
-                          <!-- Heroicon name: mini/check -->
-                          <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.scale %></span>
+                      <tr class="border-t border-gray-200">
+                        <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">
+                          <%= pricing[i].data[j].name %>
+                        </th>
+                        <td class="py-5 pr-6 sm:pr-4">
+                          <% if(pricing[i].data[j].plans.scale===true){ %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.scale===false){ %>
+                              <!-- Heroicon name: mini/check -->
+                              <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd"
+                                  d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                  clip-rule="evenodd" />
+                              </svg>
+                              <% } else if(pricing[i].data[j].plans.scale==="Coming Soon" ) { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-400">
+                                  <%= pricing[i].data[j].plans.scale %>
+                                </span>
+                                <% } else { %>
+                                  <!-- Heroicon name: mini/check -->
+                                  <span class="text-sm text-gray-700">
+                                    <%= pricing[i].data[j].plans.scale %>
+                                  </span>
+                                  <% } %>
+                        </td>
+                      </tr>
                       <% } %>
-                      </td>
-                    </tr>
-                    <% } %>
-                    
+
                   </tbody>
                 </table>
                 <% } %>
-      
-              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
-                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-              </div>
+
+                  <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                    <a href="/accounts/register"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                      14 days free</a>
+                  </div>
             </section>
 
             <section>
@@ -590,12 +763,15 @@
                   <span class="text-base font-medium text-gray-500">/yr</span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
-                <a href="/enterprise/demo" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+                <a href="/enterprise/demo"
+                  class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request
+                  Demo</a>
               </div>
-      
+
               <% for(var i=0; i<pricing.length; i++) {%>
                 <table class="w-full">
-                  <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  <caption
+                    class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
                     <%= pricing[i].name %>
                   </caption>
                   <thead>
@@ -606,40 +782,54 @@
                   </thead>
                   <tbody class="divide-y divide-gray-200">
                     <% for(var j=0; j<pricing[i].data.length; j++) {%>
-                    <tr class="border-t border-gray-200">
-                      <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= pricing[i].data[j].name %></th>
-                      <td class="py-5 pr-6 sm:pr-4">
-                        <% if(pricing[i].data[j].plans.enterprise === true){ %>
-                          <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                       </svg>
-                      <% } else if(pricing[i].data[j].plans.enterprise === false){ %>
-                       <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                       </svg>
-                       <% } else if(pricing[i].data[j].plans.enterprise === "Coming Soon") { %>
-                         <!-- Heroicon name: mini/check -->
-                         <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.enterprise %></span>
-                     <% } else { %>
-                          <!-- Heroicon name: mini/check -->
-                          <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.enterprise %></span>
+                      <tr class="border-t border-gray-200">
+                        <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">
+                          <%= pricing[i].data[j].name %>
+                        </th>
+                        <td class="py-5 pr-6 sm:pr-4">
+                          <% if(pricing[i].data[j].plans.enterprise===true){ %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.enterprise===false){ %>
+                              <!-- Heroicon name: mini/check -->
+                              <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd"
+                                  d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                  clip-rule="evenodd" />
+                              </svg>
+                              <% } else if(pricing[i].data[j].plans.enterprise==="Coming Soon" ) { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-400">
+                                  <%= pricing[i].data[j].plans.enterprise %>
+                                </span>
+                                <% } else { %>
+                                  <!-- Heroicon name: mini/check -->
+                                  <span class="text-sm text-gray-700">
+                                    <%= pricing[i].data[j].plans.enterprise %>
+                                  </span>
+                                  <% } %>
+                        </td>
+                      </tr>
                       <% } %>
-                      </td>
-                    </tr>
-                    <% } %>
-                    
+
                   </tbody>
                 </table>
                 <% } %>
-      
-              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
-                <a href="/enterprise/demo" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
-              </div>
+
+                  <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                    <a href="/enterprise/demo"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request
+                      Demo</a>
+                  </div>
             </section>
           </div>
-      
+
           <!-- lg+ -->
           <div class="hidden lg:block">
             <table class="h-px w-full table-fixed">
@@ -652,20 +842,24 @@
                     <span class="sr-only">Feature by</span>
                     <span>Plans</span>
                   </th>
-      
-                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Free</th>
-      
-                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Growth</th>
-      
-                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Scale</th>
 
-                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Enterprise</th>
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Free
+                  </th>
+
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Growth
+                  </th>
+
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Scale
+                  </th>
+
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">
+                    Enterprise</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 border-t border-gray-200">
                 <tr>
                   <th class="py-8 px-6 text-left align-top text-sm font-medium text-gray-900" scope="row">Pricing</th>
-      
+
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
@@ -673,29 +867,37 @@
                         <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
                       </p>
                       <p class="mt-4 mb-16 text-sm text-gray-500">All the basics you need to get started.</p>
-                      <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+                      <a href="/accounts/register"
+                        class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get
+                        Started</a>
                     </div>
                   </td>
-      
+
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
                         <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
                         <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
                       </p>
-                      <p class="mt-4 mb-16 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
-                      <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more
+                        included.</p>
+                      <a href="/accounts/register"
+                        class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                        Free for 14 Days</a>
                     </div>
                   </td>
-      
+
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
                         <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
                         <span class="text-base font-medium text-gray-500 billing-period">/mo per seat</span>
                       </p>
-                      <p class="mt-4 mb-16 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
-                      <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your
+                        team.</p>
+                      <a href="/accounts/register"
+                        class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                        Free for 14 Days</a>
                     </div>
                   </td>
 
@@ -705,247 +907,340 @@
                         <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">Custom</span>
                         <span class="text-base font-medium text-gray-500 billing-period">/yr</span>
                       </p>
-                      <p class="mt-4 mb-16 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
-                      <a href="/enterprise/demo" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Enterprise grade offering. The best of us for your
+                        team.</p>
+                      <a href="/enterprise/demo"
+                        class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request
+                        Demo</a>
                     </div>
                   </td>
                 </tr>
-      
+
 
                 <% for(var i=0; i<pricing.length; i++) {%>
-                <tr>
-                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5" scope="colgroup"><%= pricing[i].name %></th>
-                </tr>
-                    <% for(var j=0; j<pricing[i].data.length; j++) {%>
+                  <tr>
+                    <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5"
+                      scope="colgroup">
+                      <%= pricing[i].name %>
+                    </th>
+                  </tr>
+                  <% for(var j=0; j<pricing[i].data.length; j++) {%>
                     <tr>
-                      <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row"><%= pricing[i].data[j].name %></th>
-          
+                      <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">
+                        <%= pricing[i].data[j].name %>
+                      </th>
+
                       <td class="py-5 px-6">
-                        <% if(pricing[i].data[j].plans.free === true){ %>
-                           <!-- Heroicon name: mini/check -->
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                        </svg>
-                       <% } else if(pricing[i].data[j].plans.free === false){ %>
-                        <!-- Heroicon name: mini/check -->
-                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                        </svg>
-                        <% } else if(pricing[i].data[j].plans.free === "Coming Soon") { %>
+                        <% if(pricing[i].data[j].plans.free===true){ %>
                           <!-- Heroicon name: mini/check -->
-                          <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.free %></span>
-                      <% } else { %>
-                           <!-- Heroicon name: mini/check -->
-                           <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.free %></span>
-                       <% } %>
-                       
+                          <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                              d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                              clip-rule="evenodd" />
+                          </svg>
+                          <% } else if(pricing[i].data[j].plans.free===false){ %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.free==="Coming Soon" ) { %>
+                              <!-- Heroicon name: mini/check -->
+                              <span class="text-sm text-gray-400">
+                                <%= pricing[i].data[j].plans.free %>
+                              </span>
+                              <% } else { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-700">
+                                  <%= pricing[i].data[j].plans.free %>
+                                </span>
+                                <% } %>
+
                       </td>
-          
+
                       <td class="py-5 px-6">
-                        <% if(pricing[i].data[j].plans.growth === true){ %>
+                        <% if(pricing[i].data[j].plans.growth===true){ %>
                           <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                       </svg>
-                      <% } else if(pricing[i].data[j].plans.growth === false){ %>
-                       <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                       </svg>
-                   <% } else if(pricing[i].data[j].plans.growth === "Coming Soon") { %>
-                    <!-- Heroicon name: mini/check -->
-                    <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.growth %></span>
-                <% } else { %>
-                     <!-- Heroicon name: mini/check -->
-                     <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.growth %></span>
-                 <% } %>
+                          <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                              d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                              clip-rule="evenodd" />
+                          </svg>
+                          <% } else if(pricing[i].data[j].plans.growth===false){ %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.growth==="Coming Soon" ) { %>
+                              <!-- Heroicon name: mini/check -->
+                              <span class="text-sm text-gray-400">
+                                <%= pricing[i].data[j].plans.growth %>
+                              </span>
+                              <% } else { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-700">
+                                  <%= pricing[i].data[j].plans.growth %>
+                                </span>
+                                <% } %>
                       </td>
-          
+
                       <td class="py-5 px-6">
-                        <% if(pricing[i].data[j].plans.scale === true){ %>
+                        <% if(pricing[i].data[j].plans.scale===true){ %>
                           <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                       </svg>
-                      <% } else if(pricing[i].data[j].plans.scale === false) { %>
-                       <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                       </svg>
-                       <% } else if(pricing[i].data[j].plans.scale === "Coming Soon") { %>
-                        <!-- Heroicon name: mini/check -->
-                        <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.scale %></span>
-                    <% } else { %>
-                         <!-- Heroicon name: mini/check -->
-                         <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.scale %></span>
-                     <% } %>
+                          <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                              d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                              clip-rule="evenodd" />
+                          </svg>
+                          <% } else if(pricing[i].data[j].plans.scale===false) { %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.scale==="Coming Soon" ) { %>
+                              <!-- Heroicon name: mini/check -->
+                              <span class="text-sm text-gray-400">
+                                <%= pricing[i].data[j].plans.scale %>
+                              </span>
+                              <% } else { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-700">
+                                  <%= pricing[i].data[j].plans.scale %>
+                                </span>
+                                <% } %>
                       </td>
                       <td class="py-5 px-6">
-                        <% if(pricing[i].data[j].plans.enterprise === true) { %>
+                        <% if(pricing[i].data[j].plans.enterprise===true) { %>
                           <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                       </svg>
-                      <% } else if(pricing[i].data[j].plans.enterprise === false) { %>
-                       <!-- Heroicon name: mini/check -->
-                       <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                       </svg>
-                       <% } else if(pricing[i].data[j].plans.enterprise === "Coming Soon") { %>
-                        <!-- Heroicon name: mini/check -->
-                        <span class="text-sm text-gray-400"><%= pricing[i].data[j].plans.enterprise %></span>
-                    <% } else { %>
-                         <!-- Heroicon name: mini/check -->
-                         <span class="text-sm text-gray-700"><%= pricing[i].data[j].plans.enterprise %></span>
-                     <% } %>
+                          <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                              d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                              clip-rule="evenodd" />
+                          </svg>
+                          <% } else if(pricing[i].data[j].plans.enterprise===false) { %>
+                            <!-- Heroicon name: mini/check -->
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                              fill="currentColor" aria-hidden="true">
+                              <path fill-rule="evenodd"
+                                d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <% } else if(pricing[i].data[j].plans.enterprise==="Coming Soon" ) { %>
+                              <!-- Heroicon name: mini/check -->
+                              <span class="text-sm text-gray-400">
+                                <%= pricing[i].data[j].plans.enterprise %>
+                              </span>
+                              <% } else { %>
+                                <!-- Heroicon name: mini/check -->
+                                <span class="text-sm text-gray-700">
+                                  <%= pricing[i].data[j].plans.enterprise %>
+                                </span>
+                                <% } %>
                       </td>
                     </tr>
                     <% } %>
-                <% } %>
-    
+                      <% } %>
+
               </tbody>
               <tfoot>
                 <tr class="border-t border-gray-200">
                   <th class="sr-only" scope="row">Choose your plan</th>
-      
+
                   <td class="px-6 pt-5">
-                    <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
-                  </td>
-      
-                  <td class="px-6 pt-5">
-                    <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-                  </td>
-      
-                  <td class="px-6 pt-5">
-                    <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+                    <a href="/accounts/register"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get
+                      Started</a>
                   </td>
 
                   <td class="px-6 pt-5">
-                    <a href="/enterprise/demo" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+                    <a href="/accounts/register"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                      14 days free</a>
+                  </td>
+
+                  <td class="px-6 pt-5">
+                    <a href="/accounts/register"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try
+                      14 days free</a>
+                  </td>
+
+                  <td class="px-6 pt-5">
+                    <a href="/enterprise/demo"
+                      class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request
+                      Demo</a>
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
+
+         
+          <div class="mt-60 flex flex-col items-start gap-x-8 gap-y-6 rounded-md p-8 ring-1 ring-gray-900/10 sm:gap-y-10 sm:p-10 lg:col-span-2 lg:flex-row lg:items-center">
+            <div class="lg:min-w-0 lg:flex-1">
+              <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-600">SMS Pricing</h3>
+              <p class="mt-1 text-base leading-7 text-gray-600">We bill you on per SMS sent. Our pricing starts at $0.10 USD per SMS sent to United States, Canada, UK and EU. For other countries, please contact support.</p>
+            </div>
+            <!-- <a href="#" class="rounded-md px-3.5 py-2 text-sm font-semibold leading-6 text-gray-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See SMS Pricing <span aria-hidden="true">&rarr;</span></a> -->
+          </div>
+
+          <div class="mt-5 flex flex-col items-start gap-x-8 gap-y-6 rounded-md p-8 ring-1 ring-gray-900/10 sm:gap-y-10 sm:p-10 lg:col-span-2 lg:flex-row lg:items-center">
+            <div class="lg:min-w-0 lg:flex-1">
+              <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-600">Call Pricing</h3>
+              <p class="mt-1 text-base leading-7 text-gray-600">We bill you on per call we make. Our pricing starts at $0.10 USD per minute per call we make to United States, Canada, UK and EU. For other countries, please contact support.</p>
+            </div>
+            <!-- <a href="#" class="rounded-md px-3.5 py-2 text-sm font-semibold leading-6 text-gray-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See SMS Pricing <span aria-hidden="true">&rarr;</span></a> -->
+          </div>
+
+        </div>
+
+      
+      </div>
+      </div>
+
+
+
+      <!-- This example requires Tailwind CSS v3.0+ -->
+      <div class="bg-white">
+        <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40 lg:px-8">
+          <div class="mx-auto max-w-4xl divide-y divide-gray-900/10">
+            <h2 class="text-2xl font-bold leading-10 tracking-tight text-gray-900">Frequently asked questions</h2>
+            <dl class="mt-10 space-y-6 divide-y divide-gray-900/10">
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question button -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">Do you have discounts for non-profits /
+                      open-source?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">No, our software is open-source and free. Please feel
+                    free to self-host it. If you choose to use our SaaS service, you will have to pay the full price.
+                    You pay, we keep the lights on.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">Can I cancel anytime?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">Yes. You can cancel anytime.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">What are accepted payment methods?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">Visa / Mastercard / AmEx. Invoice payment available for
+                    Enterprise customers. We also support payments in Bitcoin. If you choose to do so, please send us an
+                    email to billing@oneuptime.com and we will send a lightning invoice.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">Do I get a 14-day free trial if I upgrade an
+                      existing account?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">If you upgrade from an existing account you are not
+                    eligible for the 14-day free trial. The 14-day free trial only applies when you sign up for a new
+                    paid account.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">How do discounts work?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">Annual plans have a 17% discount. You can upgrade your
+                    current plan to an annual plan to avail of the discount. If you're an enterprise, contact us for a
+                    custom quote.</p>
+                </dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </div>
 
-
-      
-<!-- This example requires Tailwind CSS v3.0+ -->
-<div class="bg-white">
-    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40 lg:px-8">
-      <div class="mx-auto max-w-4xl divide-y divide-gray-900/10">
-        <h2 class="text-2xl font-bold leading-10 tracking-tight text-gray-900">Frequently asked questions</h2>
-        <dl class="mt-10 space-y-6 divide-y divide-gray-900/10">
-          <div class="pt-6">
-            <dt>
-              <!-- Expand/collapse question button -->
-              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
-                <span class="text-base font-semibold leading-7">Do you have discounts for non-profits / open-source?</span>
-              </div>
-            </dt>
-            <dd class="mt-2 pr-12" id="faq-0">
-              <p class="text-base leading-7 text-gray-600">No, our software is open-source and free. Please feel free to self-host it. If you choose to use our SaaS service, you will have to pay the full price. You pay, we keep the lights on.</p>
-            </dd>
-          </div>
-  
-          <div class="pt-6">
-            <dt>
-              <!-- Expand/collapse question div -->
-              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
-                <span class="text-base font-semibold leading-7">Can I cancel anytime?</span>
-              </div>
-            </dt>
-            <dd class="mt-2 pr-12" id="faq-0">
-              <p class="text-base leading-7 text-gray-600">Yes. You can cancel anytime.</p>
-            </dd>
-          </div>
-
-          <div class="pt-6">
-            <dt>
-              <!-- Expand/collapse question div -->
-              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
-                <span class="text-base font-semibold leading-7">What are accepted payment methods?</span>
-              </div>
-            </dt>
-            <dd class="mt-2 pr-12" id="faq-0">
-              <p class="text-base leading-7 text-gray-600">Visa / Mastercard / AmEx. Invoice payment available for Enterprise customers. We also support payments in Bitcoin. If you choose to do so, please send us an email to billing@oneuptime.com and we will send a lightning invoice.</p>
-            </dd>
-          </div>
-
-          <div class="pt-6">
-            <dt>
-              <!-- Expand/collapse question div -->
-              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
-                <span class="text-base font-semibold leading-7">Do I get a 14-day free trial if I upgrade an existing account?</span>
-              </div>
-            </dt>
-            <dd class="mt-2 pr-12" id="faq-0">
-              <p class="text-base leading-7 text-gray-600">If you upgrade from an existing account you are not eligible for the 14-day free trial. The 14-day free trial only applies when you sign up for a new paid account.</p>
-            </dd>
-          </div>
-
-          <div class="pt-6">
-            <dt>
-              <!-- Expand/collapse question div -->
-              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
-                <span class="text-base font-semibold leading-7">How do discounts work?</span>
-              </div>
-            </dt>
-            <dd class="mt-2 pr-12" id="faq-0">
-              <p class="text-base leading-7 text-gray-600">Annual plans have a 17% discount. You can upgrade your current plan to an annual plan to avail of the discount. If you're an enterprise, contact us for a custom quote.</p>
-            </dd>
-          </div>
-        </dl>
-      </div>
-    </div>
-  </div>
-
-  <script>
+      <script>
 
 
-    function switchToYearlyBilling(){
-      document.getElementById("yearly-billing-btn").classList= "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
-      document.getElementById("monthly-billing-btn").classList= "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
-      for(let i=0;i<document.getElementsByClassName("free-plan-price").length; i++){
-        document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
-      }
-      for(let i=0;i<document.getElementsByClassName("growth-plan-price").length; i++){
-        document.getElementsByClassName("growth-plan-price")[i].innerHTML = "$20"
-      }
-      for(let i=0;i<document.getElementsByClassName("scale-plan-price").length; i++){
-        document.getElementsByClassName("scale-plan-price")[i].innerHTML = "$84"
-      }
+        function switchToYearlyBilling() {
+          document.getElementById("yearly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+          document.getElementById("monthly-billing-btn").classList = "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+          for (let i = 0; i < document.getElementsByClassName("free-plan-price").length; i++) {
+            document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
+          }
+          for (let i = 0; i < document.getElementsByClassName("growth-plan-price").length; i++) {
+            document.getElementsByClassName("growth-plan-price")[i].innerHTML = "$20"
+          }
+          for (let i = 0; i < document.getElementsByClassName("scale-plan-price").length; i++) {
+            document.getElementsByClassName("scale-plan-price")[i].innerHTML = "$84"
+          }
 
-      for(let i=0;i<document.getElementsByClassName("billing-period").length; i++){
-        document.getElementsByClassName("billing-period")[i].innerHTML ="/mo per seat billed yearly"
-      }
-      
-    } 
+          for (let i = 0; i < document.getElementsByClassName("billing-period").length; i++) {
+            document.getElementsByClassName("billing-period")[i].innerHTML = "/mo per seat billed yearly"
+          }
 
-    function switchToMonthlyBilling(){
-      document.getElementById("monthly-billing-btn").classList= "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
-      document.getElementById("yearly-billing-btn").classList= "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
-      for(let i=0;i<document.getElementsByClassName("free-plan-price").length; i++){
-        document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
-      }
-      for(let i=0;i<document.getElementsByClassName("growth-plan-price").length; i++){
-        document.getElementsByClassName("growth-plan-price")[i].innerHTML = "$22"
-      }
-      for(let i=0;i<document.getElementsByClassName("scale-plan-price").length; i++){
-        document.getElementsByClassName("scale-plan-price")[i].innerHTML = "$99"
-      }
+        }
 
-      for(let i=0;i<document.getElementsByClassName("billing-period").length; i++){
-        document.getElementsByClassName("billing-period")[i].innerHTML ="/mo per seat"
-      }
-      
-    } 
+        function switchToMonthlyBilling() {
+          document.getElementById("monthly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+          document.getElementById("yearly-billing-btn").classList = "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+          for (let i = 0; i < document.getElementsByClassName("free-plan-price").length; i++) {
+            document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
+          }
+          for (let i = 0; i < document.getElementsByClassName("growth-plan-price").length; i++) {
+            document.getElementsByClassName("growth-plan-price")[i].innerHTML = "$22"
+          }
+          for (let i = 0; i < document.getElementsByClassName("scale-plan-price").length; i++) {
+            document.getElementsByClassName("scale-plan-price")[i].innerHTML = "$99"
+          }
 
-  </script>
+          for (let i = 0; i < document.getElementsByClassName("billing-period").length; i++) {
+            document.getElementsByClassName("billing-period")[i].innerHTML = "/mo per seat"
+          }
 
-  <%- include('footer') -%>
-              
+        }
+
+      </script>
+
+      <%- include('footer') -%>
+
 </body>
+
 </html>

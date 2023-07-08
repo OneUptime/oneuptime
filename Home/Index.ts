@@ -270,28 +270,55 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                 {
                     name: 'Phone Alerts',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
                     name: 'SMS Alerts',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
                     name: 'Email Alerts',
                     plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'On-Call Escalation',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Advanced Workflows',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Logs and Events',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
                     },
                 },
                 {
@@ -321,15 +348,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: 'Coming Soon',
                     },
                 },
-                {
-                    name: 'On-Call Escalation',
-                    plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
-                    },
-                },
+               
                 {
                     name: 'On-Call Pay',
                     plans: {
@@ -339,15 +358,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: 'Coming Soon',
                     },
                 },
-                {
-                    name: 'Advanced Workflows',
-                    plans: {
-                        free: false,
-                        growth: true,
-                        scale: true,
-                        enterprise: true,
-                    },
-                },
+
                 {
                     name: 'Reports',
                     plans: {
