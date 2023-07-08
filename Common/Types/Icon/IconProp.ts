@@ -100,6 +100,8 @@ enum IconProp {
     BellRinging = 'BellRinging',
     AdjustmentVertical = 'AdjustmentVertical',
     AdjustmentHorizontal = 'AdjustmentHorizontal',
+    Minus = 'Minus',
+    MinusSmall = 'MinusSmall',
 }
 
 export default IconProp;

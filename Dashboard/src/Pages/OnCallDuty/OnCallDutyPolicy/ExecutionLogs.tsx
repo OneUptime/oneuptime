@@ -1,31 +1,15 @@
 import Route from 'Common/Types/API/Route';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
-import DashboardNavigation from '../../../Utils/Navigation';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green, Red, Yellow } from 'Common/Types/BrandColors';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import ObjectID from 'Common/Types/ObjectID';
 import SideMenu from './SideMenu';
-import IncidentView from '../../../Components/Incident/Incident';
-import Incident from 'Model/Models/Incident';
-import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
-import UserElement from '../../../Components/User/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import User from 'Model/Models/User';
 import RouteParams from '../../../Utils/RouteParams';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import ExecutionLogsTable from '../../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -36,9 +20,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]! as Route
         ) as string
     );
-    const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
-        useState<boolean>(false);
-    const [statusMessage, setStatusMessage] = useState<string>('');
+    
 
     return (
         <ModelPage
@@ -80,194 +62,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelTable<OnCallDutyPolicyExecutionLog>
-                modelType={OnCallDutyPolicyExecutionLog}
-                query={{
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
-                    onCallDutyPolicyId: modelId.toString(),
-                }}
-                id="execution-logs-table"
-                name="On Call Policy > Logs"
-                isDeleteable={false}
-                isEditable={false}
-                isCreateable={false}
-                cardProps={{
-                    icon: IconProp.Logs,
-                    title: 'On Call Policy Logs',
-                    description:
-                        'Here are all the notification logs. This will help you to debug any notification issues that your team may face.',
-                }}
-                selectMoreFields={{
-                    statusMessage: true,
-                }}
-                noItemsMessage={'This policy has not executed so far.'}
-                viewPageRoute={Navigation.getCurrentRoute()}
-                showRefreshButton={true}
-                showFilterButton={true}
-                showViewIdButton={true}
-                actionButtons={[
-                    {
-                        title: 'View Status Message',
-                        buttonStyleType: ButtonStyleType.NORMAL,
-                        onClick: async (
-                            item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
-                        ) => {
-                            try {
-                                setStatusMessage(
-                                    item['statusMessage'] as string
-                                );
-                                setShowViewStatusMessageModal(true);
 
-                                onCompleteAction();
-                            } catch (err) {
-                                onCompleteAction();
-                                onError(err as Error);
-                            }
-                        },
-                    },
-                ]}
-                viewButtonText={'View Timeline'}
-                columns={[
-                    {
-                        field: {
-                            triggeredByIncident: {
-                                title: true,
-                            },
-                        },
-                        title: 'Triggered By Incident',
-                        type: FieldType.Element,
-                        isFilterable: false,
-                        getElement: (item: JSONObject): ReactElement => {
-                            if (item['triggeredByIncident']) {
-                                return (
-                                    <IncidentView
-                                        incident={
-                                            item[
-                                                'triggeredByIncident'
-                                            ] as Incident
-                                        }
-                                    />
-                                );
-                            }
-                            return <p>No incident.</p>;
-                        },
-                    },
-                    {
-                        field: {
-                            createdAt: true,
-                        },
-                        title: 'Triggered at',
-                        type: FieldType.Date,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            status: true,
-                        },
-                        title: 'Status',
-                        type: FieldType.Element,
-                        isFilterable: true,
-                        filterDropdownOptions:
-                            DropdownUtil.getDropdownOptionsFromEnum(
-                                OnCallDutyPolicyStatus
-                            ),
-                        getElement: (item: JSONObject): ReactElement => {
-                            if (
-                                item['status'] ===
-                                OnCallDutyPolicyStatus.Completed
-                            ) {
-                                return (
-                                    <Pill
-                                        color={Green}
-                                        text={OnCallDutyPolicyStatus.Completed}
-                                    />
-                                );
-                            } else if (
-                                item['status'] ===
-                                OnCallDutyPolicyStatus.Started
-                            ) {
-                                return (
-                                    <Pill
-                                        color={Yellow}
-                                        text={OnCallDutyPolicyStatus.Started}
-                                    />
-                                );
-                            } else if (
-                                item['status'] ===
-                                OnCallDutyPolicyStatus.Scheduled
-                            ) {
-                                return (
-                                    <Pill
-                                        color={Yellow}
-                                        text={OnCallDutyPolicyStatus.Scheduled}
-                                    />
-                                );
-                            } else if (
-                                item['status'] ===
-                                OnCallDutyPolicyStatus.Running
-                            ) {
-                                return (
-                                    <Pill
-                                        color={Yellow}
-                                        text={OnCallDutyPolicyStatus.Running}
-                                    />
-                                );
-                            }
-
-                            return (
-                                <Pill
-                                    color={Red}
-                                    text={OnCallDutyPolicyStatus.Error}
-                                />
-                            );
-                        },
-                    },
-                    {
-                        field: {
-                            acknowledgedByUser: {
-                                name: true,
-                                email: true,
-                            },
-                        },
-                        title: 'Acknowledged By',
-                        type: FieldType.Element,
-                        isFilterable: false,
-                        getElement: (item: JSONObject): ReactElement => {
-                            if (item['acknowledgedByUser']) {
-                                return (
-                                    <UserElement
-                                        user={
-                                            JSONFunctions.fromJSON(
-                                                item[
-                                                    'acknowledgedByUser'
-                                                ] as JSONObject,
-                                                User
-                                            ) as User
-                                        }
-                                    />
-                                );
-                            }
-
-                            return <p>Not acknowledged</p>;
-                        },
-                    },
-                ]}
-            />
-
-            {showViewStatusMessageModal ? (
-                <ConfirmModal
-                    title={'Status Message'}
-                    description={statusMessage}
-                    submitButtonText={'Close'}
-                    onSubmit={async () => {
-                        setShowViewStatusMessageModal(false);
-                    }}
-                />
-            ) : (
-                <></>
-            )}
+            <ExecutionLogsTable onCallDutyPolicyId={modelId} />
+            
         </ModelPage>
     );
 };

@@ -399,7 +399,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 )}
             </div>
 
-            <div>
+            {/* <div>
                 {getModelTable({
                     incidentSeverity: undefined,
                     ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
@@ -417,7 +417,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are the rules to notify you when you go off call.',
                 })}
-            </div>
+            </div> */}
         </Page>
     );
 };

@@ -82,6 +82,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 showViewIdButton={true}
+                isViewable={true}
                 actionButtons={[
                     {
                         title: 'View Status Message',

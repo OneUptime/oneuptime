@@ -296,7 +296,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
