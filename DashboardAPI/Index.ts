@@ -340,6 +340,12 @@ import UserNotificationLogService, {
     Service as UserNotificationLogServiceType,
 } from 'CommonServer/Services/UserNotificationLogService';
 
+
+import UserResourceOwnerNotification from 'Model/Models/UserResourceOwnerNotification';
+import UserResourceOwnerNotificationService, {
+    Service as UserResourceOwnerNotificationServiceType,
+} from 'CommonServer/Services/UserResourceOwnerNotificationService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -660,6 +666,16 @@ app.use(
         EmailVerificationTokenService
     ).getRouter()
 );
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<UserResourceOwnerNotification, UserResourceOwnerNotificationServiceType>(
+        UserResourceOwnerNotification,
+        UserResourceOwnerNotificationService
+    ).getRouter()
+);
+
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

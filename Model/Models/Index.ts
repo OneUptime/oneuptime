@@ -104,6 +104,7 @@ import CallLog from './CallLog';
 import UserNotificationRule from './UserNotificationRule';
 import UserNotificationLog from './UserNotificationLog';
 import UserNotificationLogTimeline from './UserNotificationLogTimeline';
+import UserResourceOwnerNotification from './UserResourceOwnerNotification';
 
 // Date migration
 import DataMigration from './DataMigration';
@@ -201,6 +202,7 @@ export default [
     UserNotificationRule,
     UserNotificationLog,
     UserNotificationLogTimeline,
+    UserResourceOwnerNotification,
 
     DataMigration,
 

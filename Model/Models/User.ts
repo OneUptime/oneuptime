@@ -599,6 +599,7 @@ class User extends UserModel {
         unique: false,
     })
     public tempAlertPhoneNumber?: Phone = undefined;
+
 }
 
 export default User;
