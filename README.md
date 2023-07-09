@@ -17,7 +17,7 @@ OneUptime does:
 -   Uptime Monitoring, replaces tools like Pingdom
 -   Status Page, replaces tools like StatusPage.io
 -   Incident Management, replaces tools like Incident.io
--   On-call rotation and alerts, replaces tools like PagerDuty (Coming soon)
+-   On-call rotation and alerts, replaces tools like PagerDuty
 -   Tests, replaces tools like Postman (Coming soon)
 -   Security, replaces tools like Snyk (Coming soon)
 -   Logs Management, replaces tools like Loggly (Coming soon)
