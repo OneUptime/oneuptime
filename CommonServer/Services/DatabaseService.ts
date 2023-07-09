@@ -993,6 +993,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         withDeleted?: boolean | undefined
     ): Promise<Array<TBaseModel>> {
         try {
+
+            debugger;
+
             let automaticallyAddedCreatedAtInSelect: boolean = false;
 
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {

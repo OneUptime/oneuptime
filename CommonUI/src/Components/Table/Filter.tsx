@@ -271,7 +271,7 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                             ) {
                                                                 filterData[
                                                                     column.key
-                                                                ] = OneUptimeDate.asDateForDatabaseQuery(
+                                                                ] = OneUptimeDate.asFilterDateForDatabaseQuery(
                                                                     changedValue as string
                                                                 );
                                                             }

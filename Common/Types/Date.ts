@@ -1,3 +1,4 @@
+import InBetween from './Database/InBetween';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject, ObjectType } from './JSON';
 import PositiveNumber from './PositiveNumber';
@@ -526,4 +527,12 @@ export default class OneUptimeDate {
         const formatstring: string = 'YYYY-MM-DD';
         return moment(date).local().format(formatstring);
     }
+
+
+    public static asFilterDateForDatabaseQuery(date: string | Date): InBetween {
+        date = this.fromString(date);
+        const formattedDate: Date =  moment(date).toDate();
+        return new InBetween(OneUptimeDate.getStartOfDay(formattedDate), OneUptimeDate.getEndOfDay(formattedDate));
+    }
+
 }
