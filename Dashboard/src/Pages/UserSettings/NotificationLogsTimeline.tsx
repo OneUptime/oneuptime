@@ -110,7 +110,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Created At',
+                        title: 'Notification Sent At',
                         type: FieldType.DateTime,
                         isFilterable: true,
                     },

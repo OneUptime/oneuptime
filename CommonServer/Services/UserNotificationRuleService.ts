@@ -212,6 +212,8 @@ export class Service extends DatabaseService<Model> {
             notificationRuleItem.userEmail?.email &&
             notificationRuleItem.userEmail?.isVerified
         ) {
+
+            debugger;
             // send email.
             if (
                 options.userNotificationEventType ===
@@ -243,6 +245,17 @@ export class Service extends DatabaseService<Model> {
 
                 MailService.sendMail(emailMessage, undefined, {
                     userNotificationLogTimelineId: updatedLog.id!,
+                }).then(async ()=>{
+                    UserNotificationLogTimelineService.updateOneById({
+                        id: updatedLog.id!,
+                        data: {
+                            status: UserNotificationStatus.Sent,
+                            statusMessage: `Email sent to ${notificationRuleItem.userEmail!.email!.toString()}`,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
                 }).catch(async (err: Error) => {
                     await UserNotificationLogTimelineService.updateOneById({
                         id: updatedLog.id!,
@@ -312,6 +325,17 @@ export class Service extends DatabaseService<Model> {
                 SmsService.sendSms(smsMessage, {
                     projectId: incident.projectId,
                     userNotificationLogTimelineId: updatedLog.id!,
+                }).then(async ()=>{
+                    UserNotificationLogTimelineService.updateOneById({
+                        id: updatedLog.id!,
+                        data: {
+                            status: UserNotificationStatus.Sent,
+                            statusMessage: `SMS sent to ${notificationRuleItem.userSms!.phone!.toString()}`,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
                 }).catch(async (err: Error) => {
                     await UserNotificationLogTimelineService.updateOneById({
                         id: updatedLog.id!,
@@ -373,6 +397,17 @@ export class Service extends DatabaseService<Model> {
             CallService.makeCall(callRequest, {
                 projectId: incident.projectId,
                 userNotificationLogTimelineId: updatedLog.id!,
+            }).then(async ()=>{
+                UserNotificationLogTimelineService.updateOneById({
+                    id: updatedLog.id!,
+                    data: {
+                        status: UserNotificationStatus.Sent,
+                        statusMessage: `Call made to ${notificationRuleItem.userCall!.phone!.toString()}`,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
             }).catch(async (err: Error) => {
                 await UserNotificationLogTimelineService.updateOneById({
                     id: updatedLog.id!,
