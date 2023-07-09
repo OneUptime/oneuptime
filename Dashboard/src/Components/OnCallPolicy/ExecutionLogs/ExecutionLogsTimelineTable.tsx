@@ -159,7 +159,10 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
                         isFilterable: true,
-                        filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(OnCallDutyExecutionLogTimelineStatus),
+                        filterDropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                OnCallDutyExecutionLogTimelineStatus
+                            ),
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===

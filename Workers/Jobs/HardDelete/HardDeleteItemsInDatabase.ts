@@ -15,7 +15,6 @@ RunCron(
     async () => {
         for (const service of Services) {
             if (service instanceof DatabaseService) {
-
                 if (service instanceof BillingInvoiceServiceType) {
                     // skip invoice service because  invoices should not be deleted.
                     continue;

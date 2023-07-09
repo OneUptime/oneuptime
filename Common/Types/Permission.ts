@@ -503,8 +503,7 @@ export class PermissionHelper {
             {
                 permission: Permission.ProjectUser,
                 title: 'Project User',
-                description:
-                    'User of this project.',
+                description: 'User of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

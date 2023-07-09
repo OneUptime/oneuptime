@@ -46,9 +46,7 @@ export default class ServiceHandler {
         pageDescription = currentResource.description;
 
         page = 'model';
-
-        debugger;
-
+        
         const tableColumns: any = getTableColumns(currentResource.model);
 
         for (const key in tableColumns) {

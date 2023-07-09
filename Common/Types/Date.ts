@@ -528,11 +528,12 @@ export default class OneUptimeDate {
         return moment(date).local().format(formatstring);
     }
 
-
     public static asFilterDateForDatabaseQuery(date: string | Date): InBetween {
         date = this.fromString(date);
-        const formattedDate: Date =  moment(date).toDate();
-        return new InBetween(OneUptimeDate.getStartOfDay(formattedDate), OneUptimeDate.getEndOfDay(formattedDate));
+        const formattedDate: Date = moment(date).toDate();
+        return new InBetween(
+            OneUptimeDate.getStartOfDay(formattedDate),
+            OneUptimeDate.getEndOfDay(formattedDate)
+        );
     }
-
 }

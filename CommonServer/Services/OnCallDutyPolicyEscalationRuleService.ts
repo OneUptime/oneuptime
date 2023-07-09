@@ -33,8 +33,6 @@ import { IsBillingEnabled } from '../Config';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export class Service extends DatabaseService<Model> {
-
-
     public async startRuleExecution(
         ruleId: ObjectID,
         options: {
@@ -380,26 +378,28 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-
-
-        if(IsBillingEnabled && createBy.props.currentPlan === PlanSelect.Free){
+        if (
+            IsBillingEnabled &&
+            createBy.props.currentPlan === PlanSelect.Free
+        ) {
             // then check no of policies and if it is more than one, return error
-            const count = await this.countBy({
+            const count: PositiveNumber = await this.countBy({
                 query: {
                     projectId: createBy.data.projectId!,
-                    onCallDutyPolicyId: (createBy.data.onCallDutyPolicyId! || createBy.data.onCallDutyPolicy?._id!),
+                    onCallDutyPolicyId:
+                        createBy.data.onCallDutyPolicyId! ||
+                        createBy.data.onCallDutyPolicy?._id!,
                 },
                 props: {
                     isRoot: true,
                 },
             });
 
-            if(count.toNumber() >= 1){
+            if (count.toNumber() >= 1) {
                 throw new BadDataException(
                     'You can only create one escalation rule in free plan.'
                 );
             }
-
         }
 
         if (!createBy.data.onCallDutyPolicyId) {

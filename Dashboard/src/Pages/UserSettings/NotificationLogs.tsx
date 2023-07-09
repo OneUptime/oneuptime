@@ -190,7 +190,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
                         isFilterable: true,
-                        filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(UserNotificationExecutionStatus),
+                        filterDropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                UserNotificationExecutionStatus
+                            ),
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===

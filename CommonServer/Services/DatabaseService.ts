@@ -994,8 +994,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<Array<TBaseModel>> {
         try {
 
-            debugger;
-
             let automaticallyAddedCreatedAtInSelect: boolean = false;
 
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {

@@ -302,9 +302,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         return i.key === columnKey;
                     });
 
-
-
-                if(column.filterDropdownOptions) {
+                if (column.filterDropdownOptions) {
                     filterDropdownOptions = column.filterDropdownOptions;
                 }
 
@@ -408,12 +406,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     continue;
                 }
 
-
-                if (
-                    !(
-                        column.filterEntityType
-                    )
-                ) {
+                if (!column.filterEntityType) {
                     continue;
                 }
 

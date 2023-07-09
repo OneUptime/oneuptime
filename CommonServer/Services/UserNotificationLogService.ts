@@ -32,10 +32,13 @@ export class Service extends DatabaseService<Model> {
         };
     }
 
-    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        _updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
         if (onUpdate.updateBy.data.status) {
-            //update the correspomnding oncallTimeline. 
-            const items = await this.findBy({
+            //update the correspomnding oncallTimeline.
+            const items: Array<Model> = await this.findBy({
                 query: onUpdate.updateBy.query,
                 select: {
                     onCallDutyPolicyExecutionLogTimelineId: true,
@@ -47,11 +50,13 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-            let status: OnCallDutyExecutionLogTimelineStatus | undefined = undefined;
+            let status: OnCallDutyExecutionLogTimelineStatus | undefined =
+                undefined;
 
             switch (onUpdate.updateBy.data.status) {
                 case UserNotificationExecutionStatus.Completed:
-                    status = OnCallDutyExecutionLogTimelineStatus.NotificationSent;
+                    status =
+                        OnCallDutyExecutionLogTimelineStatus.NotificationSent;
                     break;
                 case UserNotificationExecutionStatus.Error:
                     status = OnCallDutyExecutionLogTimelineStatus.Error;
@@ -69,20 +74,21 @@ export class Service extends DatabaseService<Model> {
                     throw new BadDataException('Invalid status');
             }
 
-
             for (const item of items) {
-                await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
-                    id: item.onCallDutyPolicyExecutionLogTimelineId!,
-                    data: {
-                        status: status!,
-                        statusMessage: onUpdate.updateBy.data.statusMessage!,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
+                await OnCallDutyPolicyExecutionLogTimelineService.updateOneById(
+                    {
+                        id: item.onCallDutyPolicyExecutionLogTimelineId!,
+                        data: {
+                            status: status!,
+                            statusMessage:
+                                onUpdate.updateBy.data.statusMessage!,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    }
+                );
             }
-
         }
 
         return onUpdate;
@@ -115,24 +121,24 @@ export class Service extends DatabaseService<Model> {
             },
             select: {
                 incidentSeverityId: true,
-            }
+            },
         });
-
 
         // Check if there are any rules .
-        const ruleCount: PositiveNumber = await UserNotificationRuleService.countBy({
-            query: {
-                userId: createdItem.userId!,
-                projectId: createdItem.projectId!,
-                ruleType: notificationRuleType,
-                incidentSeverityId: incident?.incidentSeverityId!,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            props: {
-                isRoot: true,
-            },
-        });
+        const ruleCount: PositiveNumber =
+            await UserNotificationRuleService.countBy({
+                query: {
+                    userId: createdItem.userId!,
+                    projectId: createdItem.projectId!,
+                    ruleType: notificationRuleType,
+                    incidentSeverityId: incident?.incidentSeverityId!,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
 
         if (ruleCount.toNumber() === 0) {
             // update this item to be processed.
@@ -140,18 +146,15 @@ export class Service extends DatabaseService<Model> {
                 id: createdItem.id!,
                 data: {
                     status: UserNotificationExecutionStatus.Error, // now the worker will pick this up and complete this or mark this as failed.
-                    statusMessage: 'No notification rules found.'
+                    statusMessage: 'No notification rules found.',
                 },
                 props: {
                     isRoot: true,
                 },
             });
 
-
             return createdItem;
         }
-
-
 
         // find immediate notification rule and alert the user.
         const immediateNotificationRule: Array<UserNotificationRule> =
