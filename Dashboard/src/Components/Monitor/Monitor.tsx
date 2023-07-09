@@ -2,6 +2,9 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Monitor from 'Model/Models/Monitor';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     monitor: Monitor;
@@ -11,25 +14,17 @@ export interface ComponentProps {
 const MonitorElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    if (
-        props.monitor._id &&
-        (props.monitor.projectId ||
-            (props.monitor.project && props.monitor.project._id))
-    ) {
-        const projectId: string | undefined = props.monitor.projectId
-            ? props.monitor.projectId.toString()
-            : props.monitor.project
-            ? props.monitor.project._id
-            : '';
+    if (props.monitor._id) {
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
-                to={
-                    new Route(
-                        `/dashboard/${projectId}/monitors/${props.monitor._id}`
-                    )
-                }
+                className="hover:underline"
+                to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITOR_VIEW] as Route,
+                    {
+                        modelId: new ObjectID(props.monitor._id as string),
+                    }
+                )}
             >
                 <span>{props.monitor.name}</span>
             </Link>

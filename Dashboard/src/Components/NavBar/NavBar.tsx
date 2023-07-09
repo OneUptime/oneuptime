@@ -129,7 +129,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
-                            {/* <NavBarMenuItem
+                            <NavBarMenuItem
                                 title="On-Call Duty"
                                 description="Manage your on-call schedules, escalations and more."
                                 route={RouteUtil.populateRouteParams(
@@ -139,7 +139,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}
-                            /> */}
+                            />
 
                             <NavBarMenuItem
                                 title="Workflows"
@@ -163,7 +163,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                     forceHideMoreMenu();
                                 }}
                             />
-                            {/* <NavBarMenuItem
+                            <NavBarMenuItem
                                 title="User Settings"
                                 description="Review or manage user settings related to this project here."
                                 route={RouteUtil.populateRouteParams(
@@ -173,7 +173,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}
-                            /> */}
+                            />
 
                             {/* <NavBarMenuItem
                             title="Logs Management"

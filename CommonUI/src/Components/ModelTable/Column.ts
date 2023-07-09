@@ -8,6 +8,7 @@ import Query from '../../Utils/ModelAPI/Query';
 
 import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from '../Types/FieldType';
+import { DropdownOption } from '../Dropdown/Dropdown';
 
 export interface ActionButton {
     buttonText: string;
@@ -33,6 +34,7 @@ export default interface Columns<TEntity> {
               value: string;
           }
         | undefined;
+    filterDropdownOptions?: Array<DropdownOption> | undefined;
     actionButtons?: Array<ActionButton>;
     alignItem?: AlignItem | undefined;
     noValueMessage?: string | undefined;

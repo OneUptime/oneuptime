@@ -1,11 +1,27 @@
+import URL from '../API/URL';
+import Phone from '../Phone';
+
 export interface Say {
     sayMessage: string;
 }
 
-export enum CallAction {
-    Hangup = 'Hangup',
+export interface OnCallInputRequest {
+    [x: string]: Say; // input.
+    default: Say; // what if there is no input or invalid input.
 }
 
+export interface GatherInput {
+    introMessage: string;
+    numDigits: number;
+    timeoutInSeconds: number;
+    noInputMessage: string;
+    onInputCallRequest: OnCallInputRequest;
+    responseUrl: URL;
+}
+
+export enum CallAction {}
+
 export default interface CallRequest {
-    data: Array<Say | CallAction>;
+    to: Phone;
+    data: Array<Say | CallAction | GatherInput>;
 }

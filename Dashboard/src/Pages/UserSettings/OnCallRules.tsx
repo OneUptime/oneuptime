@@ -32,6 +32,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -186,49 +187,12 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Method',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: BaseModel): ReactElement => {
                             return (
-                                <div>
-                                    {item['userEmail'] &&
-                                        (item['userEmail'] as JSONObject)[
-                                            'email'
-                                        ] && (
-                                            <p>
-                                                Email:{' '}
-                                                {(
-                                                    item[
-                                                        'userEmail'
-                                                    ] as JSONObject
-                                                )['email']?.toString()}
-                                            </p>
-                                        )}
-                                    {item['userCall'] &&
-                                        (item['userCall'] as JSONObject)[
-                                            'phone'
-                                        ] && (
-                                            <p>
-                                                Call:{' '}
-                                                {(
-                                                    item[
-                                                        'userCall'
-                                                    ] as JSONObject
-                                                )['phone']?.toString()}
-                                            </p>
-                                        )}
-                                    {item['userSms'] &&
-                                        (item['userSms'] as JSONObject)[
-                                            'phone'
-                                        ] && (
-                                            <p>
-                                                SMS:{' '}
-                                                {(
-                                                    item[
-                                                        'userSms'
-                                                    ] as JSONObject
-                                                )['phone']?.toString()}
-                                            </p>
-                                        )}
-                                </div>
+                                <NotificationMethodView
+                                    item={item}
+                                    modelType={UserNotificationRule}
+                                />
                             );
                         },
                         isFilterable: false,
@@ -435,7 +399,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 )}
             </div>
 
-            <div>
+            {/* <div>
                 {getModelTable({
                     incidentSeverity: undefined,
                     ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
@@ -453,7 +417,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are the rules to notify you when you go off call.',
                 })}
-            </div>
+            </div> */}
         </Page>
     );
 };

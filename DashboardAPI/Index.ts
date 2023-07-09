@@ -20,6 +20,11 @@ import ProjectService, {
     Service as ProjectServiceType,
 } from 'CommonServer/Services/ProjectService';
 
+import ShortLink from 'Model/Models/ShortLink';
+import ShortLinkService, {
+    Service as ShortLinkServiceType,
+} from 'CommonServer/Services/ShortLinkService';
+
 import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
 import IncidentOwnerTeamService, {
     Service as IncidentOwnerTeamServiceType,
@@ -325,6 +330,18 @@ import OnCallDutyPolicyCustomFieldService, {
     Service as OnCallDutyPolicyCustomFieldServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
 
+import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserNotificationLogTimelineAPI';
+
+import UserNotificationLog from 'Model/Models/UserNotificationLog';
+import UserNotificationLogService, {
+    Service as UserNotificationLogServiceType,
+} from 'CommonServer/Services/UserNotificationLogService';
+
+import UserResourceOwnerNotification from 'Model/Models/UserResourceOwnerNotification';
+import UserResourceOwnerNotificationService, {
+    Service as UserResourceOwnerNotificationServiceType,
+} from 'CommonServer/Services/UserResourceOwnerNotificationService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -339,6 +356,14 @@ app.use(
     new BaseAPI<Project, ProjectServiceType>(
         Project,
         ProjectService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<ShortLink, ShortLinkServiceType>(
+        ShortLink,
+        ShortLinkService
     ).getRouter()
 );
 
@@ -641,6 +666,25 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
+        UserResourceOwnerNotification,
+        UserResourceOwnerNotificationServiceType
+    >(
+        UserResourceOwnerNotification,
+        UserResourceOwnerNotificationService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<UserNotificationLog, UserNotificationLogServiceType>(
+        UserNotificationLog,
+        UserNotificationLogService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
         OnCallDutyPolicyCustomField,
         OnCallDutyPolicyCustomFieldServiceType
     >(
@@ -703,6 +747,10 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new UserNotificaitonLogTimelineAPI().getRouter()
+);
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
@@ -756,14 +804,6 @@ app.use(
     new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
         IncidentInternalNote,
         IncidentInternalNoteService
-    ).getRouter()
-);
-
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
-        OnCallDutyPolicy,
-        OnCallDutyPolicyService
     ).getRouter()
 );
 

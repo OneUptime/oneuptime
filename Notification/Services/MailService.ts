@@ -17,6 +17,9 @@ import logger from 'CommonServer/Utils/Logger';
 import { IsDevelopment } from 'CommonServer/Config';
 import { SendGridApiKey } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
+import ObjectID from 'Common/Types/ObjectID';
+import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -108,6 +111,23 @@ export default class MailService {
         return this.getEmailServer(process.env);
     }
 
+    private static async updateUserNotificationLogTimelineAsSent(
+        timelineId: ObjectID
+    ): Promise<void> {
+        if (timelineId) {
+            await UserNotificationLogTimelineService.updateOneById({
+                data: {
+                    status: UserNotificationStatus.Sent,
+                    statusMessage: 'Email sent successfully',
+                },
+                id: timelineId,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+    }
+
     private static async compileEmailBody(
         emailTemplateType: EmailTemplateType,
         vars: Dictionary<string>
@@ -182,7 +202,12 @@ export default class MailService {
 
     public static async send(
         mail: EmailMessage,
-        emailServer?: EmailServer
+        emailServer?: EmailServer,
+        options?:
+            | {
+                  userNotificationLogTimelineId?: ObjectID | undefined;
+              }
+            | undefined
     ): Promise<void> {
         // default vars.
         if (!mail.vars) {
@@ -197,25 +222,53 @@ export default class MailService {
             ? await this.compileEmailBody(mail.templateType, mail.vars)
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
+        try {
+            if (!emailServer && SendGridApiKey) {
+                SendgridMail.setApiKey(SendGridApiKey);
 
-        if (!emailServer && SendGridApiKey) {
-            SendgridMail.setApiKey(SendGridApiKey);
+                const msg: MailDataRequired = {
+                    to: mail.toEmail.toString(),
+                    from: this.getGlobalFromEmail().toString(),
+                    subject: mail.subject,
+                    html: mail.body,
+                };
 
-            const msg: MailDataRequired = {
-                to: mail.toEmail.toString(),
-                from: this.getGlobalFromEmail().toString(),
-                subject: mail.subject,
-                html: mail.body,
-            };
+                await SendgridMail.send(msg);
+                if (options?.userNotificationLogTimelineId) {
+                    await this.updateUserNotificationLogTimelineAsSent(
+                        options?.userNotificationLogTimelineId
+                    );
+                }
+                return;
+            }
 
-            await SendgridMail.send(msg);
-            return;
+            if (!emailServer) {
+                emailServer = this.getGlobalSmtpSettings();
+            }
+
+            await this.transportMail(mail, emailServer);
+
+            if (options?.userNotificationLogTimelineId) {
+                await this.updateUserNotificationLogTimelineAsSent(
+                    options?.userNotificationLogTimelineId
+                );
+            }
+        } catch (err: any) {
+            logger.error(err);
+            if (options?.userNotificationLogTimelineId) {
+                await UserNotificationLogTimelineService.updateOneById({
+                    data: {
+                        status: UserNotificationStatus.Error,
+                        statusMessage: err.message || 'Email failed to send',
+                    },
+                    id: options.userNotificationLogTimelineId,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+            throw err;
         }
-
-        if (!emailServer) {
-            emailServer = this.getGlobalSmtpSettings();
-        }
-
-        await this.transportMail(mail, emailServer);
     }
 }

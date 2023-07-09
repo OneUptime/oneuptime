@@ -338,6 +338,27 @@ export default class Response {
         this.logResponse(req, res, { html: html as string });
     }
 
+    public static sendXmlResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        xml: string
+    ): void {
+        const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        oneUptimeResponse.set(
+            'ExpressRequest-Id',
+            oneUptimeRequest.id.toString()
+        );
+
+        oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+        oneUptimeResponse.logBody = { xml: xml as string };
+        oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/xml' });
+        oneUptimeResponse.end(xml);
+        this.logResponse(req, res, { xml: xml as string });
+    }
+
     public static sendJavaScriptResponse(
         req: ExpressRequest,
         res: ExpressResponse,

@@ -66,6 +66,10 @@ export const WorkerHostname: Hostname = Hostname.fromString(
     process.env['WORKER_HOSTNAME'] || 'worker'
 );
 
+export const LinkShortnerHostname: Route = new Route(
+    process.env['LINK_SHORTNER_HOSTNAME'] || 'link-shortner'
+);
+
 export const WorkflowHostname: Hostname = Hostname.fromString(
     process.env['WORKFLOW_HOSTNAME'] || 'workflow'
 );
@@ -122,6 +126,10 @@ export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '/file');
 
 export const StatusPageRoute: Route = new Route(
     process.env['STATUS_PAGE_ROUTE'] || '/status-page'
+);
+
+export const LinkShortnerRoute: Route = new Route(
+    process.env['LINK_SHORTNER_ROUTE'] || '/l'
 );
 
 export const DashboardRoute: Route = new Route(

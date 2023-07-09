@@ -23,10 +23,65 @@ import TeamMemberService from './TeamMemberService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import UserService from './UserService';
 import { JSONObject } from 'Common/Types/JSON';
+import OnCallDutyPolicyService from './OnCallDutyPolicyService';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    public async acknowledgeIncident(
+        incidentId: ObjectID,
+        acknowledgedByUserId: ObjectID
+    ): Promise<void> {
+        const incident: Model | null = await this.findOneById({
+            id: incidentId,
+            select: {
+                projectId: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!incident || !incident.projectId) {
+            throw new BadDataException('Incident not found.');
+        }
+
+        const incidentState: IncidentState | null =
+            await IncidentStateService.findOneBy({
+                query: {
+                    projectId: incident.projectId,
+                    isAcknowledgedState: true,
+                },
+                select: {
+                    _id: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!incidentState || !incidentState.id) {
+            throw new BadDataException(
+                'Acknowledged state not found for this project. Please add acknowledged state from settings.'
+            );
+        }
+
+        const incidentStateTimeline: IncidentStateTimeline =
+            new IncidentStateTimeline();
+        incidentStateTimeline.projectId = incident.projectId;
+        incidentStateTimeline.incidentId = incidentId;
+        incidentStateTimeline.incidentStateId = incidentState.id;
+        incidentStateTimeline.createdByUserId = acknowledgedByUserId;
+
+        await IncidentStateTimelineService.create({
+            data: incidentStateTimeline,
+            props: {
+                isRoot: true,
+            },
+        });
     }
 
     protected override async onBeforeCreate(
@@ -165,6 +220,22 @@ export class Service extends DatabaseService<Model> {
                 false,
                 onCreate.createBy.props
             );
+        }
+
+        if (
+            createdItem.onCallDutyPolicies?.length &&
+            createdItem.onCallDutyPolicies?.length > 0
+        ) {
+            for (const policy of createdItem.onCallDutyPolicies) {
+                await OnCallDutyPolicyService.executePolicy(
+                    new ObjectID(policy._id as string),
+                    {
+                        triggeredByIncidentId: createdItem.id!,
+                        userNotificationEventType:
+                            UserNotificationEventType.IncidentCreated,
+                    }
+                );
+            }
         }
 
         return createdItem;

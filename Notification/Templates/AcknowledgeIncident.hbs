@@ -1,0 +1,35 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+
+{{> InfoBlock info=(concat "A new incident has been created in the project - " projectName)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title:" text=incidentTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Root Cause: " text=rootCause  }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=incidentDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="ACTION REQUIRED: Please acknowledge this incident by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=acknowledgeIncidentLink buttonText="Acknowledge Incident"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=acknowledgeIncidentLink}}
+
+{{> InfoBlock info="You will be notified when the status of this incident changes."}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this incident or you are currently on-call."}}
+
+{{> Footer this }}
+
+{{> End this}}

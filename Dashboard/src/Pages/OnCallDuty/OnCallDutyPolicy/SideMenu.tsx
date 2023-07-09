@@ -7,6 +7,8 @@ import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
+import Link from 'Common/Types/Link';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 export interface ComponentProps {
     modelId: ObjectID;
@@ -15,6 +17,19 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    let subItemMenuLink: Link | undefined = undefined;
+
+    if (
+        Navigation.isOnThisPage(
+            RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!
+        )
+    ) {
+        subItemMenuLink = {
+            title: 'Timeline',
+            to: Navigation.getCurrentRoute(),
+        };
+    }
+
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
@@ -43,7 +58,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-            <SideMenuSection title="Advanced">
+            <SideMenuSection title="Logs">
                 <SideMenuItem
                     link={{
                         title: 'Execution Logs',
@@ -55,7 +70,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Logs}
+                    subItemLink={subItemMenuLink}
+                    subItemIcon={IconProp.Clock}
                 />
+            </SideMenuSection>
+
+            <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
                         title: 'Custom Fields',

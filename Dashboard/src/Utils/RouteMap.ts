@@ -270,8 +270,17 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.ON_CALL_DUTY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
+
     [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
+    ),
+
+    [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/execution-logs`
+    ),
+
+    [PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/execution-logs/${RouteParams.ModelID}`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW]: new Route(
@@ -283,7 +292,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: new Route(
@@ -291,7 +300,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
@@ -316,6 +325,14 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.USER_SETTINGS_ON_CALL_RULES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/on-call-rules`
+    ),
+
+    [PageMap.USER_SETTINGS_NOTIFICATION_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs`
+    ),
+
+    [PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs/${RouteParams.ModelID}`
     ),
 
     // Settings Routes

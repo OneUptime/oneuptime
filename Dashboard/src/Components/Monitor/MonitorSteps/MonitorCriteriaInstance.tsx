@@ -14,12 +14,14 @@ import Color from 'Common/Types/Color';
 import { Black } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import { FilterCondition } from 'Common/Types/Monitor/CriteriaFilter';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps {
     monitorStatusOptions: Array<MonitorStatus>;
     incidentSeverityOptions: Array<IncidentSeverity>;
     isLastCriteria: boolean;
     monitorCriteriaInstance: MonitorCriteriaInstance;
+    onCallPolicyOptions: Array<OnCallDutyPolicy>;
 }
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
@@ -125,6 +127,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         incidents={
                             props.monitorCriteriaInstance?.data?.incidents || []
                         }
+                        onCallPolicyOptions={props.onCallPolicyOptions}
                         incidentSeverityOptions={props.incidentSeverityOptions}
                     />
                 </div>

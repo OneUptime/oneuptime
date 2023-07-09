@@ -15,6 +15,7 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import DashboardSideMenu from './SideMenu';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -42,6 +43,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
+            sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<OnCallDutyPolicy>
                 modelType={OnCallDutyPolicy}

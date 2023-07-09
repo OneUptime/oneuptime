@@ -42,6 +42,7 @@
         "redis": "^4.2.0",
         "socket.io": "^4.4.1",
         "stripe": "^10.17.0",
+        "twilio": "^4.13.0",
         "typeorm": "^0.3.10",
         "typeorm-extension": "^2.2.13",
         "vm2": "^3.9.14",

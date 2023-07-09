@@ -1,7 +1,8 @@
 enum OnCallDutyPolicyStatus {
-    SuccessfullyAcknowledged = 'Successfully Acknowledged',
-    ExecutionInProgress = 'Execution in Progress',
-    FailedToAcknowledge = 'Failed to Acknowledge',
+    Scheduled = 'Scheduled',
+    Started = 'Started',
+    Running = 'Running',
+    Completed = 'Completed',
     Error = 'Error',
 }
 

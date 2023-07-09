@@ -77,6 +77,14 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         return <div className="text-gray-900">{usdCents / 100} USD</div>;
     };
 
+    const getMinutesField: Function = (minutes: number): ReactElement => {
+        return (
+            <div className="text-gray-900">
+                {minutes} {minutes > 1 ? 'minutes' : 'minute'}
+            </div>
+        );
+    };
+
     const getField: Function = (field: Field, index: number): ReactElement => {
         const fieldKey: string = field.key;
 
@@ -118,6 +126,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
         if (data && field.fieldType === FieldType.USDCents) {
             data = getUSDCentsField(data);
+        }
+
+        if (data && field.fieldType === FieldType.Minutes) {
+            data = getMinutesField(data);
         }
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {
@@ -274,7 +286,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         <div
             className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
                 props.showDetailsInNumberOfColumns || 1
-            }`}
+            } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

@@ -1,3 +1,4 @@
+import InBetween from './Database/InBetween';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject, ObjectType } from './JSON';
 import PositiveNumber from './PositiveNumber';
@@ -379,6 +380,18 @@ export default class OneUptimeDate {
         );
     }
 
+    public static getDifferenceInMinutes(date: Date, date2: Date): number {
+        date = this.fromString(date);
+        date2 = this.fromString(date2);
+        const minutes: number = moment(date).diff(moment(date2), 'minutes');
+
+        if (minutes < 0) {
+            return minutes * -1;
+        }
+
+        return minutes;
+    }
+
     public static getDateAsFormattedArrayInMultipleTimezones(
         date: string | Date,
         onlyShowDate?: boolean
@@ -464,6 +477,10 @@ export default class OneUptimeDate {
         );
     }
 
+    public static getDayInSeconds(): number {
+        return 24 * 60 * 60;
+    }
+
     public static getCurrentTimezoneString(): string {
         return moment.tz(moment.tz.guess()).zoneAbbr();
     }
@@ -509,5 +526,14 @@ export default class OneUptimeDate {
         date = this.fromString(date);
         const formatstring: string = 'YYYY-MM-DD';
         return moment(date).local().format(formatstring);
+    }
+
+    public static asFilterDateForDatabaseQuery(date: string | Date): InBetween {
+        date = this.fromString(date);
+        const formattedDate: Date = moment(date).toDate();
+        return new InBetween(
+            OneUptimeDate.getStartOfDay(formattedDate),
+            OneUptimeDate.getEndOfDay(formattedDate)
+        );
     }
 }

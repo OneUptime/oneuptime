@@ -31,6 +31,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from 'CommonServer/Services/IncidentSeverityService';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -395,6 +396,14 @@ export default class ProbeMonitorResponseService {
 
                 incident.createdIncidentTemplateId =
                     criteriaIncident.id.toString();
+
+                incident.onCallDutyPolicies =
+                    criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
+                        const onCallPolicy: OnCallDutyPolicy =
+                            new OnCallDutyPolicy();
+                        onCallPolicy._id = id.toString();
+                        return onCallPolicy;
+                    }) || [];
 
                 await IncidentService.create({
                     data: incident,

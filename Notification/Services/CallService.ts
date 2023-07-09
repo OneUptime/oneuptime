@@ -10,7 +10,7 @@ import Twilio from 'twilio';
 import TwilioUtil from '../Utils/Twilio';
 import CallLog from 'Model/Models/CallLog';
 import CallStatus from 'Common/Types/Call/CallStatus';
-import CallRequest, { CallAction, Say } from 'Common/Types/Call/CallRequest';
+import CallRequest, { GatherInput, Say } from 'Common/Types/Call/CallRequest';
 import { IsBillingEnabled } from 'CommonServer/Config';
 import CallLogService from 'CommonServer/Services/CallLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
@@ -18,15 +18,20 @@ import Project from 'Model/Models/Project';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
 import { CallInstance } from 'twilio/lib/rest/api/v2010/account/call';
+import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
+import OneUptimeDate from 'Common/Types/Date';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class CallService {
     public static async makeCall(
-        to: Phone,
         callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
+            userNotificationLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
         TwilioUtil.checkEnvironmentVariables();
@@ -34,7 +39,7 @@ export default class CallService {
         const client: Twilio.Twilio = Twilio(TwilioAccountSid, TwilioAuthToken);
 
         const callLog: CallLog = new CallLog();
-        callLog.toNumber = to;
+        callLog.toNumber = callRequest.to;
         callLog.fromNumber = options.from || new Phone(TwilioPhoneNumber);
         callLog.callData =
             options && options.isSensitive
@@ -104,7 +109,7 @@ export default class CallService {
                             project.id!,
                             'Call notifications not enabled for ' +
                                 (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
+                            `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
                         );
                     }
                     return;
@@ -149,7 +154,7 @@ export default class CallService {
                             project.id!,
                             'Low SMS and Call Balance for ' +
                                 (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
+                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
                                 (project.smsOrCallCurrentBalanceInUSDCents ||
                                     0) / 100
                             } USD. Required balance to send this SMS should is ${
@@ -191,7 +196,7 @@ export default class CallService {
                             project.id!,
                             'Low SMS and Call Balance for ' +
                                 (project.name || ''),
-                            `We tried to make a call to ${to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
+                            `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
                                 project.smsOrCallCurrentBalanceInUSDCents / 100
                             } USD. Required balance is ${
                                 CallDefaultCostInCentsPerMinute / 100
@@ -204,7 +209,7 @@ export default class CallService {
 
             const twillioCall: CallInstance = await client.calls.create({
                 twiml: this.generateTwimlForCall(callRequest),
-                to: to.toString(),
+                to: callRequest.to.toString(),
                 from:
                     options && options.from
                         ? options.from.toString()
@@ -256,6 +261,22 @@ export default class CallService {
                 },
             });
         }
+
+        if (options.userNotificationLogTimelineId) {
+            await UserNotificationLogTimelineService.updateOneById({
+                data: {
+                    status:
+                        callLog.status === CallStatus.Success
+                            ? UserNotificationStatus.Sent
+                            : UserNotificationStatus.Error,
+                    statusMessage: callLog.statusMessage!,
+                },
+                id: options.userNotificationLogTimelineId,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
     }
 
     public static generateTwimlForCall(callRequest: CallRequest): string {
@@ -267,10 +288,32 @@ export default class CallService {
                 response.say((item as Say).sayMessage);
             }
 
-            if ((item as CallAction) === CallAction.Hangup) {
-                response.hangup();
+            if ((item as GatherInput) && (item as GatherInput).numDigits > 0) {
+                response.say((item as GatherInput).introMessage);
+
+                response.gather({
+                    numDigits: (item as GatherInput).numDigits,
+                    timeout: (item as GatherInput).timeoutInSeconds || 5,
+                    action: (item as GatherInput).responseUrl
+                        .addQueryParam(
+                            'token',
+                            JSONWebToken.signJsonPayload(
+                                JSONFunctions.serialize(
+                                    (item as GatherInput)
+                                        .onInputCallRequest as any
+                                ),
+                                OneUptimeDate.getDayInSeconds()
+                            )
+                        )
+                        .toString(),
+                    method: 'POST',
+                });
+
+                response.say((item as GatherInput).noInputMessage);
             }
         }
+
+        response.hangup();
 
         return response.toString();
     }

@@ -18,6 +18,7 @@ import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRul
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps extends CustomElementProps {
     error?: string | undefined;
@@ -37,6 +38,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         incidentSeverityDropdownOptions,
         setIncidentSeverityDropdownOptions,
     ] = React.useState<Array<DropdownOption>>([]);
+
+    const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
+        React.useState<Array<DropdownOption>>([]);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>();
@@ -90,9 +94,32 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     }
                 );
 
+            const onCallPolicyList: ListResult<OnCallDutyPolicy> =
+                await ModelAPI.getList(
+                    OnCallDutyPolicy,
+                    {},
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        name: true,
+                    },
+                    {}
+                );
+
             if (incidentSeverityList.data) {
                 setIncidentSeverityDropdownOptions(
                     incidentSeverityList.data.map((i: IncidentSeverity) => {
+                        return {
+                            value: i._id!,
+                            label: i.name!,
+                        };
+                    })
+                );
+            }
+
+            if (onCallPolicyList.data) {
+                setOnCallPolicyDropdownOptions(
+                    onCallPolicyList.data.map((i: OnCallDutyPolicy) => {
                         return {
                             value: i._id!,
                             label: i.name!,
@@ -178,6 +205,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             }
                             incidentSeverityDropdownOptions={
                                 incidentSeverityDropdownOptions
+                            }
+                            onCallPolicyDropdownOptions={
+                                onCallPolicyDropdownOptions
                             }
                             initialValue={i}
                             // onDelete={() => {

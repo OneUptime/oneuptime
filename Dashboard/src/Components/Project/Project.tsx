@@ -18,7 +18,7 @@ const ProjectElement: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={new Route(`/dashboard/${_id}`)}
             >
                 <span>{props.project.name}</span>

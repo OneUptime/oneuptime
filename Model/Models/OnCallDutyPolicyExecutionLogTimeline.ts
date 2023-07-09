@@ -15,12 +15,23 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
-import OnCallDutyPolicyAlertStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyAlertStatus';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
 import Team from './Team';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
+import Incident from './Incident';
+import OnCallDutyPolicy from './OnCallDutyPolicy';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -103,6 +114,122 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public projectId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyPolicyId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicy,
+        title: 'OnCallDutyPolicy',
+        description:
+            'Relation to on call duty policy Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicy;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyId' })
+    public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'OnCallDutyPolicy ID',
+        description:
+            'ID of your OneUptime on call duty policy in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'triggeredByIncidentId',
+        type: TableColumnType.Entity,
+        modelType: Incident,
+        title: 'Incident',
+        description:
+            'Relation to Incident Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Incident;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'triggeredByIncidentId' })
+    public triggeredByIncident?: Incident = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Incident ID',
+        description:
+            'ID of your OneUptime Incident in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public triggeredByIncidentId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -262,13 +389,37 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         update: [],
     })
     @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        title: 'Notification Event Type',
+        description: 'Type of event tat triggered this on call duty policy.',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public userNotificationEventType?: UserNotificationEventType = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'Alert Sent To User ID',
         description: 'ID of the user who we sent alert to.',
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public alertSentToUserId?: ObjectID = undefined;
@@ -284,11 +435,12 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'alertSentToTeamId',
+        manyToOneRelationColumn: 'userBelongsToTeamId',
         type: TableColumnType.Entity,
         modelType: Team,
-        title: 'Alert Sent To Team',
-        description: 'Relation to Team who we sent alert to.',
+        title: 'User Belongs To Team',
+        description:
+            'Which team does the user belogns to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -301,8 +453,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'alertSentToTeamId' })
-    public alertSentToTeam?: Team = undefined;
+    @JoinColumn({ name: 'userBelongsToTeamId' })
+    public userBelongsToTeam?: Team = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -316,15 +468,40 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        title: 'Alert Sent To Team ID',
-        description: 'ID of the team who we sent alert to.',
+        title: 'User Belongs To Team ID',
+        description:
+            'Which team ID does the user belogns to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public alertSentToTeamId?: ObjectID = undefined;
+    public userBelongsToTeamId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.LongText,
+        title: 'Status Message',
+        description: 'Status message of this execution timeline event',
+        canReadOnRelationQuery: false,
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public statusMessage?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -340,7 +517,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Status',
-        description: 'Status of this execution',
+        description: 'Status of this execution timeline event',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -348,7 +525,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public status?: OnCallDutyPolicyAlertStatus = undefined;
+    public status?: OnCallDutyExecutionLogTimelineStatus = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -431,4 +608,48 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: true,
+        unique: false,
+    })
+    public isAcknowledged?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.Date,
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public acknowledgedAt?: Date = undefined;
 }

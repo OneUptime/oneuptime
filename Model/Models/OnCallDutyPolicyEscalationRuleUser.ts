@@ -16,6 +16,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
+import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -193,6 +194,74 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyPolicyId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyPolicyEscalationRuleId',
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicyEscalationRule,
+        title: 'Escalation Rule',
+        description:
+            'Relation to On Call Policy Escalation Rule where this user belongs.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return OnCallDutyPolicyEscalationRule;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyPolicyEscalationRuleId' })
+    public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'On Call Policy Escalation Rule ID',
+        description:
+            'ID of your On Call Policy Escalation Rule where this user belongs.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [

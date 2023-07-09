@@ -33,6 +33,11 @@ import StatusPageOwnerUser from './StatusPageOwnerUser';
 // On Call Duty
 import OnCallDutyPolicy from './OnCallDutyPolicy';
 import OnCallDutyPolicyCustomField from './OnCallDutyPolicyCustomField';
+import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
+import OnCallDutyPolicyEscalationRuleTeam from './OnCallDutyPolicyEscalationRuleTeam';
+import OnCallDutyPolicyEscalationRuleUser from './OnCallDutyPolicyEscalationRuleUser';
+import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
+import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
 
 // Monitors
 import Monitor from './Monitor';
@@ -94,8 +99,18 @@ import UserEmail from './UserEmail';
 import UserSms from './UserSMS';
 import UserCall from './UserCall';
 import CallLog from './CallLog';
+
+// User Notification Rules
 import UserNotificationRule from './UserNotificationRule';
+import UserNotificationLog from './UserNotificationLog';
+import UserNotificationLogTimeline from './UserNotificationLogTimeline';
+import UserResourceOwnerNotification from './UserResourceOwnerNotification';
+
+// Date migration
 import DataMigration from './DataMigration';
+
+// Short link.
+import ShortLink from './ShortLink';
 
 export default [
     User,
@@ -113,6 +128,11 @@ export default [
 
     OnCallDutyPolicy,
     OnCallDutyPolicyCustomField,
+    OnCallDutyPolicyEscalationRule,
+    OnCallDutyPolicyEscalationRuleTeam,
+    OnCallDutyPolicyEscalationRuleUser,
+    OnCallDutyPolicyExecutionLog,
+    OnCallDutyPolicyExecutionLogTimeline,
 
     Monitor,
     MonitorStatus,
@@ -178,7 +198,13 @@ export default [
     UserEmail,
     UserSms,
     UserCall,
+
     UserNotificationRule,
+    UserNotificationLog,
+    UserNotificationLogTimeline,
+    UserResourceOwnerNotification,
 
     DataMigration,
+
+    ShortLink,
 ];

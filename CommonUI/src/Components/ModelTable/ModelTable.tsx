@@ -61,6 +61,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
+import { ListDetailProps } from '../List/ListRow';
 
 export enum ShowTableAs {
     Table,
@@ -79,6 +80,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
+    listDetailOptions?: undefined | ListDetailProps;
     selectMoreFields?: Select<TBaseModel>;
     initialItemsOnPage?: number;
     isDeleteable: boolean;
@@ -300,6 +302,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         return i.key === columnKey;
                     });
 
+                if (column.filterDropdownOptions) {
+                    filterDropdownOptions = column.filterDropdownOptions;
+                }
+
                 if (
                     tableColumns &&
                     existingTableColumn &&
@@ -400,23 +406,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     continue;
                 }
 
-                if (
-                    !(
-                        column.type === FieldType.Entity ||
-                        column.type === FieldType.EntityArray
-                    )
-                ) {
+                if (!column.filterEntityType) {
                     continue;
                 }
 
                 if (!column.isFilterable) {
-                    continue;
-                }
-
-                if (!column.filterEntityType) {
-                    Logger.warn(
-                        `Cannot filter on ${key} because column.filterEntityType is not set.`
-                    );
                     continue;
                 }
 
@@ -1129,6 +1123,27 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 pluralLabel={props.pluralName || model.pluralName || 'Items'}
                 error={error}
                 currentPageNumber={currentPageNumber}
+                listDetailOptions={props.listDetailOptions}
+                enableDragAndDrop={props.enableDragAndDrop}
+                onDragDrop={async (id: string, newOrder: number) => {
+                    if (!props.dragDropIndexField) {
+                        return;
+                    }
+
+                    setIsLoading(true);
+
+                    await ModelAPI.updateById(
+                        props.modelType,
+                        new ObjectID(id),
+                        {
+                            [props.dragDropIndexField]: newOrder,
+                        }
+                    );
+
+                    fetchItems();
+                }}
+                dragDropIdField={'_id'}
+                dragDropIndexField={props.dragDropIndexField}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
                 data={JSONFunctions.toJSONObjectArray(data, props.modelType)}
@@ -1270,7 +1285,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <div className="mb-10">{getCardComponent()}</div>
+            <div className="mb-5 mt-5">{getCardComponent()}</div>
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>

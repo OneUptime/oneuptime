@@ -114,6 +114,8 @@ import UserProfilePassword from './Pages/Global/UserProfile/Password';
 
 // On Call Duty
 import OnCallDutyPoliciesPage from './Pages/OnCallDuty/OnCallDutyPolicies';
+import OnCallDutyExecutionLogs from './Pages/OnCallDuty/OnCallDutyExecutionLogs';
+import OnCallDutyPolicyExecutionLogTimeline from './Pages/OnCallDuty/OnCallDutyExecutionLogView';
 import OnCallDutyPolicyView from './Pages/OnCallDuty/OnCallDutyPolicy/Index';
 import OnCallDutyPolicyViewDelete from './Pages/OnCallDuty/OnCallDutyPolicy/Delete';
 import OnCallDutyPolicyViewLogs from './Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs';
@@ -152,6 +154,8 @@ import PageComponentProps from './Pages/PageComponentProps';
 
 import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
 import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
+import UserSettingsNotificationLogs from './Pages/UserSettings/NotificationLogs';
+import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/NotificationLogsTimeline';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -1822,8 +1826,42 @@ const App: FunctionComponent = () => {
                     element={
                         <OnCallDutyPoliciesPage
                             {...commonPageProps}
+                            pageRoute={RouteMap[PageMap.ON_CALL_DUTY] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_EXECUTION_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyExecutionLogs
+                            {...commonPageProps}
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyExecutionLogTimeline
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
+                                ] as Route
                             }
                         />
                     }
@@ -2026,6 +2064,43 @@ const App: FunctionComponent = () => {
                         <UserSettingsNotificationMethods
                             {...commonPageProps}
                             pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotificationLogs
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotificationLogsTimeline
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                                ] as Route
+                            }
                         />
                     }
                 />

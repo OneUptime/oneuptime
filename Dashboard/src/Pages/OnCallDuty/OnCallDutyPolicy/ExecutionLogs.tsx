@@ -1,19 +1,25 @@
 import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
-import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import ObjectID from 'Common/Types/ObjectID';
+import SideMenu from './SideMenu';
+import RouteParams from '../../../Utils/RouteParams';
+import ExecutionLogsTable from '../../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable';
 
-const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
+const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+    const modelId: ObjectID = new ObjectID(
+        Navigation.getParamByName(
+            RouteParams.ModelID,
+            RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]! as Route
+        ) as string
+    );
 
     return (
         <ModelPage
@@ -44,10 +50,10 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete On Call Policy',
+                    title: 'Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                         ] as Route,
                         { modelId }
                     ),
@@ -55,17 +61,9 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={OnCallDutyPolicy}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.ON_CALL_DUTY] as Route
-                    );
-                }}
-            />
+            <ExecutionLogsTable onCallDutyPolicyId={modelId} />
         </ModelPage>
     );
 };
 
-export default OnCallPolicyDelete;
+export default Settings;

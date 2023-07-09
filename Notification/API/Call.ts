@@ -19,15 +19,14 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const body: JSONObject = JSONFunctions.deserialize(req.body);
 
-        await CallService.makeCall(
-            body['to'] as Phone,
-            body['callRequest'] as CallRequest,
-            {
-                projectId: body['projectId'] as ObjectID,
-                from: body['from'] as Phone,
-                isSensitive: (body['isSensitive'] as boolean) || false,
-            }
-        );
+        await CallService.makeCall(body['callRequest'] as CallRequest, {
+            projectId: body['projectId'] as ObjectID,
+            from: body['from'] as Phone,
+            isSensitive: (body['isSensitive'] as boolean) || false,
+            userNotificationLogTimelineId:
+                (body['userNotificationLogTimelineId'] as ObjectID) ||
+                undefined,
+        });
 
         return Response.sendEmptyResponse(req, res);
     }

@@ -454,6 +454,7 @@ export default class OnCallDutyPolicy extends BaseModel {
         required: true,
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
+        canReadOnRelationQuery: true,
         title: 'Repeat Policy Times If No One Acknowledges',
         description:
             'Repeat the policy X number of times if no one acknowledges the alert',

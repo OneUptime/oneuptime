@@ -79,7 +79,7 @@ const LoginPage: FunctionComponent = () => {
                         }}
                         maxPrimaryButtonWidth={true}
                         footer={
-                            <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
+                            <div className="actions pointer text-center mt-4 hover:underline fw-semibold">
                                 <p>
                                     {!showSsoTip && (
                                         <div

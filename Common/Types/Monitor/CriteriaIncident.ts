@@ -6,4 +6,5 @@ export interface CriteriaIncident {
     incidentSeverityId?: ObjectID | undefined;
     autoResolveIncident?: boolean | undefined;
     id: string;
+    onCallPolicyIds?: Array<ObjectID> | undefined;
 }

@@ -283,7 +283,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Monitors Affected',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <MonitorsElement
@@ -307,7 +307,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Shown on Status Pages',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <StatusPagesElement
@@ -369,7 +369,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             title: 'Change State to Ongoing',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject,
@@ -393,7 +393,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             title: 'Change State to Completed',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject,

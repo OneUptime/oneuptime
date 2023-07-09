@@ -19,7 +19,7 @@ export default class Phone extends DatabaseProperty {
          * }
          */
         const re: RegExp =
-            /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/; // regex for international phone numbers format based on (ITU-T E.123)
+            /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,7}$/; // regex for international phone numbers format based on (ITU-T E.123)
         const isValid: boolean = re.test(v);
         if (!isValid) {
             throw new BadDataException(`Phone is not in valid format: ${v}`);

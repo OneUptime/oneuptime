@@ -6,8 +6,23 @@ import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import Link from 'Common/Types/Link';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
+    let subItemMenuLink: Link | undefined = undefined;
+
+    if (
+        Navigation.isOnThisPage(
+            RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE]!
+        )
+    ) {
+        subItemMenuLink = {
+            title: 'Timeline',
+            to: Navigation.getCurrentRoute(),
+        };
+    }
+
     return (
         <SideMenu>
             <SideMenuSection title="Alerts & Notifications">
@@ -32,6 +47,21 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Call}
+                />
+            </SideMenuSection>
+            <SideMenuSection title="Logs">
+                <SideMenuItem
+                    link={{
+                        title: 'Notification Logs',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.Logs}
+                    subItemIcon={IconProp.Clock}
+                    subItemLink={subItemMenuLink}
                 />
             </SideMenuSection>
         </SideMenu>

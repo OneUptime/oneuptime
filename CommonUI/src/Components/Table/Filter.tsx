@@ -147,6 +147,58 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                 />
                                             )}
 
+                                        {column.type !== FieldType.Entity &&
+                                            column.type !==
+                                                FieldType.EntityArray &&
+                                            column.filterDropdownOptions && (
+                                                <Dropdown
+                                                    options={
+                                                        column.filterDropdownOptions
+                                                    }
+                                                    onChange={(
+                                                        value:
+                                                            | DropdownValue
+                                                            | Array<DropdownValue>
+                                                            | null
+                                                    ) => {
+                                                        if (!column.key) {
+                                                            return;
+                                                        }
+
+                                                        if (
+                                                            !value ||
+                                                            (Array.isArray(
+                                                                value
+                                                            ) &&
+                                                                value.length ===
+                                                                    0)
+                                                        ) {
+                                                            delete filterData[
+                                                                column.key
+                                                            ];
+                                                        } else {
+                                                            filterData[
+                                                                column.key
+                                                            ] = value;
+                                                        }
+
+                                                        setFilterData(
+                                                            filterData
+                                                        );
+
+                                                        if (
+                                                            props.onFilterChanged
+                                                        ) {
+                                                            props.onFilterChanged(
+                                                                filterData
+                                                            );
+                                                        }
+                                                    }}
+                                                    isMultiSelect={false}
+                                                    placeholder={`Filter by ${column.title}`}
+                                                />
+                                            )}
+
                                         {column.type === FieldType.Boolean && (
                                             <Dropdown
                                                 options={[
@@ -216,7 +268,7 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                         ) {
                                                             filterData[
                                                                 column.key
-                                                            ] = OneUptimeDate.asDateForDatabaseQuery(
+                                                            ] = OneUptimeDate.asFilterDateForDatabaseQuery(
                                                                 changedValue as string
                                                             );
                                                         }
