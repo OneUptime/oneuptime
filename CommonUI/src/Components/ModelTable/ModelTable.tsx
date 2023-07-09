@@ -411,21 +411,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
                 if (
                     !(
-                        column.type === FieldType.Entity ||
-                        column.type === FieldType.EntityArray
+                        column.filterEntityType
                     )
                 ) {
                     continue;
                 }
 
                 if (!column.isFilterable) {
-                    continue;
-                }
-
-                if (!column.filterEntityType) {
-                    Logger.warn(
-                        `Cannot filter on ${key} because column.filterEntityType is not set.`
-                    );
                     continue;
                 }
 

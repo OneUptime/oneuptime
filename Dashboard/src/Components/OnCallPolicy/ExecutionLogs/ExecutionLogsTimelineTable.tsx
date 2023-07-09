@@ -16,6 +16,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import EscalationRule from '../EscalationRule/EscalationRule';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 export interface ComponentProps {
     onCallPolicyExecutionLogId: ObjectID;
@@ -158,6 +159,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
                         isFilterable: true,
+                        filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(OnCallDutyExecutionLogTimelineStatus),
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===

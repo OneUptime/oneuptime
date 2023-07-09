@@ -21,6 +21,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import UserNotificationLogTimeline from 'Model/Models/UserNotificationLogTimeline';
 import BaseModel from 'Common/Models/BaseModel';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -94,7 +95,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 phone: true,
                             },
                         },
-                        title: 'On Call Policy',
+                        title: 'Notification Method',
                         type: FieldType.Element,
                         getElement: (item: BaseModel): ReactElement => {
                             return (
@@ -120,6 +121,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
                         isFilterable: true,
+                        filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(UserNotificationStatus),
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] === UserNotificationStatus.Sent

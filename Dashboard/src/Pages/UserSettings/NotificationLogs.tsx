@@ -22,6 +22,7 @@ import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserN
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -189,6 +190,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
                         isFilterable: true,
+                        filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(UserNotificationExecutionStatus),
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===
