@@ -16,6 +16,7 @@ import NotificationMiddleware from '../Middleware/NotificationMiddleware';
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
 import { DashboardRoute, Domain, HttpProtocol } from '../Config';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
     UserNotificationLogTimeline,
@@ -25,7 +26,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         super(UserNotificationLogTimeline, UserNotificationLogTimelineService);
 
         this.router.post(
-            `/call/gather-input/:itemId`,
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/call/gather-input/:itemId`,
             NotificationMiddleware.isValidCallNotificationRequest,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 req = req as OneUptimeRequest;
@@ -72,6 +75,8 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                         data: {
                             acknowledgedAt: OneUptimeDate.getCurrentDate(),
                             isAcknowledged: true,
+                            status: UserNotificationStatus.Acknowledged,
+                            statusMessage: 'Notification Acknowledged',
                         },
                         props: {
                             isRoot: true,
@@ -87,8 +92,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             }
         );
 
-        this.router.post(
-            `/acknowledge/:itemId`,
+        this.router.get(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/acknowledge/:itemId`,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 req = req as OneUptimeRequest;
 
@@ -96,7 +103,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                     return Response.sendErrorResponse(
                         req,
                         res,
-                        new BadDataException('Invalid item ID')
+                        new BadDataException('Item ID is required')
                     );
                 }
 
@@ -128,6 +135,8 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                     data: {
                         acknowledgedAt: OneUptimeDate.getCurrentDate(),
                         isAcknowledged: true,
+                        status: UserNotificationStatus.Acknowledged,
+                        statusMessage: 'Notification Acknowledged',
                     },
                     props: {
                         isRoot: true,

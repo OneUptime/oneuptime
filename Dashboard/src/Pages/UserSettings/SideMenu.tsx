@@ -10,7 +10,6 @@ import Link from 'Common/Types/Link';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
-
     let subItemMenuLink: Link | undefined = undefined;
 
     if (
@@ -24,7 +23,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
         };
     }
 
-    
     return (
         <SideMenu>
             <SideMenuSection title="Alerts & Notifications">

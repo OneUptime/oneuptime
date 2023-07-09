@@ -148,9 +148,9 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             acknowledgedAt: true,
                         },
                         title: 'Acknowledged At',
-                        type: FieldType.Date,
+                        type: FieldType.DateTime,
                         isFilterable: true,
-                        noValueMessage: 'Not yet acknowledged',
+                        noValueMessage: '-',
                     },
                     {
                         field: {

@@ -94,8 +94,6 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-   
-
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
@@ -147,16 +145,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Incident Created Notification',
-        description: 'Send an email to you when an incident is created if you are the owner of the incident.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when an incident is created if you are the owner of the incident.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendIncidentCreatedOwnerNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -165,16 +163,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Incident Note Posted Notification',
-        description: 'Send an email to you when a note is posted to an incident if you are the owner of the incident.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when a note is posted to an incident if you are the owner of the incident.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendIncidentNotePostedOwnerNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -183,9 +181,10 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Incident State Changed Notification',
-        description: 'Send an email to you when the state of an incident changes if you are the owner of the incident.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when the state of an incident changes if you are the owner of the incident.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
@@ -200,16 +199,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Incident Owner Added Notification',
-        description: 'Send an email to you when you are added as an owner of an incident.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when you are added as an owner of an incident.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendIncidentOwnerAddedNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -218,9 +217,10 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Monitor Owner Added Notification',
-        description: 'Send an email to you when you are added as an owner of a monitor.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when you are added as an owner of a monitor.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
@@ -235,16 +235,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Monitor Created Notification',
-        description: 'Send an email to you when a monitor is created if you are the owner of the monitor.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when a monitor is created if you are the owner of the monitor.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendMonitorCreatedOwnerNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -253,16 +253,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Monitor Status Changed Notification',
-        description: 'Send an email to you when the status of a monitor changes if you are the owner of the monitor.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when the status of a monitor changes if you are the owner of the monitor.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendMonitorStatusChangedOwnerNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -271,16 +271,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Scheduled Maintenance Created Notification',
-        description: 'Send an email to you when a scheduled maintenance is created if you are the owner of the scheduled maintenance event.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when a scheduled maintenance is created if you are the owner of the scheduled maintenance event.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendScheduledMaintenanceCreatedOwnerNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -289,17 +289,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Scheduled Maintenance Note Posted Notification',
-        description: 'Send an email to you when a note is posted to a scheduled maintenance event if you are the owner of the scheduled maintenance event.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when a note is posted to a scheduled maintenance event if you are the owner of the scheduled maintenance event.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendScheduledMaintenanceNotePostedOwnerNotification?: boolean = undefined;
-
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -308,16 +307,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Scheduled Maintenance Owner Added Notification',
-        description: 'Send an email to you when you are added as an owner of a scheduled maintenance event.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when you are added as an owner of a scheduled maintenance event.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendScheduledMaintenanceOwnerAddedNotification?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -326,17 +325,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Scheduled Maintenance State Changed Notification',
-        description: 'Send an email to you when the state of a scheduled maintenance event changes if you are the owner of the scheduled maintenance event.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when the state of a scheduled maintenance event changes if you are the owner of the scheduled maintenance event.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendScheduledMaintenanceStateChangedOwnerNotification?: boolean = undefined;
-
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -345,17 +343,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Status Page Announcement Created Notification',
-        description: 'Send an email to you when a status page announcement is created if you are the owner of the status page announcement.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when a status page announcement is created if you are the owner of the status page announcement.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendStatusPageAnnouncementCreatedOwnerNotification?: boolean = undefined;
-
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -364,16 +361,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Status Page Created Notification',
-        description: 'Send an email to you when a status page is created if you are the owner of the status page.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when a status page is created if you are the owner of the status page.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendStatusPageCreatedOwnerNotificaiton?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
@@ -382,16 +379,16 @@ class UserResourceOwnerNotification extends BaseModel {
     })
     @TableColumn({
         title: 'Send Status Page Owner Added Notification',
-        description: 'Send an email to you when you are added as an owner of a status page.', 
-        isDefaultValueColumn: true, 
-        type: TableColumnType.Boolean 
+        description:
+            'Send an email to you when you are added as an owner of a status page.',
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
     })
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public sendStatusPageOwnerAddedNotification?: boolean = undefined;
-
 }
 
 export default UserResourceOwnerNotification;

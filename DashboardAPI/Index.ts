@@ -330,16 +330,12 @@ import OnCallDutyPolicyCustomFieldService, {
     Service as OnCallDutyPolicyCustomFieldServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
 
-import UserNotificationLogTimeline from 'Model/Models/UserNotificationLogTimeline';
-import UserNotificationLogTimelineService, {
-    Service as UserNotificationLogTimelineServiceType,
-} from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserNotificationLogTimelineAPI';
 
 import UserNotificationLog from 'Model/Models/UserNotificationLog';
 import UserNotificationLogService, {
     Service as UserNotificationLogServiceType,
 } from 'CommonServer/Services/UserNotificationLogService';
-
 
 import UserResourceOwnerNotification from 'Model/Models/UserResourceOwnerNotification';
 import UserResourceOwnerNotificationService, {
@@ -667,32 +663,22 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<UserResourceOwnerNotification, UserResourceOwnerNotificationServiceType>(
+    new BaseAPI<
+        UserResourceOwnerNotification,
+        UserResourceOwnerNotificationServiceType
+    >(
         UserResourceOwnerNotification,
         UserResourceOwnerNotificationService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<UserNotificationLog, UserNotificationLogServiceType>(
         UserNotificationLog,
         UserNotificationLogService
-    ).getRouter()
-);
-
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<
-        UserNotificationLogTimeline,
-        UserNotificationLogTimelineServiceType
-    >(
-        UserNotificationLogTimeline,
-        UserNotificationLogTimelineService
     ).getRouter()
 );
 
@@ -761,6 +747,10 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new UserNotificaitonLogTimelineAPI().getRouter()
+);
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());

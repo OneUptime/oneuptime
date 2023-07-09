@@ -36,8 +36,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                obj['SMTP_EMAIL'] +
-                ' is not a valid email'
+                    obj['SMTP_EMAIL'] +
+                    ' is not a valid email'
             );
             return false;
         }
@@ -111,7 +111,9 @@ export default class MailService {
         return this.getEmailServer(process.env);
     }
 
-    private static async updateUserNotificationLogTimelineAsSent(timelineId: ObjectID): Promise<void> {
+    private static async updateUserNotificationLogTimelineAsSent(
+        timelineId: ObjectID
+    ): Promise<void> {
         if (timelineId) {
             await UserNotificationLogTimelineService.updateOneById({
                 data: {
@@ -125,7 +127,6 @@ export default class MailService {
             });
         }
     }
-
 
     private static async compileEmailBody(
         emailTemplateType: EmailTemplateType,
@@ -204,12 +205,10 @@ export default class MailService {
         emailServer?: EmailServer,
         options?:
             | {
-                userNotificationLogTimelineId?: ObjectID | undefined;
-            }
+                  userNotificationLogTimelineId?: ObjectID | undefined;
+              }
             | undefined
     ): Promise<void> {
-
-        debugger;
         // default vars.
         if (!mail.vars) {
             mail.vars = {};
@@ -236,7 +235,9 @@ export default class MailService {
 
                 await SendgridMail.send(msg);
                 if (options?.userNotificationLogTimelineId) {
-                    await this.updateUserNotificationLogTimelineAsSent(options?.userNotificationLogTimelineId);
+                    await this.updateUserNotificationLogTimelineAsSent(
+                        options?.userNotificationLogTimelineId
+                    );
                 }
                 return;
             }
@@ -245,17 +246,14 @@ export default class MailService {
                 emailServer = this.getGlobalSmtpSettings();
             }
 
-
             await this.transportMail(mail, emailServer);
 
-
             if (options?.userNotificationLogTimelineId) {
-                await this.updateUserNotificationLogTimelineAsSent(options?.userNotificationLogTimelineId);
+                await this.updateUserNotificationLogTimelineAsSent(
+                    options?.userNotificationLogTimelineId
+                );
             }
-
-
         } catch (err: any) {
-
             logger.error(err);
             if (options?.userNotificationLogTimelineId) {
                 await UserNotificationLogTimelineService.updateOneById({

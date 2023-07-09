@@ -10,6 +10,8 @@ import UserNotificationRuleService from 'CommonServer/Services/UserNotificationR
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import OneUptimeDate from 'Common/Types/Date';
+import Incident from 'Model/Models/Incident';
+import IncidentService from 'CommonServer/Services/IncidentService';
 
 RunCron(
     'UserNotificationLog:ExecutePendingExecutions',
@@ -65,12 +67,23 @@ const executePendingNotificationLog: Function = async (
                 pendingNotificationLog.userNotificationEventType!
             );
 
+        const incident: Incident | null = await IncidentService.findOneById({
+            id: pendingNotificationLog.triggeredByIncidentId!,
+            props: {
+                isRoot: true,
+            },
+            select: {
+                incidentSeverityId: true,
+            },
+        });
+
         const notificaionRules: Array<UserNotificationRule> =
             await UserNotificationRuleService.findBy({
                 query: {
                     projectId: pendingNotificationLog.projectId!,
                     userId: pendingNotificationLog.userId!,
                     ruleType: ruleType,
+                    incidentSeverityId: incident?.incidentSeverityId!,
                 },
                 select: {
                     _id: true,

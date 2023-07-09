@@ -171,7 +171,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                     );
                 }
 
-                return <p>Not yet acknowledged</p>;
+                return <p>-</p>;
             },
         },
     ]);
