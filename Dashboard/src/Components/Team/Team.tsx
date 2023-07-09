@@ -23,7 +23,7 @@ const TeamElement: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={
                     new Route(
                         `/dashboard/${projectId}/settings/teams/${props.team._id}`

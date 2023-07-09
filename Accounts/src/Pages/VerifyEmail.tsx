@@ -109,7 +109,7 @@ const VerifyEmail: FunctionComponent = () => {
                                                             '/accounts/login'
                                                         )
                                                     }
-                                                    className="underline-on-hover text-primary fw-semibold"
+                                                    className="hover:underline text-primary fw-semibold"
                                                 >
                                                     Login.
                                                 </Link>

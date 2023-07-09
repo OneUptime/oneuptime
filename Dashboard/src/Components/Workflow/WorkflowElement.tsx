@@ -24,7 +24,7 @@ const WorkflowElement: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={
                     new Route(
                         `/dashboard/${projectId}/workflows/workflow/${props.workflow._id}`

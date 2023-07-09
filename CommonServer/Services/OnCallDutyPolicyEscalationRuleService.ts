@@ -181,6 +181,7 @@ export class Service extends DatabaseService<Model> {
                 id: log.id!,
                 data: {
                     status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+                    statusMessage: 'Notification sent to user.',
                 },
                 props: {
                     isRoot: true,

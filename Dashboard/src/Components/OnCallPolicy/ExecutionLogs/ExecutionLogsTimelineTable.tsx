@@ -112,7 +112,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             createdAt: true,
                         },
                         title: 'Started At',
-                        type: FieldType.Date,
+                        type: FieldType.DateTime,
                         isFilterable: true,
                     },
                     {

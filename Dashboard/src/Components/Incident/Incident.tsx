@@ -18,7 +18,7 @@ const IncidentElement: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.INCIDENT_VIEW] as Route,
                     {

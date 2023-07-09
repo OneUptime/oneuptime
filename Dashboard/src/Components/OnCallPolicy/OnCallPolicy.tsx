@@ -18,7 +18,7 @@ const OnCallPolicyView: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
                     {

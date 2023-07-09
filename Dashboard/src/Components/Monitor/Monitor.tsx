@@ -18,7 +18,7 @@ const MonitorElement: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.MONITOR_VIEW] as Route,
                     {

@@ -34,7 +34,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
                             <span>
                                 <Link
                                     to={props.sideLink?.url}
-                                    className="underline-on-hover"
+                                    className="hover:underline"
                                 >
                                     {props.sideLink?.text}
                                 </Link>

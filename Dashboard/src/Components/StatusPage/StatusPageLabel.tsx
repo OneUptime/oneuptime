@@ -24,7 +24,7 @@ const StatusPageElement: FunctionComponent<ComponentProps> = (
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}
-                className="underline-on-hover"
+                className="hover:underline"
                 to={
                     new Route(
                         `/dashboard/${projectId}/status-pages/${props.statusPage._id}`

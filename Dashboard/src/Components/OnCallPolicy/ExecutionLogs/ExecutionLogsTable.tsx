@@ -98,7 +98,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 createdAt: true,
             },
             title: 'Triggered at',
-            type: FieldType.Date,
+            type: FieldType.DateTime,
             isFilterable: true,
         },
         {
