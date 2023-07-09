@@ -46,7 +46,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Logs}
                 />
-              
             </SideMenuSection>
         </SideMenu>
     );

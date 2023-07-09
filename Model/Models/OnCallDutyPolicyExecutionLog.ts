@@ -22,7 +22,15 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import Team from './Team';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({

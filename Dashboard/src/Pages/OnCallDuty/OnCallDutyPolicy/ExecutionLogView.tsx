@@ -20,10 +20,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
     );
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
-
-
-    
-
     return (
         <ModelPage
             title="On Call Policy"
@@ -80,9 +76,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 />
             }
         >
-
             <ExecutionLogTimelineTable onCallPolicyExecutionLogId={modelId} />
-            
         </ModelPage>
     );
 };

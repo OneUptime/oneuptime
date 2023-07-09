@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
@@ -31,20 +30,17 @@ export interface ComponentProps {
 const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
     const query: Query<OnCallDutyPolicyExecutionLog> = {
         projectId: DashboardNavigation.getProjectId()?.toString(),
-    }
+    };
 
     if (props.onCallDutyPolicyId) {
         query.onCallDutyPolicyId = props.onCallDutyPolicyId.toString();
     }
-
 
     let columns: Columns<OnCallDutyPolicyExecutionLog> = [];
 
@@ -63,7 +59,11 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 getElement: (item: JSONObject): ReactElement => {
                     if (item['onCallDutyPolicy']) {
                         return (
-                            <OnCallPolicyView onCallPolicy={item['onCallDutyPolicy'] as OnCallDutyPolicy} />
+                            <OnCallPolicyView
+                                onCallPolicy={
+                                    item['onCallDutyPolicy'] as OnCallDutyPolicy
+                                }
+                            />
                         );
                     }
                     return <p>No on call policy.</p>;
@@ -86,11 +86,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 if (item['triggeredByIncident']) {
                     return (
                         <IncidentView
-                            incident={
-                                item[
-                                'triggeredByIncident'
-                                ] as Incident
-                            }
+                            incident={item['triggeredByIncident'] as Incident}
                         />
                     );
                 }
@@ -112,25 +108,18 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             title: 'Status',
             type: FieldType.Element,
             isFilterable: true,
-            filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(
-                    OnCallDutyPolicyStatus
-                ),
+            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+                OnCallDutyPolicyStatus
+            ),
             getElement: (item: JSONObject): ReactElement => {
-                if (
-                    item['status'] ===
-                    OnCallDutyPolicyStatus.Completed
-                ) {
+                if (item['status'] === OnCallDutyPolicyStatus.Completed) {
                     return (
                         <Pill
                             color={Green}
                             text={OnCallDutyPolicyStatus.Completed}
                         />
                     );
-                } else if (
-                    item['status'] ===
-                    OnCallDutyPolicyStatus.Started
-                ) {
+                } else if (item['status'] === OnCallDutyPolicyStatus.Started) {
                     return (
                         <Pill
                             color={Yellow}
@@ -138,8 +127,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                         />
                     );
                 } else if (
-                    item['status'] ===
-                    OnCallDutyPolicyStatus.Scheduled
+                    item['status'] === OnCallDutyPolicyStatus.Scheduled
                 ) {
                     return (
                         <Pill
@@ -147,10 +135,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                             text={OnCallDutyPolicyStatus.Scheduled}
                         />
                     );
-                } else if (
-                    item['status'] ===
-                    OnCallDutyPolicyStatus.Running
-                ) {
+                } else if (item['status'] === OnCallDutyPolicyStatus.Running) {
                     return (
                         <Pill
                             color={Yellow}
@@ -159,12 +144,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                     );
                 }
 
-                return (
-                    <Pill
-                        color={Red}
-                        text={OnCallDutyPolicyStatus.Error}
-                    />
-                );
+                return <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />;
             },
         },
         {
@@ -183,9 +163,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                         <UserElement
                             user={
                                 JSONFunctions.fromJSON(
-                                    item[
-                                    'acknowledgedByUser'
-                                    ] as JSONObject,
+                                    item['acknowledgedByUser'] as JSONObject,
                                     User
                                 ) as User
                             }
@@ -217,7 +195,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 }}
                 selectMoreFields={{
                     statusMessage: true,
-                    onCallDutyPolicyId: true
+                    onCallDutyPolicyId: true,
                 }}
                 noItemsMessage={'This policy has not executed so far.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -263,7 +241,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             ) : (
                 <></>
             )}
-
         </>
     );
 };

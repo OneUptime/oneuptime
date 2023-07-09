@@ -348,7 +348,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: 'Coming Soon',
                     },
                 },
-               
+
                 {
                     name: 'On-Call Pay',
                     plans: {

@@ -10,8 +10,6 @@ import ExecutionLogsTable from '../../Components/OnCallPolicy/ExecutionLogs/Exec
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
     return (
         <Page
             title={'On-Call Duty'}
@@ -37,9 +35,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             <ExecutionLogsTable />
-
         </Page>
     );
 };

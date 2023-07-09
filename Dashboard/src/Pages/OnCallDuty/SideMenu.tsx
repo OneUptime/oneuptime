@@ -10,14 +10,17 @@ import Link from 'Common/Types/Link';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
-
     let subItemMenuLink: Link | undefined = undefined;
 
-    if (Navigation.isOnThisPage(RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]!)) {
+    if (
+        Navigation.isOnThisPage(
+            RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]!
+        )
+    ) {
         subItemMenuLink = {
             title: 'Timeline',
             to: Navigation.getCurrentRoute(),
-        }
+        };
     }
 
     return (

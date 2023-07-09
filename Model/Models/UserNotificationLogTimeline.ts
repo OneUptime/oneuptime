@@ -29,7 +29,15 @@ import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLog
 import UserSMS from './UserSMS';
 import UserEmail from './UserEmail';
 import UserCall from './UserCall';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({

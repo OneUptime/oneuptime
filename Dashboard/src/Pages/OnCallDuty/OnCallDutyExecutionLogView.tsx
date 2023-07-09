@@ -12,12 +12,7 @@ import Page from 'CommonUI/src/Components/Page/Page';
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-
-
-
-    
 
     return (
         <Page
@@ -50,13 +45,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
-
-       
-
             <ExecutionLogTimelineTable onCallPolicyExecutionLogId={modelId} />
-            
-            </Page>
+        </Page>
     );
 };
 

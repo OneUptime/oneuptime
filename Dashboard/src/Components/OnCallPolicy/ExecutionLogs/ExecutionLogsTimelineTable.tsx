@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
@@ -25,7 +24,6 @@ export interface ComponentProps {
 const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -36,7 +34,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 modelType={OnCallDutyPolicyExecutionLogTimeline}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
-                    onCallDutyPolicyExecutionLogId: props.onCallPolicyExecutionLogId.toString(),
+                    onCallDutyPolicyExecutionLogId:
+                        props.onCallPolicyExecutionLogId.toString(),
                 }}
                 id="notification-logs-timeline-table"
                 name="On Call > Execution Logs > Timeline"
@@ -98,7 +97,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                                     <EscalationRule
                                         escalationRule={
                                             item[
-                                            'onCallDutyPolicyEscalationRule'
+                                                'onCallDutyPolicyEscalationRule'
                                             ] as OnCallDutyPolicyEscalationRule
                                         }
                                     />
@@ -131,7 +130,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                                         user={
                                             JSONFunctions.fromJSON(
                                                 item[
-                                                'alertSentToUser'
+                                                    'alertSentToUser'
                                                 ] as JSONObject,
                                                 User
                                             ) as User
@@ -253,20 +252,18 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         <>
             {getModelTable()}
 
-            {
-                showViewStatusMessageModal ? (
-                    <ConfirmModal
-                        title={'Status Message'}
-                        description={statusMessage}
-                        submitButtonText={'Close'}
-                        onSubmit={async () => {
-                            setShowViewStatusMessageModal(false);
-                        }}
-                    />
-                ) : (
-                    <></>
-                )
-            }
+            {showViewStatusMessageModal ? (
+                <ConfirmModal
+                    title={'Status Message'}
+                    description={statusMessage}
+                    submitButtonText={'Close'}
+                    onSubmit={async () => {
+                        setShowViewStatusMessageModal(false);
+                    }}
+                />
+            ) : (
+                <></>
+            )}
         </>
     );
 };

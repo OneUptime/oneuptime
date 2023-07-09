@@ -17,14 +17,17 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     let subItemMenuLink: Link | undefined = undefined;
 
-    if (Navigation.isOnThisPage(RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!)) {
+    if (
+        Navigation.isOnThisPage(
+            RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!
+        )
+    ) {
         subItemMenuLink = {
             title: 'Timeline',
             to: Navigation.getCurrentRoute(),
-        }
+        };
     }
 
     return (
@@ -46,7 +49,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Escalation Rules',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -61,7 +64,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Execution Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -78,7 +81,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -90,7 +93,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Policy',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
                             ] as Route,
                             { modelId: props.modelId }
                         ),

@@ -29,7 +29,6 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         linkClassName = `bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
     }
 
-
     let subItemLinkClassName: string = `text-gray-500 hover:text-gray-900 hover:bg-gray-100 group rounded-md px-3 py-2 flex items-center text-sm font-medium`;
 
     if (props.subItemLink && Navigation.isOnThisPage(props.subItemLink.to)) {
@@ -74,7 +73,8 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
 
     if (props.subItemLink && Navigation.isOnThisPage(props.subItemLink.to)) {
-        subItemIconClassName = 'text-indigo-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
+        subItemIconClassName =
+            'text-indigo-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6';
     }
 
     // if(props.badge && props.badge > 0){
@@ -107,8 +107,9 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
     return (
         <>
             <UILink
-                className={`${props.className ? props.className : ''
-                    }  ${linkClassName} flex justify-between`}
+                className={`${
+                    props.className ? props.className : ''
+                }  ${linkClassName} flex justify-between`}
                 to={props.link.to}
             >
                 <div className="flex">
@@ -159,23 +160,35 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                     <></>
                 )}
             </UILink>
-            {props.subItemLink ? <UILink
-                className={`${props.className ? props.className : ''
+            {props.subItemLink ? (
+                <UILink
+                    className={`${
+                        props.className ? props.className : ''
                     }  ${subItemLinkClassName} flex justify-between`}
-                to={props.subItemLink.to}
-            >
-                <div className="ml-8 flex">
-                    {props.icon ? (
-                        <>
-                            <Icon className={subItemIconClassName} icon={props.subItemIcon || IconProp.MinusSmall} />
-                        </>
-                    ) : (
-                        <></>
-                    )}
+                    to={props.subItemLink.to}
+                >
+                    <div className="ml-8 flex">
+                        {props.icon ? (
+                            <>
+                                <Icon
+                                    className={subItemIconClassName}
+                                    icon={
+                                        props.subItemIcon || IconProp.MinusSmall
+                                    }
+                                />
+                            </>
+                        ) : (
+                            <></>
+                        )}
 
-                    <span className="truncate mt-1">{props.subItemLink.title}</span>
-                </div>
-            </UILink> : <> </>}
+                        <span className="truncate mt-1">
+                            {props.subItemLink.title}
+                        </span>
+                    </div>
+                </UILink>
+            ) : (
+                <> </>
+            )}
         </>
     );
 };

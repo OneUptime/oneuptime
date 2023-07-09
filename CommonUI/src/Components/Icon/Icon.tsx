@@ -156,14 +156,15 @@ const Icon: FunctionComponent<ComponentProps> = ({
         );
     } else if (icon === IconProp.MinusSmall) {
         return getSvgWrapper(
-
             <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" />
-
-
         );
     } else if (icon === IconProp.Minus) {
         return getSvgWrapper(
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 12h-15"
+            />
         );
     } else if (icon === IconProp.Database) {
         return getSvgWrapper(

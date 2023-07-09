@@ -23,7 +23,15 @@ import Incident from './Incident';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({

@@ -20,7 +20,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
             RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]! as Route
         ) as string
     );
-    
 
     return (
         <ModelPage
@@ -62,9 +61,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             <ExecutionLogsTable onCallDutyPolicyId={modelId} />
-            
         </ModelPage>
     );
 };

@@ -29,8 +29,12 @@ import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/
 import User from 'Model/Models/User';
 import OneUptimeDate from 'Common/Types/Date';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
+import { IsBillingEnabled } from '../Config';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export class Service extends DatabaseService<Model> {
+
+
     public async startRuleExecution(
         ruleId: ObjectID,
         options: {
@@ -230,7 +234,10 @@ export class Service extends DatabaseService<Model> {
                 })
             ) {
                 uniqueUserIds.push(userRule.userId!);
-                await startUserNotifcationRuleExecution(userRule.userId!, undefined);
+                await startUserNotifcationRuleExecution(
+                    userRule.userId!,
+                    undefined
+                );
             } else {
                 // no users in this rule. Skipping.
                 const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -373,6 +380,28 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
+
+
+        if(IsBillingEnabled && createBy.props.currentPlan === PlanSelect.Free){
+            // then check no of policies and if it is more than one, return error
+            const count = await this.countBy({
+                query: {
+                    projectId: createBy.data.projectId!,
+                    onCallDutyPolicyId: (createBy.data.onCallDutyPolicyId! || createBy.data.onCallDutyPolicy?._id!),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if(count.toNumber() >= 1){
+                throw new BadDataException(
+                    'You can only create one escalation rule in free plan.'
+                );
+            }
+
+        }
+
         if (!createBy.data.onCallDutyPolicyId) {
             throw new BadDataException(
                 'Status Page Resource onCallDutyPolicyId is required'

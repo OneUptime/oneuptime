@@ -25,9 +25,17 @@ import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 import Team from './Team';
 import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLogTimeline';
 import { JSONObject } from 'Common/Types/JSON';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @TableAccessControl({
     create: [],
     read: [Permission.CurrentUser],
