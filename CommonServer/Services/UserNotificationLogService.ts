@@ -9,6 +9,9 @@ import UserNotificationEventType from 'Common/Types/UserNotification/UserNotific
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import CreateBy from '../Types/Database/CreateBy';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentService from './IncidentService';
+import Incident from 'Model/Models/Incident';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -46,6 +49,18 @@ export class Service extends DatabaseService<Model> {
                 createdItem.userNotificationEventType!
             );
 
+        const incident: Incident | null = await IncidentService.findOneById({
+            id: createdItem.triggeredByIncidentId!,
+            props: {
+                isRoot: true,
+            },
+            select: {
+                incidentSeverityId: true,
+            }
+        });
+
+
+
         // find immediate notification rule and alert the user.
         const immediateNotificationRule: Array<UserNotificationRule> =
             await UserNotificationRuleService.findBy({
@@ -54,6 +69,7 @@ export class Service extends DatabaseService<Model> {
                     projectId: createdItem.projectId!,
                     notifyAfterMinutes: 0,
                     ruleType: notificationRuleType,
+                    incidentSeverityId: incident?.incidentSeverityId!,
                 },
                 select: {
                     _id: true,
