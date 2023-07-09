@@ -96,7 +96,7 @@ export default class UserNotificationLogTimeline extends BaseModel {
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID = undefined;

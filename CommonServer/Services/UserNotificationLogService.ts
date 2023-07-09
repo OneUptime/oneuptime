@@ -37,7 +37,6 @@ export class Service extends DatabaseService<Model> {
         _updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
 
-        debugger;
 
         if (onUpdate.updateBy.data.status) {
             //update the correspomnding oncallTimeline.
@@ -101,6 +100,7 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
+
         // update this item to be processed.
         await this.updateOneById({
             id: createdItem.id!,
@@ -180,6 +180,8 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                 },
             });
+
+           
 
         for (const immediateNotificationRuleItem of immediateNotificationRule) {
             await UserNotificationRuleService.executeNotificationRuleItem(

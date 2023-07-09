@@ -102,12 +102,44 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
+
+        // find notification rule item.
+        const notificationRuleItem: Model | null = await this.findOneById({
+            id: userNotificationRuleId!,
+            select: {
+                _id: true,
+                userId: true,
+                userCall: {
+                    phone: true,
+                    isVerified: true,
+                },
+                userSms: {
+                    phone: true,
+                    isVerified: true,
+                },
+                userEmail: {
+                    email: true,
+                    isVerified: true,
+                },
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+
+
+        if (!notificationRuleItem) {
+            throw new BadDataException('Notification rule item not found.');
+        }
+
         const logTimelineItem: UserNotificationLogTimeline =
             new UserNotificationLogTimeline();
         logTimelineItem.projectId = options.projectId;
         logTimelineItem.userNotificationLogId = options.userNotificationLogId;
         logTimelineItem.userNotificationRuleId = userNotificationRuleId;
         logTimelineItem.userNotificationLogId = options.userNotificationLogId;
+        logTimelineItem.userId = notificationRuleItem.userId!;
         logTimelineItem.userNotificationEventType =
             options.userNotificationEventType;
 
@@ -141,38 +173,11 @@ export class Service extends DatabaseService<Model> {
 
         // add status and status message and save.
 
-        // find notification rule item.
-        const notificationRuleItem: Model | null = await this.findOneById({
-            id: userNotificationRuleId!,
-            select: {
-                _id: true,
-                userCall: {
-                    phone: true,
-                    isVerified: true,
-                },
-                userSms: {
-                    phone: true,
-                    isVerified: true,
-                },
-                userEmail: {
-                    email: true,
-                    isVerified: true,
-                },
-            },
-            props: {
-                isRoot: true,
-            },
-        });
-
-        if (!notificationRuleItem) {
-            throw new BadDataException('Notification rule item not found.');
-        }
-
         let incident: Incident | null = null;
 
         if (
             options.userNotificationEventType ===
-                UserNotificationEventType.IncidentCreated &&
+            UserNotificationEventType.IncidentCreated &&
             options.triggeredByIncidentId
         ) {
             incident = await IncidentService.findOneById({
@@ -210,7 +215,7 @@ export class Service extends DatabaseService<Model> {
             // send email.
             if (
                 options.userNotificationEventType ===
-                    UserNotificationEventType.IncidentCreated &&
+                UserNotificationEventType.IncidentCreated &&
                 incident
             ) {
                 // create an error log.
@@ -279,7 +284,7 @@ export class Service extends DatabaseService<Model> {
             // send sms.
             if (
                 options.userNotificationEventType ===
-                    UserNotificationEventType.IncidentCreated &&
+                UserNotificationEventType.IncidentCreated &&
                 incident
             ) {
                 // create an error log.
@@ -437,7 +442,7 @@ export class Service extends DatabaseService<Model> {
                             new UserNotificationLogTimeline().crudApiPath!
                         ).addRoute(
                             '/call/gather-input/' +
-                                userNotificationLogTimelineId.toString()
+                            userNotificationLogTimelineId.toString()
                         )
                     ),
                 },
@@ -467,9 +472,8 @@ export class Service extends DatabaseService<Model> {
 
         const sms: SMS = {
             to,
-            message: `This is a message from OneUptime. A new incident has been created. ${
-                incident.title
-            }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+            message: `This is a message from OneUptime. A new incident has been created. ${incident.title
+                }. To acknowledge this incident, please click on the following link ${url.toString()}`,
         };
 
         return sms;

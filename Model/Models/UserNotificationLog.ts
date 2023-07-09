@@ -72,7 +72,7 @@ export default class UserNotificationLog extends BaseModel {
         },
         {
             eager: false,
-            nullable: true,
+            nullable: false,
             onDelete: 'CASCADE',
             orphanedRowAction: 'nullify',
         }
@@ -92,7 +92,7 @@ export default class UserNotificationLog extends BaseModel {
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID = undefined;
@@ -374,7 +374,7 @@ export default class UserNotificationLog extends BaseModel {
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public triggeredByIncidentId?: ObjectID = undefined;
