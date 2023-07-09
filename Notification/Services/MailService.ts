@@ -36,8 +36,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                    obj['SMTP_EMAIL'] +
-                    ' is not a valid email'
+                obj['SMTP_EMAIL'] +
+                ' is not a valid email'
             );
             return false;
         }
@@ -110,6 +110,22 @@ export default class MailService {
     private static getGlobalSmtpSettings(): EmailServer {
         return this.getEmailServer(process.env);
     }
+
+    private static async updateUserNotificationLogTimelineAsSent(timelineId: ObjectID): Promise<void> {
+        if (timelineId) {
+            await UserNotificationLogTimelineService.updateOneById({
+                data: {
+                    status: UserNotificationStatus.Sent,
+                    statusMessage: 'Email sent successfully',
+                },
+                id: timelineId,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+    }
+
 
     private static async compileEmailBody(
         emailTemplateType: EmailTemplateType,
@@ -188,10 +204,12 @@ export default class MailService {
         emailServer?: EmailServer,
         options?:
             | {
-                  userNotificationLogTimelineId?: ObjectID | undefined;
-              }
+                userNotificationLogTimelineId?: ObjectID | undefined;
+            }
             | undefined
     ): Promise<void> {
+
+        debugger;
         // default vars.
         if (!mail.vars) {
             mail.vars = {};
@@ -205,41 +223,40 @@ export default class MailService {
             ? await this.compileEmailBody(mail.templateType, mail.vars)
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
-
-        if (!emailServer && SendGridApiKey) {
-            SendgridMail.setApiKey(SendGridApiKey);
-
-            const msg: MailDataRequired = {
-                to: mail.toEmail.toString(),
-                from: this.getGlobalFromEmail().toString(),
-                subject: mail.subject,
-                html: mail.body,
-            };
-
-            await SendgridMail.send(msg);
-            return;
-        }
-
-        if (!emailServer) {
-            emailServer = this.getGlobalSmtpSettings();
-        }
-
         try {
+            if (!emailServer && SendGridApiKey) {
+                SendgridMail.setApiKey(SendGridApiKey);
+
+                const msg: MailDataRequired = {
+                    to: mail.toEmail.toString(),
+                    from: this.getGlobalFromEmail().toString(),
+                    subject: mail.subject,
+                    html: mail.body,
+                };
+
+                await SendgridMail.send(msg);
+                if (options?.userNotificationLogTimelineId) {
+                    await this.updateUserNotificationLogTimelineAsSent(options?.userNotificationLogTimelineId);
+                }
+                return;
+            }
+
+            if (!emailServer) {
+                emailServer = this.getGlobalSmtpSettings();
+            }
+
+
             await this.transportMail(mail, emailServer);
 
+
             if (options?.userNotificationLogTimelineId) {
-                await UserNotificationLogTimelineService.updateOneById({
-                    data: {
-                        status: UserNotificationStatus.Sent,
-                        statusMessage: 'Email sent successfully',
-                    },
-                    id: options.userNotificationLogTimelineId,
-                    props: {
-                        isRoot: true,
-                    },
-                });
+                await this.updateUserNotificationLogTimelineAsSent(options?.userNotificationLogTimelineId);
             }
+
+
         } catch (err: any) {
+
+            logger.error(err);
             if (options?.userNotificationLogTimelineId) {
                 await UserNotificationLogTimelineService.updateOneById({
                     data: {
