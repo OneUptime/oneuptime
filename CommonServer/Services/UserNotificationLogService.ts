@@ -36,6 +36,9 @@ export class Service extends DatabaseService<Model> {
         onUpdate: OnUpdate<Model>,
         _updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
+
+        debugger;
+
         if (onUpdate.updateBy.data.status) {
             //update the correspomnding oncallTimeline.
             const items: Array<Model> = await this.findBy({
@@ -140,13 +143,15 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
+          
+
         if (ruleCount.toNumber() === 0) {
             // update this item to be processed.
             await this.updateOneById({
                 id: createdItem.id!,
                 data: {
                     status: UserNotificationExecutionStatus.Error, // now the worker will pick this up and complete this or mark this as failed.
-                    statusMessage: 'No notification rules found.',
+                    statusMessage: 'No notification rules found. Please add rules in User Settings > On Call Rules.',
                 },
                 props: {
                     isRoot: true,
