@@ -7,6 +7,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import logger from 'CommonServer/Utils/Logger';
+import { Service as BillingInvoiceServiceType } from 'CommonServer/Services/BillingInvoiceService';
 
 RunCron(
     'HardDelete:HardDeleteItemsInDatabase',
@@ -14,6 +15,12 @@ RunCron(
     async () => {
         for (const service of Services) {
             if (service instanceof DatabaseService) {
+
+                if (service instanceof BillingInvoiceServiceType) {
+                    // skip invoice service because  invoices should not be deleted.
+                    continue;
+                }
+
                 try {
                     // Retain data for 30 days for accidental deletion, and then hard delete.
                     await service.hardDeleteBy({

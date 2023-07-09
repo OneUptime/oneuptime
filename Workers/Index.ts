@@ -62,10 +62,10 @@ import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
 import RunDatabaseMigrations from './Utils/DataMigration';
 
 // On Call Duty Policy Executions.
-import './Jobs/OnCallDutyPolicyExecution/ExecuteOnCallDutyPolicy';
+import './Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions';
 
 // User Notifications Log
-import './Jobs/UserNotificationsLog/UpdateUserNotificationsLog';
+import './Jobs/UserNotificationLog/ExecutePendingExecutions';
 
 const APP_NAME: string = 'workers';
 

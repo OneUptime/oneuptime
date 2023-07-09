@@ -45,7 +45,6 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
         Permission.ProjectUser,
         Permission.Public,
         Permission.ProjectAdmin,
-        Permission.ProjectUser,
         Permission.CanReadStatusPageSSO,
     ],
     delete: [
@@ -80,8 +79,6 @@ export default class StatusPageSSO extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectUser,
-            Permission.Public,
             Permission.ProjectUser,
             Permission.Public,
             Permission.CanReadStatusPageSSO,
@@ -122,8 +119,6 @@ export default class StatusPageSSO extends BaseModel {
             Permission.ProjectUser,
             Permission.Public,
             Permission.CanReadStatusPageSSO,
-            Permission.ProjectUser,
-            Permission.Public,
         ],
         update: [],
     })
@@ -222,8 +217,6 @@ export default class StatusPageSSO extends BaseModel {
             Permission.ProjectUser,
             Permission.Public,
             Permission.CanReadStatusPageSSO,
-            Permission.ProjectUser,
-            Permission.Public,
         ],
         update: [
             Permission.ProjectOwner,

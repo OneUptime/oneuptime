@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserNotificationLog';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -9,9 +9,12 @@ import UserNotificationEventType from 'Common/Types/UserNotification/UserNotific
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import CreateBy from '../Types/Database/CreateBy';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentService from './IncidentService';
 import Incident from 'Model/Models/Incident';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import ObjectID from 'Common/Types/ObjectID';
+import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
+import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -27,6 +30,62 @@ export class Service extends DatabaseService<Model> {
             createBy,
             carryForward: null,
         };
+    }
+
+    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
+        if (onUpdate.updateBy.data.status) {
+            //update the correspomnding oncallTimeline. 
+            const items = await this.findBy({
+                query: onUpdate.updateBy.query,
+                select: {
+                    onCallDutyPolicyExecutionLogTimelineId: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            let status: OnCallDutyExecutionLogTimelineStatus | undefined = undefined;
+
+            switch (onUpdate.updateBy.data.status) {
+                case UserNotificationExecutionStatus.Completed:
+                    status = OnCallDutyExecutionLogTimelineStatus.NotificationSent;
+                    break;
+                case UserNotificationExecutionStatus.Error:
+                    status = OnCallDutyExecutionLogTimelineStatus.Error;
+                    break;
+                case UserNotificationExecutionStatus.Running:
+                    status = OnCallDutyExecutionLogTimelineStatus.Running;
+                    break;
+                case UserNotificationExecutionStatus.Scheduled:
+                    status = OnCallDutyExecutionLogTimelineStatus.Started;
+                    break;
+                case UserNotificationExecutionStatus.Started:
+                    status = OnCallDutyExecutionLogTimelineStatus.Started;
+                    break;
+                default:
+                    throw new BadDataException('Invalid status');
+            }
+
+
+            for (const item of items) {
+                await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+                    id: item.onCallDutyPolicyExecutionLogTimelineId!,
+                    data: {
+                        status: status!,
+                        statusMessage: onUpdate.updateBy.data.statusMessage!,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+        }
+
+        return onUpdate;
     }
 
     protected override async onCreateSuccess(
@@ -58,6 +117,39 @@ export class Service extends DatabaseService<Model> {
                 incidentSeverityId: true,
             }
         });
+
+
+        // Check if there are any rules .
+        const ruleCount: PositiveNumber = await UserNotificationRuleService.countBy({
+            query: {
+                userId: createdItem.userId!,
+                projectId: createdItem.projectId!,
+                ruleType: notificationRuleType,
+                incidentSeverityId: incident?.incidentSeverityId!,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (ruleCount.toNumber() === 0) {
+            // update this item to be processed.
+            await this.updateOneById({
+                id: createdItem.id!,
+                data: {
+                    status: UserNotificationExecutionStatus.Error, // now the worker will pick this up and complete this or mark this as failed.
+                    statusMessage: 'No notification rules found.'
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+
+            return createdItem;
+        }
 
 
 
