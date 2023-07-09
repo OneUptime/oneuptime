@@ -302,6 +302,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         return i.key === columnKey;
                     });
 
+
+
+                if(column.filterDropdownOptions) {
+                    filterDropdownOptions = column.filterDropdownOptions;
+                }
+
                 if (
                     tableColumns &&
                     existingTableColumn &&
@@ -402,14 +408,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     continue;
                 }
 
-                if (
-                    column.filterDropdownOptions &&
-                    column.filterDropdownOptions.length > 0
-                ) {
-                    classicColumn.filterDropdownOptions =
-                        column.filterDropdownOptions;
-                    continue;
-                }
 
                 if (
                     !(
