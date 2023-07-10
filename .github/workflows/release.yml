@@ -87,6 +87,28 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workflow:$ONEUPTIME_VERSION --tag oneuptime/workflow:release --push -f ./Workflow/Dockerfile .
 
+  link-shortner-docker-image-deploy:
+    needs: generate-build-number
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: release
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      
+      - run: npm run prerun
+      - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
+        # Build and deploy accounts.
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run: sudo docker buildx create --use
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/link-shortner:$ONEUPTIME_VERSION --tag oneuptime/link-shortner:release --push -f ./LinkShortner/Dockerfile .
+
   workers-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest

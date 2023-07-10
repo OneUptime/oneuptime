@@ -25,6 +25,21 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Accounts/Dockerfile .
 
+  docker-build-link-shortner:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./LinkShortner/Dockerfile .
+
   docker-build-api-reference:
     runs-on: ubuntu-latest
     env:
