@@ -1,6 +1,6 @@
 enum WorkflowStatus {
     Scheduled = 'Scheduled',
-    Running = 'Running',
+    Executing = 'Executing',
     Success = 'Success',
     Error = 'Error',
     Timeout = 'Timeout',

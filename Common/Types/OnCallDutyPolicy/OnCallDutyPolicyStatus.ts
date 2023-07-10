@@ -1,8 +1,8 @@
 enum OnCallDutyPolicyStatus {
     Scheduled = 'Scheduled',
     Started = 'Started',
-    Running = 'Running',
-    Completed = 'Completed',
+    Executing = 'Executing',
+    Completed = 'Execution Completed',
     Error = 'Error',
 }
 

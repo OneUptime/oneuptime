@@ -71,7 +71,7 @@ export class Service extends DatabaseService<Model> {
             await this.updateOneById({
                 id: createdItem.id!,
                 data: {
-                    status: OnCallDutyPolicyStatus.Running,
+                    status: OnCallDutyPolicyStatus.Executing,
                     statusMessage: 'First escalation rule executed....',
                 },
                 props: {

@@ -23,7 +23,7 @@ RunCron(
         const pendingNotiifcationLogs: Array<UserNotificationLog> =
             await UserNotificationLogService.findBy({
                 query: {
-                    status: UserNotificationExecutionStatus.Running,
+                    status: UserNotificationExecutionStatus.Executing,
                 },
                 select: {
                     _id: true,

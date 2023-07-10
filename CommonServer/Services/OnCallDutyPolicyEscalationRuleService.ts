@@ -146,7 +146,7 @@ export class Service extends DatabaseService<Model> {
             // no users in this rule. Skipping.
             let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
             log.statusMessage = 'Sending notification to user.';
-            log.status = OnCallDutyExecutionLogTimelineStatus.Running;
+            log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
             log.alertSentToUserId = userId;
             if (teamId) {
                 log.userBelongsToTeamId = teamId;

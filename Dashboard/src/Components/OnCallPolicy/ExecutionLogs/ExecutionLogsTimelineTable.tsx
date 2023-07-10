@@ -214,13 +214,13 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                                 );
                             } else if (
                                 item['status'] ===
-                                OnCallDutyExecutionLogTimelineStatus.Running
+                                OnCallDutyExecutionLogTimelineStatus.Executing
                             ) {
                                 return (
                                     <Pill
                                         color={Yellow}
                                         text={
-                                            OnCallDutyExecutionLogTimelineStatus.Running
+                                            OnCallDutyExecutionLogTimelineStatus.Executing
                                         }
                                     />
                                 );
