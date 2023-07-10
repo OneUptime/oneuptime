@@ -233,13 +233,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 );
                             } else if (
                                 item['status'] ===
-                                UserNotificationExecutionStatus.Running
+                                UserNotificationExecutionStatus.Executing
                             ) {
                                 return (
                                     <Pill
                                         color={Yellow}
                                         text={
-                                            UserNotificationExecutionStatus.Running
+                                            UserNotificationExecutionStatus.Executing
                                         }
                                     />
                                 );

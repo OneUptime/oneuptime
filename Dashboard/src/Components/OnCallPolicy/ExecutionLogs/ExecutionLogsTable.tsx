@@ -135,11 +135,11 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                             text={OnCallDutyPolicyStatus.Scheduled}
                         />
                     );
-                } else if (item['status'] === OnCallDutyPolicyStatus.Running) {
+                } else if (item['status'] === OnCallDutyPolicyStatus.Executing) {
                     return (
                         <Pill
                             color={Yellow}
-                            text={OnCallDutyPolicyStatus.Running}
+                            text={OnCallDutyPolicyStatus.Executing}
                         />
                     );
                 }

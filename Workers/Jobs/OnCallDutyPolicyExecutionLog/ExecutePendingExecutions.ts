@@ -22,7 +22,7 @@ RunCron(
         const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
             await OnCallDutyPolicyExecutionLogService.findBy({
                 query: {
-                    status: OnCallDutyPolicyStatus.Running,
+                    status: OnCallDutyPolicyStatus.Executing,
                 },
                 select: {
                     _id: true,

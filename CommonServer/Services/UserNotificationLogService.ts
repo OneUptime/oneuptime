@@ -61,8 +61,8 @@ export class Service extends DatabaseService<Model> {
                 case UserNotificationExecutionStatus.Error:
                     status = OnCallDutyExecutionLogTimelineStatus.Error;
                     break;
-                case UserNotificationExecutionStatus.Running:
-                    status = OnCallDutyExecutionLogTimelineStatus.Running;
+                case UserNotificationExecutionStatus.Executing:
+                    status = OnCallDutyExecutionLogTimelineStatus.Executing;
                     break;
                 case UserNotificationExecutionStatus.Scheduled:
                     status = OnCallDutyExecutionLogTimelineStatus.Started;
@@ -202,7 +202,7 @@ export class Service extends DatabaseService<Model> {
         await this.updateOneById({
             id: createdItem.id!,
             data: {
-                status: UserNotificationExecutionStatus.Running, // now the worker will pick this up and complete this or mark this as failed.
+                status: UserNotificationExecutionStatus.Executing, // now the worker will pick this up and complete this or mark this as failed.
             },
             props: {
                 isRoot: true,
