@@ -30,7 +30,7 @@ import URL from 'Common/Types/API/URL';
     tableDescription:
         'Short links are used to redirect users to a specific long link in OneUptime.',
 })
-export default class SmsLog extends BaseModel {
+export default class ShortLink extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
