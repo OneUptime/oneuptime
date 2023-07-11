@@ -705,14 +705,7 @@ services:
             - home
             - notification
         restart: always
-        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
-        build:
-            network: host
-            context: .
-            dockerfile: ./Nginx/Dockerfile
-        {{ else }}
-        image:  oneuptime/nginx:{{ .Env.APP_TAG }}
-        {{ end }}
+        image: nginx:1.23.3-alpine
         ports:
             - '80:80'
         volumes:
