@@ -1,0 +1,320 @@
+version: '3.7'
+
+services:
+    
+    haraka:
+        ports:
+            - '2525:2525'
+        image:  oneuptime/haraka:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Haraka/.env
+    
+    redis:
+        image: redis:7.0.3
+        restart: always
+        ports:
+            - '6370:6379'
+        command: redis-server --requirepass "${REDIS_PASSWORD}"
+        env_file:
+            - ./Redis/.env
+
+    clickhouse:
+        image: clickhouse/clickhouse-server:23.2
+        restart: always
+        env_file:
+            - ./Clickhouse/.env
+        ports:
+            - '8123:8123'
+            - '9000:9000'
+            - '9440:9440'
+            - '9009:9009'
+        volumes:
+            - clickhouse:/var/lib/clickhouse/
+
+    postgres:
+        image: postgres:latest
+        restart: always
+        env_file:
+            - ./Postgres/.env
+        ports:
+            - '5400:5432'
+        volumes: 
+            - postgres:/var/lib/postgresql/data
+    
+    notification:
+        ports:
+            - 3191:3191
+        image:  oneuptime/notification:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Notification/.env
+        depends_on:
+            - haraka
+        
+
+    
+
+    accounts:
+        ports:
+            - '3003:3003'
+        image:  oneuptime/accounts:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./Accounts/.env
+
+        depends_on:
+            - identity
+       
+
+    dashboard:
+        ports:
+            - '3009:3009'
+        image:  oneuptime/dashboard:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./Dashboard/.env
+
+        depends_on:
+            - identity
+            - accounts
+        
+    
+
+    status-page:
+        ports:
+            - '3105:3105' # HTTP UI Port
+        image:  oneuptime/status-page:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./StatusPage/.env
+
+        depends_on:
+            - accounts
+            - dashboard-api
+            
+        
+
+    dashboard-api:
+        ports:
+            - '3002:3002'
+        image:  oneuptime/dashboard-api:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./DashboardAPI/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - notification
+        links:
+            - redis
+            - postgres
+            - notification
+       
+
+
+    link-shortner:
+        ports:
+            - '3521:3521'
+        image:  oneuptime/link-shortner:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./LinkShortner/.env
+        depends_on:
+            - redis
+            - postgres
+        links:
+            - redis
+            - postgres
+        
+
+    workflow:
+        ports:
+            - '3099:3099'
+        image:  oneuptime/workflow:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Workflow/.env
+        depends_on:
+            - redis
+            - postgres
+            - notification
+        links:
+            - redis
+            - postgres
+            - notification
+        
+    
+    workers:
+        ports:
+            - '3452:3452'
+        image:  oneuptime/workers:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Workers/.env
+
+        depends_on:
+            - postgres
+            - notification
+        links:
+            - postgres
+            - notification
+        volumes:
+            - ./Certs:/usr/src/Certs
+        
+    
+
+    probe-1:   
+        image:  oneuptime/probe:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Probe/.env
+        environment:
+            - PROBE_NAME={{ .Env.GLOBAL_PROBE_1_NAME }}
+            - PROBE_DESCRIPTION={{ .Env.GLOBAL_PROBE_1_DESCRIPTION }}
+            - PROBE_KEY={{ .Env.GLOBAL_PROBE_1_KEY }}
+            - PROBE_API_URL=http://probe-api:3400
+        depends_on:
+            - probe-api
+        links:
+            - probe-api
+        volumes:
+            - ./Certs:/usr/src/Certs
+        
+
+
+    probe-2:   
+        image:  oneuptime/probe:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Probe/.env
+        environment:
+            - PROBE_NAME={{ .Env.GLOBAL_PROBE_2_NAME }}
+            - PROBE_DESCRIPTION={{ .Env.GLOBAL_PROBE_2_DESCRIPTION }}
+            - PROBE_KEY={{ .Env.GLOBAL_PROBE_2_KEY }}
+            - PROBE_API_URL=http://probe-api:3400
+        depends_on:
+            - probe-api
+        links:
+            - probe-api
+        volumes:
+            - ./Certs:/usr/src/Certs
+
+    identity:
+        ports:
+            - '3087:3087'
+        image:  oneuptime/identity:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Identity/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - notification
+        links:
+            - redis
+            - postgres
+            - notification
+       
+    
+
+    probe-api:
+        ports:
+            - '3400:3400'
+        image:  oneuptime/probe-api:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./ProbeAPI/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - notification
+        links:
+            - redis
+            - postgres
+            - notification
+       
+
+    file:
+        ports:
+            - '3125:3125'
+        image:  oneuptime/file:${APP_TAG}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./File/.env
+
+        depends_on:
+            - postgres
+        links:
+            - postgres
+        
+
+  
+    home:
+        ports:
+            - '1444:1444'
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Home/.env
+        image:  oneuptime/home:${APP_TAG}
+        
+    
+    api-reference:
+        ports:
+            - '1445:1445'
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./ApiReference/.env
+        image:  oneuptime/api-reference:${APP_TAG}
+
+
+    nginx:
+        depends_on:
+            - identity
+            - accounts
+            - dashboard-api
+            - dashboard
+            - home
+            - notification
+        restart: always
+        image: nginx:1.23.3-alpine
+        ports:
+            - '80:80'
+        volumes:
+            - ./Nginx/default.conf:/etc/nginx/conf.d/default.conf
+            - ./Certs:/etc/nginx/certs
+volumes:
+    postgres:
+    clickhouse:
