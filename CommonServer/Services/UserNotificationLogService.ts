@@ -154,8 +154,7 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-
-            // update oncall timeline item as well. 
+            // update oncall timeline item as well.
             await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
                 id: createdItem.onCallDutyPolicyExecutionLogTimelineId!,
                 data: {
@@ -223,14 +222,12 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-
-         // update oncall timeline item as well. 
-         await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+        // update oncall timeline item as well.
+        await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
             id: createdItem.onCallDutyPolicyExecutionLogTimelineId!,
             data: {
                 status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-                statusMessage:
-                    'Initial notification sent to the user.',
+                statusMessage: 'Initial notification sent to the user.',
             },
             props: {
                 isRoot: true,

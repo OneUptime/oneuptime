@@ -8,8 +8,6 @@ import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPoli
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 
-
-
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
  */
