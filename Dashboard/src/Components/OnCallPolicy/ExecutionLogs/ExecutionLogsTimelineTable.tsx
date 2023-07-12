@@ -140,7 +140,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                                 );
                             }
 
-                            return <p>Invalid User</p>;
+                            return <p>-</p>;
                         },
                     },
                     {

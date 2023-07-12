@@ -63,9 +63,11 @@ import RunDatabaseMigrations from './Utils/DataMigration';
 
 // On Call Duty Policy Executions.
 import './Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions';
+import './Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions';
 
 // User Notifications Log
 import './Jobs/UserNotificationLog/ExecutePendingExecutions';
+import './Jobs/UserNotificationLog/TimeoutStuckExecutions';
 
 const APP_NAME: string = 'workers';
 

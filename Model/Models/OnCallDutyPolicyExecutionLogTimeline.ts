@@ -419,7 +419,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public alertSentToUserId?: ObjectID = undefined;
