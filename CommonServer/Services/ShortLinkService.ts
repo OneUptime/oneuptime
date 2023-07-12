@@ -5,6 +5,7 @@ import CreateBy from '../Types/Database/CreateBy';
 import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';
 import { Domain, HttpProtocol, LinkShortnerRoute } from '../Config';
+import Route from 'Common/Types/API/Route';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -30,7 +31,7 @@ export class Service extends DatabaseService<Model> {
         return new URL(
             HttpProtocol,
             Domain,
-            LinkShortnerRoute.addRoute('/' + model.shortId?.toString())
+            new Route(LinkShortnerRoute.toString()).addRoute('/' + model.shortId?.toString())
         );
     }
 
