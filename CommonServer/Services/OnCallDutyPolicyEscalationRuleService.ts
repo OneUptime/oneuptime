@@ -175,18 +175,6 @@ export class Service extends DatabaseService<Model> {
                     projectId: options.projectId,
                 }
             );
-
-            // notification sent to user.
-            await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
-                id: log.id!,
-                data: {
-                    status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-                    statusMessage: 'Notification sent to user.',
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
         };
 
         const uniqueUserIds: Array<ObjectID> = [];

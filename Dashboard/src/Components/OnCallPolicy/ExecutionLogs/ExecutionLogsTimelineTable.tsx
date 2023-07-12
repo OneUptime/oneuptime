@@ -194,7 +194,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow}
+                                        color={Red}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.Error
                                         }

@@ -154,6 +154,20 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
+
+            // update oncall timeline item as well. 
+            await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+                id: createdItem.onCallDutyPolicyExecutionLogTimelineId!,
+                data: {
+                    status: OnCallDutyExecutionLogTimelineStatus.Error,
+                    statusMessage:
+                        'No notification rules found. Please add rules in User Settings > On Call Rules.',
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
             return createdItem;
         }
 
@@ -203,6 +217,20 @@ export class Service extends DatabaseService<Model> {
             id: createdItem.id!,
             data: {
                 status: UserNotificationExecutionStatus.Executing, // now the worker will pick this up and complete this or mark this as failed.
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+
+         // update oncall timeline item as well. 
+         await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+            id: createdItem.onCallDutyPolicyExecutionLogTimelineId!,
+            data: {
+                status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+                statusMessage:
+                    'Initial notification sent to the user.',
             },
             props: {
                 isRoot: true,
