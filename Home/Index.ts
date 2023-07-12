@@ -593,12 +593,25 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
-app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render('coming-soon');
+app.get('/workflows', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/workflows');
+});
+
+
+app.get('/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/on-call');
 });
 
 app.get('/product/monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('monitoring');
+});
+
+app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.render('on-call');
+});
+
+app.get('/product/workflows', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.render('workflows');
 });
 
 app.get(
