@@ -25,7 +25,7 @@ RunCron(
                     createdAt: QueryHelper.inBetween(
                         startDate,
                         OneUptimeDate.getCurrentDate()
-                    )
+                    ),
                 },
                 select: {
                     _id: true,
@@ -38,8 +38,6 @@ RunCron(
                 },
             });
 
-       
-
         for (const executionLog of stuckExecutions) {
             await OnCallDutyPolicyExecutionLogService.updateOneById({
                 id: executionLog.id!,
@@ -49,8 +47,8 @@ RunCron(
                 },
                 props: {
                     isRoot: true,
-                }
-            })
+                },
+            });
         }
     }
 );

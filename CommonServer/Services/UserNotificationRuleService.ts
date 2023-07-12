@@ -436,12 +436,14 @@ export class Service extends DatabaseService<Model> {
                     responseUrl: new URL(
                         HttpProtocol,
                         Domain,
-                        new Route(DashboardApiRoute.toString()).addRoute(
-                            new UserNotificationLogTimeline().crudApiPath!
-                        ).addRoute(
-                            '/call/gather-input/' +
-                                userNotificationLogTimelineId.toString()
-                        )
+                        new Route(DashboardApiRoute.toString())
+                            .addRoute(
+                                new UserNotificationLogTimeline().crudApiPath!
+                            )
+                            .addRoute(
+                                '/call/gather-input/' +
+                                    userNotificationLogTimelineId.toString()
+                            )
                     ),
                 },
             ],
@@ -459,11 +461,12 @@ export class Service extends DatabaseService<Model> {
             new URL(
                 HttpProtocol,
                 Domain,
-                new Route(DashboardApiRoute.toString()).addRoute(
-                    new UserNotificationLogTimeline().crudApiPath!
-                ).addRoute(
-                    '/acknowledge/' + userNotificationLogTimelineId.toString()
-                )
+                new Route(DashboardApiRoute.toString())
+                    .addRoute(new UserNotificationLogTimeline().crudApiPath!)
+                    .addRoute(
+                        '/acknowledge/' +
+                            userNotificationLogTimelineId.toString()
+                    )
             )
         );
         const url: URL = ShortLinkService.getShortenedUrl(shortUrl);
@@ -501,11 +504,12 @@ export class Service extends DatabaseService<Model> {
             acknowledgeIncidentLink: new URL(
                 HttpProtocol,
                 Domain,
-                new Route(DashboardApiRoute.toString()).addRoute(
-                    new UserNotificationLogTimeline().crudApiPath!
-                ).addRoute(
-                    '/acknowledge/' + userNotificationLogTimelineId.toString()
-                )
+                new Route(DashboardApiRoute.toString())
+                    .addRoute(new UserNotificationLogTimeline().crudApiPath!)
+                    .addRoute(
+                        '/acknowledge/' +
+                            userNotificationLogTimelineId.toString()
+                    )
             ).toString(),
         };
 
