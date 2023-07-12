@@ -8,6 +8,10 @@ import UserNotificationLog from 'Model/Models/UserNotificationLog';
 import UserNotificationLogService from 'CommonServer/Services/UserNotificationLogService';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 
+/**
+ * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
+ */
+
 RunCron(
     'UserNotificationLog:TimeoutStuckExecutions',
     {
@@ -16,16 +20,13 @@ RunCron(
     },
     async () => {
         // get all pending on call executions and execute them all at once.
-        const startDate: Date = OneUptimeDate.getSomeMinutesAgo(5);
+        const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
         const stuckExecutions: Array<UserNotificationLog> =
             await UserNotificationLogService.findBy({
                 query: {
                     status: UserNotificationExecutionStatus.Started,
-                    createdAt: QueryHelper.inBetween(
-                        startDate,
-                        OneUptimeDate.getCurrentDate()
-                    ),
+                    createdAt: QueryHelper.lessThan(fiveMinsAgo),
                 },
                 select: {
                     _id: true,
