@@ -20,9 +20,6 @@ export $(grep -v '^#' config.env | xargs)
 
 sudo docker compose pull
 
-# Create database if it does not exists
-sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database already created" 
-
 # Start all containers.
 npm run start
 
