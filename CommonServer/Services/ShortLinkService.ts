@@ -31,7 +31,9 @@ export class Service extends DatabaseService<Model> {
         return new URL(
             HttpProtocol,
             Domain,
-            new Route(LinkShortnerRoute.toString()).addRoute('/' + model.shortId?.toString())
+            new Route(LinkShortnerRoute.toString()).addRoute(
+                '/' + model.shortId?.toString()
+            )
         );
     }
 

@@ -148,7 +148,7 @@ export class Service extends DatabaseService<Model> {
             to: item.phone!,
             data: [
                 {
-                    sayMessage: 'This call is from One Uptime.'
+                    sayMessage: 'This call is from One Uptime.',
                 },
                 {
                     sayMessage:
