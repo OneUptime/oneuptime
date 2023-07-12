@@ -1,5 +1,17 @@
 version: '3.7'
 
+x-common-variables: &common-variables
+  VARIABLE: some_value
+  ANOTHER_VARIABLE: another_value
+
+x-common-ui-variables: &common-ui-variables
+  VARIABLE: some_value
+  ANOTHER_VARIABLE: another_value
+
+x-common-server-variables: &common-server-variables
+  VARIABLE: some_value
+  ANOTHER_VARIABLE: another_value
+
 services:
     
     haraka:
@@ -66,7 +78,6 @@ services:
             - ./Common/.env
             - ./CommonUI/.env
             - ./Accounts/.env
-
         depends_on:
             - identity
        
@@ -80,7 +91,6 @@ services:
             - ./Common/.env
             - ./CommonUI/.env
             - ./Dashboard/.env
-
         depends_on:
             - identity
             - accounts
@@ -96,7 +106,6 @@ services:
             - ./Common/.env
             - ./CommonUI/.env
             - ./StatusPage/.env
-
         depends_on:
             - accounts
             - dashboard-api
@@ -112,7 +121,6 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./DashboardAPI/.env
-
         depends_on:
             - redis
             - postgres
@@ -169,7 +177,6 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./Workers/.env
-
         depends_on:
             - postgres
             - notification
@@ -230,7 +237,6 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./Identity/.env
-
         depends_on:
             - redis
             - postgres
@@ -251,7 +257,6 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./ProbeAPI/.env
-
         depends_on:
             - redis
             - postgres
@@ -271,7 +276,6 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./File/.env
-
         depends_on:
             - postgres
         links:
