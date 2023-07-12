@@ -148,17 +148,25 @@ export class Service extends DatabaseService<Model> {
             to: item.phone!,
             data: [
                 {
-                    sayMessage:
-                        'Your verification code is ' +
-                        item.verificationCode?.split('').join(' '), // add space to make it more clear
+                    sayMessage: 'This call is from One Uptime.'
                 },
                 {
                     sayMessage:
                         'Your verification code is ' +
-                        item.verificationCode?.split('').join(' '), // add space to make it more clear
+                        item.verificationCode?.split('').join('  '), // add space to make it more clear and slow down the message
                 },
                 {
-                    sayMessage: 'Thank you for using OneUptime. Goodbye.',
+                    sayMessage:
+                        'Your verification code is ' +
+                        item.verificationCode?.split('').join('  '), // add space to make it more clear and slow down the message
+                },
+                {
+                    sayMessage:
+                        'Your verification code is ' +
+                        item.verificationCode?.split('').join('  '), // add space to make it more clear and slow down the message
+                },
+                {
+                    sayMessage: 'Thank you for using One Uptime. Goodbye.',
                 },
             ],
         };
