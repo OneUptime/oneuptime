@@ -44,7 +44,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
     let columns: Columns<OnCallDutyPolicyExecutionLog> = [];
 
-    if (props.onCallDutyPolicyId) {
+    if (!props.onCallDutyPolicyId) {
         // add a column for the policy name
         columns = columns.concat([
             {

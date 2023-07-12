@@ -35,6 +35,7 @@ import SmsService from './SmsService';
 import CallService from './CallService';
 import OneUptimeDate from 'Common/Types/Date';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
+import Route from 'Common/Types/API/Route';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -435,7 +436,7 @@ export class Service extends DatabaseService<Model> {
                     responseUrl: new URL(
                         HttpProtocol,
                         Domain,
-                        DashboardApiRoute.addRoute(
+                        new Route(DashboardApiRoute.toString()).addRoute(
                             new UserNotificationLogTimeline().crudApiPath!
                         ).addRoute(
                             '/call/gather-input/' +
@@ -458,7 +459,7 @@ export class Service extends DatabaseService<Model> {
             new URL(
                 HttpProtocol,
                 Domain,
-                DashboardApiRoute.addRoute(
+                new Route(DashboardApiRoute.toString()).addRoute(
                     new UserNotificationLogTimeline().crudApiPath!
                 ).addRoute(
                     '/acknowledge/' + userNotificationLogTimelineId.toString()
@@ -500,7 +501,7 @@ export class Service extends DatabaseService<Model> {
             acknowledgeIncidentLink: new URL(
                 HttpProtocol,
                 Domain,
-                DashboardApiRoute.addRoute(
+                new Route(DashboardApiRoute.toString()).addRoute(
                     new UserNotificationLogTimeline().crudApiPath!
                 ).addRoute(
                     '/acknowledge/' + userNotificationLogTimelineId.toString()
