@@ -597,7 +597,6 @@ app.get('/workflows', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/workflows');
 });
 
-
 app.get('/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/on-call');
 });
