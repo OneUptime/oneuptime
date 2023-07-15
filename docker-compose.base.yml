@@ -1,8 +1,5 @@
 version: '3.7'
 
-x-secrets: &common-variables
-
-
 x-common-variables: &common-variables
     NODE_ENV: ${ENVIRONMENT}
     BILLING_ENABLED: ${BILLING_ENABLED}
@@ -13,6 +10,8 @@ x-common-variables: &common-variables
     SUBSCRIPTION_PLAN_ENTERPRISE: ${SUBSCRIPTION_PLAN_ENTERPRISE}
     METERED_PLAN_ACTIVE_MONITORING: ${METERED_PLAN_ACTIVE_MONITORING}
     DOMAIN: ${DOMAIN}
+    ANALYTICS_KEY: ${ANALYTICS_KEY}
+    ANALYTICS_HOST: ${ANALYTICS_HOST}
 
 x-common-ui-variables: &common-ui-variables
     REALTIME_ROUTE: ${REALTIME_ROUTE}
@@ -31,10 +30,8 @@ x-common-ui-variables: &common-ui-variables
     STATUS_PAGE_ROUTE: ${STATUS_PAGE_ROUTE}
     IS_SERVER: false
     STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
-    DOMAIN: ${DOMAIN}
     HTTP_PROTOCOL: ${HTTP_PROTOCOL}
-    ANALYTICS_KEY: ${ANALYTICS_KEY}
-    ANALYTICS_HOST: ${ANALYTICS_HOST}
+
 
 x-common-server-variables: &common-server-variables
     ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
@@ -87,8 +84,6 @@ x-common-server-variables: &common-server-variables
 
     IS_SERVER: true
 
-    ANALYTICS_KEY: ${ANALYTICS_KEY}
-    ANALYTICS_HOST: ${ANALYTICS_HOST}
 
 services:
     
@@ -140,7 +135,7 @@ services:
     
     notification:
         ports:
-            - 3191:3191
+            - ${NOTIFICATION_PORT}:${NOTIFICATION_PORT}
         image:  oneuptime/notification:${APP_TAG}
         restart: always
         environment:
@@ -166,7 +161,7 @@ services:
 
     accounts:
         ports:
-            - '3003:3003'
+            - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}'
         image:  oneuptime/accounts:${APP_TAG}
         restart: always
         environment: 
@@ -177,7 +172,7 @@ services:
 
     dashboard:
         ports:
-            - '3009:3009'
+            - '${DASHBOARD_PORT}:${DASHBOARD_PORT}'
         image:  oneuptime/dashboard:${APP_TAG}
         restart: always
         environment:
@@ -190,7 +185,7 @@ services:
 
     status-page:
         ports:
-            - '3105:3105' # HTTP UI Port
+            - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}' # HTTP UI Port
         image:  oneuptime/status-page:${APP_TAG}
         restart: always
         environment:
@@ -203,7 +198,7 @@ services:
 
     dashboard-api:
         ports:
-            - '3002:3002'
+            - '${DASHBOARD_API_PORT}:${DASHBOARD_API_PORT}'
         image:  oneuptime/dashboard-api:${APP_TAG}
         restart: always
         environment: 
@@ -221,7 +216,7 @@ services:
 
     link-shortner:
         ports:
-            - '3521:3521'
+            - '${LINK_SHORTNER_PORT}:${LINK_SHORTNER_PORT}'
         image:  oneuptime/link-shortner:${APP_TAG}
         restart: always
         env_file:
@@ -236,7 +231,7 @@ services:
 
     workflow:
         ports:
-            - '3099:3099'
+            - '${WORKFLOW_PORT}:${WORKFLOW_PORT}'
         image:  oneuptime/workflow:${APP_TAG}
         restart: always
         environment:
@@ -253,7 +248,7 @@ services:
     
     workers:
         ports:
-            - '3452:3452'
+            - '${WORKERS_PORT}:${WORKERS_PORT}'
         image:  oneuptime/workers:${APP_TAG}
         restart: always
         environment:
@@ -291,10 +286,6 @@ services:
     probe-2:   
         image:  oneuptime/probe:${APP_TAG}
         restart: always
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./Probe/.env
         environment:
             - PORT=${PROBE_PORT}
             - PROBE_NAME=${GLOBAL_PROBE_2_NAME}
@@ -310,7 +301,7 @@ services:
 
     identity:
         ports:
-            - '3087:3087'
+            - '${IDENTITY_PORT}:${IDENTITY_PORT}'
         image:  oneuptime/identity:${APP_TAG}
         restart: always
         environment:
@@ -328,7 +319,7 @@ services:
 
     probe-api:
         ports:
-            - '3400:3400'
+            - '${PROBE_API_PORT}:${PROBE_API_PORT}'
         image:  oneuptime/probe-api:${APP_TAG}
         restart: always
         environment:
@@ -345,7 +336,7 @@ services:
 
     file:
         ports:
-            - '3125:3125'
+            - '${FILE_PORT}:${FILE_PORT}'
         image:  oneuptime/file:${APP_TAG}
         restart: always
         environment:
@@ -359,7 +350,7 @@ services:
   
     home:
         ports:
-            - '1444:1444'
+            - '${HOME_PORT}:${HOME_PORT}'
         environment:
             - PORT=${HOME_PORT}
         image:  oneuptime/home:${APP_TAG}
@@ -367,7 +358,7 @@ services:
     
     api-reference:
         ports:
-            - '1445:1445'
+            - '${API_DOCS_PORT}:${API_DOCS_PORT}'
         restart: always
         environment:
             - PORT=${API_DOCS_PORT}
