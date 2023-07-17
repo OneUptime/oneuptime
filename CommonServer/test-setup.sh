@@ -6,4 +6,4 @@ cd ..
 # Run Preinstall. 
 npm run prerun
 # Run Postgres
-docker compose up -d postgres
+npm run read-env && docker compose up -d postgres
