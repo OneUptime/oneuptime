@@ -17,7 +17,6 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
-      - run: . venv/bin/activate
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && bash test-setup.sh

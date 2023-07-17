@@ -44,7 +44,7 @@
         "lint": "ejslint **/*.ejs && eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore ",
         "fix-lint": " node --max_old_space_size=18192 ./node_modules/.bin/eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore --fix ",
         "fix": "npm run fix-lint",
-        "read-env": "source config.env",
+        "read-env": "bash config.env",
         "start": "npm run read-env && sudo docker compose up --remove-orphans -d $npm_config_services",
         "ps": "sudo docker compose ps",
         "save-logs": "sudo docker compose logs --tail=100000 $npm_config_services > logs.txt",
