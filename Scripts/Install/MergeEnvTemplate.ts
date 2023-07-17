@@ -3,7 +3,7 @@
 import fs from 'fs';
 
 const init: Function = (): void => {
-    const tempate: string = fs.readFileSync('./config.tpl.env', 'utf8');
+    const tempate: string = fs.readFileSync('./config.example.env', 'utf8');
     const env: string = fs.readFileSync('./config.env', 'utf8');
 
     const linesInTemplate: Array<string> = tempate.split('\n');
