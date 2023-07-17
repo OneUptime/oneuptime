@@ -31,7 +31,7 @@ const init: Function = (): void => {
 
     for (let line of linesInEnv) {
         // this is a comment, ignore.
-        if (!line.startsWith(envValToReplace)) {
+        if (!line.startsWith('export '+envValToReplace)) {
             linesToRender.push(line);
         } else {
             found = true;
