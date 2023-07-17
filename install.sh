@@ -16,7 +16,7 @@ set -e
 bash configure.sh
 
 # Load env values from config.env
-bash config.env
+source config.env
 
 sudo docker compose pull
 
