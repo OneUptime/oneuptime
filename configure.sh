@@ -213,9 +213,5 @@ for directory_name in $(find . -maxdepth 1 -type d) ; do
     fi
 done
 
-# Convert template to docker-compose. 
-cp docker-compose.prod.yml docker-compose.yml
-
-
 # Convert nginx conf template to nginx
 cat ./Nginx/default.tpl.conf | gomplate > ./Nginx/default.conf
