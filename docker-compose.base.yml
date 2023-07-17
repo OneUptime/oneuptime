@@ -12,6 +12,7 @@ x-common-variables: &common-variables
     DOMAIN: ${DOMAIN}
     ANALYTICS_KEY: ${ANALYTICS_KEY}
     ANALYTICS_HOST: ${ANALYTICS_HOST}
+    HTTP_PROTOCOL: ${HTTP_PROTOCOL}
 
 x-common-ui-variables: &common-ui-variables
     REALTIME_ROUTE: ${REALTIME_ROUTE}
@@ -30,7 +31,7 @@ x-common-ui-variables: &common-ui-variables
     STATUS_PAGE_ROUTE: ${STATUS_PAGE_ROUTE}
     IS_SERVER: false
     STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
-    HTTP_PROTOCOL: ${HTTP_PROTOCOL}
+    
 
 
 x-common-server-variables: &common-server-variables
@@ -63,9 +64,6 @@ x-common-server-variables: &common-server-variables
     BILLING_PRIVATE_KEY: ${BILLING_PRIVATE_KEY}
     BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
     BILLING_ENABLED: ${BILLING_ENABLED}
-
-    DOMAIN: ${DOMAIN}
-    HTTP_PROTOCOL: ${HTTP_PROTOCOL}
 
     REALTIME_ROUTE: ${REALTIME_ROUTE}
     NOTIFICATION_ROUTE: ${NOTIFICATION_ROUTE}
@@ -156,9 +154,6 @@ services:
         depends_on:
             - haraka
         
-
-    
-
     accounts:
         ports:
             - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}'
