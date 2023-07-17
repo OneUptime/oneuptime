@@ -31,6 +31,9 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: notification
+        ports:
+            - 9111:9229 # Debugging port.
+            - 3191:3191
         build:
             network: host
             context: .
