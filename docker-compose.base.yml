@@ -367,6 +367,8 @@ services:
             - notification
         restart: always
         image: nginx:1.23.3-alpine
+        environment:
+            <<: *common-variables
         ports:
             - '80:80'
         volumes:
