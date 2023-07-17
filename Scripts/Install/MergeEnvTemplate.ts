@@ -36,7 +36,7 @@ const init: Function = (): void => {
     }
 
     // write the file back to disk and exit.
-    fs.writeFileSync('./config.env.temp', linesInEnv.join('\n'));
+    fs.writeFileSync('./config.env', linesInEnv.join('\n'));
 };
 
 init();
