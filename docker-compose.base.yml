@@ -86,8 +86,8 @@ x-common-server-variables: &common-server-variables
 services:
     
     haraka:
-        ports:
-            - '2525:2525'
+        networks:
+          - oneuptime
         image:  oneuptime/haraka:${APP_TAG}
         restart: always
         environment:
@@ -97,8 +97,8 @@ services:
     redis:
         image: redis:7.0.3
         restart: always
-        ports:
-            - '6370:6379'
+        networks:
+          - oneuptime
         command: redis-server --requirepass "${REDIS_PASSWORD}"
         environment: 
             REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -111,11 +111,8 @@ services:
             CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
             CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE}
             CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-        ports:
-            - '8123:8123'
-            - '9000:9000'
-            - '9440:9440'
-            - '9009:9009'
+        networks:
+          - oneuptime
         volumes:
             - clickhouse:/var/lib/clickhouse/
 
@@ -126,14 +123,14 @@ services:
             POSTGRES_USER: ${DATABASE_USERNAME}
             POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
             POSTGRES_DB: ${DATABASE_NAME}
-        ports:
-            - '5400:5432'
+        networks:
+          - oneuptime
         volumes: 
             - postgres:/var/lib/postgresql/data
     
     notification:
-        ports:
-            - ${NOTIFICATION_PORT}:${NOTIFICATION_PORT}
+        networks:
+          - oneuptime
         image:  oneuptime/notification:${APP_TAG}
         restart: always
         environment:
@@ -156,8 +153,8 @@ services:
             - haraka
         
     accounts:
-        ports:
-            - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/accounts:${APP_TAG}
         restart: always
         environment: 
@@ -168,8 +165,8 @@ services:
        
 
     dashboard:
-        ports:
-            - '${DASHBOARD_PORT}:${DASHBOARD_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/dashboard:${APP_TAG}
         restart: always
         environment:
@@ -182,8 +179,8 @@ services:
     
 
     status-page:
-        ports:
-            - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}' # HTTP UI Port
+        networks:
+          - oneuptime
         image:  oneuptime/status-page:${APP_TAG}
         restart: always
         environment:
@@ -196,8 +193,8 @@ services:
         
 
     dashboard-api:
-        ports:
-            - '${DASHBOARD_API_PORT}:${DASHBOARD_API_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/dashboard-api:${APP_TAG}
         restart: always
         environment: 
@@ -215,8 +212,8 @@ services:
 
 
     link-shortner:
-        ports:
-            - '${LINK_SHORTNER_PORT}:${LINK_SHORTNER_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/link-shortner:${APP_TAG}
         restart: always
         environment:
@@ -231,8 +228,8 @@ services:
         
 
     workflow:
-        ports:
-            - '${WORKFLOW_PORT}:${WORKFLOW_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/workflow:${APP_TAG}
         restart: always
         environment:
@@ -249,8 +246,8 @@ services:
         
     
     workers:
-        ports:
-            - '${WORKERS_PORT}:${WORKERS_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/workers:${APP_TAG}
         restart: always
         environment:
@@ -269,6 +266,8 @@ services:
     
 
     probe:   
+        networks:
+          - oneuptime
         image:  oneuptime/probe:${APP_TAG}
         restart: always
         environment:
@@ -287,8 +286,8 @@ services:
         
 
     identity:
-        ports:
-            - '${IDENTITY_PORT}:${IDENTITY_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/identity:${APP_TAG}
         restart: always
         environment:
@@ -306,8 +305,8 @@ services:
     
 
     probe-api:
-        ports:
-            - '${PROBE_API_PORT}:${PROBE_API_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/probe-api:${APP_TAG}
         restart: always
         environment:
@@ -324,8 +323,8 @@ services:
        
 
     file:
-        ports:
-            - '${FILE_PORT}:${FILE_PORT}'
+        networks:
+          - oneuptime
         image:  oneuptime/file:${APP_TAG}
         restart: always
         environment:
@@ -339,8 +338,8 @@ services:
 
   
     home:
-        ports:
-            - '${HOME_PORT}:${HOME_PORT}'
+        networks:
+          - oneuptime
         environment:
             <<: *common-ui-variables
             PORT: ${HOME_PORT}
@@ -348,8 +347,8 @@ services:
         
     
     api-reference:
-        ports:
-            - '${API_DOCS_PORT}:${API_DOCS_PORT}'
+        networks:
+          - oneuptime
         restart: always
         environment:
             <<: *common-ui-variables
@@ -375,3 +374,7 @@ services:
 volumes:
     postgres:
     clickhouse:
+
+networks:
+  oneuptime:
+    driver: bridge
