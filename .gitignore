@@ -69,7 +69,6 @@ secret.env
 config.env
 config.env.tmp
 config.env.temp
-docker-compose.yml
 logs.txt
 
 */Cert.crt
