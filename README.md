@@ -43,7 +43,7 @@ To install:
 git checkout release # Please make sure you're on release branch.
 cp config.example.env config.env
 
-# IMPORTANT: Edit config.env file and add your own values. Please make sure you have random secrets.
+# IMPORTANT: Edit config.env file. Please make sure you have random secrets.
 
 source config.env
 docker-compose up -d
