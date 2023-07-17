@@ -33,7 +33,6 @@ services:
             service: notification
         ports:
             - 9111:9229 # Debugging port.
-            - 3191:3191
         build:
             network: host
             context: .
@@ -75,6 +74,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: dashboard-api
+        ports:
+            - '9232:9229' # Debugging port.
         build:
             network: host
             context: .
@@ -86,6 +87,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: link-shortner
+        ports:
+            - '9826:9229' # Debugging port.
         build:
             network: host
             context: .
@@ -96,6 +99,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: workflow
+        ports:
+          - '9212:9229' # Debugging port.
         build: 
             network: host
             context: .
@@ -103,6 +108,8 @@ services:
         
     
     workers:
+        ports:
+          - '9654:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
             service: workers
@@ -113,6 +120,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe
+        ports:
+          - '9655:9229' # Debugging port.
         build:
             network: host
             context: .
@@ -120,6 +129,8 @@ services:
         
 
     identity:
+        ports:
+          - '9132:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
             service: identity
@@ -131,6 +142,8 @@ services:
     
 
     probe-api:
+        ports:
+          - '9932:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
             service: probe-api
@@ -141,13 +154,17 @@ services:
        
 
     file:
-       extends:
+        ports:
+          - '9012:9229' # Debugging port.
+        extends:
             file: ./docker-compose.base.yml
             service: file
         
 
   
     home:
+        ports:
+          - '9235:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
             service: home
@@ -158,6 +175,8 @@ services:
         
     
     api-reference:
+        ports:
+          - '9178:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
             service: api-reference
