@@ -189,7 +189,7 @@ ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 
 
 # Load env values from config.env
-bash config.env
+source config.env
 
 # Write env vars in config files. 
 
