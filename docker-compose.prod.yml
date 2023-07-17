@@ -6,11 +6,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: haraka
-        build:
-            network: host
-            context: .
-            dockerfile: ./Haraka/Dockerfile
-
     
     redis:
         extends:
@@ -31,29 +26,17 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: notification
-        build:
-            network: host
-            context: .
-            dockerfile: ./Notification/Dockerfile
         
     accounts:
         extends:
             file: ./docker-compose.base.yml
             service: accounts
-        build:
-            network: host
-            context: .
-            dockerfile: ./Accounts/Dockerfile
        
 
     dashboard:
         extends:
             file: ./docker-compose.base.yml
             service: dashboard
-        build:
-            network: host
-            context: .
-            dockerfile: ./Dashboard/Dockerfile
         
     
 
@@ -61,10 +44,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: status-page
-        build:
-            network: host
-            context: .
-            dockerfile: ./StatusPage/Dockerfile
             
         
 
@@ -72,10 +51,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: dashboard-api
-        build:
-            network: host
-            context: .
-            dockerfile: ./DashboardAPI/Dockerfile
        
 
 
@@ -83,20 +58,12 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: link-shortner
-        build:
-            network: host
-            context: .
-            dockerfile: ./LinkShortner/Dockerfile
         
 
     workflow:
         extends:
             file: ./docker-compose.base.yml
             service: workflow
-        build: 
-            network: host
-            context: .
-            dockerfile: ./Workflow/Dockerfile
         
     
     workers:
@@ -110,20 +77,12 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe
-        build:
-            network: host
-            context: .
-            dockerfile: ./Probe/Dockerfile
         
 
     identity:
         extends:
             file: ./docker-compose.base.yml
             service: identity
-        build:
-            network: host
-            context: .
-            dockerfile: ./Identity/Dockerfile
        
     
 
@@ -131,10 +90,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe-api
-        build:
-            network: host
-            context: .
-            dockerfile: ./ProbeAPI/Dockerfile
        
 
     file:
@@ -148,20 +103,12 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: home
-        build:
-            network: host
-            context: .
-            dockerfile: ./Home/Dockerfile
         
     
     api-reference:
         extends:
             file: ./docker-compose.base.yml
             service: api-reference
-        build:
-            network: host
-            context: .
-            dockerfile: ./ApiReference/Dockerfile
 
 
     nginx:

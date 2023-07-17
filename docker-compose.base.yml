@@ -15,6 +15,7 @@ x-common-variables: &common-variables
     HTTP_PROTOCOL: ${HTTP_PROTOCOL}
 
 x-common-ui-variables: &common-ui-variables
+    <<: *common-variables   
     REALTIME_ROUTE: ${REALTIME_ROUTE}
     NOTIFICATION_ROUTE: ${NOTIFICATION_ROUTE}
     DASHBOARD_ROUTE: ${DASHBOARD_ROUTE}
@@ -32,9 +33,8 @@ x-common-ui-variables: &common-ui-variables
     IS_SERVER: false
     STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
     
-
-
 x-common-server-variables: &common-server-variables
+    <<: *common-variables
     ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
 
     DATABASE_PORT: ${DATABASE_PORT}
@@ -91,8 +91,8 @@ services:
         image:  oneuptime/haraka:${APP_TAG}
         restart: always
         environment:
-            - SMTP_USER=${INTERNAL_SMTP_USER}
-            - SMTP_PASSWORD=${INTERNAL_SMTP_PASSWORD}
+            SMTP_USER: ${INTERNAL_SMTP_USER}
+            SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
     
     redis:
         image: redis:7.0.3
@@ -101,16 +101,16 @@ services:
             - '6370:6379'
         command: redis-server --requirepass "${REDIS_PASSWORD}"
         environment: 
-            - REDIS_PASSWORD=${REDIS_PASSWORD}
+            REDIS_PASSWORD: ${REDIS_PASSWORD}
 
     clickhouse:
         image: clickhouse/clickhouse-server:23.2
         restart: always
         environment:
-            - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-            - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-            - CLICKHOUSE_DB=oneuptime
-            - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+            CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+            CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+            CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE}
+            CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
         ports:
             - '8123:8123'
             - '9000:9000'
@@ -123,9 +123,9 @@ services:
         image: postgres:latest
         restart: always
         environment: 
-            - POSTGRES_USER=${DATABASE_USERNAME}
-            - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
-            - POSTGRES_DB=${DATABASE_NAME}
+            POSTGRES_USER: ${DATABASE_USERNAME}
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+            POSTGRES_DB: ${DATABASE_NAME}
         ports:
             - '5400:5432'
         volumes: 
@@ -137,20 +137,21 @@ services:
         image:  oneuptime/notification:${APP_TAG}
         restart: always
         environment:
-            - PORT=${NOTIFICATION_PORT}
-            - SMTP_USERNAME=${SMTP_USERNAME}
-            - SMTP_PASSWORD=${SMTP_PASSWORD}
-            - SMTP_PORT=${SMTP_PORT}
-            - SMTP_EMAIL=${SMTP_EMAIL}
-            - SMTP_FROM_NAME=${SMTP_FROM_NAME}
-            - SMTP_IS_SECURE=${SMTP_IS_SECURE}
-            - SMTP_HOST=${SMTP_HOST}
-            - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-            - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-            - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-            - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-            - SMS_DEFAULT_COST_IN_CENTS=${SMS_DEFAULT_COST_IN_CENTS}
-            - CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE=${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}
+            <<: *common-server-variables
+            PORT: ${NOTIFICATION_PORT}
+            SMTP_USERNAME: ${SMTP_USERNAME}
+            SMTP_PASSWORD: ${SMTP_PASSWORD}
+            SMTP_PORT: ${SMTP_PORT}
+            SMTP_EMAIL: ${SMTP_EMAIL}
+            SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+            SMTP_IS_SECURE: ${SMTP_IS_SECURE}
+            SMTP_HOST: ${SMTP_HOST}
+            SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+            TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+            TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+            TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+            SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
+            CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE: ${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}
         depends_on:
             - haraka
         
@@ -160,7 +161,8 @@ services:
         image:  oneuptime/accounts:${APP_TAG}
         restart: always
         environment: 
-            - PORT=${ACCOUNTS_PORT}
+            <<: *common-ui-variables
+            PORT: ${ACCOUNTS_PORT}
         depends_on:
             - identity
        
@@ -171,7 +173,8 @@ services:
         image:  oneuptime/dashboard:${APP_TAG}
         restart: always
         environment:
-            - PORT=${DASHBOARD_PORT}
+            <<: *common-ui-variables
+            PORT: ${DASHBOARD_PORT}
         depends_on:
             - identity
             - accounts
@@ -184,7 +187,8 @@ services:
         image:  oneuptime/status-page:${APP_TAG}
         restart: always
         environment:
-            - PORT=${STATUS_PAGE_PORT}
+            <<: *common-ui-variables
+            PORT: ${STATUS_PAGE_PORT}
         depends_on:
             - accounts
             - dashboard-api
@@ -197,7 +201,8 @@ services:
         image:  oneuptime/dashboard-api:${APP_TAG}
         restart: always
         environment: 
-            - PORT=${DASHBOARD_API_PORT}
+            <<: *common-server-variables
+            PORT: ${DASHBOARD_API_PORT}
         depends_on:
             - redis
             - postgres
@@ -214,8 +219,9 @@ services:
             - '${LINK_SHORTNER_PORT}:${LINK_SHORTNER_PORT}'
         image:  oneuptime/link-shortner:${APP_TAG}
         restart: always
-        env_file:
-            - PORT=${LINK_SHORTNER_PORT}
+        environment:
+            <<: *common-server-variables
+            PORT: ${LINK_SHORTNER_PORT}
         depends_on:
             - redis
             - postgres
@@ -230,7 +236,8 @@ services:
         image:  oneuptime/workflow:${APP_TAG}
         restart: always
         environment:
-            - PORT=${WORKFLOW_PORT}
+            <<: *common-server-variables
+            PORT: ${WORKFLOW_PORT}
         depends_on:
             - redis
             - postgres
@@ -247,8 +254,9 @@ services:
         image:  oneuptime/workers:${APP_TAG}
         restart: always
         environment:
-            - PORT=${WORKERS_PORT}
-            - ENVIRONMENT=${ENVIRONMENT}
+            <<: *common-server-variables
+            PORT: ${WORKERS_PORT}
+            ENVIRONMENT: ${ENVIRONMENT}
         depends_on:
             - postgres
             - notification
@@ -260,15 +268,16 @@ services:
         
     
 
-    probe-1:   
+    probe:   
         image:  oneuptime/probe:${APP_TAG}
         restart: always
         environment:
-            - PORT=${PROBE_PORT}
-            - PROBE_NAME=${GLOBAL_PROBE_1_NAME}
-            - PROBE_DESCRIPTION=${GLOBAL_PROBE_1_DESCRIPTION}
-            - PROBE_KEY=${GLOBAL_PROBE_1_KEY}
-            - PROBE_API_URL=http://probe-api:3400
+            <<: *common-server-variables
+            PORT: ${PROBE_PORT}
+            PROBE_NAME: ${GLOBAL_PROBE_NAME}
+            PROBE_DESCRIPTION: ${GLOBAL_PROBE_DESCRIPTION}
+            PROBE_KEY: ${GLOBAL_PROBE_KEY}
+            PROBE_API_URL: http://${PROBE_API_HOSTNAME}
         depends_on:
             - probe-api
         links:
@@ -277,30 +286,14 @@ services:
             - ./Certs:/usr/src/Certs
         
 
-
-    probe-2:   
-        image:  oneuptime/probe:${APP_TAG}
-        restart: always
-        environment:
-            - PORT=${PROBE_PORT}
-            - PROBE_NAME=${GLOBAL_PROBE_2_NAME}
-            - PROBE_DESCRIPTION=${GLOBAL_PROBE_2_DESCRIPTION}
-            - PROBE_KEY=${GLOBAL_PROBE_2_KEY}
-            - PROBE_API_URL=http://probe-api:3400
-        depends_on:
-            - probe-api
-        links:
-            - probe-api
-        volumes:
-            - ./Certs:/usr/src/Certs
-
     identity:
         ports:
             - '${IDENTITY_PORT}:${IDENTITY_PORT}'
         image:  oneuptime/identity:${APP_TAG}
         restart: always
         environment:
-            - PORT=${IDENTITY_PORT}
+            <<: *common-server-variables
+            PORT: ${IDENTITY_PORT}
         depends_on:
             - redis
             - postgres
@@ -318,7 +311,8 @@ services:
         image:  oneuptime/probe-api:${APP_TAG}
         restart: always
         environment:
-            - PORT=${PROBE_API_PORT}
+            <<: *common-server-variables
+            PORT: ${PROBE_API_PORT}
         depends_on:
             - redis
             - postgres
@@ -335,7 +329,8 @@ services:
         image:  oneuptime/file:${APP_TAG}
         restart: always
         environment:
-            - PORT=${FILE_PORT}
+            <<: *common-server-variables
+            PORT: ${FILE_PORT}
         depends_on:
             - postgres
         links:
@@ -347,7 +342,8 @@ services:
         ports:
             - '${HOME_PORT}:${HOME_PORT}'
         environment:
-            - PORT=${HOME_PORT}
+            <<: *common-ui-variables
+            PORT: ${HOME_PORT}
         image:  oneuptime/home:${APP_TAG}
         
     
@@ -356,7 +352,8 @@ services:
             - '${API_DOCS_PORT}:${API_DOCS_PORT}'
         restart: always
         environment:
-            - PORT=${API_DOCS_PORT}
+            <<: *common-ui-variables
+            PORT: ${API_DOCS_PORT}
         image:  oneuptime/api-reference:${APP_TAG}
 
 
