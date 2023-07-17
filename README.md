@@ -34,41 +34,28 @@ The fastest and most reliable way to get started with OneUptime is signing up fo
 
 ### Open-source hobby single-server deploy with Docker Compose.
 
-Deploy a single-server instance in one line on Debian / Ubuntu with Docker (we only support Debian / Ubuntu as of today). We run the smallest instance on 16 GB / 8 Core Ubuntu Server and we recommend these requirements for running your hobby server. 
+Deploy a single-server instance with docker compose on Debian / Ubuntu (we only support Debian / Ubuntu as of today). We recommend OneUptime on 16 GB / 8 Core Ubuntu Server. However you can run an instance on a much smaller server.
 
- ```bash 
-  git clone https://github.com/OneUptime/oneuptime
-  cd oneuptime
-  git checkout release
-  bash configure.sh
- ``` 
 
-Please look at config.env and change these values, 
+To install: 
 
 ```
-DOMAIN=oneuptime.yourcompany.com # REQUIRED. This is used for making sure you can navigate OneUptime from this domain. You will still have to set up CNAME or A records with your DNS provider. 
+git checkout release # Please make sure you're on release branch.
+cp config.example.env config.env
 
-# SMTP SETTINGS for sending email from OneUptime (optional). 
-SMTP_USERNAME=username
-SMTP_PASSWORD=password
-SMTP_PORT=465
-SMTP_EMAIL=alerts@yourcompany.com
-SMTP_FROM_NAME=OneUptime
-SMTP_IS_SECURE=true
-SMTP_HOST=smtp.yourcompany.com
-```
+# IMPORTANT: Edit config.env file and add your own values. Please make sure you have random secrets.
 
-
-Then, run install: 
-
-```
-bash install.sh
+source config.env
+docker-compose up -d
 ```
 
 To update: 
 
 ```
-bash update.sh
+git checkout release # Please make sure you're on release branch.
+git pull
+docker-compose pull # Fetch new images. 
+docker-compose up -d
 ```
 
 OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it.
