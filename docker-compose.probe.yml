@@ -6,7 +6,3 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe
-        build:
-            network: host
-            context: .
-            dockerfile: ./Probe/Dockerfile
