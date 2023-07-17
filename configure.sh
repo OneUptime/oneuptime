@@ -20,14 +20,9 @@ export ENCRYPTION_SECRET=$ENCRYPTION_SECRET
 INTERNAL_SMTP_PASSWORD=$(openssl rand -hex 12)
 export INTERNAL_SMTP_PASSWORD=$INTERNAL_SMTP_PASSWORD
 
-GLOBAL_PROBE_1_KEY=$(openssl rand -hex 12)
-export GLOBAL_PROBE_1_KEY=$GLOBAL_PROBE_1_KEY
+GLOBAL_PROBE_KEY=$(openssl rand -hex 12)
+export GLOBAL_PROBE_KEY=$GLOBAL_PROBE_KEY
 
-GLOBAL_PROBE_2_KEY=$(openssl rand -hex 12)
-export GLOBAL_PROBE_2_KEY=$GLOBAL_PROBE_2_KEY
-
-GLOBAL_PROBE_3_KEY=$(openssl rand -hex 12)
-export GLOBAL_PROBE_3_KEY=$GLOBAL_PROBE_3_KEY
 
 # Talk to the user
 echo "Welcome to the OneUptime 🟢 Runner"
