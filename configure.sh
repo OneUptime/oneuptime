@@ -207,6 +207,3 @@ for directory_name in $(find . -maxdepth 1 -type d) ; do
         cat $directory_name/Dockerfile.tpl | gomplate > $directory_name/Dockerfile
     fi
 done
-
-# Convert nginx conf template to nginx
-cat ./Nginx/default.tpl.conf | gomplate > ./Nginx/default.conf

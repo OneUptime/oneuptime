@@ -1,1 +1,0 @@
-PORT={{ .Env.DASHBOARD_PORT }}
