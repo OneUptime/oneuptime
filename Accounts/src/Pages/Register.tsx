@@ -9,9 +9,10 @@ import LoginUtil from '../Utils/Login';
 import { JSONObject } from 'Common/Types/JSON';
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, DASHBOARD_URL, IS_BILLING } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
+import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
 
 const RegisterPage: FunctionComponent = () => {
     const apiUrl: URL = SIGNUP_API_URL;
@@ -19,6 +20,81 @@ const RegisterPage: FunctionComponent = () => {
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }
+
+
+    let formFields: Fields<User> = [
+        {
+            field: {
+                email: true,
+            },
+            fieldType: FormFieldSchemaType.Email,
+            placeholder: 'jeff@example.com',
+            required: true,
+            title: 'Email',
+        },
+        {
+            field: {
+                name: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            placeholder: 'Jeff Smith',
+            required: true,
+            title: 'Full Name',
+        }];
+
+    if (BILLING_ENABLED) {
+        formFields = formFields.concat([{
+            field: {
+                companyName: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            placeholder: 'Acme, Inc.',
+            required: true,
+            title: 'Company Name',
+        },
+        {
+            field: {
+                companyPhoneNumber: true,
+            },
+            fieldType: FormFieldSchemaType.Phone,
+            required: true,
+            placeholder: '+11234567890',
+            title: 'Phone Number',
+        }]);
+    }
+
+    formFields = formFields.concat([{
+        field: {
+            password: true,
+        },
+        fieldType: FormFieldSchemaType.Password,
+        validation: {
+            minLength: 6,
+        },
+        placeholder: 'Password',
+        title: 'Password',
+        required: true,
+    },
+    {
+        field: {
+            confirmPassword: true,
+        } as any,
+        validation: {
+            minLength: 6,
+            toMatchField: 'password',
+        },
+        fieldType: FormFieldSchemaType.Password,
+        placeholder: 'Confirm Password',
+        title: 'Confirm Password',
+        overideFieldKey: 'confirmPassword',
+        required: true,
+        forceShow: true,
+    },
+    ]);
+
+
+
+
 
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -56,71 +132,7 @@ const RegisterPage: FunctionComponent = () => {
                             password: '',
                             confirmPassword: '',
                         }}
-                        fields={[
-                            {
-                                field: {
-                                    email: true,
-                                },
-                                fieldType: FormFieldSchemaType.Email,
-                                placeholder: 'jeff@example.com',
-                                required: true,
-                                title: 'Email',
-                            },
-                            {
-                                field: {
-                                    name: true,
-                                },
-                                fieldType: FormFieldSchemaType.Text,
-                                placeholder: 'Jeff Smith',
-                                required: true,
-                                title: 'Full Name',
-                            },
-                            {
-                                field: {
-                                    companyName: true,
-                                },
-                                fieldType: FormFieldSchemaType.Text,
-                                placeholder: 'Acme, Inc.',
-                                required: true,
-                                title: 'Company Name',
-                            },
-                            {
-                                field: {
-                                    companyPhoneNumber: true,
-                                },
-                                fieldType: FormFieldSchemaType.Phone,
-                                required: true,
-                                placeholder: '+11234567890',
-                                title: 'Phone Number',
-                            },
-                            {
-                                field: {
-                                    password: true,
-                                },
-                                fieldType: FormFieldSchemaType.Password,
-                                validation: {
-                                    minLength: 6,
-                                },
-                                placeholder: 'Password',
-                                title: 'Password',
-                                required: true,
-                            },
-                            {
-                                field: {
-                                    confirmPassword: true,
-                                },
-                                validation: {
-                                    minLength: 6,
-                                    toMatchField: 'password',
-                                },
-                                fieldType: FormFieldSchemaType.Password,
-                                placeholder: 'Confirm Password',
-                                title: 'Confirm Password',
-                                overideFieldKey: 'confirmPassword',
-                                required: true,
-                                forceShow: true,
-                            },
-                        ]}
+                        fields={formFields}
                         apiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Sign Up'}
