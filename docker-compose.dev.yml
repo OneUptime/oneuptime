@@ -23,6 +23,8 @@ services:
             service: clickhouse
 
     postgres:
+        ports: 
+            - '5400:5432'
         extends:
             file: ./docker-compose.base.yml
             service: postgres
