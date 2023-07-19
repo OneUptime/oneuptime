@@ -16,7 +16,7 @@ set -e
 bash configure.sh
 
 # Load env values from config.env
-source config.env
+export $(grep -v '^#' config.env | xargs)
 
 sudo docker compose pull
 

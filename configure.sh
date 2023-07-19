@@ -189,7 +189,7 @@ ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 
 
 # Load env values from config.env
-source config.env
+export $(grep -v '^#' config.env | xargs)
 
 # Write env vars in config files. 
 
