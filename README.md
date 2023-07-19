@@ -36,16 +36,32 @@ The fastest and most reliable way to get started with OneUptime is signing up fo
 
 Deploy a single-server instance with docker compose on Debian / Ubuntu (we only support Debian / Ubuntu as of today). We recommend OneUptime on 16 GB / 8 Core Ubuntu Server. However you can run an instance on a much smaller server.
 
+Please make sure you have: 
+- Docker and Docker Compose installed.
 
-To install: 
+To install OneUptime: 
 
 ```
-git checkout release # Please make sure you're on release branch.
+# Clone this repo and cd into it.
+git clone https://github.com/OneUptime/oneuptime.git
+cd oneuptime
+
+# Please make sure you're on release branch.
+git checkout release
+
+# Copy config.example.env to config.env
 cp config.example.env config.env
 
 # IMPORTANT: Edit config.env file. Please make sure you have random secrets.
 
 npm start
+```
+
+If you dont like to use npm or do not have it installed, run this instead: 
+
+```
+# Read env vars from config.env file and run docker-compose up.
+export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d
 ```
 
 To update: 
@@ -57,6 +73,26 @@ npm run update
 ```
 
 OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it.
+
+### Development
+
+For local development you need to use docker-compsed-dev.yml file. 
+
+You need to make sure you have: 
+- Docker and Docker compose installed. 
+- Node.js and NPM installed.
+
+```
+# Clone this repo and cd into it.
+git clone https://github.com/OneUptime/oneuptime.git
+cd oneuptime
+
+# Copy config.example.env to config.env
+cp config.example.env config.env
+
+# Since this is dev, you dont have to edit any of those values in config.env. You can, but that's optional.
+npm run dev
+```
 
 
 ## Philosophy
