@@ -6,4 +6,4 @@ cd ..
 # Run Preinstall. 
 npm run prerun
 # Run Postgres
-npm run read-env | docker compose up -f docker-compose.dev.yml -e -d postgres
+export $(grep -v '^#' config.env | xargs) && docker compose up -f docker-compose.dev.yml -e -d postgres
