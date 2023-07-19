@@ -133,6 +133,7 @@ services:
 
 
     nginx:
+       image:  oneuptime/nginx:${APP_TAG}
        extends:
             file: ./docker-compose.base.yml
             service: nginx

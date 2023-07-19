@@ -379,7 +379,11 @@ services:
 
 
     nginx:
-       extends:
+        build:
+            network: host
+            context: .
+            dockerfile: ./Nginx/Dockerfile
+        extends:
             file: ./docker-compose.base.yml
             service: nginx
 
