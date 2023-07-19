@@ -50,7 +50,7 @@ const DisabledMonitors: FunctionComponent<PageComponentProps> = (
                 }}
                 noItemsMessage="No disabled monitors. All monitors in active state."
                 title="Disabled Monitors"
-                description="Here is a list of all the monitors which are in disbaled state."
+                description="Here is a list of all the monitors which are in disabled state."
             />
         </Page>
     );
