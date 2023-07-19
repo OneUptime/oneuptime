@@ -219,6 +219,10 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: workers
+        build:
+            network: host
+            context: .
+            dockerfile: ./Workers/Dockerfile
         
     
 
@@ -317,6 +321,10 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: file
+        build:
+            network: host
+            context: .
+            dockerfile: ./File/Dockerfile
         
 
   

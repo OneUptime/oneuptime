@@ -23,17 +23,20 @@ services:
             service: postgres
     
     notification:
+        image:  oneuptime/notification:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: notification
         
     accounts:
+        image:  oneuptime/accounts:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: accounts
        
 
     dashboard:
+        image:  oneuptime/dashboard:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: dashboard
@@ -41,6 +44,7 @@ services:
     
 
     status-page:
+        image:  oneuptime/status-page:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: status-page
@@ -48,6 +52,7 @@ services:
         
 
     dashboard-api:
+        image:  oneuptime/dashboard-api:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: dashboard-api
@@ -55,18 +60,21 @@ services:
 
 
     link-shortner:
+        image:  oneuptime/link-shortner:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: link-shortner
         
 
     workflow:
+        image:  oneuptime/workflow:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: workflow
         
     
     workers:
+        image:  oneuptime/workers:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: workers
@@ -74,16 +82,19 @@ services:
     
 
     probe-1:   
+        image:  oneuptime/probe:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: probe-1
         
-    probe-2:   
+    probe-2:
+        image:  oneuptime/probe:${APP_TAG}   
         extends:
             file: ./docker-compose.base.yml
             service: probe-2
 
     identity:
+        image:  oneuptime/identity:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: identity
@@ -91,25 +102,29 @@ services:
     
 
     probe-api:
+        image:  oneuptime/probe-api:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: probe-api
        
 
     file:
-       extends:
+        image:  oneuptime/file:${APP_TAG}
+        extends:
             file: ./docker-compose.base.yml
             service: file
         
 
   
     home:
+        image:  oneuptime/home:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: home
         
     
     api-reference:
+        image:  oneuptime/api-reference:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: api-reference

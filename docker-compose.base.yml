@@ -131,7 +131,6 @@ services:
     notification:
         networks:
           - oneuptime
-        image:  oneuptime/notification:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -155,7 +154,6 @@ services:
     accounts:
         networks:
           - oneuptime
-        image:  oneuptime/accounts:${APP_TAG}
         restart: always
         environment: 
             <<: *common-ui-variables
@@ -167,7 +165,6 @@ services:
     dashboard:
         networks:
           - oneuptime
-        image:  oneuptime/dashboard:${APP_TAG}
         restart: always
         environment:
             <<: *common-ui-variables
@@ -181,7 +178,6 @@ services:
     status-page:
         networks:
           - oneuptime
-        image:  oneuptime/status-page:${APP_TAG}
         restart: always
         environment:
             <<: *common-ui-variables
@@ -195,7 +191,6 @@ services:
     dashboard-api:
         networks:
           - oneuptime
-        image:  oneuptime/dashboard-api:${APP_TAG}
         restart: always
         environment: 
             <<: *common-server-variables
@@ -214,7 +209,6 @@ services:
     link-shortner:
         networks:
           - oneuptime
-        image:  oneuptime/link-shortner:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -230,7 +224,6 @@ services:
     workflow:
         networks:
           - oneuptime
-        image:  oneuptime/workflow:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -248,7 +241,6 @@ services:
     workers:
         networks:
           - oneuptime
-        image:  oneuptime/workers:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -268,7 +260,6 @@ services:
     probe-1:   
         networks:
           - oneuptime
-        image:  oneuptime/probe:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -285,7 +276,6 @@ services:
     probe-2:   
         networks:
           - oneuptime
-        image:  oneuptime/probe:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -303,7 +293,6 @@ services:
     identity:
         networks:
           - oneuptime
-        image:  oneuptime/identity:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -322,7 +311,6 @@ services:
     probe-api:
         networks:
           - oneuptime
-        image:  oneuptime/probe-api:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -340,7 +328,6 @@ services:
     file:
         networks:
           - oneuptime
-        image:  oneuptime/file:${APP_TAG}
         restart: always
         environment:
             <<: *common-server-variables
@@ -358,7 +345,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${HOME_PORT}
-        image:  oneuptime/home:${APP_TAG}
+        
         
     
     api-reference:
@@ -368,7 +355,6 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${API_DOCS_PORT}
-        image:  oneuptime/api-reference:${APP_TAG}
 
 
     nginx:
