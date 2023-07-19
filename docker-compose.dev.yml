@@ -81,7 +81,7 @@ services:
             file: ./docker-compose.base.yml
             service: dashboard
         volumes:
-            - ./Dashboasrd:/usr/src/app
+            - ./Dashboard:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
