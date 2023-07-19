@@ -11,12 +11,20 @@ import ShortLink from 'Model/Models/ShortLink';
 const router: ExpressRouter = Express.getRouter();
 
 router.get('/:id', async (req: ExpressRequest, res: ExpressResponse) => {
+    
+
     if (!req.params['id']) {
         return Response.sendErrorResponse(
             req,
             res,
             new BadDataException('id is required')
         );
+    }
+
+    if(req.params['id'] === "status"){
+        return Response.sendJsonObjectResponse(req, res, {
+            status: "ok"
+        });
     }
 
     const link: ShortLink | null = await ShortLinkService.getShortLinkFor(
