@@ -72,7 +72,7 @@ git pull
 npm run update
 ```
 
-OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it.
+OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it. If you would like to use https, please use a reverse proxy like Nginx.
 
 ### Development
 
