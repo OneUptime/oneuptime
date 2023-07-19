@@ -192,3 +192,11 @@ services:
        extends:
             file: ./docker-compose.base.yml
             service: nginx
+
+volumes:
+    postgres:
+    clickhouse:
+
+networks:
+  oneuptime: 
+    driver: bridge
