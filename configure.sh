@@ -2,28 +2,6 @@
 
 set -e
 
-ONEUPTIME_SECRET=$(openssl rand -hex 12)
-export ONEUPTIME_SECRET=$ONEUPTIME_SECRET
-
-DATABASE_PASSWORD=$(openssl rand -hex 12)
-export DATABASE_PASSWORD=$DATABASE_PASSWORD
-
-CLICKHOUSE_PASSWORD=$(openssl rand -hex 12)
-export CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
-
-REDIS_PASSWORD=$(openssl rand -hex 12)
-export REDIS_PASSWORD=$REDIS_PASSWORD
-
-ENCRYPTION_SECRET=$(openssl rand -hex 12)
-export ENCRYPTION_SECRET=$ENCRYPTION_SECRET
-
-INTERNAL_SMTP_PASSWORD=$(openssl rand -hex 12)
-export INTERNAL_SMTP_PASSWORD=$INTERNAL_SMTP_PASSWORD
-
-GLOBAL_PROBE_KEY=$(openssl rand -hex 12)
-export GLOBAL_PROBE_KEY=$GLOBAL_PROBE_KEY
-
-
 # Talk to the user
 echo "Welcome to the OneUptime 🟢 Runner"
 echo ""
@@ -192,8 +170,6 @@ ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 export $(grep -v '^#' config.env | xargs)
 
 # Write env vars in config files. 
-
-
 for directory_name in $(find . -maxdepth 1 -type d) ; do
     if [ -f "$directory_name/Dockerfile.tpl" ]; then
         cat $directory_name/Dockerfile.tpl | gomplate > $directory_name/Dockerfile
