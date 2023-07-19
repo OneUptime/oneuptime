@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -a
 
 # Talk to the user
 echo "Welcome to the OneUptime 🟢 Runner"

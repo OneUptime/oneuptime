@@ -11,17 +11,15 @@ else
     git pull
 fi
 
-set -e
+set -a
 
 bash configure.sh
 
 # Load env values from config.env
-export $(grep -v '^#' config.env | xargs)
-
-sudo docker compose pull
+export $(grep -v '^#' config.env | xargs) && docker compose pull
 
 # Start all containers.
-npm run start
+npm start
 
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""
