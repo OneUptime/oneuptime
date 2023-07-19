@@ -118,10 +118,10 @@ services:
         
     
 
-    probe:   
+    probe-1:   
         extends:
             file: ./docker-compose.base.yml
-            service: probe
+            service: probe-1
         ports:
           - '9655:9229' # Debugging port.
         build:

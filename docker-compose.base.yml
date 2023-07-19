@@ -265,7 +265,7 @@ services:
         
     
 
-    probe:   
+    probe-1:   
         networks:
           - oneuptime
         image:  oneuptime/probe:${APP_TAG}
@@ -273,9 +273,26 @@ services:
         environment:
             <<: *common-server-variables
             PORT: ${PROBE_PORT}
-            PROBE_NAME: ${GLOBAL_PROBE_NAME}
-            PROBE_DESCRIPTION: ${GLOBAL_PROBE_DESCRIPTION}
-            PROBE_KEY: ${GLOBAL_PROBE_KEY}
+            PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
+            PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
+            PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
+            PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+        depends_on:
+            - probe-api
+        links:
+            - probe-api
+
+    probe-2:   
+        networks:
+          - oneuptime
+        image:  oneuptime/probe:${APP_TAG}
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${PROBE_PORT}
+            PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
+            PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
+            PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
             PROBE_API_URL: http://${PROBE_API_HOSTNAME}
         depends_on:
             - probe-api

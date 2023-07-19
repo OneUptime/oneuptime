@@ -73,11 +73,15 @@ services:
         
     
 
-    probe:   
+    probe-1:   
         extends:
             file: ./docker-compose.base.yml
-            service: probe
+            service: probe-1
         
+    probe-2:   
+        extends:
+            file: ./docker-compose.base.yml
+            service: probe-2
 
     identity:
         extends:
