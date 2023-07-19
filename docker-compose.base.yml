@@ -375,7 +375,7 @@ services:
             - '80:80'
             - '443:443'
         volumes:
-            - ./Nginx/default.conf:/etc/nginx/conf.d/default.conf
+            - ./Nginx/default.conf.template:/etc/nginx/templates/default.conf.template
             - ./Certs:/etc/nginx/certs
 volumes:
     postgres:
