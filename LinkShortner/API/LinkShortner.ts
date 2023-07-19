@@ -11,8 +11,6 @@ import ShortLink from 'Model/Models/ShortLink';
 const router: ExpressRouter = Express.getRouter();
 
 router.get('/:id', async (req: ExpressRequest, res: ExpressResponse) => {
-    
-
     if (!req.params['id']) {
         return Response.sendErrorResponse(
             req,
@@ -21,9 +19,9 @@ router.get('/:id', async (req: ExpressRequest, res: ExpressResponse) => {
         );
     }
 
-    if(req.params['id'] === "status"){
+    if (req.params['id'] === 'status') {
         return Response.sendJsonObjectResponse(req, res, {
-            status: "ok"
+            status: 'ok',
         });
     }
 
