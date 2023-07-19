@@ -76,7 +76,7 @@ OneUptime should run at: http://localhost. You need to register a new account fo
 
 ### Development
 
-For local development you need to use docker-compsed-dev.yml file. 
+For local development you need to use docker-compose.dev.yml file. 
 
 You need to make sure you have: 
 - Docker and Docker compose installed. 
