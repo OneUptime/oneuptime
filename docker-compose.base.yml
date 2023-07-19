@@ -380,6 +380,8 @@ services:
             - home
             - notification
         restart: always
+        networks:
+          - oneuptime
         image: nginx:1.23.3-alpine
         environment:
             <<: *common-variables
