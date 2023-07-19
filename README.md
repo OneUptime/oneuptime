@@ -45,8 +45,7 @@ cp config.example.env config.env
 
 # IMPORTANT: Edit config.env file. Please make sure you have random secrets.
 
-source config.env
-docker-compose up -d
+npm start
 ```
 
 To update: 
@@ -54,8 +53,7 @@ To update:
 ```
 git checkout release # Please make sure you're on release branch.
 git pull
-docker-compose pull # Fetch new images. 
-docker-compose up -d
+npm run update
 ```
 
 OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it.
