@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/UserResourceOwnerNotification';
+import Model from 'Model/Models/UserNotificationSetting';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {
@@ -7,4 +7,5 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 }
+
 export default new Service();

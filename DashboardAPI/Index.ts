@@ -337,10 +337,11 @@ import UserNotificationLogService, {
     Service as UserNotificationLogServiceType,
 } from 'CommonServer/Services/UserNotificationLogService';
 
-import UserResourceOwnerNotification from 'Model/Models/UserResourceOwnerNotification';
-import UserResourceOwnerNotificationService, {
-    Service as UserResourceOwnerNotificationServiceType,
-} from 'CommonServer/Services/UserResourceOwnerNotificationService';
+import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
+import UserNotificationSettingService, {
+    Service as UserNotificationSettingServiceType,
+} from 'CommonServer/Services/UserNotificationSettingService';
+
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -663,16 +664,6 @@ app.use(
     ).getRouter()
 );
 
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<
-        UserResourceOwnerNotification,
-        UserResourceOwnerNotificationServiceType
-    >(
-        UserResourceOwnerNotification,
-        UserResourceOwnerNotificationService
-    ).getRouter()
-);
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -681,6 +672,16 @@ app.use(
         UserNotificationLogService
     ).getRouter()
 );
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<UserNotificationSetting, UserNotificationSettingServiceType>(
+        UserNotificationSetting,
+        UserNotificationSettingService
+    ).getRouter()
+);
+
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
