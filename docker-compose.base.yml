@@ -375,7 +375,6 @@ services:
             - '80:80'
             - '443:443'
         volumes:
-            # This will be used to generate the nginx config file. It uses envsubst to replace the variables in the template file.
             - ./Certs:/etc/nginx/certs
 volumes:
     postgres:
