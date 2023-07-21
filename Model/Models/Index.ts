@@ -111,6 +111,7 @@ import DataMigration from './DataMigration';
 
 // Short link.
 import ShortLink from './ShortLink';
+import EmailLog from './EmailLog';
 
 export default [
     User,
@@ -194,6 +195,7 @@ export default [
 
     SmsLog,
     CallLog,
+    EmailLog,
 
     UserEmail,
     UserSms,
@@ -207,4 +209,6 @@ export default [
     DataMigration,
 
     ShortLink,
+
+
 ];

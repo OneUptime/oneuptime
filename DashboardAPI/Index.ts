@@ -85,6 +85,11 @@ import SmsLogService, {
     Service as SmsLogServiceType,
 } from 'CommonServer/Services/SmsLogService';
 
+import EmailLog from 'Model/Models/EmailLog';
+import EmailLogService, {
+    Service as EmailLogServiceType,
+} from 'CommonServer/Services/EmailLogService';
+
 import CallLog from 'Model/Models/CallLog';
 import CallLogService, {
     Service as CallLogServiceType,
@@ -294,6 +299,8 @@ import IncidentCustomField from 'Model/Models/IncidentCustomField';
 import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
+
+
 
 import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
 import OnCallDutyPolicyExecutionLogTimelineService, {
@@ -717,6 +724,11 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<EmailLog, EmailLogServiceType>(EmailLog, EmailLogService).getRouter()
 );
 
 app.use(
