@@ -49,6 +49,8 @@ import Email from 'Common/Types/Email';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import UserService from './UserService';
 import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
+import UserNotificationSettingService from './UserNotificationSettingService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -645,6 +647,8 @@ export class Service extends DatabaseService<Model> {
                 user.id!,
                 user.email!
             );
+
+            await UserNotificationSettingService.addDefaultNotificationSettingsForUser(user.id!, createdItem.id!);
         }
 
         return createdItem;

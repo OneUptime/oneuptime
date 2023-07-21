@@ -18,6 +18,7 @@ import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from './TeamMemberService';
 import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSettingService from './UserNotificationSettingService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -122,6 +123,8 @@ export class Service extends DatabaseService<Model> {
                         user.id!,
                         user.email!
                     );
+
+                    await UserNotificationSettingService.addDefaultNotificationSettingsForUser(user.id!, member.projectId!);
                 }
             }
         }

@@ -32,6 +32,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import TeamMember from 'Model/Models/TeamMember';
 import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSettingService from './UserNotificationSettingService';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -201,6 +202,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 updateBy.data.hasAcceptedInvitation &&
                 item.user?.isEmailVerified
             ) {
+                await UserNotificationSettingService.addDefaultNotificationSettingsForUser(item.userId!, item.projectId!)
                 await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
                     item.projectId!,
                     item.userId!,
