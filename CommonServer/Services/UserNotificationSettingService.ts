@@ -1,5 +1,4 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/UserNotificationSetting';
 import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -10,32 +9,32 @@ import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
 import TeamMemberService from './TeamMemberService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<UserNotificationSetting> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
+        super(UserNotificationSetting, postgresDatabase);
     }
 
     public async removeDefaultNotificationSettingsForUser(
         userId: ObjectID,
         projectId: ObjectID
     ): Promise<void> {
-        // check if this user is not in the project anymore. 
+        // check if this user is not in the project anymore.
         const count: PositiveNumber = await TeamMemberService.countBy({
             query: {
                 projectId,
                 userId,
-                hasAcceptedInvitation: true
+                hasAcceptedInvitation: true,
             },
             props: {
                 isRoot: true,
             },
         });
 
-        if(count.toNumber() === 0) {
+        if (count.toNumber() === 0) {
             await this.deleteBy({
                 query: {
                     projectId,
-                    userId
+                    userId,
                 },
                 limit: LIMIT_PER_PROJECT,
                 skip: 0,
@@ -64,7 +63,7 @@ export class Service extends DatabaseService<Model> {
             });
 
         if (incidentCreatedNotificationEvent.toNumber() === 0) {
-            const item = new UserNotificationSetting();
+            const item: UserNotificationSetting = new UserNotificationSetting();
             item.userId = userId;
             item.projectId = projectId;
             item.eventType =
@@ -94,7 +93,7 @@ export class Service extends DatabaseService<Model> {
             });
 
         if (monitorStateChangedNotificationEvent.toNumber() === 0) {
-            const item = new UserNotificationSetting();
+            const item: UserNotificationSetting = new UserNotificationSetting();
             item.userId = userId;
             item.projectId = projectId;
             item.eventType =
@@ -124,7 +123,7 @@ export class Service extends DatabaseService<Model> {
             });
 
         if (incidentStateChangedNotificationEvent.toNumber() === 0) {
-            const item = new UserNotificationSetting();
+            const item: UserNotificationSetting = new UserNotificationSetting();
             item.userId = userId;
             item.projectId = projectId;
             item.eventType =
@@ -141,8 +140,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onBeforeCreate(
-        createBy: CreateBy<Model>
-    ): Promise<OnCreate<Model>> {
+        createBy: CreateBy<UserNotificationSetting>
+    ): Promise<OnCreate<UserNotificationSetting>> {
         // check if the same event for same user is added.
         if (!createBy.data.projectId) {
             throw new BadDataException(
