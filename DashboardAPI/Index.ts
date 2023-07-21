@@ -342,7 +342,6 @@ import UserNotificationSettingService, {
     Service as UserNotificationSettingServiceType,
 } from 'CommonServer/Services/UserNotificationSettingService';
 
-
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -664,7 +663,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<UserNotificationLog, UserNotificationLogServiceType>(
@@ -673,7 +671,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<UserNotificationSetting, UserNotificationSettingServiceType>(
@@ -681,7 +678,6 @@ app.use(
         UserNotificationSettingService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

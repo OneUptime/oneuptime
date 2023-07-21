@@ -323,7 +323,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/user-settings/notification-settings`
     ),
 
-
     [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/notification-methods`
     ),

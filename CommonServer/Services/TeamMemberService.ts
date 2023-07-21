@@ -202,7 +202,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 updateBy.data.hasAcceptedInvitation &&
                 item.user?.isEmailVerified
             ) {
-                await UserNotificationSettingService.addDefaultNotificationSettingsForUser(item.userId!, item.projectId!)
+                await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+                    item.userId!,
+                    item.projectId!
+                );
                 await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
                     item.projectId!,
                     item.userId!,

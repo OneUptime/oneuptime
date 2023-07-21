@@ -254,7 +254,6 @@ class UserNotificationSetting extends BaseModel {
     })
     public alertByEmail?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
@@ -278,7 +277,6 @@ class UserNotificationSetting extends BaseModel {
         default: false,
     })
     public alertByCall?: boolean = undefined;
-
 }
 
 export default UserNotificationSetting;

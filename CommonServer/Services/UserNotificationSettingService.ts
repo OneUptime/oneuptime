@@ -13,104 +13,120 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    public async addDefaultNotificationSettingsForUser(userId: ObjectID, projectId: ObjectID): Promise<void> {
-        const incidentCreatedNotificationEvent: PositiveNumber = await this.countBy({
-            query: {
-                userId,
-                projectId,
-                eventType: NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION
-            },
-            props: {
-                isRoot: true,
-            }
-        });
+    public async addDefaultNotificationSettingsForUser(
+        userId: ObjectID,
+        projectId: ObjectID
+    ): Promise<void> {
+        const incidentCreatedNotificationEvent: PositiveNumber =
+            await this.countBy({
+                query: {
+                    userId,
+                    projectId,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
         if (incidentCreatedNotificationEvent.toNumber() === 0) {
-
             const item = new UserNotificationSetting();
             item.userId = userId;
             item.projectId = projectId;
-            item.eventType = NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
+            item.eventType =
+                NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
             item.alertByEmail = true;
 
             await this.create({
                 data: item,
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
 
         // check monitor state changed notification
-        const monitorStateChangedNotificationEvent: PositiveNumber = await this.countBy({
-            query: {
-                userId,
-                projectId,
-                eventType: NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION
-            },
-            props: {
-                isRoot: true,
-            }
-        });
+        const monitorStateChangedNotificationEvent: PositiveNumber =
+            await this.countBy({
+                query: {
+                    userId,
+                    projectId,
+                    eventType:
+                        NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
         if (monitorStateChangedNotificationEvent.toNumber() === 0) {
-
             const item = new UserNotificationSetting();
             item.userId = userId;
             item.projectId = projectId;
-            item.eventType = NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;
+            item.eventType =
+                NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;
             item.alertByEmail = true;
 
             await this.create({
                 data: item,
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
 
         // check incident state changed notification
-        const incidentStateChangedNotificationEvent: PositiveNumber = await this.countBy({
-            query: {
-                userId,
-                projectId,
-                eventType: NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION
-            },
-            props: {
-                isRoot: true,
-            }
-        });
+        const incidentStateChangedNotificationEvent: PositiveNumber =
+            await this.countBy({
+                query: {
+                    userId,
+                    projectId,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
         if (incidentStateChangedNotificationEvent.toNumber() === 0) {
-
             const item = new UserNotificationSetting();
             item.userId = userId;
             item.projectId = projectId;
-            item.eventType = NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION;
+            item.eventType =
+                NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION;
             item.alertByEmail = true;
 
             await this.create({
                 data: item,
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
-
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<OnCreate<Model>> {
-        // check if the same event for same user is added. 
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
+        // check if the same event for same user is added.
         if (!createBy.data.projectId) {
-            throw new BadDataException("ProjectId is required for UserNotificationSetting");
+            throw new BadDataException(
+                'ProjectId is required for UserNotificationSetting'
+            );
         }
 
         if (!createBy.data.userId) {
-            throw new BadDataException("UserId is required for UserNotificationSetting");
+            throw new BadDataException(
+                'UserId is required for UserNotificationSetting'
+            );
         }
 
         if (!createBy.data.eventType) {
-            throw new BadDataException("EventType is required for UserNotificationSetting");
+            throw new BadDataException(
+                'EventType is required for UserNotificationSetting'
+            );
         }
 
         const count: PositiveNumber = await this.countBy({
@@ -121,17 +137,19 @@ export class Service extends DatabaseService<Model> {
             },
             props: {
                 isRoot: true,
-            }
-        })
+            },
+        });
 
         if (count.toNumber() > 0) {
-            throw new BadDataException("Notification Setting of the same event type already exists for the user.");
+            throw new BadDataException(
+                'Notification Setting of the same event type already exists for the user.'
+            );
         }
 
         return {
             createBy,
-            carryForward: undefined
-        }
+            carryForward: undefined,
+        };
     }
 }
 

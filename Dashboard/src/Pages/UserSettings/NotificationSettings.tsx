@@ -1,9 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, {
-    FunctionComponent,
-    ReactElement,
-} from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -18,13 +15,9 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
-
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
-
     const getModelTable: Function = (options: {
         eventOptions: Array<NotificationSettingEventType>;
         title: string;
@@ -47,8 +40,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 }}
                 createVerb={'Add'}
                 id="notification-settings"
-                name={`User Settings > Notification Rules > ${options.title
-                    }`}
+                name={`User Settings > Notification Rules > ${options.title}`}
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
@@ -70,14 +62,18 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Select an event type',
-                        dropdownOptions: DropdownUtil.getDropdownOptionsFromArray(options.eventOptions),
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromArray(
+                                options.eventOptions
+                            ),
                     },
                     {
                         field: {
                             alertByEmail: true,
                         },
                         title: 'Alert By Email',
-                        description: 'Select if you want to be alerted by email.',
+                        description:
+                            'Select if you want to be alerted by email.',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
@@ -95,7 +91,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             alertByCall: true,
                         },
                         title: 'Alert By Call',
-                        description: 'Select if you want to be alerted by call.',
+                        description:
+                            'Select if you want to be alerted by call.',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
@@ -156,7 +153,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Notification Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
+                        ] as Route
                     ),
                 },
             ]}
@@ -164,9 +163,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
         >
             <div>
                 {getModelTable({
-                    eventOptions: [NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION, NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION],
-                    title:
-                        'Incident Notifications',
+                    eventOptions: [
+                        NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+                        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+                    ],
+                    title: 'Incident Notifications',
                     description:
                         'Here are the list of notification methods we will use when an event happens on an incident.',
                 })}
@@ -174,36 +177,44 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
             <div>
                 {getModelTable({
-                    eventOptions: [NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION, NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION],
-                    title:
-                        'Monitor Notifications',
+                    eventOptions: [
+                        NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+                        NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+                    ],
+                    title: 'Monitor Notifications',
                     description:
                         'Here are the list of notification methods we will use when an event happens on a monitor.',
                 })}
             </div>
 
-
             <div>
                 {getModelTable({
-                    eventOptions: [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION, NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION],
-                    title:
-                        'Status Page Notifications',
+                    eventOptions: [
+                        NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
+                        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+                    ],
+                    title: 'Status Page Notifications',
                     description:
                         'Here are the list of notification methods we will use when an event happens on a status page.',
                 })}
             </div>
 
-
             <div>
                 {getModelTable({
-                    eventOptions: [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION, NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION, NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION],
-                    title:
-                        'Scheduled Maintenance Notifications',
+                    eventOptions: [
+                        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
+                        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
+                    ],
+                    title: 'Scheduled Maintenance Notifications',
                     description:
                         'Here are the list of notification methods we will use when an event happens on an incident.',
                 })}
             </div>
-
         </Page>
     );
 };

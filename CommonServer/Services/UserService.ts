@@ -124,7 +124,10 @@ export class Service extends DatabaseService<Model> {
                         user.email!
                     );
 
-                    await UserNotificationSettingService.addDefaultNotificationSettingsForUser(user.id!, member.projectId!);
+                    await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+                        user.id!,
+                        member.projectId!
+                    );
                 }
             }
         }
