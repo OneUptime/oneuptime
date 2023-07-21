@@ -191,7 +191,7 @@ RunCron(
 
                 const callMessage: CallRequestMessage = {
                     data: [{
-                        sayMessage: `This is a message from OneUptime. You have been added as the owner of the incident: ${incident.title}. To unsubscribe go to User Settings in OneUptime Dashboard.`,
+                        sayMessage: `This is a message from OneUptime. You have been added as the owner of the incident: ${incident.title}. To unsubscribe go to User Settings in OneUptime Dashboard.  Good bye.`,
                     }]
                 }
 

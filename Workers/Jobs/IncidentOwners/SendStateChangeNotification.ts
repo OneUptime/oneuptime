@@ -1,9 +1,7 @@
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
-import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from 'CommonServer/Utils/Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import Incident from 'Model/Models/Incident';
 import IncidentService from 'CommonServer/Services/IncidentService';
@@ -14,6 +12,11 @@ import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
 import IncidentState from 'Model/Models/IncidentState';
 import OneUptimeDate from 'Common/Types/Date';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
 RunCron(
     'IncidentOwner:SendStateChangeEmail',
@@ -127,15 +130,33 @@ RunCron(
             }
 
             for (const user of owners) {
-                MailService.sendMail({
-                    toEmail: user.email!,
+
+                const emailMessage: EmailEnvelope = {
                     templateType: EmailTemplateType.IncidentOwnerStateChanged,
                     vars: vars,
                     subject:
                         'Incident state changed to - ' + incidentState!.name!,
-                }).catch((err: Error) => {
-                    logger.error(err);
-                });
+                };
+
+                const sms: SMSMessage = {
+                    message: `This is a message from OneUptime. Incident: ${incident.title} - state changed to ${incidentState!.name!}. To unsubscribe go to User Settings in OneUptime Dashboard.`,
+                }
+
+                const callMessage: CallRequestMessage = {
+                    data: [{
+                        sayMessage: `This is a message from OneUptime. Incident ${incident.title}       state changed to ${incidentState!.name!}. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
+                    }]
+                }
+
+
+                await UserNotificationSettingService.sendUserNotification({
+                    userId: user.id!,
+                    projectId: incidentStateTimeline.projectId!,
+                    emailEnvelope: emailMessage,
+                    smsMessage: sms,
+                    callRequestMessage: callMessage,
+                    eventType: NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+                })
             }
         }
     }
