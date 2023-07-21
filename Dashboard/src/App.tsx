@@ -2098,8 +2098,7 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .USER_SETTINGS_ON_CALL_LOGS_TIMELINE
+                                    PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
                                 ] as Route
                             }
                         />

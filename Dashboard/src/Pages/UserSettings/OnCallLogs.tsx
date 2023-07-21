@@ -50,9 +50,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Notification Logs',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.USER_SETTINGS_ON_CALL_LOGS
-                        ] as Route
+                        RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route
                     ),
                 },
             ]}

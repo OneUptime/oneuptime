@@ -75,9 +75,9 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (
-            Object.keys(
-                userOnCallLog.executedNotificationRules || {}
-            ).includes(userNotificationRuleId.toString())
+            Object.keys(userOnCallLog.executedNotificationRules || {}).includes(
+                userNotificationRuleId.toString()
+            )
         ) {
             // already executed.
             return;
@@ -437,9 +437,7 @@ export class Service extends DatabaseService<Model> {
                         HttpProtocol,
                         Domain,
                         new Route(DashboardApiRoute.toString())
-                            .addRoute(
-                                new UserOnCallLogTimeline().crudApiPath!
-                            )
+                            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                             .addRoute(
                                 '/call/gather-input/' +
                                     userNotificationLogTimelineId.toString()
@@ -537,15 +535,13 @@ export class Service extends DatabaseService<Model> {
         }
     ): Promise<void> {
         // add user notification log.
-        const userOnCallLog: UserOnCallLog =
-            new UserOnCallLog();
+        const userOnCallLog: UserOnCallLog = new UserOnCallLog();
 
         userOnCallLog.userId = userId;
         userOnCallLog.projectId = options.projectId;
 
         if (options.triggeredByIncidentId) {
-            userOnCallLog.triggeredByIncidentId =
-                options.triggeredByIncidentId;
+            userOnCallLog.triggeredByIncidentId = options.triggeredByIncidentId;
         }
 
         userOnCallLog.userNotificationEventType =
@@ -571,8 +567,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (options.userBelongsToTeamId) {
-            userOnCallLog.userBelongsToTeamId =
-                options.userBelongsToTeamId;
+            userOnCallLog.userBelongsToTeamId = options.userBelongsToTeamId;
         }
 
         userOnCallLog.status = UserNotificationExecutionStatus.Scheduled;
