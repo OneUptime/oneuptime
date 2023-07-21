@@ -332,11 +332,11 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.USER_SETTINGS_ON_CALL_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs`
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-logs`
     ),
 
     [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-logs/${RouteParams.ModelID}`
     ),
 
     // Settings Routes
