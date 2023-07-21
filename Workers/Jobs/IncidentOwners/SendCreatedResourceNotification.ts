@@ -8,9 +8,9 @@ import IncidentService from 'CommonServer/Services/IncidentService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Markdown from 'CommonServer/Types/Markdown';
-import  { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
-import  { SMSMessage } from 'Common/Types/SMS/SMS';
-import {  CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
 import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
@@ -98,7 +98,6 @@ RunCron(
             }
 
             for (const user of owners) {
-
                 const emailMessage: EmailEnvelope = {
                     templateType:
                         EmailTemplateType.IncidentOwnerResourceCreated,
@@ -108,14 +107,15 @@ RunCron(
 
                 const sms: SMSMessage = {
                     message: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe go to User Settings in OneUptime Dashboard.`,
-                }
+                };
 
                 const callMessage: CallRequestMessage = {
-                    data: [{
-                        sayMessage: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
-                    }]
-                }
-
+                    data: [
+                        {
+                            sayMessage: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
+                        },
+                    ],
+                };
 
                 await UserNotificationSettingService.sendUserNotification({
                     userId: user.id!,
@@ -123,8 +123,9 @@ RunCron(
                     emailEnvelope: emailMessage,
                     smsMessage: sms,
                     callRequestMessage: callMessage,
-                    eventType: NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-                })
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+                });
             }
         }
     }

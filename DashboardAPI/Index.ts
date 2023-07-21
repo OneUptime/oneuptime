@@ -300,8 +300,6 @@ import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
 
-
-
 import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
 import OnCallDutyPolicyExecutionLogTimelineService, {
     Service as OnCallDutyPolicyExecutionLogTimelineServiceType,
@@ -728,7 +726,10 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<EmailLog, EmailLogServiceType>(EmailLog, EmailLogService).getRouter()
+    new BaseAPI<EmailLog, EmailLogServiceType>(
+        EmailLog,
+        EmailLogService
+    ).getRouter()
 );
 
 app.use(

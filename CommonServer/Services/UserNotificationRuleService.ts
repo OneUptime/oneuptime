@@ -462,8 +462,7 @@ export class Service extends DatabaseService<Model> {
                 new Route(DashboardApiRoute.toString())
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                     .addRoute(
-                        '/acknowledge/' +
-                            userOnCallLogTimelineId.toString()
+                        '/acknowledge/' + userOnCallLogTimelineId.toString()
                     )
             )
         );
@@ -505,8 +504,7 @@ export class Service extends DatabaseService<Model> {
                 new Route(DashboardApiRoute.toString())
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                     .addRoute(
-                        '/acknowledge/' +
-                            userOnCallLogTimelineId.toString()
+                        '/acknowledge/' + userOnCallLogTimelineId.toString()
                     )
             ).toString(),
         };

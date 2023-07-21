@@ -20,57 +20,69 @@ import SmsService from './SmsService';
 import UserSmsService from './UserSmsService';
 import UserCallService from './UserCallService';
 import CallService from './CallService';
+import UserCall from 'Model/Models/UserCall';
 
 export class Service extends DatabaseService<UserNotificationSetting> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(UserNotificationSetting, postgresDatabase);
     }
 
-
-    public async sendUserNotification(data: {userId: ObjectID, projectId: ObjectID, eventType: NotificationSettingEventType, emailEnvelope: EmailEnvelope, smsMessage: SMSMessage, callRequestMessage: CallRequestMessage}): Promise<void> {
-        const notificationSettings: UserNotificationSetting | null = await this.findOneBy({
-            query: {
-                userId: data.userId,
-                projectId: data.projectId,
-                eventType: data.eventType,
-            },
-            select: {
-                alertByEmail: true,
-                alertBySMS: true,
-                alertByCall: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
+    public async sendUserNotification(data: {
+        userId: ObjectID;
+        projectId: ObjectID;
+        eventType: NotificationSettingEventType;
+        emailEnvelope: EmailEnvelope;
+        smsMessage: SMSMessage;
+        callRequestMessage: CallRequestMessage;
+    }): Promise<void> {
+        const notificationSettings: UserNotificationSetting | null =
+            await this.findOneBy({
+                query: {
+                    userId: data.userId,
+                    projectId: data.projectId,
+                    eventType: data.eventType,
+                },
+                select: {
+                    alertByEmail: true,
+                    alertBySMS: true,
+                    alertByCall: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
         if (notificationSettings) {
             if (notificationSettings.alertByEmail) {
-
-                // get all the emails of the user. 
-                const userEmails: Array<UserEmail> = await UserEmailService.findBy({
-                    query: {
-                        userId: data.userId,
-                        projectId:  data.projectId,
-                        isVerified: true,
-                    },
-                    select: {
-                        email: true,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    props: {
-                        isRoot: true,
-                    }
-                });
+                // get all the emails of the user.
+                const userEmails: Array<UserEmail> =
+                    await UserEmailService.findBy({
+                        query: {
+                            userId: data.userId,
+                            projectId: data.projectId,
+                            isVerified: true,
+                        },
+                        select: {
+                            email: true,
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
                 for (const userEmail of userEmails) {
-                    MailService.sendMail({
-                        ...data.email,
-                        toEmail: userEmail.email!,
-                    }, undefined, {
-                        projectId: data.projectId,
-                    }).catch((err: Error) => {
+                    MailService.sendMail(
+                        {
+                            ...data.email,
+                            toEmail: userEmail.email!,
+                        },
+                        undefined,
+                        {
+                            projectId: data.projectId,
+                        }
+                    ).catch((err: Error) => {
                         logger.error(err);
                     });
                 }
@@ -79,7 +91,6 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             if (notificationSettings.alertBySMS) {
                 const userSmses: Array<UserSMS> = await UserSmsService.findBy({
                     query: {
-
                         userId: data.userId,
                         projectId: data.projectId,
                         isVerified: true,
@@ -91,49 +102,56 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                     skip: 0,
                     props: {
                         isRoot: true,
-                    }
+                    },
                 });
 
                 for (const userSms of userSmses) {
-                    SmsService.sendSms({
-                        ...data.sms,
-                        to: userSms.phone!,
-                    }, {
-                        projectId: data.projectId,
-                    }).catch((err: Error) => {
+                    SmsService.sendSms(
+                        {
+                            ...data.sms,
+                            to: userSms.phone!,
+                        },
+                        {
+                            projectId: data.projectId,
+                        }
+                    ).catch((err: Error) => {
                         logger.error(err);
                     });
                 }
             }
 
             if (notificationSettings.alertByCall) {
-                const userCalls = await UserCallService.findBy({
-                    query: {
-                        userId: data.userId,
-                        projectId: data.projectId,
-                        isVerified: true,
-                    },
-                    select: {
-                        phone: true,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    props: {
-                        isRoot: true,
+                const userCalls: Array<UserCall> = await UserCallService.findBy(
+                    {
+                        query: {
+                            userId: data.userId,
+                            projectId: data.projectId,
+                            isVerified: true,
+                        },
+                        select: {
+                            phone: true,
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        props: {
+                            isRoot: true,
+                        },
                     }
-                });
+                );
 
                 for (const userCall of userCalls) {
-                    CallService.makeCall({
-                        ...data.call,
-                        to: userCall.phone!,
-                    }, {
-                        projectId: data.projectId,
-                    }).catch((err: Error) => {
+                    CallService.makeCall(
+                        {
+                            ...data.call,
+                            to: userCall.phone!,
+                        },
+                        {
+                            projectId: data.projectId,
+                        }
+                    ).catch((err: Error) => {
                         logger.error(err);
                     });
                 }
-
             }
         }
     }

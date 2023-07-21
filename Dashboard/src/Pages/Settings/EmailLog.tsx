@@ -88,7 +88,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
         },
     ];
 
-  
     return (
         <Page
             title={'Project Settings'}
@@ -132,7 +131,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                     }}
                     actionButtons={[
                         {
-                            title: 'View Email Text',
+                            title: 'View Subject',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (

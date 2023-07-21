@@ -41,8 +41,7 @@ export default class MailService {
         }
 
         if (options?.projectId) {
-            body['projectId'] =
-                options.projectId.toString();
+            body['projectId'] = options.projectId.toString();
         }
 
         return await API.post<EmptyResponseData>(

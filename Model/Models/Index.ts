@@ -209,6 +209,4 @@ export default [
     DataMigration,
 
     ShortLink,
-
-
 ];

@@ -1,9 +1,7 @@
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
-import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from 'CommonServer/Utils/Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
@@ -15,6 +13,11 @@ import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwnerUser';
 import ScheduledMaintenanceOwnerUserService from 'CommonServer/Services/ScheduledMaintenanceOwnerUserService';
 import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
 RunCron(
     'ScheduledMaintenanceOwner:SendOwnerAddedEmail',
@@ -196,15 +199,34 @@ RunCron(
             };
 
             for (const user of users) {
-                MailService.sendMail({
-                    toEmail: user.email!,
+                const emailMessage: EmailEnvelope = {
                     templateType:
                         EmailTemplateType.ScheduledMaintenanceOwnerAdded,
                     vars: vars,
                     subject:
-                        'You have been added as the owner of the scheduledMaintenance.',
-                }).catch((err: Error) => {
-                    logger.error(err);
+                        'You have been added as the owner of the scheduled maintenance event.',
+                };
+
+                const sms: SMSMessage = {
+                    message: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenance.title}. To view this event, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard.`,
+                };
+
+                const callMessage: CallRequestMessage = {
+                    data: [
+                        {
+                            sayMessage: `This is a message from OneUptime.You have been added as the owner of the scheduled maintenance event ${scheduledMaintenance.title}. To view this event, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
+                        },
+                    ],
+                };
+
+                await UserNotificationSettingService.sendUserNotification({
+                    userId: user.id!,
+                    projectId: scheduledMaintenance.projectId!,
+                    emailEnvelope: emailMessage,
+                    smsMessage: sms,
+                    callRequestMessage: callMessage,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
                 });
             }
         }

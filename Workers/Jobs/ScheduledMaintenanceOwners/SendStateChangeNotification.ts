@@ -1,9 +1,7 @@
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
-import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from 'CommonServer/Utils/Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
@@ -14,6 +12,11 @@ import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenance
 import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import OneUptimeDate from 'Common/Types/Date';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
 RunCron(
     'ScheduledMaintenanceOwner:SendStateChangeEmail',
@@ -110,16 +113,41 @@ RunCron(
             }
 
             for (const user of owners) {
-                MailService.sendMail({
-                    toEmail: user.email!,
+                const emailMessage: EmailEnvelope = {
                     templateType:
                         EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
                     vars: vars,
                     subject:
                         'Scheduled maintenance event state changed to - ' +
                         scheduledMaintenanceState!.name!,
-                }).catch((err: Error) => {
-                    logger.error(err);
+                };
+
+                const sms: SMSMessage = {
+                    message: `This is a message from OneUptime. Scheduled maintenance event - ${
+                        scheduledMaintenance.title
+                    }, state changed to ${scheduledMaintenanceState!
+                        .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard.`,
+                };
+
+                const callMessage: CallRequestMessage = {
+                    data: [
+                        {
+                            sayMessage: `This is a message from OneUptime. Scheduled maintenance event ${
+                                scheduledMaintenance.title
+                            } state changed to ${scheduledMaintenanceState!
+                                .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
+                        },
+                    ],
+                };
+
+                await UserNotificationSettingService.sendUserNotification({
+                    userId: user.id!,
+                    projectId: scheduledMaintenanceStateTimeline.projectId!,
+                    emailEnvelope: emailMessage,
+                    smsMessage: sms,
+                    callRequestMessage: callMessage,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
                 });
             }
         }

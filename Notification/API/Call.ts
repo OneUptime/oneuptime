@@ -24,8 +24,7 @@ router.post(
             from: body['from'] as Phone,
             isSensitive: (body['isSensitive'] as boolean) || false,
             userOnCallLogTimelineId:
-                (body['userOnCallLogTimelineId'] as ObjectID) ||
-                undefined,
+                (body['userOnCallLogTimelineId'] as ObjectID) || undefined,
         });
 
         return Response.sendEmptyResponse(req, res);

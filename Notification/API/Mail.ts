@@ -37,8 +37,7 @@ router.post(
 
         await MailService.send(mail, mailServer, {
             userOnCallLogTimelineId:
-                (body['userOnCallLogTimelineId'] as ObjectID) ||
-                undefined,
+                (body['userOnCallLogTimelineId'] as ObjectID) || undefined,
         });
 
         return Response.sendEmptyResponse(req, res);
