@@ -10,6 +10,7 @@ import Link from 'Common/Types/Link';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
+
     let subItemMenuLink: Link | undefined = undefined;
 
     if (
@@ -36,6 +37,17 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Bell}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Notification Settings',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.Settings}
                 />
                 <SideMenuItem
                     link={{

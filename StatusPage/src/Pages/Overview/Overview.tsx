@@ -550,6 +550,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         (announcement: StatusPageAnnouncement, i: number) => {
                             return (
                                 <EventItem
+                                    isDetailItem={false}
                                     key={i}
                                     {...getAnnouncementEventItem(
                                         announcement,
@@ -567,6 +568,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         (incidentGroup: IncidentGroup, i: number) => {
                             return (
                                 <EventItem
+                                    isDetailItem={false}
                                     key={i}
                                     {...getIncidentEventItem(
                                         incidentGroup.incident,
@@ -591,6 +593,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             return (
                                 <EventItem
                                     key={i}
+                                    isDetailItem={false}
                                     {...getScheduledEventEventItem(
                                         scheduledEventGroup.scheduledMaintenance,
                                         scheduledEventGroup.publicNotes,

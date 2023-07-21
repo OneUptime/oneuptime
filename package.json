@@ -50,7 +50,7 @@
         "logs": "export $(grep -v '^#' config.env | xargs) && docker compose logs --tail=100 -f $npm_config_services",
         "write-logs": "export $(grep -v '^#' config.env | xargs) && docker compose logs -f $npm_config_services > logs.txt",
         "build": "docker compose build -f docker-compose.dev.yml $npm_config_services",
-        "force-build": "export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml build  --no-cache $npm_config_services",
+        "force-build": "export $(grep -v '^#' config.env | xargs) && npm run prerun && docker compose -f docker-compose.dev.yml build  --no-cache $npm_config_services",
         "force-build-dev": "npm run config-to-dev && npm run force-build",
         "kill": "npm run stop",
         "prod": "npm run config-to-prod && export $(grep -v '^#' config.env | xargs) && docker compose up -f docker-compose.yml -d",

@@ -73,6 +73,7 @@ EXPOSE 3003
 
 
 {{ if eq .Env.ENVIRONMENT "development" }}
+RUN printenv > /usr/src/app/.env
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}

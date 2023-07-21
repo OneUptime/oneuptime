@@ -70,6 +70,7 @@ EXPOSE 3009
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+RUN printenv > /usr/src/app/.env
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
