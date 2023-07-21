@@ -102,8 +102,8 @@ import CallLog from './CallLog';
 
 // User Notification Rules
 import UserNotificationRule from './UserNotificationRule';
-import UserNotificationLog from './UserNotificationLog';
-import UserNotificationLogTimeline from './UserNotificationLogTimeline';
+import UserOnCallLog from './UserOnCallLog';
+import UserOnCallLogTimeline from './UserOnCallLogTimeline';
 import UserNotificationSetting from './UserNotificationSetting';
 
 // Date migration
@@ -200,8 +200,8 @@ export default [
     UserCall,
 
     UserNotificationRule,
-    UserNotificationLog,
-    UserNotificationLogTimeline,
+    UserOnCallLog,
+    UserOnCallLogTimeline,
     UserNotificationSetting,
 
     DataMigration,

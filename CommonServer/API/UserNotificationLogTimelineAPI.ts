@@ -1,7 +1,7 @@
-import UserNotificationLogTimeline from 'Model/Models/UserNotificationLogTimeline';
-import UserNotificationLogTimelineService, {
+import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
+import UserOnCallLogTimelineService, {
     Service as UserNotificationLogTimelineServiceType,
-} from '../Services/UserNotificationLogTimelineService';
+} from '../Services/UserOnCallLogTimelineService';
 import BaseAPI from './BaseAPI';
 import {
     ExpressRequest,
@@ -19,11 +19,11 @@ import { DashboardRoute, Domain, HttpProtocol } from '../Config';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
-    UserNotificationLogTimeline,
+    UserOnCallLogTimeline,
     UserNotificationLogTimelineServiceType
 > {
     public constructor() {
-        super(UserNotificationLogTimeline, UserNotificationLogTimelineService);
+        super(UserOnCallLogTimeline, UserOnCallLogTimelineService);
 
         this.router.post(
             `${new this.entityType()
@@ -45,7 +45,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
                 const itemId: ObjectID = new ObjectID(req.params['itemId']);
 
-                const timelineItem: UserNotificationLogTimeline | null =
+                const timelineItem: UserOnCallLogTimeline | null =
                     await this.service.findOneById({
                         id: itemId,
                         select: {
@@ -109,7 +109,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
                 const itemId: ObjectID = new ObjectID(req.params['itemId']);
 
-                const timelineItem: UserNotificationLogTimeline | null =
+                const timelineItem: UserOnCallLogTimeline | null =
                     await this.service.findOneById({
                         id: itemId,
                         select: {

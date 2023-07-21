@@ -21,7 +21,7 @@ import { CallInstance } from 'twilio/lib/rest/api/v2010/account/call';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class CallService {
@@ -263,7 +263,7 @@ export default class CallService {
         }
 
         if (options.userNotificationLogTimelineId) {
-            await UserNotificationLogTimelineService.updateOneById({
+            await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status:
                         callLog.status === CallStatus.Success

@@ -4,8 +4,8 @@ import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
-import UserNotificationLog from 'Model/Models/UserNotificationLog';
-import UserNotificationLogService from 'CommonServer/Services/UserNotificationLogService';
+import UserOnCallLog from 'Model/Models/UserOnCallLog';
+import UserOnCallLogService from 'CommonServer/Services/UserOnCallLogService';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 
 /**
@@ -13,7 +13,7 @@ import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserN
  */
 
 RunCron(
-    'UserNotificationLog:TimeoutStuckExecutions',
+    'UserOnCallLog:TimeoutStuckExecutions',
     {
         schedule: IsDevelopment ? EVERY_MINUTE : EVERY_MINUTE,
         runOnStartup: false,
@@ -22,8 +22,8 @@ RunCron(
         // get all pending on call executions and execute them all at once.
         const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
-        const stuckExecutions: Array<UserNotificationLog> =
-            await UserNotificationLogService.findBy({
+        const stuckExecutions: Array<UserOnCallLog> =
+            await UserOnCallLogService.findBy({
                 query: {
                     status: UserNotificationExecutionStatus.Started,
                     createdAt: QueryHelper.lessThan(fiveMinsAgo),
@@ -40,7 +40,7 @@ RunCron(
             });
 
         for (const executionLog of stuckExecutions) {
-            await UserNotificationLogService.updateOneById({
+            await UserOnCallLogService.updateOneById({
                 id: executionLog.id!,
                 data: {
                     status: UserNotificationExecutionStatus.Error,

@@ -17,7 +17,7 @@ import { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
 import TwilioUtil from '../Utils/Twilio';
-import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class SmsService {
@@ -253,7 +253,7 @@ export default class SmsService {
         }
 
         if (options.userNotificationLogTimelineId) {
-            await UserNotificationLogTimelineService.updateOneById({
+            await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status:
                         smsLog.status === SmsStatus.Success

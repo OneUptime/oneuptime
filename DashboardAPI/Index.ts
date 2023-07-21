@@ -332,10 +332,10 @@ import OnCallDutyPolicyCustomFieldService, {
 
 import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserNotificationLogTimelineAPI';
 
-import UserNotificationLog from 'Model/Models/UserNotificationLog';
-import UserNotificationLogService, {
+import UserOnCallLog from 'Model/Models/UserOnCallLog';
+import UserOnCallLogService, {
     Service as UserNotificationLogServiceType,
-} from 'CommonServer/Services/UserNotificationLogService';
+} from 'CommonServer/Services/UserOnCallLogService';
 
 import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
 import UserNotificationSettingService, {
@@ -665,9 +665,9 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<UserNotificationLog, UserNotificationLogServiceType>(
-        UserNotificationLog,
-        UserNotificationLogService
+    new BaseAPI<UserOnCallLog, UserNotificationLogServiceType>(
+        UserOnCallLog,
+        UserOnCallLogService
     ).getRouter()
 );
 

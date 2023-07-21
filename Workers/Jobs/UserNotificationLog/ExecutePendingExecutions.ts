@@ -1,8 +1,8 @@
 import { IsDevelopment } from 'CommonServer/Config';
 import RunCron from '../../Utils/Cron';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
-import UserNotificationLog from 'Model/Models/UserNotificationLog';
-import UserNotificationLogService from 'CommonServer/Services/UserNotificationLogService';
+import UserOnCallLog from 'Model/Models/UserOnCallLog';
+import UserOnCallLogService from 'CommonServer/Services/UserOnCallLogService';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 import logger from 'CommonServer/Utils/Logger';
@@ -14,14 +14,14 @@ import Incident from 'Model/Models/Incident';
 import IncidentService from 'CommonServer/Services/IncidentService';
 
 RunCron(
-    'UserNotificationLog:ExecutePendingExecutions',
+    'UserOnCallLog:ExecutePendingExecutions',
     {
         schedule: IsDevelopment ? EVERY_MINUTE : EVERY_MINUTE,
         runOnStartup: false,
     },
     async () => {
-        const pendingNotiifcationLogs: Array<UserNotificationLog> =
-            await UserNotificationLogService.findBy({
+        const pendingNotiifcationLogs: Array<UserOnCallLog> =
+            await UserOnCallLogService.findBy({
                 query: {
                     status: UserNotificationExecutionStatus.Executing,
                 },
@@ -59,11 +59,11 @@ RunCron(
 );
 
 const executePendingNotificationLog: Function = async (
-    pendingNotificationLog: UserNotificationLog
+    pendingNotificationLog: UserOnCallLog
 ): Promise<void> => {
     try {
         const ruleType: NotificationRuleType =
-            UserNotificationLogService.getNotificationRuleType(
+            UserOnCallLogService.getNotificationRuleType(
                 pendingNotificationLog.userNotificationEventType!
             );
 
@@ -149,7 +149,7 @@ const executePendingNotificationLog: Function = async (
 
         if (isAllExecuted) {
             // mark this log as complete.
-            await UserNotificationLogService.updateOneById({
+            await UserOnCallLogService.updateOneById({
                 id: pendingNotificationLog.id!,
                 data: {
                     status: UserNotificationExecutionStatus.Completed,
@@ -165,7 +165,7 @@ const executePendingNotificationLog: Function = async (
             err
         );
 
-        await UserNotificationLogService.updateOneById({
+        await UserOnCallLogService.updateOneById({
             id: pendingNotificationLog.id!,
             data: {
                 status: UserNotificationExecutionStatus.Error,

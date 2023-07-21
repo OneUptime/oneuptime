@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/UserNotificationLog';
+import Model from 'Model/Models/UserOnCallLog';
 import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import UserNotificationRuleService from './UserNotificationRuleService';

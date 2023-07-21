@@ -14,7 +14,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
 
     if (
         Navigation.isOnThisPage(
-            RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE]!
+            RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]!
         )
     ) {
         subItemMenuLink = {
@@ -63,10 +63,10 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Logs">
                 <SideMenuItem
                     link={{
-                        title: 'Notification Logs',
+                        title: 'On Call Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                                PageMap.USER_SETTINGS_ON_CALL_LOGS
                             ] as Route
                         ),
                     }}

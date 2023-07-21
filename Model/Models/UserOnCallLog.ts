@@ -44,16 +44,16 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 })
 @CrudApiEndpoint(new Route('/user-notification-log'))
 @Entity({
-    name: 'UserNotificationLog',
+    name: 'UserOnCallLog',
 })
 @TableMetadata({
-    tableName: 'UserNotificationLog',
+    tableName: 'UserOnCallLog',
     singularName: 'User Notification Log',
     pluralName: 'User Notification Logs',
     icon: IconProp.Logs,
     tableDescription: 'Log events for user notifications',
 })
-export default class UserNotificationLog extends BaseModel {
+export default class UserOnCallLog extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],

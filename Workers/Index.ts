@@ -66,8 +66,8 @@ import './Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions';
 import './Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions';
 
 // User Notifications Log
-import './Jobs/UserNotificationLog/ExecutePendingExecutions';
-import './Jobs/UserNotificationLog/TimeoutStuckExecutions';
+import './Jobs/UserOnCallLog/ExecutePendingExecutions';
+import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
 
 const APP_NAME: string = 'workers';
 

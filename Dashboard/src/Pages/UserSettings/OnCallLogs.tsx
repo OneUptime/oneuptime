@@ -6,7 +6,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import UserNotificationLog from 'Model/Models/UserNotificationLog';
+import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import DashboardNavigation from '../../Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -51,15 +51,15 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Notification Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS
                         ] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<UserNotificationLog>
-                modelType={UserNotificationLog}
+            <ModelTable<UserOnCallLog>
+                modelType={UserOnCallLog}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     userId: User.getUserId()?.toString(),

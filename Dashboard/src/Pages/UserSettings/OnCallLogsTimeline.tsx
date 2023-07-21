@@ -18,7 +18,7 @@ import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
-import UserNotificationLogTimeline from 'Model/Models/UserNotificationLogTimeline';
+import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
 import BaseModel from 'Common/Models/BaseModel';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
@@ -34,8 +34,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
     const getModelTable: Function = (): ReactElement => {
         return (
-            <ModelTable<UserNotificationLogTimeline>
-                modelType={UserNotificationLogTimeline}
+            <ModelTable<UserOnCallLogTimeline>
+                modelType={UserOnCallLogTimeline}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     userNotificationLogId: modelId.toString(),
@@ -101,7 +101,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             return (
                                 <NotificationMethodView
                                     item={item}
-                                    modelType={UserNotificationLogTimeline}
+                                    modelType={UserOnCallLogTimeline}
                                 />
                             );
                         },
@@ -201,7 +201,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Notification Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS
                         ] as Route
                     ),
                 },
@@ -209,7 +209,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Timeline',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
                         ] as Route,
                         {
                             modelId,

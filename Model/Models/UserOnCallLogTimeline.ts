@@ -21,7 +21,7 @@ import Team from './Team';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 import Incident from './Incident';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
-import UserNotificationLog from './UserNotificationLog';
+import UserOnCallLog from './UserOnCallLog';
 import UserNotificationRule from './UserNotificationRule';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
@@ -48,16 +48,16 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 })
 @CrudApiEndpoint(new Route('/user-notification-log-timeline'))
 @Entity({
-    name: 'UserNotifiationLogTimeline',
+    name: 'UserOnCallLogTimeline',
 })
 @TableMetadata({
-    tableName: 'UserNotifiationLogTimeline',
-    singularName: 'User Notification Log Timeline',
-    pluralName: 'User Notification Log Timelines',
+    tableName: 'UserOnCallLogTimeline',
+    singularName: 'User On Call Log Timeline',
+    pluralName: 'User  On Call  Log Timelines',
     icon: IconProp.Logs,
-    tableDescription: 'Timeline events for user notificaiton log.',
+    tableDescription: 'Timeline events for user on call log.',
 })
-export default class UserNotificationLogTimeline extends BaseModel {
+export default class UserOnCallLogTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
@@ -157,14 +157,14 @@ export default class UserNotificationLogTimeline extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'userNotificationLogId',
         type: TableColumnType.Entity,
-        modelType: UserNotificationLog,
+        modelType: UserOnCallLog,
         title: 'User Notification Log',
         description:
             'Relation to User Notification Log Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
-            return UserNotificationLog;
+            return UserOnCallLog;
         },
         {
             eager: false,
@@ -174,7 +174,7 @@ export default class UserNotificationLogTimeline extends BaseModel {
         }
     )
     @JoinColumn({ name: 'userNotificationLogId' })
-    public userNotificationLog?: UserNotificationLog = undefined;
+    public userOnCallLog?: UserOnCallLog = undefined;
 
     @ColumnAccessControl({
         create: [],

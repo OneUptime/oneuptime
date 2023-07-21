@@ -1,9 +1,9 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/UserNotificationLogTimeline';
+import Model from 'Model/Models/UserOnCallLogTimeline';
 import DatabaseService, { OnUpdate } from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import UserNotificationLogService from './UserNotificationLogService';
+import UserOnCallLogService from './UserOnCallLogService';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
 import IncidentService from './IncidentService';
@@ -66,7 +66,7 @@ export class Service extends DatabaseService<Model> {
                     throw new BadDataException('User not found.');
                 }
 
-                await UserNotificationLogService.updateOneById({
+                await UserOnCallLogService.updateOneById({
                     id: item.userNotificationLogId!,
                     data: {
                         acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,

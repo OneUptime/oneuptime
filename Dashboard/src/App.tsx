@@ -154,8 +154,8 @@ import PageComponentProps from './Pages/PageComponentProps';
 
 import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
 import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
-import UserSettingsNotificationLogs from './Pages/UserSettings/NotificationLogs';
-import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/NotificationLogsTimeline';
+import UserSettingsNotificationLogs from './Pages/UserSettings/OnCallLogs';
+import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLogsTimeline';
 import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 
 const App: FunctionComponent = () => {
@@ -2072,7 +2072,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS
                         ]?.toString() || ''
                     }
                     element={
@@ -2080,7 +2080,7 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                                    PageMap.USER_SETTINGS_ON_CALL_LOGS
                                 ] as Route
                             }
                         />
@@ -2090,7 +2090,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
                         ]?.toString() || ''
                     }
                     element={
@@ -2099,7 +2099,7 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap
-                                        .USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                                        .USER_SETTINGS_ON_CALL_LOGS_TIMELINE
                                 ] as Route
                             }
                         />

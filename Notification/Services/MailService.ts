@@ -18,7 +18,7 @@ import { IsDevelopment } from 'CommonServer/Config';
 import { SendGridApiKey } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 import ObjectID from 'Common/Types/ObjectID';
-import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class MailService {
@@ -115,7 +115,7 @@ export default class MailService {
         timelineId: ObjectID
     ): Promise<void> {
         if (timelineId) {
-            await UserNotificationLogTimelineService.updateOneById({
+            await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status: UserNotificationStatus.Sent,
                     statusMessage: 'Email sent successfully',
@@ -256,7 +256,7 @@ export default class MailService {
         } catch (err: any) {
             logger.error(err);
             if (options?.userNotificationLogTimelineId) {
-                await UserNotificationLogTimelineService.updateOneById({
+                await UserOnCallLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
                         statusMessage: err.message || 'Email failed to send',
