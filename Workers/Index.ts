@@ -39,26 +39,26 @@ import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import JobDictonary from './Utils/JobDictionary';
 
 // Monitor Owners
-import './Jobs/MonitorOwners/SendCreatedResourceEmail';
-import './Jobs/MonitorOwners/SendOwnerAddedEmail';
-import './Jobs/MonitorOwners/SendStatusChangeEmail';
+import './Jobs/MonitorOwners/SendCreatedResourceNotification';
+import './Jobs/MonitorOwners/SendOwnerAddedNotification';
+import './Jobs/MonitorOwners/SendStatusChangeNotification';
 
 // Incident Owners
-import './Jobs/IncidentOwners/SendCreatedResourceEmail';
-import './Jobs/IncidentOwners/SendOwnerAddedEmail';
-import './Jobs/IncidentOwners/SendStateChangeEmail';
-import './Jobs/IncidentOwners/SendNotePostedEmail';
+import './Jobs/IncidentOwners/SendCreatedResourceNotification';
+import './Jobs/IncidentOwners/SendOwnerAddedNotifiation';
+import './Jobs/IncidentOwners/SendStateChangeNotification';
+import './Jobs/IncidentOwners/SendNotePostedMNotification';
 
 // Scheduled Event Owners
-import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceEmail';
-import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedEmail';
-import './Jobs/ScheduledMaintenanceOwners/SendStateChangeEmail';
-import './Jobs/ScheduledMaintenanceOwners/SendNotePostedEmail';
+import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification';
+import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification';
+import './Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification';
+import './Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification';
 
 // Status Page Owners
-import './Jobs/StatusPageOwners/SendCreatedResourceEmail';
-import './Jobs/StatusPageOwners/SendOwnerAddedEmail';
-import './Jobs/StatusPageOwners/SendAnnouncementCreatedEmail';
+import './Jobs/StatusPageOwners/SendCreatedResourceNotification';
+import './Jobs/StatusPageOwners/SendOwnerAddedNotification';
+import './Jobs/StatusPageOwners/SendAnnouncementCreatedNotification';
 import RunDatabaseMigrations from './Utils/DataMigration';
 
 // On Call Duty Policy Executions.
