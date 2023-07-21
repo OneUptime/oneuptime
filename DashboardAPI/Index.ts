@@ -330,7 +330,7 @@ import OnCallDutyPolicyCustomFieldService, {
     Service as OnCallDutyPolicyCustomFieldServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
 
-import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserNotificationLogTimelineAPI';
+import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserOnCallLogTimelineAPI';
 
 import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import UserOnCallLogService, {
