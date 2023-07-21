@@ -92,7 +92,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            alertByEmail: true,
+                            alertByCall: true,
                         },
                         title: 'Alert By Call',
                         description: 'Select if you want to be alerted by call.',
@@ -102,14 +102,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={false}
-                selectMoreFields={{
-                    userEmail: {
-                        email: true,
-                    },
-                    userSms: {
-                        phone: true,
-                    },
-                }}
                 columns={[
                     {
                         field: {

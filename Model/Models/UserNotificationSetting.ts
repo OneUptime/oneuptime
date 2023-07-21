@@ -91,7 +91,7 @@ class UserNotificationSetting extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
-        update: [],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         title: 'Rule Type',
@@ -243,10 +243,9 @@ class UserNotificationSetting extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
-
-        update: [],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -257,10 +256,9 @@ class UserNotificationSetting extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
-
-        update: [],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -270,10 +268,9 @@ class UserNotificationSetting extends BaseModel {
     public alertBySMS?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.CurrentUser],
         read: [Permission.CurrentUser],
-
-        update: [],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
