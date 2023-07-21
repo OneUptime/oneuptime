@@ -7,10 +7,43 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import ObjectID from 'Common/Types/ObjectID';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
+import TeamMemberService from './TeamMemberService';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    public async removeDefaultNotificationSettingsForUser(
+        userId: ObjectID,
+        projectId: ObjectID
+    ): Promise<void> {
+        // check if this user is not in the project anymore. 
+        const count: PositiveNumber = await TeamMemberService.countBy({
+            query: {
+                projectId,
+                userId,
+                hasAcceptedInvitation: true
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if(count.toNumber() === 0) {
+            await this.deleteBy({
+                query: {
+                    projectId,
+                    userId
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
     }
 
     public async addDefaultNotificationSettingsForUser(

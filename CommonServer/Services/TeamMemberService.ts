@@ -280,6 +280,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
                 item.projectId!
             );
+            await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(item.userId!, item.projectId!);
         }
 
         return onDelete;
