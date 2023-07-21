@@ -1,6 +1,12 @@
 import Phone from '../Phone';
 
-export default interface SMS {
-    to: Phone;
+
+export  interface SMSMessage {
     message: string;
 }
+
+export default interface SMS extends SMSMessage {
+    to: Phone;
+}
+
+

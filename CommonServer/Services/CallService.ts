@@ -18,7 +18,7 @@ export default class CallService {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
-            userNotificationLogTimelineId?: ObjectID;
+            userOnCallLogTimelineId?: ObjectID;
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -26,8 +26,8 @@ export default class CallService {
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
             isSensitive: options.isSensitive,
-            userNotificationLogTimelineId:
-                options.userNotificationLogTimelineId?.toString(),
+            userOnCallLogTimelineId:
+                options.userOnCallLogTimelineId?.toString(),
         };
 
         return await API.post<EmptyResponseData>(

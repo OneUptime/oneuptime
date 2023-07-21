@@ -205,7 +205,7 @@ export default class MailService {
         emailServer?: EmailServer,
         options?:
             | {
-                  userNotificationLogTimelineId?: ObjectID | undefined;
+                  userOnCallLogTimelineId?: ObjectID | undefined;
               }
             | undefined
     ): Promise<void> {
@@ -234,9 +234,9 @@ export default class MailService {
                 };
 
                 await SendgridMail.send(msg);
-                if (options?.userNotificationLogTimelineId) {
+                if (options?.userOnCallLogTimelineId) {
                     await this.updateUserNotificationLogTimelineAsSent(
-                        options?.userNotificationLogTimelineId
+                        options?.userOnCallLogTimelineId
                     );
                 }
                 return;
@@ -248,20 +248,20 @@ export default class MailService {
 
             await this.transportMail(mail, emailServer);
 
-            if (options?.userNotificationLogTimelineId) {
+            if (options?.userOnCallLogTimelineId) {
                 await this.updateUserNotificationLogTimelineAsSent(
-                    options?.userNotificationLogTimelineId
+                    options?.userOnCallLogTimelineId
                 );
             }
         } catch (err: any) {
             logger.error(err);
-            if (options?.userNotificationLogTimelineId) {
+            if (options?.userOnCallLogTimelineId) {
                 await UserOnCallLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
                         statusMessage: err.message || 'Email failed to send',
                     },
-                    id: options.userNotificationLogTimelineId,
+                    id: options.userOnCallLogTimelineId,
                     props: {
                         isRoot: true,
                     },

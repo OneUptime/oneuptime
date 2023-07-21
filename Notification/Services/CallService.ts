@@ -31,7 +31,7 @@ export default class CallService {
             projectId?: ObjectID | undefined; // project id for sms log
             from: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
-            userNotificationLogTimelineId?: ObjectID | undefined; // user notification log timeline id
+            userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
         TwilioUtil.checkEnvironmentVariables();
@@ -262,7 +262,7 @@ export default class CallService {
             });
         }
 
-        if (options.userNotificationLogTimelineId) {
+        if (options.userOnCallLogTimelineId) {
             await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status:
@@ -271,7 +271,7 @@ export default class CallService {
                             : UserNotificationStatus.Error,
                     statusMessage: callLog.statusMessage!,
                 },
-                id: options.userNotificationLogTimelineId,
+                id: options.userOnCallLogTimelineId,
                 props: {
                     isRoot: true,
                 },

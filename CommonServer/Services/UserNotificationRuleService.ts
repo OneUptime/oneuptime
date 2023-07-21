@@ -240,7 +240,7 @@ export class Service extends DatabaseService<Model> {
                 // send email.
 
                 MailService.sendMail(emailMessage, undefined, {
-                    userNotificationLogTimelineId: updatedLog.id!,
+                    userOnCallLogTimelineId: updatedLog.id!,
                 }).catch(async (err: Error) => {
                     await UserOnCallLogTimelineService.updateOneById({
                         id: updatedLog.id!,
@@ -309,7 +309,7 @@ export class Service extends DatabaseService<Model> {
 
                 SmsService.sendSms(smsMessage, {
                     projectId: incident.projectId,
-                    userNotificationLogTimelineId: updatedLog.id!,
+                    userOnCallLogTimelineId: updatedLog.id!,
                 }).catch(async (err: Error) => {
                     await UserOnCallLogTimelineService.updateOneById({
                         id: updatedLog.id!,
@@ -370,7 +370,7 @@ export class Service extends DatabaseService<Model> {
 
             CallService.makeCall(callRequest, {
                 projectId: incident.projectId,
-                userNotificationLogTimelineId: updatedLog.id!,
+                userOnCallLogTimelineId: updatedLog.id!,
             }).catch(async (err: Error) => {
                 await UserOnCallLogTimelineService.updateOneById({
                     id: updatedLog.id!,
@@ -405,7 +405,7 @@ export class Service extends DatabaseService<Model> {
     public async generateCallTemplateForIncidentCreated(
         to: Phone,
         incident: Incident,
-        userNotificationLogTimelineId: ObjectID
+        userOnCallLogTimelineId: ObjectID
     ): Promise<CallRequest> {
         const callRequest: CallRequest = {
             to: to,
@@ -440,7 +440,7 @@ export class Service extends DatabaseService<Model> {
                             .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                             .addRoute(
                                 '/call/gather-input/' +
-                                    userNotificationLogTimelineId.toString()
+                                    userOnCallLogTimelineId.toString()
                             )
                     ),
                 },
@@ -453,7 +453,7 @@ export class Service extends DatabaseService<Model> {
     public async generateSmsTemplateForIncidentCreated(
         to: Phone,
         incident: Incident,
-        userNotificationLogTimelineId: ObjectID
+        userOnCallLogTimelineId: ObjectID
     ): Promise<SMS> {
         const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
             new URL(
@@ -463,7 +463,7 @@ export class Service extends DatabaseService<Model> {
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                     .addRoute(
                         '/acknowledge/' +
-                            userNotificationLogTimelineId.toString()
+                            userOnCallLogTimelineId.toString()
                     )
             )
         );
@@ -482,7 +482,7 @@ export class Service extends DatabaseService<Model> {
     public async generateEmailTemplateForIncidentCreated(
         to: Email,
         incident: Incident,
-        userNotificationLogTimelineId: ObjectID
+        userOnCallLogTimelineId: ObjectID
     ): Promise<EmailMessage> {
         const vars: Dictionary<string> = {
             incidentTitle: incident.title!,
@@ -506,7 +506,7 @@ export class Service extends DatabaseService<Model> {
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                     .addRoute(
                         '/acknowledge/' +
-                            userNotificationLogTimelineId.toString()
+                            userOnCallLogTimelineId.toString()
                     )
             ).toString(),
         };
