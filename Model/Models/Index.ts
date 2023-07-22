@@ -102,15 +102,16 @@ import CallLog from './CallLog';
 
 // User Notification Rules
 import UserNotificationRule from './UserNotificationRule';
-import UserNotificationLog from './UserNotificationLog';
-import UserNotificationLogTimeline from './UserNotificationLogTimeline';
-import UserResourceOwnerNotification from './UserResourceOwnerNotification';
+import UserOnCallLog from './UserOnCallLog';
+import UserOnCallLogTimeline from './UserOnCallLogTimeline';
+import UserNotificationSetting from './UserNotificationSetting';
 
 // Date migration
 import DataMigration from './DataMigration';
 
 // Short link.
 import ShortLink from './ShortLink';
+import EmailLog from './EmailLog';
 
 export default [
     User,
@@ -194,15 +195,16 @@ export default [
 
     SmsLog,
     CallLog,
+    EmailLog,
 
     UserEmail,
     UserSms,
     UserCall,
 
     UserNotificationRule,
-    UserNotificationLog,
-    UserNotificationLogTimeline,
-    UserResourceOwnerNotification,
+    UserOnCallLog,
+    UserOnCallLogTimeline,
+    UserNotificationSetting,
 
     DataMigration,
 

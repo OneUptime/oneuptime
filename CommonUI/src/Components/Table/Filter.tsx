@@ -243,6 +243,11 @@ const Filter: FunctionComponent<ComponentProps> = (
                                         )}
 
                                         {(column.type === FieldType.Date ||
+                                            column.type === FieldType.Email ||
+                                            column.type === FieldType.Phone ||
+                                            column.type === FieldType.Name ||
+                                            column.type === FieldType.Port ||
+                                            column.type === FieldType.URL ||
                                             column.type ===
                                                 FieldType.DateTime ||
                                             column.type ===

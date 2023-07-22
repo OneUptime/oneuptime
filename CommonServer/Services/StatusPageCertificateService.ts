@@ -5,11 +5,14 @@ import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
 import { HttpProtocol, WorkerHostname } from '../Config';
+import BaseService from './BaseService';
 
-export default class StatusPageCertificateService {
-    public static async add(
-        domain: string
-    ): Promise<HTTPResponse<EmptyResponseData>> {
+export class StatusPageCertificateService extends BaseService {
+    public constructor() {
+        super();
+    }
+
+    public async add(domain: string): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             domain: domain,
         };
@@ -20,7 +23,7 @@ export default class StatusPageCertificateService {
         );
     }
 
-    public static async remove(
+    public async remove(
         domain: string
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -33,7 +36,7 @@ export default class StatusPageCertificateService {
         );
     }
 
-    public static async get(domain: string): Promise<HTTPResponse<JSONObject>> {
+    public async get(domain: string): Promise<HTTPResponse<JSONObject>> {
         const body: JSONObject = {
             domain: domain,
         };
@@ -44,3 +47,5 @@ export default class StatusPageCertificateService {
         );
     }
 }
+
+export default new StatusPageCertificateService();

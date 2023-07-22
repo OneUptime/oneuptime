@@ -1,6 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Monitor';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';
@@ -26,6 +30,7 @@ import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -43,6 +48,30 @@ export class Service extends DatabaseService<Model> {
         }
 
         return onDelete;
+    }
+
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
+        if (
+            onUpdate.updateBy.data.currentMonitorStatusId &&
+            onUpdate.updateBy.props.tenantId
+        ) {
+            await this.changeMonitorStatus(
+                onUpdate.updateBy.props.tenantId as ObjectID,
+                updatedItemIds as Array<ObjectID>,
+                onUpdate.updateBy.data.currentMonitorStatusId as ObjectID,
+                true, // notifyOwners = true
+                'This status was changed when the monitor was updated.',
+                undefined,
+                {
+                    isRoot: true,
+                }
+            );
+        }
+
+        return onUpdate;
     }
 
     protected override async onBeforeCreate(
@@ -349,6 +378,34 @@ export class Service extends DatabaseService<Model> {
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         for (const monitorId of monitorIds) {
+            // get last monitor status timeline.
+            const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+                await MonitorStatusTimelineService.findOneBy({
+                    query: {
+                        monitorId: monitorId,
+                        projectId: projectId,
+                    },
+                    select: {
+                        _id: true,
+                        monitorStatusId: true,
+                    },
+                    sort: {
+                        createdAt: SortOrder.Descending,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+            if (
+                lastMonitorStatusTimeline &&
+                lastMonitorStatusTimeline.monitorStatusId &&
+                lastMonitorStatusTimeline.monitorStatusId.toString() ===
+                    monitorStatusId.toString()
+            ) {
+                continue;
+            }
+
             const statusTimeline: MonitorStatusTimeline =
                 new MonitorStatusTimeline();
 

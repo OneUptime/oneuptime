@@ -49,6 +49,8 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Text from 'Common/Types/Text';
+import logger from '../Utils/Logger';
+import BaseService from './BaseService';
 
 export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 
@@ -72,7 +74,7 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
     carryForward: any;
 }
 
-class DatabaseService<TBaseModel extends BaseModel> {
+class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;
     public entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
@@ -94,10 +96,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
         this._hardDeleteItemsOlderThanDays = v;
     }
 
+    public doNotAllowDelete: boolean = false;
+
     public constructor(
         modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
+        super();
         this.entityType = modelType;
         this.model = new modelType();
         this.modelName = modelType.name;
@@ -105,6 +110,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
+    }
+
+    public setDoNotAllowDelete(doNotAllowDelete: boolean): void {
+        this.doNotAllowDelete = doNotAllowDelete;
     }
 
     public hardDeleteItemsOlderThanInDays(
@@ -521,7 +530,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         projectId: ObjectID,
         triggerType: DatabaseTriggerType
     ): Promise<void> {
-        await API.post(
+        API.post(
             new URL(
                 Protocol.HTTP,
                 WorkflowHostname,
@@ -539,7 +548,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
             }
-        );
+        ).catch((error: Error) => {
+            logger.error(error);
+        });
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
@@ -872,6 +883,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
+            if (this.doNotAllowDelete) {
+                throw new BadDataException('Delete not allowed');
+            }
+
             const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
                 ? { deleteBy, carryForward: [] }
                 : await this.onBeforeDelete(deleteBy);

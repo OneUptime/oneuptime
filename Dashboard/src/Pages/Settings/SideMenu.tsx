@@ -194,6 +194,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Call}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Email Logs',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Email}
+                />
             </SideMenuSection>
             <SideMenuSection title="Advanced">
                 <SideMenuItem

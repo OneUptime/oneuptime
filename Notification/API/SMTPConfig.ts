@@ -38,6 +38,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
                 fromEmail: true,
                 fromName: true,
                 secure: true,
+                projectId: true,
             },
         });
 
@@ -70,6 +71,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
     };
 
     const mailServer: EmailServer = {
+        id: config.id!,
         host: config.hostname!,
         port: config.port!,
         username: config.username!,
@@ -80,7 +82,10 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
     };
 
     try {
-        await MailService.send(mail, mailServer);
+        await MailService.send(mail, {
+            emailServer: mailServer,
+            projectId: config.projectId!,
+        });
     } catch (err) {
         logger.error(err);
         return Response.sendErrorResponse(

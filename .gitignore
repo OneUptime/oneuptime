@@ -83,3 +83,5 @@ Certs/ServerCerts/*.key
 Backups/*.backup
 Backups/*.sql
 Backups/*.tar
+
+.env

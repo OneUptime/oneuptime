@@ -5,7 +5,7 @@ import Schedule from './Schedule';
 import Dictionary from 'Common/Types/Dictionary';
 import ComponentCode from '../ComponentCode';
 import JavaScirptCode from './JavaScript';
-import BaseModelServices from '../../../Services/Index';
+import Services from '../../../Services/Index';
 import BaseModel from 'Common/Models/BaseModel';
 import Text from 'Common/Types/Text';
 import OnCreateBaseModel from './BaseModel/OnCreateBaseModel';
@@ -30,6 +30,7 @@ import ApiPut from './API/Put';
 import Email from './Email';
 import IfElse from './Conditions/IfElse';
 import SlackSendMessageToChannel from './Slack/SendMessageToChannel';
+import DatabaseService from '../../../Services/DatabaseService';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
@@ -49,7 +50,11 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.IfElse]: new IfElse(),
 };
 
-for (const baseModelService of BaseModelServices) {
+for (const baseModelService of Services) {
+    if (!(baseModelService instanceof DatabaseService)) {
+        continue;
+    }
+
     const model: BaseModel = baseModelService.getModel();
 
     if (!model.enableWorkflowOn) {

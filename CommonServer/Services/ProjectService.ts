@@ -49,6 +49,7 @@ import Email from 'Common/Types/Email';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import UserService from './UserService';
 import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSettingService from './UserNotificationSettingService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -645,6 +646,11 @@ export class Service extends DatabaseService<Model> {
                 user.id!,
                 user.email!
             );
+
+            await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+                user.id!,
+                createdItem.id!
+            );
         }
 
         return createdItem;
@@ -812,15 +818,20 @@ export class Service extends DatabaseService<Model> {
         });
 
         for (const email of emails) {
-            MailService.sendMail({
-                toEmail: email,
-                templateType: EmailTemplateType.SimpleMessage,
-                vars: {
+            MailService.sendMail(
+                {
+                    toEmail: email,
+                    templateType: EmailTemplateType.SimpleMessage,
+                    vars: {
+                        subject: subject,
+                        message: message,
+                    },
                     subject: subject,
-                    message: message,
                 },
-                subject: subject,
-            }).catch((err: Error) => {
+                {
+                    projectId,
+                }
+            ).catch((err: Error) => {
                 logger.error(err);
             });
         }

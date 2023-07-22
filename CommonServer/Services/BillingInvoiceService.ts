@@ -1,18 +1,18 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/BillingInvoice';
-import DatabaseService, { OnDelete, OnFind } from './DatabaseService';
+import DatabaseService, { OnFind } from './DatabaseService';
 import FindBy from '../Types/Database/FindBy';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
 import BillingService, { Invoice } from './BillingService';
-import DeleteBy from '../Types/Database/DeleteBy';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+        this.setDoNotAllowDelete(true);
     }
 
     protected override async onBeforeFind(
@@ -86,12 +86,6 @@ export class Service extends DatabaseService<Model> {
         }
 
         return { findBy, carryForward: invoices };
-    }
-
-    protected override async onBeforeDelete(
-        _deleteBy: DeleteBy<Model>
-    ): Promise<OnDelete<Model>> {
-        throw new BadDataException('Invoice should not be deleted.');
     }
 }
 

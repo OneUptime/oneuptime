@@ -21,7 +21,10 @@ export interface GatherInput {
 
 export enum CallAction {}
 
-export default interface CallRequest {
-    to: Phone;
+export interface CallRequestMessage {
     data: Array<Say | CallAction | GatherInput>;
+}
+
+export default interface CallRequest extends CallRequestMessage {
+    to: Phone;
 }

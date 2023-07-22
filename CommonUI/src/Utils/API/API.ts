@@ -123,7 +123,8 @@ class BaseAPI extends API {
 
             return err.message;
         }
-        return 'Server Error. Please try again';
+
+        return err?.toString() || 'Server Error. Please try again';
     }
 }
 

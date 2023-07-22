@@ -21,7 +21,7 @@ import { CallInstance } from 'twilio/lib/rest/api/v2010/account/call';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 
 export default class CallService {
@@ -31,7 +31,7 @@ export default class CallService {
             projectId?: ObjectID | undefined; // project id for sms log
             from: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
-            userNotificationLogTimelineId?: ObjectID | undefined; // user notification log timeline id
+            userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
         TwilioUtil.checkEnvironmentVariables();
@@ -262,8 +262,8 @@ export default class CallService {
             });
         }
 
-        if (options.userNotificationLogTimelineId) {
-            await UserNotificationLogTimelineService.updateOneById({
+        if (options.userOnCallLogTimelineId) {
+            await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status:
                         callLog.status === CallStatus.Success
@@ -271,7 +271,7 @@ export default class CallService {
                             : UserNotificationStatus.Error,
                     statusMessage: callLog.statusMessage!,
                 },
-                id: options.userNotificationLogTimelineId,
+                id: options.userOnCallLogTimelineId,
                 props: {
                     isRoot: true,
                 },

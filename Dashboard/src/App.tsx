@@ -96,6 +96,7 @@ import SettingsBilling from './Pages/Settings/Billing';
 import SettingsSSO from './Pages/Settings/SSO';
 import SettingsSmsLog from './Pages/Settings/SmsLog';
 import SettingsCallLog from './Pages/Settings/CallLog';
+import SettingsEmailLog from './Pages/Settings/EmailLog';
 import SettingsCallSms from './Pages/Settings/CallSms';
 import SettingsInvoices from './Pages/Settings/Invoices';
 import MonitorCustomFields from './Pages/Settings/MonitorCustomFields';
@@ -154,8 +155,9 @@ import PageComponentProps from './Pages/PageComponentProps';
 
 import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
 import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
-import UserSettingsNotificationLogs from './Pages/UserSettings/NotificationLogs';
-import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/NotificationLogsTimeline';
+import UserSettingsNotificationLogs from './Pages/UserSettings/OnCallLogs';
+import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLogsTimeline';
+import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -1482,6 +1484,20 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
+                    path={
+                        RouteMap[PageMap.SETTINGS_EMAIL_LOGS]?.toString() || ''
+                    }
+                    element={
+                        <SettingsEmailLog
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
                     path={RouteMap[PageMap.SETTINGS_CALL_SMS]?.toString() || ''}
                     element={
                         <SettingsCallSms
@@ -2071,7 +2087,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS
                         ]?.toString() || ''
                     }
                     element={
@@ -2079,7 +2095,7 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_LOGS
+                                    PageMap.USER_SETTINGS_ON_CALL_LOGS
                                 ] as Route
                             }
                         />
@@ -2089,7 +2105,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={
                         RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
                         ]?.toString() || ''
                     }
                     element={
@@ -2097,8 +2113,25 @@ const App: FunctionComponent = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE
+                                    PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UserSettingsNotiifcationSetting
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
                                 ] as Route
                             }
                         />

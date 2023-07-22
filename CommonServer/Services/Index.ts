@@ -27,7 +27,7 @@ import StatusPageHeaderLinkService from './StatusPageHeaderLinkService';
 import StatusPagePrivateUserService from './StatusPagePrivateUserService';
 
 // On Call Duty
-import OnCallDutyService from './OnCallDutyPolicyService';
+import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 
 // Monitors
 import MonitorService from './MonitorService';
@@ -70,57 +70,151 @@ import WorkflowLogService from './WorkflowLogService';
 
 // SMS Log Servce
 import SmsLogService from './SmsLogService';
+import CallLogService from './CallLogService';
+import EmailLogService from './EmailLogService';
+import BillingService from './BillingService';
+import AccessTokenService from './AccessTokenService';
+import CallService from './CallService';
+import DataMigrationService from './DataMigrationService';
+import IncidentCustomFieldService from './IncidentCustomFieldService';
+import IncidentOwnerTeamService from './IncidentOwnerTeamService';
+import IncidentOwnerUserService from './IncidentOwnerUserService';
+import MailService from './MailService';
+import MonitorCustomFieldService from './MonitorCustomFieldService';
+import MonitorOwnerTeamService from './MonitorOwnerTeamService';
+import MonitorOwnerUserService from './MonitorOwnerUserService';
+import MonitorProbeService from './MonitorProbeService';
+import NotificationService from './NotificationService';
+import OnCallDutyPolicyCustomFieldService from './OnCallDutyPolicyCustomFieldService';
+import OnCallDutyPolicyEscalationRuleService from './OnCallDutyPolicyEscalationRuleService';
+import OnCallDutyPolicyEscalationRuleTeamService from './OnCallDutyPolicyEscalationRuleTeamService';
+import OnCallDutyPolicyEscalationRuleUserService from './OnCallDutyPolicyEscalationRuleUserService';
+import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
+import OnCallDutyPolicyExecutionLogTimelineService from './OnCallDutyPolicyExecutionLogTimelineService';
+import ProjectSsoService from './ProjectSsoService';
+import ScheduledMaintenanceCustomFieldService from './ScheduledMaintenanceCustomFieldService';
+import ScheduledMaintenanceOwnerTeamService from './ScheduledMaintenanceOwnerTeamService';
+import ScheduledMaintenanceOwnerUserService from './ScheduledMaintenanceOwnerUserService';
+import ShortLinkService from './ShortLinkService';
+import SmsService from './SmsService';
+import StatusPageCertificateService from './StatusPageCertificateService';
+import StatusPageCustomFieldService from './StatusPageCustomFieldService';
+import StatusPageOwnerTeamService from './StatusPageOwnerTeamService';
+import StatusPageOwnerUserService from './StatusPageOwnerUserService';
+import StatusPageSsoService from './StatusPageSsoService';
+import UserCallService from './UserCallService';
+import UserEmailService from './UserEmailService';
+import UserSmsService from './UserSmsService';
+import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSettingService from './UserNotificationSettingService';
+import UserOnCallLogService from './UserOnCallLogService';
+import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
+import BaseService from './BaseService';
 
-export default [
-    UserService,
-    ProbeService,
-    ProjectService,
-    EmailVerificationTokenService,
-    TeamService,
-    TeamMemberService,
-    TeamPermissionService,
-    ApiKeyService,
-    LabelService,
+const services: Array<BaseService> = [
+    // Import all services in current folder here.
+    AccessTokenService,
     ApiKeyPermissionService,
-    ProjectSmtpConfigService,
-    StatusPageService,
-    OnCallDutyService,
-    MonitorService,
-    MonitorStatusService,
-    IncidentStateService,
-    IncidentService,
-    IncidentStateTimelineService,
-    MonitorStatusTimelineService,
-    IncidentPublicNoteService,
-    IncidentInternalNoteService,
-    FileService,
+    ApiKeyService,
+
+    BillingInvoiceService,
+    BillingPaymentMethodsService,
+    BillingService,
+
+    CallLogService,
+    CallService,
+
+    DataMigrationService,
     DomainService,
 
-    StatusPageGroupService,
-    StatusPageDomainService,
-    StatusPageResourceService,
-    IncidentSeverityService,
-    StatusPageAnnouncementService,
-    StatusPageSubscriberService,
-    StatusPageFooterLinkService,
-    StatusPageHeaderLinkService,
-    StatusPagePrivateUserService,
+    EmailLogService,
+    EmailVerificationTokenService,
 
-    ScheduledMaintenanceStateService,
-    ScheduledMaintenanceService,
-    ScheduledMaintenanceStateTimelineService,
-    ScheduledMaintenancePublicNoteService,
-    ScheduledMaintenanceInternalNoteService,
+    FileService,
 
-    BillingPaymentMethodsService,
-    BillingInvoiceService,
-
-    GreenlockChallengeService,
     GreenlockCertificateService,
+    GreenlockChallengeService,
 
+    IncidentCustomFieldService,
+    IncidentInternalNoteService,
+    IncidentOwnerTeamService,
+    IncidentOwnerUserService,
+    IncidentPublicNoteService,
+    IncidentService,
+    IncidentSeverityService,
+    IncidentStateService,
+    IncidentStateTimelineService,
+
+    LabelService,
+
+    MailService,
+    MonitorCustomFieldService,
+    MonitorOwnerTeamService,
+    MonitorOwnerUserService,
+    MonitorProbeService,
+    MonitorService,
+    MonitorStatusService,
+    MonitorStatusTimelineService,
+
+    NotificationService,
+
+    OnCallDutyPolicyCustomFieldService,
+    OnCallDutyPolicyEscalationRuleService,
+    OnCallDutyPolicyEscalationRuleTeamService,
+    OnCallDutyPolicyEscalationRuleUserService,
+    OnCallDutyPolicyExecutionLogService,
+    OnCallDutyPolicyExecutionLogTimelineService,
+    OnCallDutyPolicyService,
+
+    ProjectService,
+    ProjectSmtpConfigService,
+    ProbeService,
+    ProjectSsoService,
+
+    ScheduledMaintenanceCustomFieldService,
+    ScheduledMaintenanceInternalNoteService,
+    ScheduledMaintenanceOwnerTeamService,
+    ScheduledMaintenanceOwnerUserService,
+    ScheduledMaintenancePublicNoteService,
+    ScheduledMaintenanceService,
+    ScheduledMaintenanceStateService,
+    ScheduledMaintenanceStateTimelineService,
+
+    ShortLinkService,
+    SmsLogService,
+    SmsService,
+
+    StatusPageAnnouncementService,
+    StatusPageCertificateService,
+    StatusPageCustomFieldService,
+    StatusPageDomainService,
+    StatusPageFooterLinkService,
+    StatusPageGroupService,
+    StatusPageHeaderLinkService,
+    StatusPageOwnerTeamService,
+    StatusPageOwnerUserService,
+    StatusPagePrivateUserService,
+    StatusPageResourceService,
+    StatusPageService,
+    StatusPageSsoService,
+    StatusPageSubscriberService,
+
+    TeamMemberService,
+    TeamPermissionService,
+    TeamService,
+
+    UserService,
+    UserCallService,
+    UserEmailService,
+    UserNotificationRuleService,
+    UserNotificationSettingService,
+    UserOnCallLogService,
+    UserOnCallLogTimelineService,
+    UserSmsService,
+
+    WorkflowLogService,
     WorkflowService,
     WorkflowVariablesService,
-    WorkflowLogService,
-
-    SmsLogService,
 ];
+
+export default services;

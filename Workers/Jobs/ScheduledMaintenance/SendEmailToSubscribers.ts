@@ -138,6 +138,7 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
+                        projectId: true,
                         smtpConfig: {
                             _id: true,
                             hostname: true,
@@ -230,9 +231,13 @@ RunCron(
                                     statusPageName +
                                     ` - 'New Scheduled Maintenance`,
                             },
-                            ProjectSmtpConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSmtpConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                                projectId: statuspage.projectId!,
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

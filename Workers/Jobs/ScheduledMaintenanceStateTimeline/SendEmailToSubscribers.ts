@@ -169,6 +169,7 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
+                        projectId: true,
                         smtpConfig: {
                             _id: true,
                             hostname: true,
@@ -265,9 +266,13 @@ RunCron(
                                     statusPageName +
                                     ` - Scheduled maintenance state changed to ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}`,
                             },
-                            ProjectSmtpConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSmtpConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                                projectId: statuspage.projectId,
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

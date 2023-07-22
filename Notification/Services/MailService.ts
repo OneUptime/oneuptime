@@ -18,8 +18,11 @@ import { IsDevelopment } from 'CommonServer/Config';
 import { SendGridApiKey } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 import ObjectID from 'Common/Types/ObjectID';
-import UserNotificationLogTimelineService from 'CommonServer/Services/UserNotificationLogTimelineService';
+import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import EmailLog from 'Model/Models/EmailLog';
+import MailStatus from 'Common/Types/Mail/MailStatus';
+import EmailLogService from 'CommonServer/Services/EmailLogService';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -90,6 +93,10 @@ export default class MailService {
         }
 
         return {
+            id:
+                obj && obj['SMTP_ID']
+                    ? new ObjectID(obj['SMTP_ID'].toString())
+                    : undefined,
             username: obj['SMTP_USERNAME']?.toString()!,
             password: obj['SMTP_PASSWORD']?.toString()!,
             host: new Hostname(obj['SMTP_HOST']?.toString()!),
@@ -115,10 +122,11 @@ export default class MailService {
         timelineId: ObjectID
     ): Promise<void> {
         if (timelineId) {
-            await UserNotificationLogTimelineService.updateOneById({
+            await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status: UserNotificationStatus.Sent,
-                    statusMessage: 'Email sent successfully',
+                    statusMessage:
+                        'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.',
                 },
                 id: timelineId,
                 props: {
@@ -189,11 +197,14 @@ export default class MailService {
 
     private static async transportMail(
         mail: EmailMessage,
-        emailServer: EmailServer
+        options: {
+            emailServer: EmailServer;
+            projectId?: ObjectID | undefined;
+        }
     ): Promise<void> {
-        const mailer: Transporter = this.createMailer(emailServer);
+        const mailer: Transporter = this.createMailer(options.emailServer);
         await mailer.sendMail({
-            from: `${emailServer.fromName.toString()} <${emailServer.fromEmail.toString()}>`,
+            from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
             to: mail.toEmail.toString(),
             subject: mail.subject,
             html: mail.body,
@@ -202,13 +213,27 @@ export default class MailService {
 
     public static async send(
         mail: EmailMessage,
-        emailServer?: EmailServer,
         options?:
             | {
-                  userNotificationLogTimelineId?: ObjectID | undefined;
+                  projectId?: ObjectID | undefined;
+                  emailServer?: EmailServer | undefined;
+                  userOnCallLogTimelineId?: ObjectID | undefined;
               }
             | undefined
     ): Promise<void> {
+        let emailLog: EmailLog | undefined = undefined;
+
+        if (options && options.projectId) {
+            emailLog = new EmailLog();
+            emailLog.projectId = options.projectId;
+            emailLog.toEmail = mail.toEmail;
+            emailLog.subject = mail.subject;
+
+            if (options.emailServer?.id) {
+                emailLog.projectSmtpConfigId = options.emailServer?.id;
+            }
+        }
+
         // default vars.
         if (!mail.vars) {
             mail.vars = {};
@@ -223,7 +248,7 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
         try {
-            if (!emailServer && SendGridApiKey) {
+            if ((!options || !options.emailServer) && SendGridApiKey) {
                 SendgridMail.setApiKey(SendGridApiKey);
 
                 const msg: MailDataRequired = {
@@ -233,35 +258,99 @@ export default class MailService {
                     html: mail.body,
                 };
 
+                if (emailLog) {
+                    emailLog.fromEmail = this.getGlobalFromEmail();
+                }
+
                 await SendgridMail.send(msg);
-                if (options?.userNotificationLogTimelineId) {
+
+                if (emailLog) {
+                    emailLog.status = MailStatus.Success;
+                    emailLog.statusMessage =
+                        'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.';
+
+                    await EmailLogService.create({
+                        data: emailLog,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+                }
+
+                if (options?.userOnCallLogTimelineId) {
                     await this.updateUserNotificationLogTimelineAsSent(
-                        options?.userNotificationLogTimelineId
+                        options?.userOnCallLogTimelineId
                     );
                 }
                 return;
             }
 
-            if (!emailServer) {
-                emailServer = this.getGlobalSmtpSettings();
+            if (!options || !options.emailServer) {
+                if (!options) {
+                    options = {};
+                }
+                options.emailServer = this.getGlobalSmtpSettings();
             }
 
-            await this.transportMail(mail, emailServer);
+            if (options.emailServer && emailLog) {
+                emailLog.fromEmail = options.emailServer.fromEmail;
+            }
 
-            if (options?.userNotificationLogTimelineId) {
+            await this.transportMail(mail, {
+                emailServer: options.emailServer,
+                projectId: options.projectId,
+            });
+
+            if (emailLog) {
+                emailLog.status = MailStatus.Success;
+                emailLog.statusMessage =
+                    'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.';
+
+                await EmailLogService.create({
+                    data: emailLog,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+            if (options?.userOnCallLogTimelineId) {
                 await this.updateUserNotificationLogTimelineAsSent(
-                    options?.userNotificationLogTimelineId
+                    options?.userOnCallLogTimelineId
                 );
             }
         } catch (err: any) {
+            let message: string | undefined = err.message;
+
+            if (message === 'Unexpected socket close') {
+                message =
+                    'Email failed to send. Unexpected socket close. This could mean various things, such as your SMTP server is unreachble, username and password is incorrect, your SMTP server is not configured to accept connections from this IP address, or TLS/SSL is not configured correctly, or ports are not configured correctly.';
+            }
+
+            if (!message) {
+                message = 'Email failed to send. Unknown error.';
+            }
+
             logger.error(err);
-            if (options?.userNotificationLogTimelineId) {
-                await UserNotificationLogTimelineService.updateOneById({
+            if (options?.userOnCallLogTimelineId) {
+                await UserOnCallLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
-                        statusMessage: err.message || 'Email failed to send',
+                        statusMessage: message,
                     },
-                    id: options.userNotificationLogTimelineId,
+                    id: options.userOnCallLogTimelineId,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+            if (emailLog) {
+                emailLog.status = MailStatus.Error;
+                emailLog.statusMessage = message;
+
+                await EmailLogService.create({
+                    data: emailLog,
                     props: {
                         isRoot: true,
                     },

@@ -1,4 +1,4 @@
 {
     "watch": ["webpack.config.js"],
-    "exec": "export DEBUG=express:* && webpack-dev-server --port=3003 --mode=development"
+    "exec": "export DEBUG=express:* && printenv > /usr/src/app/dev-env/.env && webpack-dev-server --port=3003 --mode=development"
 }

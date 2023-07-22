@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Incident';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
@@ -25,6 +25,7 @@ import UserService from './UserService';
 import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -363,6 +364,33 @@ export class Service extends DatabaseService<Model> {
         );
     }
 
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
+        if (
+            onUpdate.updateBy.data.currentIncidentStateId &&
+            onUpdate.updateBy.props.tenantId
+        ) {
+            for (const itemId of updatedItemIds) {
+                await this.changeIncidentState(
+                    onUpdate.updateBy.props.tenantId as ObjectID,
+                    itemId,
+                    onUpdate.updateBy.data.currentIncidentStateId as ObjectID,
+                    true,
+                    true, // notifyOwners = true
+                    'This status was changed when the incident was updated.',
+                    undefined,
+                    {
+                        isRoot: true,
+                    }
+                );
+            }
+        }
+
+        return onUpdate;
+    }
+
     public async changeIncidentState(
         projectId: ObjectID,
         incidentId: ObjectID,
@@ -373,6 +401,34 @@ export class Service extends DatabaseService<Model> {
         stateChangeLog: JSONObject | undefined,
         props: DatabaseCommonInteractionProps | undefined
     ): Promise<void> {
+        // get last monitor status timeline.
+        const lastIncidentStatusTimeline: IncidentStateTimeline | null =
+            await IncidentStateTimelineService.findOneBy({
+                query: {
+                    incidentId: incidentId,
+                    projectId: projectId,
+                },
+                select: {
+                    _id: true,
+                    incidentStateId: true,
+                },
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (
+            lastIncidentStatusTimeline &&
+            lastIncidentStatusTimeline.incidentStateId &&
+            lastIncidentStatusTimeline.incidentStateId.toString() ===
+                incidentStateId.toString()
+        ) {
+            return;
+        }
+
         const statusTimeline: IncidentStateTimeline =
             new IncidentStateTimeline();
 

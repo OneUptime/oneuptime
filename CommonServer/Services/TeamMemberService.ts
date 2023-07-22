@@ -32,6 +32,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import TeamMember from 'Model/Models/TeamMember';
 import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSettingService from './UserNotificationSettingService';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -97,20 +98,25 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             });
 
             if (project) {
-                MailService.sendMail({
-                    toEmail: email,
-                    templateType: EmailTemplateType.InviteMember,
-                    vars: {
-                        dashboardUrl: new URL(
-                            HttpProtocol,
-                            Domain,
-                            DashboardRoute
-                        ).toString(),
-                        projectName: project.name!,
-                        homeUrl: new URL(HttpProtocol, Domain).toString(),
+                MailService.sendMail(
+                    {
+                        toEmail: email,
+                        templateType: EmailTemplateType.InviteMember,
+                        vars: {
+                            dashboardUrl: new URL(
+                                HttpProtocol,
+                                Domain,
+                                DashboardRoute
+                            ).toString(),
+                            projectName: project.name!,
+                            homeUrl: new URL(HttpProtocol, Domain).toString(),
+                        },
+                        subject: 'You have been invited to ' + project.name,
                     },
-                    subject: 'You have been invited to ' + project.name,
-                }).catch((err: Error) => {
+                    {
+                        projectId: createBy.data.projectId!,
+                    }
+                ).catch((err: Error) => {
                     logger.error(err);
                 });
             }
@@ -201,6 +207,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 updateBy.data.hasAcceptedInvitation &&
                 item.user?.isEmailVerified
             ) {
+                await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+                    item.userId!,
+                    item.projectId!
+                );
                 await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
                     item.projectId!,
                     item.userId!,
@@ -273,6 +283,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         for (const item of onDelete.carryForward as Array<TeamMember>) {
             await this.refreshTokens(item.userId!, item.projectId!);
             await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+                item.projectId!
+            );
+            await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
+                item.userId!,
                 item.projectId!
             );
         }

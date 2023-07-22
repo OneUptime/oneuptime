@@ -172,6 +172,7 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
+                        projectId: true,
                         smtpConfig: {
                             _id: true,
                             hostname: true,
@@ -266,9 +267,13 @@ RunCron(
                                     ' - Incident state changed to ' +
                                     incidentStateTimeline.incidentState.name,
                             },
-                            ProjectSMTPConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSMTPConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                                projectId: statuspage.projectId,
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

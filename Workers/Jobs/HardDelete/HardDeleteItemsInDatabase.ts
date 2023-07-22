@@ -7,7 +7,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import logger from 'CommonServer/Utils/Logger';
-import { Service as BillingInvoiceServiceType } from 'CommonServer/Services/BillingInvoiceService';
 
 RunCron(
     'HardDelete:HardDeleteItemsInDatabase',
@@ -15,8 +14,8 @@ RunCron(
     async () => {
         for (const service of Services) {
             if (service instanceof DatabaseService) {
-                if (service instanceof BillingInvoiceServiceType) {
-                    // skip invoice service because  invoices should not be deleted.
+                if (service.doNotAllowDelete) {
+                    // marked as do not delete. skip.
                     continue;
                 }
 

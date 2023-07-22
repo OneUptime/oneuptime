@@ -111,32 +111,39 @@ export class Service extends DatabaseService<Model> {
                 onCreate.carryForward.name ||
                 'Status Page';
 
-            MailService.sendMail({
-                toEmail: createdItem.subscriberEmail,
-                templateType: EmailTemplateType.SubscribedToStatusPage,
-                vars: {
-                    statusPageName: statusPageName,
-                    logoUrl: onCreate.carryForward.logoFileId
-                        ? new URL(HttpProtocol, Domain)
-                              .addRoute(FileRoute)
-                              .addRoute(
-                                  '/image/' + onCreate.carryForward.logoFileId
-                              )
-                              .toString()
-                        : '',
-                    statusPageUrl: statusPageURL,
-                    isPublicStatusPage: onCreate.carryForward.isPublicStatusPage
-                        ? 'true'
-                        : 'false',
-                    unsubscribeUrl: new URL(HttpProtocol, Domain)
-                        .addRoute(
-                            '/api/status-page-subscriber/unsubscribe/' +
-                                createdItem._id.toString()
-                        )
-                        .toString(),
+            MailService.sendMail(
+                {
+                    toEmail: createdItem.subscriberEmail,
+                    templateType: EmailTemplateType.SubscribedToStatusPage,
+                    vars: {
+                        statusPageName: statusPageName,
+                        logoUrl: onCreate.carryForward.logoFileId
+                            ? new URL(HttpProtocol, Domain)
+                                  .addRoute(FileRoute)
+                                  .addRoute(
+                                      '/image/' +
+                                          onCreate.carryForward.logoFileId
+                                  )
+                                  .toString()
+                            : '',
+                        statusPageUrl: statusPageURL,
+                        isPublicStatusPage: onCreate.carryForward
+                            .isPublicStatusPage
+                            ? 'true'
+                            : 'false',
+                        unsubscribeUrl: new URL(HttpProtocol, Domain)
+                            .addRoute(
+                                '/api/status-page-subscriber/unsubscribe/' +
+                                    createdItem._id.toString()
+                            )
+                            .toString(),
+                    },
+                    subject: 'You have been subscribed to ' + statusPageName,
                 },
-                subject: 'You have been subscribed to ' + statusPageName,
-            }).catch((err: Error) => {
+                {
+                    projectId: createdItem.projectId,
+                }
+            ).catch((err: Error) => {
                 logger.error(err);
             });
         }
