@@ -220,6 +220,9 @@ export default class MailService {
               }
             | undefined
     ): Promise<void> {
+
+        debugger;
+
         let emailLog: EmailLog | undefined = undefined;
 
         if (options && options.projectId) {

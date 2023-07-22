@@ -133,6 +133,7 @@ RunCron(
                         _id: true,
                         name: true,
                         pageTitle: true,
+                        projectId: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
                         smtpConfig: {
@@ -228,6 +229,7 @@ RunCron(
                                     ProjectSMTPConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
+                                projectId: statuspage.projectId,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);

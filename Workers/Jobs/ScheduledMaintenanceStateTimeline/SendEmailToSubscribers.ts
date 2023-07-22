@@ -169,6 +169,7 @@ RunCron(
                         pageTitle: true,
                         isPublicStatusPage: true,
                         logoFileId: true,
+                        projectId: true,
                         smtpConfig: {
                             _id: true,
                             hostname: true,
@@ -222,12 +223,12 @@ RunCron(
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
                                         ? new URL(HttpProtocol, Domain)
-                                              .addRoute(FileRoute)
-                                              .addRoute(
-                                                  '/image/' +
-                                                      statuspage.logoFileId
-                                              )
-                                              .toString()
+                                            .addRoute(FileRoute)
+                                            .addRoute(
+                                                '/image/' +
+                                                statuspage.logoFileId
+                                            )
+                                            .toString()
                                         : '',
                                     isPublicStatusPage:
                                         statuspage.isPublicStatusPage
@@ -257,7 +258,7 @@ RunCron(
                                     )
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
+                                            subscriber._id.toString()
                                         )
                                         .toString(),
                                 },
@@ -270,6 +271,7 @@ RunCron(
                                     ProjectSmtpConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
+                                projectId: statuspage.projectId,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);
