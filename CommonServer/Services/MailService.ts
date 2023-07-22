@@ -10,9 +10,10 @@ import EmailServer from 'Common/Types/Email/EmailServer';
 import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import ObjectID from 'Common/Types/ObjectID';
+import BaseService from './BaseService';
 
-export default class MailService {
-    public static async sendMail(
+export class MailService extends BaseService {
+    public async sendMail(
         mail: Email,
         options?: {
             mailServer?: EmailServer | undefined;
@@ -58,3 +59,6 @@ export default class MailService {
         );
     }
 }
+
+
+export default new MailService();

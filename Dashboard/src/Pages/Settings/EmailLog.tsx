@@ -21,6 +21,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 const EmailLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+    
     const [showViewEmailTextModal, setShowViewEmailTextModal] =
         useState<boolean>(false);
     const [EmailText, setEmailText] = useState<string>('');
@@ -184,9 +185,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                     <ConfirmModal
                         title={EmailModelTitle}
                         description={
-                            <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                                {EmailText}
-                            </div>
+                            EmailText
                         }
                         onSubmit={() => {
                             setShowViewEmailTextModal(false);

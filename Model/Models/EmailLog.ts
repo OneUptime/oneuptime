@@ -247,14 +247,14 @@ export default class EmailLog extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectSmtpConfigId',
         type: TableColumnType.Entity,
-        modelType: Project,
-        title: 'Project',
+        modelType: ProjectSmtpConfig,
+        title: 'Project Smtp Config Id',
         description:
             'Relation to ProjectSmtpConfig resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
-            return Project;
+            return ProjectSmtpConfig;
         },
         {
             eager: false,

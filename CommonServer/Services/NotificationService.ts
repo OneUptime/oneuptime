@@ -5,9 +5,15 @@ import ProjectService from './ProjectService';
 import BillingService from './BillingService';
 import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import BaseService from './BaseService';
 
-export default class NotificationService {
-    public static async rechargeBalance(
+export class NotificationService extends BaseService {
+
+    public constructor() {
+        super();
+    }
+    
+    public async rechargeBalance(
         projectId: ObjectID,
         amountInUSD: number
     ): Promise<number> {
@@ -129,7 +135,7 @@ export default class NotificationService {
         }
     }
 
-    public static async rechargeIfBalanceIsLow(
+    public async rechargeIfBalanceIsLow(
         projectId: ObjectID,
         options?: {
             autoRechargeSmsOrCallByBalanceInUSD: number;
@@ -192,3 +198,5 @@ export default class NotificationService {
         return project?.smsOrCallCurrentBalanceInUSDCents || 0;
     }
 }
+
+export default new NotificationService();

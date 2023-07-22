@@ -10,9 +10,14 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
 import SMS from 'Common/Types/SMS/SMS';
+import BaseService from './BaseService';
 
-export default class SmsService {
-    public static async sendSms(
+export class SmsService extends BaseService {
+    public constructor() {
+        super();
+    }
+    
+    public async sendSms(
         sms: SMS,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
@@ -44,3 +49,5 @@ export default class SmsService {
         );
     }
 }
+
+export default new SmsService();

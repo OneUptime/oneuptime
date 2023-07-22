@@ -25,6 +25,7 @@ import MailStatus from 'Common/Types/Mail/MailStatus';
 import EmailLogService from 'CommonServer/Services/EmailLogService';
 
 export default class MailService {
+    
     public static isSMTPConfigValid(obj: JSONObject): boolean {
         if (!obj['SMTP_USERNAME']) {
             logger.error('SMTP_USERNAME env var not found');
@@ -39,8 +40,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                    obj['SMTP_EMAIL'] +
-                    ' is not a valid email'
+                obj['SMTP_EMAIL'] +
+                ' is not a valid email'
             );
             return false;
         }
@@ -214,10 +215,10 @@ export default class MailService {
         mail: EmailMessage,
         options?:
             | {
-                  projectId?: ObjectID | undefined;
-                  emailServer?: EmailServer | undefined;
-                  userOnCallLogTimelineId?: ObjectID | undefined;
-              }
+                projectId?: ObjectID | undefined;
+                emailServer?: EmailServer | undefined;
+                userOnCallLogTimelineId?: ObjectID | undefined;
+            }
             | undefined
     ): Promise<void> {
         let emailLog: EmailLog | undefined = undefined;
@@ -317,12 +318,23 @@ export default class MailService {
                 );
             }
         } catch (err: any) {
+
+            let message: string | undefined = err.message;
+
+            if (message === "Unexpected socket close") {
+                message = "Email failed to send. Unexpected socket close. This could mean various things, such as your SMTP server is unreachble, username and password is incorrect, your SMTP server is not configured to accept connections from this IP address, or TLS/SSL is not configured correctly, or ports are not configured correctly."
+            }
+
+            if (!message) {
+                message = "Email failed to send. Unknown error."
+            }
+
             logger.error(err);
             if (options?.userOnCallLogTimelineId) {
                 await UserOnCallLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
-                        statusMessage: err.message || 'Email failed to send',
+                        statusMessage: message,
                     },
                     id: options.userOnCallLogTimelineId,
                     props: {
@@ -334,7 +346,7 @@ export default class MailService {
             if (emailLog) {
                 emailLog.status = MailStatus.Error;
                 emailLog.statusMessage =
-                    err.message || 'Email sent successfully';
+                    message;
 
                 await EmailLogService.create({
                     data: emailLog,

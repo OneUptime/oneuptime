@@ -49,6 +49,8 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Text from 'Common/Types/Text';
+import logger from '../Utils/Logger';
+import BaseService from './BaseService';
 
 export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 
@@ -72,7 +74,7 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
     carryForward: any;
 }
 
-class DatabaseService<TBaseModel extends BaseModel> {
+class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;
     public entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
@@ -98,6 +100,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
+        super();
         this.entityType = modelType;
         this.model = new modelType();
         this.modelName = modelType.name;
@@ -521,7 +524,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         projectId: ObjectID,
         triggerType: DatabaseTriggerType
     ): Promise<void> {
-        await API.post(
+        API.post(
             new URL(
                 Protocol.HTTP,
                 WorkflowHostname,
@@ -539,7 +542,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
             }
-        );
+        ).catch((error) => {
+            logger.error(error);
+        });
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {

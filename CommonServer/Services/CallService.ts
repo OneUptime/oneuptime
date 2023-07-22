@@ -10,9 +10,14 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
 import CallRequest from 'Common/Types/Call/CallRequest';
+import BaseService from './BaseService';
 
-export default class CallService {
-    public static async makeCall(
+export class CallService extends BaseService {
+    public constructor() {
+        super();
+    }
+    
+    public async makeCall(
         callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
@@ -43,3 +48,6 @@ export default class CallService {
         );
     }
 }
+
+
+export default new CallService();
