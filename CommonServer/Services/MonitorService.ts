@@ -54,13 +54,14 @@ export class Service extends DatabaseService<Model> {
         onUpdate: OnUpdate<Model>,
         updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
+        debugger;
         if (
             onUpdate.updateBy.data.currentMonitorStatusId &&
-            (onUpdate.updateBy.data.projectId ||
+            (onUpdate.updateBy.query.projectId ||
                 onUpdate.updateBy.props.tenantId)
         ) {
             await this.changeMonitorStatus(
-                (onUpdate.updateBy.data.projectId ||
+                (onUpdate.updateBy.query.projectId ||
                     onUpdate.updateBy.props.tenantId) as ObjectID,
                 updatedItemIds as Array<ObjectID>,
                 onUpdate.updateBy.data.currentMonitorStatusId as ObjectID,

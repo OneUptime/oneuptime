@@ -277,6 +277,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                 index={
                     (props.item[props.dragDropIndexField || 0] as number) || 0
                 }
+                key={(props.item[props.dragDropIndexField || 0] as number) || 0}
             >
                 {(provided: DraggableProvided) => {
                     return getRow(provided);
