@@ -51,9 +51,8 @@ const Components: Dictionary<ComponentCode> = {
 };
 
 for (const baseModelService of Services) {
-
-    if(!baseModelService instanceof DatabaseService){
-        continue; 
+    if (!(baseModelService instanceof DatabaseService)) {
+        continue;
     }
 
     const model: BaseModel = baseModelService.getModel();

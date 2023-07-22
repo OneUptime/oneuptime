@@ -96,6 +96,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         this._hardDeleteItemsOlderThanDays = v;
     }
 
+    public doNotAllowDelete: boolean = false;
+
     public constructor(
         modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
@@ -108,6 +110,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
+    }
+
+    public setDoNotAllowDelete(doNotAllowDelete: boolean): void {
+        this.doNotAllowDelete = doNotAllowDelete;
     }
 
     public hardDeleteItemsOlderThanInDays(
@@ -877,6 +883,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
+            if (this.doNotAllowDelete) {
+                throw new BadDataException('Delete not allowed');
+            }
+
             const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
                 ? { deleteBy, carryForward: [] }
                 : await this.onBeforeDelete(deleteBy);

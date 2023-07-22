@@ -11,10 +11,8 @@ export class StatusPageCertificateService extends BaseService {
     public constructor() {
         super();
     }
-    
-    public async add(
-        domain: string
-    ): Promise<HTTPResponse<EmptyResponseData>> {
+
+    public async add(domain: string): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             domain: domain,
         };

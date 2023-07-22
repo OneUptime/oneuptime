@@ -60,5 +60,4 @@ export class MailService extends BaseService {
     }
 }
 
-
 export default new MailService();

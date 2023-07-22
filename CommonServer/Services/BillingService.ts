@@ -30,7 +30,6 @@ export interface Invoice {
 }
 
 export class BillingService extends BaseService {
-
     public constructor() {
         super();
     }
@@ -40,10 +39,7 @@ export class BillingService extends BaseService {
     });
 
     // returns billing id of the customer.
-    public async createCustomer(
-        name: string,
-        id: ObjectID
-    ): Promise<string> {
+    public async createCustomer(name: string, id: ObjectID): Promise<string> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -352,9 +348,7 @@ export class BillingService extends BaseService {
         await this.stripe.paymentMethods.detach(paymentMethodId);
     }
 
-    public async hasPaymentMethods(
-        customerId: string
-    ): Promise<boolean> {
+    public async hasPaymentMethods(customerId: string): Promise<boolean> {
         if ((await this.getPaymentMethods(customerId)).length > 0) {
             return true;
         }
@@ -435,9 +429,7 @@ export class BillingService extends BaseService {
         return paymenMethods;
     }
 
-    public async getSetupIntentSecret(
-        customerId: string
-    ): Promise<string> {
+    public async getSetupIntentSecret(customerId: string): Promise<string> {
         const setupIntent: Stripe.Response<Stripe.SetupIntent> =
             await this.stripe.setupIntents.create({
                 customer: customerId,
@@ -452,9 +444,7 @@ export class BillingService extends BaseService {
         return setupIntent.client_secret;
     }
 
-    public async cancelSubscription(
-        subscriptionId: string
-    ): Promise<void> {
+    public async cancelSubscription(subscriptionId: string): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -491,9 +481,7 @@ export class BillingService extends BaseService {
         return subscription;
     }
 
-    public async getInvoices(
-        customerId: string
-    ): Promise<Array<Invoice>> {
+    public async getInvoices(customerId: string): Promise<Array<Invoice>> {
         const invoices: Stripe.ApiList<Stripe.Invoice> =
             await this.stripe.invoices.list({
                 customer: customerId,
@@ -546,9 +534,7 @@ export class BillingService extends BaseService {
         }
     }
 
-    public async voidInvoice(
-        invoiceId: string
-    ): Promise<Stripe.Invoice> {
+    public async voidInvoice(invoiceId: string): Promise<Stripe.Invoice> {
         const invoice: Stripe.Invoice = await this.stripe.invoices.voidInvoice(
             invoiceId
         );
@@ -589,5 +575,4 @@ export class BillingService extends BaseService {
     }
 }
 
-
-export default new BillingService(); 
+export default new BillingService();

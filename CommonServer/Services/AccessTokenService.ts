@@ -23,14 +23,11 @@ enum PermissionNamespace {
 }
 
 export class AccessTokenService extends BaseService {
-
     public constructor() {
         super();
     }
 
-    public async refreshUserAllPermissions(
-        userId: ObjectID
-    ): Promise<void> {
+    public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
         await this.refreshUserGlobalAccessPermission(userId);
 
         // query for all projects user belongs to.
@@ -60,10 +57,7 @@ export class AccessTokenService extends BaseService {
         );
 
         for (const projectId of projectIds) {
-            await this.refreshUserTenantAccessPermission(
-                userId,
-                projectId
-            );
+            await this.refreshUserTenantAccessPermission(userId, projectId);
         }
     }
 
@@ -204,9 +198,7 @@ export class AccessTokenService extends BaseService {
         );
 
         if (!json) {
-            return await this.refreshUserGlobalAccessPermission(
-                userId
-            );
+            return await this.refreshUserGlobalAccessPermission(userId);
         }
 
         const accessPermission: UserGlobalAccessPermission =
@@ -323,4 +315,4 @@ export class AccessTokenService extends BaseService {
     }
 }
 
-export default new AccessTokenService(); 
+export default new AccessTokenService();

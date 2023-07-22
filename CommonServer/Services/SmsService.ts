@@ -16,7 +16,7 @@ export class SmsService extends BaseService {
     public constructor() {
         super();
     }
-    
+
     public async sendSms(
         sms: SMS,
         options: {

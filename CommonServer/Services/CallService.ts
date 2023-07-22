@@ -16,7 +16,7 @@ export class CallService extends BaseService {
     public constructor() {
         super();
     }
-    
+
     public async makeCall(
         callRequest: CallRequest,
         options: {
@@ -48,6 +48,5 @@ export class CallService extends BaseService {
         );
     }
 }
-
 
 export default new CallService();

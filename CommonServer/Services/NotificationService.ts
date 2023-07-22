@@ -8,11 +8,10 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import BaseService from './BaseService';
 
 export class NotificationService extends BaseService {
-
     public constructor() {
         super();
     }
-    
+
     public async rechargeBalance(
         projectId: ObjectID,
         amountInUSD: number

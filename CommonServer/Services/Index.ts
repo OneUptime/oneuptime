@@ -112,30 +112,28 @@ import UserOnCallLogService from './UserOnCallLogService';
 import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
 import BaseService from './BaseService';
 
-
 const services: Array<BaseService> = [
-
-    // Import all services in current folder here. 
-    AccessTokenService, 
+    // Import all services in current folder here.
+    AccessTokenService,
     ApiKeyPermissionService,
     ApiKeyService,
 
-    BillingInvoiceService, 
+    BillingInvoiceService,
     BillingPaymentMethodsService,
     BillingService,
 
     CallLogService,
-    CallService, 
+    CallService,
 
-    DataMigrationService, 
+    DataMigrationService,
     DomainService,
 
     EmailLogService,
     EmailVerificationTokenService,
 
     FileService,
-    
-    GlobalConfigService, 
+
+    GlobalConfigService,
     GreenlockCertificateService,
     GreenlockChallengeService,
 
@@ -151,7 +149,7 @@ const services: Array<BaseService> = [
 
     LabelService,
 
-    MailService, 
+    MailService,
     MonitorCustomFieldService,
     MonitorOwnerTeamService,
     MonitorOwnerUserService,
@@ -162,12 +160,12 @@ const services: Array<BaseService> = [
 
     NotificationService,
 
-    OnCallDutyPolicyCustomFieldService, 
+    OnCallDutyPolicyCustomFieldService,
     OnCallDutyPolicyEscalationRuleService,
-    OnCallDutyPolicyEscalationRuleTeamService, 
-    OnCallDutyPolicyEscalationRuleUserService, 
-    OnCallDutyPolicyExecutionLogService, 
-    OnCallDutyPolicyExecutionLogTimelineService, 
+    OnCallDutyPolicyEscalationRuleTeamService,
+    OnCallDutyPolicyEscalationRuleUserService,
+    OnCallDutyPolicyExecutionLogService,
+    OnCallDutyPolicyExecutionLogTimelineService,
     OnCallDutyPolicyService,
 
     ProjectService,
@@ -178,18 +176,18 @@ const services: Array<BaseService> = [
     ScheduledMaintenanceCustomFieldService,
     ScheduledMaintenanceInternalNoteService,
     ScheduledMaintenanceOwnerTeamService,
-    ScheduledMaintenanceOwnerUserService, 
+    ScheduledMaintenanceOwnerUserService,
     ScheduledMaintenancePublicNoteService,
     ScheduledMaintenanceService,
     ScheduledMaintenanceStateService,
     ScheduledMaintenanceStateTimelineService,
-    
-    ShortLinkService, 
+
+    ShortLinkService,
     SmsLogService,
-    SmsService, 
+    SmsService,
 
     StatusPageAnnouncementService,
-    StatusPageCertificateService, 
+    StatusPageCertificateService,
     StatusPageCustomFieldService,
     StatusPageDomainService,
     StatusPageFooterLinkService,
@@ -200,7 +198,7 @@ const services: Array<BaseService> = [
     StatusPagePrivateUserService,
     StatusPageResourceService,
     StatusPageService,
-    StatusPageSsoService, 
+    StatusPageSsoService,
     StatusPageSubscriberService,
 
     TeamMemberService,
@@ -208,19 +206,17 @@ const services: Array<BaseService> = [
     TeamService,
 
     UserService,
-    UserCallService, 
+    UserCallService,
     UserEmailService,
     UserNotificationRuleService,
-    UserNotificationSettingService, 
-    UserOnCallLogService, 
-    UserOnCallLogTimelineService, 
+    UserNotificationSettingService,
+    UserOnCallLogService,
+    UserOnCallLogTimelineService,
     UserSmsService,
 
     WorkflowLogService,
     WorkflowService,
     WorkflowVariablesService,
-
 ];
-
 
 export default services;
