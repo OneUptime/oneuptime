@@ -17,6 +17,8 @@ import EmailStatus from 'Common/Types/Mail/MailStatus';
 import { Green, Red } from 'Common/Types/BrandColors';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 
 const EmailLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -29,11 +31,22 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
     const modelTableColumns: Columns<EmailLog> = [
         {
             field: {
-                _id: true,
+                projectSmtpConfig: {
+                    name: true
+                },
             },
-            title: 'Log ID',
-            type: FieldType.Text,
-            isFilterable: true,
+            title: "SMTP Server",
+            type: FieldType.Element,
+            getElement: (item: JSONObject): ReactElement => {
+
+                return (
+                    <CustomSMTPElement
+                        smtp={item['projectSmtpConfig'] as ProjectSmtpConfig}
+                    />
+                );
+            },
+            isFilterable: false
+
         },
         {
             field: {
@@ -44,6 +57,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             title: 'From Email',
             type: FieldType.Email,
         },
+        
         {
             field: {
                 toEmail: true,
@@ -120,6 +134,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                     isDeleteable={false}
                     isEditable={false}
                     isCreateable={false}
+                    showViewIdButton={true}
                     name="Email Logs"
                     query={{
                         projectId:

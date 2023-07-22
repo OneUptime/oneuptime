@@ -405,9 +405,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         )}
 
                         {Boolean(props.description) && (
-                            <p className="text-sm text-gray-500 mb-5">
+                            <div className="text-sm text-gray-500 mb-5">
                                 {props.description}
-                            </p>
+                            </div>
                         )}
 
                         <div className="flex">
