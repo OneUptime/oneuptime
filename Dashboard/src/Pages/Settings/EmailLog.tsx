@@ -37,16 +37,16 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
         },
         {
             field: {
-                toEmail: true,
+                fromEmail: true,
             },
             isFilterable: true,
 
-            title: 'To Email',
+            title: 'From Email',
             type: FieldType.Email,
         },
         {
             field: {
-                fromEmail: true,
+                toEmail: true,
             },
             isFilterable: true,
 

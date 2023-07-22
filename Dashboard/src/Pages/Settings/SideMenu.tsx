@@ -201,7 +201,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route
                         ),
                     }}
-                    icon={IconProp.Call}
+                    icon={IconProp.Email}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">
