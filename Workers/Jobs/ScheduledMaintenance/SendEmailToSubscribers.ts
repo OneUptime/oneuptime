@@ -230,9 +230,12 @@ RunCron(
                                     statusPageName +
                                     ` - 'New Scheduled Maintenance`,
                             },
-                            ProjectSmtpConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSmtpConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

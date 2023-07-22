@@ -14,8 +14,8 @@ import ObjectID from 'Common/Types/ObjectID';
 export default class MailService {
     public static async sendMail(
         mail: Email,
-        mailServer?: EmailServer,
         options?: {
+            mailServer?: EmailServer | undefined;
             userOnCallLogTimelineId?: ObjectID;
             projectId?: ObjectID | undefined;
         }
@@ -25,14 +25,14 @@ export default class MailService {
             toEmail: mail.toEmail.toString(),
         };
 
-        if (mailServer) {
-            body['SMTP_USERNAME'] = mailServer.username;
-            body['SMTP_EMAIL'] = mailServer.fromEmail.toString();
-            body['SMTP_FROM_NAME'] = mailServer.fromName;
-            body['SMTP_IS_SECURE'] = mailServer.secure;
-            body['SMTP_PORT'] = mailServer.port.toNumber();
-            body['SMTP_HOST'] = mailServer.host.toString();
-            body['SMTP_PASSWORD'] = mailServer.password;
+        if (options && options.mailServer) {
+            body['SMTP_USERNAME'] = options.mailServer.username;
+            body['SMTP_EMAIL'] = options.mailServer.fromEmail.toString();
+            body['SMTP_FROM_NAME'] = options.mailServer.fromName;
+            body['SMTP_IS_SECURE'] = options.mailServer.secure;
+            body['SMTP_PORT'] = options.mailServer.port.toNumber();
+            body['SMTP_HOST'] = options.mailServer.host.toString();
+            body['SMTP_PASSWORD'] = options.mailServer.password;
         }
 
         if (options?.userOnCallLogTimelineId) {

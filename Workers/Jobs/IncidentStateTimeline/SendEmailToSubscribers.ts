@@ -266,9 +266,12 @@ RunCron(
                                     ' - Incident state changed to ' +
                                     incidentStateTimeline.incidentState.name,
                             },
-                            ProjectSMTPConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSMTPConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

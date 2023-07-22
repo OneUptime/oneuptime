@@ -88,6 +88,7 @@ export class Service extends DatabaseService<Model> {
                 email: true,
                 verificationCode: true,
                 isVerified: true,
+                projectId: true,
             },
         });
 
@@ -118,15 +119,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     public sendVerificationCode(item: Model): void {
-        MailService.sendMail({
-            toEmail: item.email!,
-            templateType: EmailTemplateType.VerificationCode,
-            vars: {
-                code: item.verificationCode!,
+        MailService.sendMail(
+            {
+                toEmail: item.email!,
+                templateType: EmailTemplateType.VerificationCode,
+                vars: {
+                    code: item.verificationCode!,
+                    subject: 'Verify this email address',
+                },
                 subject: 'Verify this email address',
             },
-            subject: 'Verify this email address',
-        }).catch((err: Error) => {
+            {
+                projectId: item.projectId!,
+            }
+        ).catch((err: Error) => {
             logger.error(err);
         });
     }

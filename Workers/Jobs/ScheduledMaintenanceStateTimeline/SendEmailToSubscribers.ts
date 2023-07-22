@@ -265,9 +265,12 @@ RunCron(
                                     statusPageName +
                                     ` - Scheduled maintenance state changed to ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}`,
                             },
-                            ProjectSmtpConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSmtpConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

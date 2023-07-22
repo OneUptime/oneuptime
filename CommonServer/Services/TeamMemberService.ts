@@ -98,20 +98,25 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             });
 
             if (project) {
-                MailService.sendMail({
-                    toEmail: email,
-                    templateType: EmailTemplateType.InviteMember,
-                    vars: {
-                        dashboardUrl: new URL(
-                            HttpProtocol,
-                            Domain,
-                            DashboardRoute
-                        ).toString(),
-                        projectName: project.name!,
-                        homeUrl: new URL(HttpProtocol, Domain).toString(),
+                MailService.sendMail(
+                    {
+                        toEmail: email,
+                        templateType: EmailTemplateType.InviteMember,
+                        vars: {
+                            dashboardUrl: new URL(
+                                HttpProtocol,
+                                Domain,
+                                DashboardRoute
+                            ).toString(),
+                            projectName: project.name!,
+                            homeUrl: new URL(HttpProtocol, Domain).toString(),
+                        },
+                        subject: 'You have been invited to ' + project.name,
                     },
-                    subject: 'You have been invited to ' + project.name,
-                }).catch((err: Error) => {
+                    {
+                        projectId: createBy.data.projectId!,
+                    }
+                ).catch((err: Error) => {
                     logger.error(err);
                 });
             }

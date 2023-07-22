@@ -256,9 +256,12 @@ RunCron(
                                     statusPageName +
                                     ' - New note has been added to an incident',
                             },
-                            ProjectSmtpConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSmtpConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

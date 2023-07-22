@@ -251,9 +251,12 @@ RunCron(
                                     statusPageName +
                                     ` - New note has been posted to maintenance event`,
                             },
-                            ProjectSmtpConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSmtpConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

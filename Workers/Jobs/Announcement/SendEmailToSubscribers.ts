@@ -164,9 +164,12 @@ RunCron(
                                 },
                                 subject: statusPageName + ' - New Announcement',
                             },
-                            ProjectSMTPConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSMTPConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

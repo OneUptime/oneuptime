@@ -818,15 +818,20 @@ export class Service extends DatabaseService<Model> {
         });
 
         for (const email of emails) {
-            MailService.sendMail({
-                toEmail: email,
-                templateType: EmailTemplateType.SimpleMessage,
-                vars: {
+            MailService.sendMail(
+                {
+                    toEmail: email,
+                    templateType: EmailTemplateType.SimpleMessage,
+                    vars: {
+                        subject: subject,
+                        message: message,
+                    },
                     subject: subject,
-                    message: message,
                 },
-                subject: subject,
-            }).catch((err: Error) => {
+                {
+                    projectId,
+                }
+            ).catch((err: Error) => {
                 logger.error(err);
             });
         }

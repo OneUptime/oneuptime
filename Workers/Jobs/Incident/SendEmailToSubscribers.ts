@@ -223,9 +223,12 @@ RunCron(
                                 },
                                 subject: statusPageName + ' - New Incident',
                             },
-                            ProjectSMTPConfigService.toEmailServer(
-                                statuspage.smtpConfig
-                            )
+                            {
+                                mailServer:
+                                    ProjectSMTPConfigService.toEmailServer(
+                                        statuspage.smtpConfig
+                                    ),
+                            }
                         ).catch((err: Error) => {
                             logger.error(err);
                         });

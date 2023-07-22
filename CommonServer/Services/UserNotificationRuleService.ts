@@ -239,8 +239,9 @@ export class Service extends DatabaseService<Model> {
 
                 // send email.
 
-                MailService.sendMail(emailMessage, undefined, {
+                MailService.sendMail(emailMessage, {
                     userOnCallLogTimelineId: updatedLog.id!,
+                    projectId: options.projectId,
                 }).catch(async (err: Error) => {
                     await UserOnCallLogTimelineService.updateOneById({
                         id: updatedLog.id!,

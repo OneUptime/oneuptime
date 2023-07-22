@@ -61,6 +61,7 @@ router.post(
                         pageTitle: true,
                         logoFileId: true,
                         requireSsoForLogin: true,
+                        projectId: true,
                     },
                 });
 
@@ -111,24 +112,32 @@ router.post(
                     },
                 });
 
-                MailService.sendMail({
-                    toEmail: user.email!,
-                    subject: 'Password Reset Request for ' + statusPageName,
-                    templateType: EmailTemplateType.StatusPageForgotPassword,
-                    vars: {
-                        statusPageName: statusPageName!,
-                        logoUrl: statusPage.logoFileId
-                            ? new URL(HttpProtocol, Domain)
-                                  .addRoute(FileRoute)
-                                  .addRoute('/image/' + statusPage.logoFileId)
-                                  .toString()
-                            : '',
-                        homeURL: statusPageURL,
-                        tokenVerifyUrl: URL.fromString(statusPageURL)
-                            .addRoute('/reset-password/' + token)
-                            .toString(),
+                MailService.sendMail(
+                    {
+                        toEmail: user.email!,
+                        subject: 'Password Reset Request for ' + statusPageName,
+                        templateType:
+                            EmailTemplateType.StatusPageForgotPassword,
+                        vars: {
+                            statusPageName: statusPageName!,
+                            logoUrl: statusPage.logoFileId
+                                ? new URL(HttpProtocol, Domain)
+                                      .addRoute(FileRoute)
+                                      .addRoute(
+                                          '/image/' + statusPage.logoFileId
+                                      )
+                                      .toString()
+                                : '',
+                            homeURL: statusPageURL,
+                            tokenVerifyUrl: URL.fromString(statusPageURL)
+                                .addRoute('/reset-password/' + token)
+                                .toString(),
+                        },
                     },
-                }).catch((err: Error) => {
+                    {
+                        projectId: statusPage.projectId!,
+                    }
+                ).catch((err: Error) => {
                     logger.error(err);
                 });
 
@@ -206,6 +215,7 @@ router.post(
                         pageTitle: true,
                         logoFileId: true,
                         requireSsoForLogin: true,
+                        projectId: true,
                     },
                 });
 
@@ -237,21 +247,26 @@ router.post(
                 },
             });
 
-            MailService.sendMail({
-                toEmail: alreadySavedUser.email!,
-                subject: 'Password Changed.',
-                templateType: EmailTemplateType.StatusPagePasswordChanged,
-                vars: {
-                    homeURL: statusPageURL,
-                    statusPageName: statusPageName || '',
-                    logoUrl: statusPage.logoFileId
-                        ? new URL(HttpProtocol, Domain)
-                              .addRoute(FileRoute)
-                              .addRoute('/image/' + statusPage.logoFileId)
-                              .toString()
-                        : '',
+            MailService.sendMail(
+                {
+                    toEmail: alreadySavedUser.email!,
+                    subject: 'Password Changed.',
+                    templateType: EmailTemplateType.StatusPagePasswordChanged,
+                    vars: {
+                        homeURL: statusPageURL,
+                        statusPageName: statusPageName || '',
+                        logoUrl: statusPage.logoFileId
+                            ? new URL(HttpProtocol, Domain)
+                                  .addRoute(FileRoute)
+                                  .addRoute('/image/' + statusPage.logoFileId)
+                                  .toString()
+                            : '',
+                    },
                 },
-            }).catch((err: Error) => {
+                {
+                    projectId: statusPage.projectId!,
+                }
+            ).catch((err: Error) => {
                 logger.error(err);
             });
 

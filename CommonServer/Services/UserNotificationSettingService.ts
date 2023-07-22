@@ -35,6 +35,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         smsMessage: SMSMessage;
         callRequestMessage: CallRequestMessage;
     }): Promise<void> {
+        if (!data.projectId) {
+            throw new BadDataException(
+                'ProjectId is required for SendUserNotification'
+            );
+        }
+
         const notificationSettings: UserNotificationSetting | null =
             await this.findOneBy({
                 query: {
@@ -75,10 +81,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 for (const userEmail of userEmails) {
                     MailService.sendMail(
                         {
-                            ...data.email,
+                            ...data.emailEnvelope,
                             toEmail: userEmail.email!,
                         },
-                        undefined,
                         {
                             projectId: data.projectId,
                         }
@@ -108,7 +113,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 for (const userSms of userSmses) {
                     SmsService.sendSms(
                         {
-                            ...data.sms,
+                            ...data.smsMessage,
                             to: userSms.phone!,
                         },
                         {
@@ -142,7 +147,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 for (const userCall of userCalls) {
                     CallService.makeCall(
                         {
-                            ...data.call,
+                            ...data.callRequestMessage,
                             to: userCall.phone!,
                         },
                         {
