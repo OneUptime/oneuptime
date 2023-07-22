@@ -63,6 +63,7 @@ services:
             - ./Accounts:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/.env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
             - ./Model:/usr/src/Model
@@ -88,6 +89,7 @@ services:
             - ./Dashboard:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/.env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
             - ./Model:/usr/src/Model
@@ -114,6 +116,7 @@ services:
             - ./StatusPage:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/.env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
             - ./Model:/usr/src/Model
