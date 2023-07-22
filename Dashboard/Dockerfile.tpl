@@ -72,7 +72,6 @@ EXPOSE 3009
 #Run the app
 RUN mkdir /usr/src/app/dev-env
 RUN touch /usr/src/app/dev-env/.env
-RUN printenv > /usr/src/app/dev-env/.env
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
