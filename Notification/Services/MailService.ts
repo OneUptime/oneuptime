@@ -125,7 +125,8 @@ export default class MailService {
             await UserOnCallLogTimelineService.updateOneById({
                 data: {
                     status: UserNotificationStatus.Sent,
-                    statusMessage: 'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.',
+                    statusMessage:
+                        'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.',
                 },
                 id: timelineId,
                 props: {
@@ -265,7 +266,8 @@ export default class MailService {
 
                 if (emailLog) {
                     emailLog.status = MailStatus.Success;
-                    emailLog.statusMessage = 'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.';
+                    emailLog.statusMessage =
+                        'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.';
 
                     await EmailLogService.create({
                         data: emailLog,
@@ -301,7 +303,8 @@ export default class MailService {
 
             if (emailLog) {
                 emailLog.status = MailStatus.Success;
-                emailLog.statusMessage = 'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.';
+                emailLog.statusMessage =
+                    'Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.';
 
                 await EmailLogService.create({
                     data: emailLog,

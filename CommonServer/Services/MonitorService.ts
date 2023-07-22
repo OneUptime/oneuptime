@@ -54,21 +54,20 @@ export class Service extends DatabaseService<Model> {
         onUpdate: OnUpdate<Model>,
         updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
-        debugger;
         if (
             onUpdate.updateBy.data.currentMonitorStatusId &&
-            (onUpdate.updateBy.query.projectId ||
-                onUpdate.updateBy.props.tenantId)
+            onUpdate.updateBy.props.tenantId
         ) {
             await this.changeMonitorStatus(
-                (onUpdate.updateBy.query.projectId ||
-                    onUpdate.updateBy.props.tenantId) as ObjectID,
+                onUpdate.updateBy.props.tenantId as ObjectID,
                 updatedItemIds as Array<ObjectID>,
                 onUpdate.updateBy.data.currentMonitorStatusId as ObjectID,
                 true, // notifyOwners = true
                 'This status was changed when the monitor was updated.',
                 undefined,
-                onUpdate.updateBy.props
+                {
+                    isRoot: true,
+                }
             );
         }
 

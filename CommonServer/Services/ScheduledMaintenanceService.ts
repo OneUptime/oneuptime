@@ -269,19 +269,19 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnUpdate<Model>> {
         if (
             onUpdate.updateBy.data.currentScheduledMaintenanceStateId &&
-            (onUpdate.updateBy.query.projectId ||
-                onUpdate.updateBy.props.tenantId)
+            onUpdate.updateBy.props.tenantId
         ) {
             for (const itemId of updatedItemIds) {
                 await this.changeScheduledMaintenanceState(
-                    (onUpdate.updateBy.query.projectId ||
-                        onUpdate.updateBy.props.tenantId) as ObjectID,
+                    onUpdate.updateBy.props.tenantId as ObjectID,
                     itemId,
                     onUpdate.updateBy.data
                         .currentScheduledMaintenanceStateId as ObjectID,
                     true,
                     true, // notifyOwners = true
-                    onUpdate.updateBy.props
+                    {
+                        isRoot: true,
+                    }
                 );
             }
         }
