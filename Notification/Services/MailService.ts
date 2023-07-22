@@ -39,8 +39,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                obj['SMTP_EMAIL'] +
-                ' is not a valid email'
+                    obj['SMTP_EMAIL'] +
+                    ' is not a valid email'
             );
             return false;
         }
@@ -193,7 +193,7 @@ export default class MailService {
     private static async transportMail(
         mail: EmailMessage,
         options: {
-            emailServer: EmailServer,
+            emailServer: EmailServer;
             projectId?: ObjectID | undefined;
         }
     ): Promise<void> {
@@ -208,16 +208,15 @@ export default class MailService {
 
     public static async send(
         mail: EmailMessage,
-        options?: {
-            projectId?: ObjectID | undefined,
-            emailServer?: EmailServer | undefined,
-            userOnemailLogTimelineId?: ObjectID | undefined;
-        }
+        options?:
+            | {
+                  projectId?: ObjectID | undefined;
+                  emailServer?: EmailServer | undefined;
+                  userOnemailLogTimelineId?: ObjectID | undefined;
+              }
             | undefined
     ): Promise<void> {
-
-
-        let emailLog: EmailLog | undefined = undefined; 
+        let emailLog: EmailLog | undefined = undefined;
 
         if (options && options.projectId) {
             emailLog = new EmailLog();
@@ -225,7 +224,6 @@ export default class MailService {
             emailLog.toEmail = mail.toEmail;
             emailLog.subject = mail.subject;
         }
-
 
         // default vars.
         if (!mail.vars) {
@@ -251,13 +249,13 @@ export default class MailService {
                     html: mail.body,
                 };
 
-                if(emailLog){
+                if (emailLog) {
                     emailLog.fromEmail = this.getGlobalFromEmail();
                 }
 
                 await SendgridMail.send(msg);
 
-                if(emailLog){
+                if (emailLog) {
                     emailLog.status = MailStatus.Success;
                     emailLog.statusMessage = 'Email sent successfully';
 
@@ -269,7 +267,6 @@ export default class MailService {
                     });
                 }
 
-
                 if (options?.userOnemailLogTimelineId) {
                     await this.updateUserNotificationLogTimelineAsSent(
                         options?.userOnemailLogTimelineId
@@ -280,12 +277,12 @@ export default class MailService {
 
             if (!options || !options.emailServer) {
                 if (!options) {
-                    options = {}
+                    options = {};
                 }
                 options.emailServer = this.getGlobalSmtpSettings();
             }
 
-            if(options.emailServer && emailLog){
+            if (options.emailServer && emailLog) {
                 emailLog.fromEmail = options.emailServer.fromEmail;
             }
 
@@ -294,7 +291,7 @@ export default class MailService {
                 projectId: options.projectId,
             });
 
-            if(emailLog){
+            if (emailLog) {
                 emailLog.status = MailStatus.Success;
                 emailLog.statusMessage = 'Email sent successfully';
 
@@ -326,9 +323,10 @@ export default class MailService {
                 });
             }
 
-            if(emailLog){
+            if (emailLog) {
                 emailLog.status = MailStatus.Error;
-                emailLog.statusMessage = err.message || 'Email sent successfully';
+                emailLog.statusMessage =
+                    err.message || 'Email sent successfully';
 
                 await EmailLogService.create({
                     data: emailLog,

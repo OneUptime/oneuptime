@@ -36,7 +36,9 @@ router.post(
         }
 
         await MailService.send(mail, {
-            projectId: body['projectId'] ?  new ObjectID(body['projectId'] as string) : undefined,
+            projectId: body['projectId']
+                ? new ObjectID(body['projectId'] as string)
+                : undefined,
             emailServer: mailServer,
             userOnCallLogTimelineId:
                 (body['userOnCallLogTimelineId'] as ObjectID) || undefined,
