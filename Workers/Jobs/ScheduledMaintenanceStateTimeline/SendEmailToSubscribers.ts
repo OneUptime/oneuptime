@@ -223,12 +223,12 @@ RunCron(
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
                                         ? new URL(HttpProtocol, Domain)
-                                            .addRoute(FileRoute)
-                                            .addRoute(
-                                                '/image/' +
-                                                statuspage.logoFileId
-                                            )
-                                            .toString()
+                                              .addRoute(FileRoute)
+                                              .addRoute(
+                                                  '/image/' +
+                                                      statuspage.logoFileId
+                                              )
+                                              .toString()
                                         : '',
                                     isPublicStatusPage:
                                         statuspage.isPublicStatusPage
@@ -258,7 +258,7 @@ RunCron(
                                     )
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                                                subscriber._id.toString()
                                         )
                                         .toString(),
                                 },

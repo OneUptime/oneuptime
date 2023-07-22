@@ -236,7 +236,7 @@ RunCron(
                                     ProjectSmtpConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
-                                    projectId: statuspage.projectId!,
+                                projectId: statuspage.projectId!,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);

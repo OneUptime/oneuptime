@@ -548,7 +548,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
             }
-        ).catch((error) => {
+        ).catch((error: Error) => {
             logger.error(error);
         });
     }

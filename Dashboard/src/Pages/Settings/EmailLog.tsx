@@ -32,21 +32,19 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
         {
             field: {
                 projectSmtpConfig: {
-                    name: true
+                    name: true,
                 },
             },
-            title: "SMTP Server",
+            title: 'SMTP Server',
             type: FieldType.Element,
             getElement: (item: JSONObject): ReactElement => {
-
                 return (
                     <CustomSMTPElement
                         smtp={item['projectSmtpConfig'] as ProjectSmtpConfig}
                     />
                 );
             },
-            isFilterable: false
-
+            isFilterable: false,
         },
         {
             field: {
@@ -57,7 +55,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             title: 'From Email',
             type: FieldType.Email,
         },
-        
+
         {
             field: {
                 toEmail: true,
