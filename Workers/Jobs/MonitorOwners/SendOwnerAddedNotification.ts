@@ -194,7 +194,7 @@ RunCron(
                     smsMessage: sms,
                     callRequestMessage: callMessage,
                     eventType:
-                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+                        NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
                 });
             }
         }
