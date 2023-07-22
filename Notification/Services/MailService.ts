@@ -88,11 +88,13 @@ export default class MailService {
     }
 
     public static getEmailServer(obj: JSONObject): EmailServer {
+
         if (!this.isSMTPConfigValid(obj)) {
             throw new BadDataException('SMTP Config is not valid');
         }
 
         return {
+            id: obj && obj['SMTP_ID'] ? new ObjectID(obj['SMTP_ID'].toString()) : undefined,
             username: obj['SMTP_USERNAME']?.toString()!,
             password: obj['SMTP_PASSWORD']?.toString()!,
             host: new Hostname(obj['SMTP_HOST']?.toString()!),
@@ -212,7 +214,7 @@ export default class MailService {
             | {
                   projectId?: ObjectID | undefined;
                   emailServer?: EmailServer | undefined;
-                  userOnemailLogTimelineId?: ObjectID | undefined;
+                  userOnCallLogTimelineId?: ObjectID | undefined;
               }
             | undefined
     ): Promise<void> {
@@ -223,6 +225,10 @@ export default class MailService {
             emailLog.projectId = options.projectId;
             emailLog.toEmail = mail.toEmail;
             emailLog.subject = mail.subject;
+            
+            if(options.emailServer?.id){
+                emailLog.projectSmtpConfigId = options.emailServer?.id;
+            }
         }
 
         // default vars.
@@ -267,9 +273,9 @@ export default class MailService {
                     });
                 }
 
-                if (options?.userOnemailLogTimelineId) {
+                if (options?.userOnCallLogTimelineId) {
                     await this.updateUserNotificationLogTimelineAsSent(
-                        options?.userOnemailLogTimelineId
+                        options?.userOnCallLogTimelineId
                     );
                 }
                 return;
@@ -303,20 +309,20 @@ export default class MailService {
                 });
             }
 
-            if (options?.userOnemailLogTimelineId) {
+            if (options?.userOnCallLogTimelineId) {
                 await this.updateUserNotificationLogTimelineAsSent(
-                    options?.userOnemailLogTimelineId
+                    options?.userOnCallLogTimelineId
                 );
             }
         } catch (err: any) {
             logger.error(err);
-            if (options?.userOnemailLogTimelineId) {
+            if (options?.userOnCallLogTimelineId) {
                 await UserOnCallLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
                         statusMessage: err.message || 'Email failed to send',
                     },
-                    id: options.userOnemailLogTimelineId,
+                    id: options.userOnCallLogTimelineId,
                     props: {
                         isRoot: true,
                     },

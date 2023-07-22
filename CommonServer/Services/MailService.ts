@@ -26,6 +26,7 @@ export default class MailService {
         };
 
         if (options && options.mailServer) {
+            body['SMTP_ID'] = options.mailServer.id?.toString();
             body['SMTP_USERNAME'] = options.mailServer.username;
             body['SMTP_EMAIL'] = options.mailServer.fromEmail.toString();
             body['SMTP_FROM_NAME'] = options.mailServer.fromName;

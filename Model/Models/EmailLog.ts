@@ -18,6 +18,7 @@ import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import Email from 'Common/Types/Email';
+import ProjectSmtpConfig from './ProjectSmtpConfig';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -232,4 +233,63 @@ export default class EmailLog extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public status?: MailStatus = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadEmailLog,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'projectSmtpConfigId',
+        type: TableColumnType.Entity,
+        modelType: Project,
+        title: 'Project',
+        description:
+            'Relation to ProjectSmtpConfig resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Project;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'projectSmtpConfigId' })
+    public projectSmtpConfig?: ProjectSmtpConfig = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadEmailLog,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Project Smtp Config ID',
+        description:
+            'ID of your Project Smtp Config in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public projectSmtpConfigId?: ObjectID = undefined;
 }
