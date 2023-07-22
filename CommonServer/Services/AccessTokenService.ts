@@ -15,17 +15,20 @@ import Label from 'Model/Models/Label';
 import QueryHelper from '../Types/Database/QueryHelper';
 import APIKeyPermission from 'Model/Models/ApiKeyPermission';
 import ApiKeyPermissionService from './ApiKeyPermissionService';
+import BaseService from './BaseService';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',
     ProjectPermission = 'project-permissions',
 }
 
-export default class AccessTokenService {
-    public static async refreshUserAllPermissions(
-        userId: ObjectID
-    ): Promise<void> {
-        await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+export class AccessTokenService extends BaseService {
+    public constructor() {
+        super();
+    }
+
+    public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
+        await this.refreshUserGlobalAccessPermission(userId);
 
         // query for all projects user belongs to.
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
@@ -54,14 +57,11 @@ export default class AccessTokenService {
         );
 
         for (const projectId of projectIds) {
-            await AccessTokenService.refreshUserTenantAccessPermission(
-                userId,
-                projectId
-            );
+            await this.refreshUserTenantAccessPermission(userId, projectId);
         }
     }
 
-    public static async getDefaultApiGlobalPermission(
+    public async getDefaultApiGlobalPermission(
         projectId: ObjectID
     ): Promise<UserGlobalAccessPermission> {
         return {
@@ -75,7 +75,7 @@ export default class AccessTokenService {
         };
     }
 
-    public static async getApiTenantAccessPermission(
+    public async getApiTenantAccessPermission(
         projectId: ObjectID,
         apiKeyId: ObjectID
     ): Promise<UserTenantAccessPermission> {
@@ -116,14 +116,14 @@ export default class AccessTokenService {
         }
 
         const permission: UserTenantAccessPermission =
-            AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
+            this.getDefaultUserTenantAccessPermission(projectId);
 
         permission.permissions = permission.permissions.concat(userPermissions);
 
         return permission;
     }
 
-    public static async refreshUserGlobalAccessPermission(
+    public async refreshUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission> {
         // query for all projects user belongs to.
@@ -163,7 +163,7 @@ export default class AccessTokenService {
         return permissionToStore;
     }
 
-    public static getDefaultUserTenantAccessPermission(
+    public getDefaultUserTenantAccessPermission(
         projectId: ObjectID
     ): UserTenantAccessPermission {
         const userPermissions: Array<UserPermission> = [];
@@ -189,7 +189,7 @@ export default class AccessTokenService {
         return permission;
     }
 
-    public static async getUserGlobalAccessPermission(
+    public async getUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission | null> {
         const json: JSONObject | null = await GlobalCache.getJSON(
@@ -198,9 +198,7 @@ export default class AccessTokenService {
         );
 
         if (!json) {
-            return await AccessTokenService.refreshUserGlobalAccessPermission(
-                userId
-            );
+            return await this.refreshUserGlobalAccessPermission(userId);
         }
 
         const accessPermission: UserGlobalAccessPermission =
@@ -211,7 +209,7 @@ export default class AccessTokenService {
         return accessPermission;
     }
 
-    public static async refreshUserTenantAccessPermission(
+    public async refreshUserTenantAccessPermission(
         userId: ObjectID,
         projectId: ObjectID
     ): Promise<UserTenantAccessPermission | null> {
@@ -279,7 +277,7 @@ export default class AccessTokenService {
         }
 
         const permission: UserTenantAccessPermission =
-            AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
+            this.getDefaultUserTenantAccessPermission(projectId);
 
         permission.permissions = permission.permissions.concat(userPermissions);
 
@@ -292,7 +290,7 @@ export default class AccessTokenService {
         return permission;
     }
 
-    public static async getUserTenantAccessPermission(
+    public async getUserTenantAccessPermission(
         userId: ObjectID,
         projectId: ObjectID
     ): Promise<UserTenantAccessPermission | null> {
@@ -307,7 +305,7 @@ export default class AccessTokenService {
         }
 
         if (!json) {
-            return await AccessTokenService.refreshUserTenantAccessPermission(
+            return await this.refreshUserTenantAccessPermission(
                 userId,
                 projectId
             );
@@ -316,3 +314,5 @@ export default class AccessTokenService {
         return json;
     }
 }
+
+export default new AccessTokenService();

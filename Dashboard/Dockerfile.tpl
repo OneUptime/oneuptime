@@ -70,6 +70,8 @@ EXPOSE 3009
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+RUN mkdir /usr/src/app/dev-env
+RUN touch /usr/src/app/dev-env/.env
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source

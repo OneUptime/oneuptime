@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ScheduledMaintenance';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
@@ -21,6 +21,7 @@ import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
 import { DashboardUrl } from '../Config';
 import URL from 'Common/Types/API/URL';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -262,6 +263,32 @@ export class Service extends DatabaseService<Model> {
         }
     }
 
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
+        if (
+            onUpdate.updateBy.data.currentScheduledMaintenanceStateId &&
+            onUpdate.updateBy.props.tenantId
+        ) {
+            for (const itemId of updatedItemIds) {
+                await this.changeScheduledMaintenanceState(
+                    onUpdate.updateBy.props.tenantId as ObjectID,
+                    itemId,
+                    onUpdate.updateBy.data
+                        .currentScheduledMaintenanceStateId as ObjectID,
+                    true,
+                    true, // notifyOwners = true
+                    {
+                        isRoot: true,
+                    }
+                );
+            }
+        }
+
+        return onUpdate;
+    }
+
     public async changeScheduledMaintenanceState(
         projectId: ObjectID,
         scheduledMaintenanceId: ObjectID,
@@ -270,20 +297,47 @@ export class Service extends DatabaseService<Model> {
         notifyOwners: boolean,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
-        await this.updateBy({
-            data: {
-                currentScheduledMaintenanceStateId:
-                    scheduledMaintenanceStateId.id,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            query: {
-                _id: scheduledMaintenanceId.toString()!,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
+        if (!projectId) {
+            throw new BadDataException('projectId is required');
+        }
+
+        if (!scheduledMaintenanceId) {
+            throw new BadDataException('scheduledMaintenanceId is required');
+        }
+
+        if (!scheduledMaintenanceStateId) {
+            throw new BadDataException(
+                'scheduledMaintenanceStateId is required'
+            );
+        }
+
+        // get last scheduled status timeline.
+        const lastState: ScheduledMaintenanceStateTimeline | null =
+            await ScheduledMaintenanceStateTimelineService.findOneBy({
+                query: {
+                    scheduledMaintenanceId: scheduledMaintenanceId,
+                    projectId: projectId,
+                },
+                select: {
+                    _id: true,
+                    scheduledMaintenanceStateId: true,
+                },
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (
+            lastState &&
+            lastState.scheduledMaintenanceStateId &&
+            lastState.scheduledMaintenanceStateId.toString() ===
+                scheduledMaintenanceStateId.toString()
+        ) {
+            return;
+        }
 
         const statusTimeline: ScheduledMaintenanceStateTimeline =
             new ScheduledMaintenanceStateTimeline();
@@ -299,6 +353,21 @@ export class Service extends DatabaseService<Model> {
         await ScheduledMaintenanceStateTimelineService.create({
             data: statusTimeline,
             props: props,
+        });
+
+        await this.updateBy({
+            data: {
+                currentScheduledMaintenanceStateId:
+                    scheduledMaintenanceStateId.id,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            query: {
+                _id: scheduledMaintenanceId.toString()!,
+            },
+            props: {
+                isRoot: true,
+            },
         });
     }
 }

@@ -16,6 +16,10 @@ export class Service extends DatabaseService<Model> {
             return undefined;
         }
 
+        if (!projectSmtpConfig.id) {
+            throw new BadDataException('Project SMTP config id is not set');
+        }
+
         if (!projectSmtpConfig.hostname) {
             throw new BadDataException('Project SMTP config host is not set');
         }
@@ -49,6 +53,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         return {
+            id: projectSmtpConfig.id!,
             host: projectSmtpConfig.hostname,
             port: projectSmtpConfig.port,
             username: projectSmtpConfig.username,

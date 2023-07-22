@@ -85,6 +85,11 @@ import SmsLogService, {
     Service as SmsLogServiceType,
 } from 'CommonServer/Services/SmsLogService';
 
+import EmailLog from 'Model/Models/EmailLog';
+import EmailLogService, {
+    Service as EmailLogServiceType,
+} from 'CommonServer/Services/EmailLogService';
+
 import CallLog from 'Model/Models/CallLog';
 import CallLogService, {
     Service as CallLogServiceType,
@@ -330,17 +335,17 @@ import OnCallDutyPolicyCustomFieldService, {
     Service as OnCallDutyPolicyCustomFieldServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
 
-import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserNotificationLogTimelineAPI';
+import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserOnCallLogTimelineAPI';
 
-import UserNotificationLog from 'Model/Models/UserNotificationLog';
-import UserNotificationLogService, {
+import UserOnCallLog from 'Model/Models/UserOnCallLog';
+import UserOnCallLogService, {
     Service as UserNotificationLogServiceType,
-} from 'CommonServer/Services/UserNotificationLogService';
+} from 'CommonServer/Services/UserOnCallLogService';
 
-import UserResourceOwnerNotification from 'Model/Models/UserResourceOwnerNotification';
-import UserResourceOwnerNotificationService, {
-    Service as UserResourceOwnerNotificationServiceType,
-} from 'CommonServer/Services/UserResourceOwnerNotificationService';
+import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
+import UserNotificationSettingService, {
+    Service as UserNotificationSettingServiceType,
+} from 'CommonServer/Services/UserNotificationSettingService';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -665,20 +670,17 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<
-        UserResourceOwnerNotification,
-        UserResourceOwnerNotificationServiceType
-    >(
-        UserResourceOwnerNotification,
-        UserResourceOwnerNotificationService
+    new BaseAPI<UserOnCallLog, UserNotificationLogServiceType>(
+        UserOnCallLog,
+        UserOnCallLogService
     ).getRouter()
 );
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<UserNotificationLog, UserNotificationLogServiceType>(
-        UserNotificationLog,
-        UserNotificationLogService
+    new BaseAPI<UserNotificationSetting, UserNotificationSettingServiceType>(
+        UserNotificationSetting,
+        UserNotificationSettingService
     ).getRouter()
 );
 
@@ -720,6 +722,14 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<EmailLog, EmailLogServiceType>(
+        EmailLog,
+        EmailLogService
+    ).getRouter()
 );
 
 app.use(

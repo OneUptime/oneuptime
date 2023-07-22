@@ -25,9 +25,8 @@ router.post(
                 projectId: body['projectId'] as ObjectID,
                 from: body['from'] as Phone,
                 isSensitive: (body['isSensitive'] as boolean) || false,
-                userNotificationLogTimelineId:
-                    (body['userNotificationLogTimelineId'] as ObjectID) ||
-                    undefined,
+                userOnCallLogTimelineId:
+                    (body['userOnCallLogTimelineId'] as ObjectID) || undefined,
             }
         );
 

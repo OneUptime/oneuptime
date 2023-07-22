@@ -10,15 +10,20 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
 import CallRequest from 'Common/Types/Call/CallRequest';
+import BaseService from './BaseService';
 
-export default class CallService {
-    public static async makeCall(
+export class CallService extends BaseService {
+    public constructor() {
+        super();
+    }
+
+    public async makeCall(
         callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
-            userNotificationLogTimelineId?: ObjectID;
+            userOnCallLogTimelineId?: ObjectID;
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -26,8 +31,8 @@ export default class CallService {
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
             isSensitive: options.isSensitive,
-            userNotificationLogTimelineId:
-                options.userNotificationLogTimelineId?.toString(),
+            userOnCallLogTimelineId:
+                options.userOnCallLogTimelineId?.toString(),
         };
 
         return await API.post<EmptyResponseData>(
@@ -43,3 +48,5 @@ export default class CallService {
         );
     }
 }
+
+export default new CallService();

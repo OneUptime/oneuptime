@@ -79,7 +79,7 @@ enum Permission {
     CanReadMonitorProbe = 'CanReadMonitorProbe',
 
     CanReadSmsLog = 'CanReadSmsLog',
-
+    CanReadEmailLog = 'CanReadEmailLog',
     CanReadCallLog = 'CanReadCallLog',
 
     CanCreateIncidentOwnerTeam = 'CanCreateIncidentOwnerTeam',

@@ -54,6 +54,8 @@ services:
             dockerfile: ./Notification/Dockerfile
         
     accounts:
+        ports: 
+            - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}' # ws port for webpack
         extends:
             file: ./docker-compose.base.yml
             service: accounts
@@ -61,6 +63,7 @@ services:
             - ./Accounts:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
             - ./Model:/usr/src/Model
@@ -77,6 +80,8 @@ services:
        
 
     dashboard:
+        ports: 
+            - '${DASHBOARD_PORT}:${DASHBOARD_PORT}' # ws port for webpack
         extends:
             file: ./docker-compose.base.yml
             service: dashboard
@@ -84,6 +89,7 @@ services:
             - ./Dashboard:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
             - ./Model:/usr/src/Model
@@ -101,6 +107,8 @@ services:
     
 
     status-page:
+        ports: 
+            - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}' # ws port for webpack
         extends:
             file: ./docker-compose.base.yml
             service: status-page
@@ -108,6 +116,7 @@ services:
             - ./StatusPage:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
             - ./Model:/usr/src/Model

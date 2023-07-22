@@ -38,9 +38,7 @@ module.exports = {
         new webpack.DefinePlugin({
             'process': {
                 'env': {
-                    ...readEnvFile('../Common/.env'),
-                    ...readEnvFile('../CommonUI/.env'),
-                    ...readEnvFile('./.env')
+                    ...readEnvFile('/usr/src/app/dev-env/.env')
                 }
             }
         }),

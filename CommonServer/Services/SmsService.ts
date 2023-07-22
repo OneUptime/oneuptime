@@ -10,15 +10,20 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
 import SMS from 'Common/Types/SMS/SMS';
+import BaseService from './BaseService';
 
-export default class SmsService {
-    public static async sendSms(
+export class SmsService extends BaseService {
+    public constructor() {
+        super();
+    }
+
+    public async sendSms(
         sms: SMS,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
             from?: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
-            userNotificationLogTimelineId?: ObjectID;
+            userOnCallLogTimelineId?: ObjectID;
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -27,8 +32,8 @@ export default class SmsService {
             from: options.from?.toString(),
             projectId: options.projectId?.toString(),
             isSensitive: options.isSensitive,
-            userNotificationLogTimelineId:
-                options.userNotificationLogTimelineId?.toString(),
+            userOnCallLogTimelineId:
+                options.userOnCallLogTimelineId?.toString(),
         };
 
         return await API.post<EmptyResponseData>(
@@ -44,3 +49,5 @@ export default class SmsService {
         );
     }
 }
+
+export default new SmsService();

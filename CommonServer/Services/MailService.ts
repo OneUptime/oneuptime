@@ -10,13 +10,15 @@ import EmailServer from 'Common/Types/Email/EmailServer';
 import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import ObjectID from 'Common/Types/ObjectID';
+import BaseService from './BaseService';
 
-export default class MailService {
-    public static async sendMail(
+export class MailService extends BaseService {
+    public async sendMail(
         mail: Email,
-        mailServer?: EmailServer,
         options?: {
-            userNotificationLogTimelineId?: ObjectID;
+            mailServer?: EmailServer | undefined;
+            userOnCallLogTimelineId?: ObjectID;
+            projectId?: ObjectID | undefined;
         }
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
@@ -24,19 +26,24 @@ export default class MailService {
             toEmail: mail.toEmail.toString(),
         };
 
-        if (mailServer) {
-            body['SMTP_USERNAME'] = mailServer.username;
-            body['SMTP_EMAIL'] = mailServer.fromEmail.toString();
-            body['SMTP_FROM_NAME'] = mailServer.fromName;
-            body['SMTP_IS_SECURE'] = mailServer.secure;
-            body['SMTP_PORT'] = mailServer.port.toNumber();
-            body['SMTP_HOST'] = mailServer.host.toString();
-            body['SMTP_PASSWORD'] = mailServer.password;
+        if (options && options.mailServer) {
+            body['SMTP_ID'] = options.mailServer.id?.toString();
+            body['SMTP_USERNAME'] = options.mailServer.username;
+            body['SMTP_EMAIL'] = options.mailServer.fromEmail.toString();
+            body['SMTP_FROM_NAME'] = options.mailServer.fromName;
+            body['SMTP_IS_SECURE'] = options.mailServer.secure;
+            body['SMTP_PORT'] = options.mailServer.port.toNumber();
+            body['SMTP_HOST'] = options.mailServer.host.toString();
+            body['SMTP_PASSWORD'] = options.mailServer.password;
         }
 
-        if (options?.userNotificationLogTimelineId) {
-            body['userNotificationLogTimelineId'] =
-                options.userNotificationLogTimelineId.toString();
+        if (options?.userOnCallLogTimelineId) {
+            body['userOnCallLogTimelineId'] =
+                options.userOnCallLogTimelineId.toString();
+        }
+
+        if (options?.projectId) {
+            body['projectId'] = options.projectId.toString();
         }
 
         return await API.post<EmptyResponseData>(
@@ -52,3 +59,5 @@ export default class MailService {
         );
     }
 }
+
+export default new MailService();

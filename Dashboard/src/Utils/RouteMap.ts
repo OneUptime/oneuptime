@@ -319,6 +319,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/user-settings/notification-methods`
     ),
 
+    [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/user-settings/notification-settings`
+    ),
+
     [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/notification-methods`
     ),
@@ -327,12 +331,12 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/on-call-rules`
     ),
 
-    [PageMap.USER_SETTINGS_NOTIFICATION_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs`
+    [PageMap.USER_SETTINGS_ON_CALL_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-logs`
     ),
 
-    [PageMap.USER_SETTINGS_NOTIFICATION_LOGS_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/notification-logs/${RouteParams.ModelID}`
+    [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/on-call-logs/${RouteParams.ModelID}`
     ),
 
     // Settings Routes
@@ -350,6 +354,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_SMS_LOGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/sms-logs`
+    ),
+
+    [PageMap.SETTINGS_EMAIL_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/email-logs`
     ),
 
     [PageMap.SETTINGS_CALL_LOGS]: new Route(

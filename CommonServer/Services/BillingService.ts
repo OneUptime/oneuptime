@@ -10,6 +10,7 @@ import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import BaseService from './BaseService';
 
 export interface PaymentMethod {
     id: string;
@@ -28,16 +29,17 @@ export interface Invoice {
     customerId: string | undefined;
 }
 
-export class BillingService {
-    private static stripe: Stripe = new Stripe(BillingPrivateKey, {
+export class BillingService extends BaseService {
+    public constructor() {
+        super();
+    }
+
+    private stripe: Stripe = new Stripe(BillingPrivateKey, {
         apiVersion: '2022-08-01',
     });
 
     // returns billing id of the customer.
-    public static async createCustomer(
-        name: string,
-        id: ObjectID
-    ): Promise<string> {
+    public async createCustomer(name: string, id: ObjectID): Promise<string> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -55,7 +57,7 @@ export class BillingService {
         return customer.id;
     }
 
-    public static async updateCustomerName(
+    public async updateCustomerName(
         id: string,
         newName: string
     ): Promise<void> {
@@ -68,7 +70,7 @@ export class BillingService {
         await this.stripe.customers.update(id, { name: newName });
     }
 
-    public static async deleteCustomer(id: string): Promise<void> {
+    public async deleteCustomer(id: string): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -78,11 +80,11 @@ export class BillingService {
         await this.stripe.customers.del(id);
     }
 
-    public static isBillingEnabled(): boolean {
+    public isBillingEnabled(): boolean {
         return IsBillingEnabled;
     }
 
-    public static async subscribeToPlan(
+    public async subscribeToPlan(
         projectId: ObjectID,
         customerId: string,
         serverMeteredPlans: Array<typeof ServerMeteredPlan>,
@@ -149,7 +151,7 @@ export class BillingService {
         };
     }
 
-    public static async changeQuantity(
+    public async changeQuantity(
         subscriptionId: string,
         quantity: number
     ): Promise<void> {
@@ -183,7 +185,7 @@ export class BillingService {
         });
     }
 
-    public static async addOrUpdateMeteredPricingOnSubscription(
+    public async addOrUpdateMeteredPricingOnSubscription(
         subscriptionId: string,
         meteredPlan: MeteredPlan,
         quantity: number,
@@ -264,7 +266,7 @@ export class BillingService {
         // complete.
     }
 
-    public static async changePlan(
+    public async changePlan(
         projectId: ObjectID,
         subscriptionId: string,
         serverMeteredPlans: Array<typeof ServerMeteredPlan>,
@@ -324,7 +326,7 @@ export class BillingService {
         };
     }
 
-    public static async deletePaymentMethod(
+    public async deletePaymentMethod(
         customerId: string,
         paymentMethodId: string
     ): Promise<void> {
@@ -346,9 +348,7 @@ export class BillingService {
         await this.stripe.paymentMethods.detach(paymentMethodId);
     }
 
-    public static async hasPaymentMethods(
-        customerId: string
-    ): Promise<boolean> {
+    public async hasPaymentMethods(customerId: string): Promise<boolean> {
         if ((await this.getPaymentMethods(customerId)).length > 0) {
             return true;
         }
@@ -356,7 +356,7 @@ export class BillingService {
         return false;
     }
 
-    public static async getPaymentMethods(
+    public async getPaymentMethods(
         customerId: string
     ): Promise<Array<PaymentMethod>> {
         if (!this.isBillingEnabled()) {
@@ -429,9 +429,7 @@ export class BillingService {
         return paymenMethods;
     }
 
-    public static async getSetupIntentSecret(
-        customerId: string
-    ): Promise<string> {
+    public async getSetupIntentSecret(customerId: string): Promise<string> {
         const setupIntent: Stripe.Response<Stripe.SetupIntent> =
             await this.stripe.setupIntents.create({
                 customer: customerId,
@@ -446,9 +444,7 @@ export class BillingService {
         return setupIntent.client_secret;
     }
 
-    public static async cancelSubscription(
-        subscriptionId: string
-    ): Promise<void> {
+    public async cancelSubscription(subscriptionId: string): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -461,7 +457,7 @@ export class BillingService {
         }
     }
 
-    public static async getSubscriptionStatus(
+    public async getSubscriptionStatus(
         subscriptionId: string
     ): Promise<SubscriptionStatus> {
         const subscription: Stripe.Subscription = await this.getSubscription(
@@ -470,7 +466,7 @@ export class BillingService {
         return subscription.status as SubscriptionStatus;
     }
 
-    public static async getSubscription(
+    public async getSubscription(
         subscriptionId: string
     ): Promise<Stripe.Subscription> {
         if (!this.isBillingEnabled()) {
@@ -485,9 +481,7 @@ export class BillingService {
         return subscription;
     }
 
-    public static async getInvoices(
-        customerId: string
-    ): Promise<Array<Invoice>> {
+    public async getInvoices(customerId: string): Promise<Array<Invoice>> {
         const invoices: Stripe.ApiList<Stripe.Invoice> =
             await this.stripe.invoices.list({
                 customer: customerId,
@@ -507,7 +501,7 @@ export class BillingService {
         });
     }
 
-    public static async genrateInvoiceAndChargeCustomer(
+    public async genrateInvoiceAndChargeCustomer(
         customerId: string,
         itemText: string,
         amountInUsd: number
@@ -540,9 +534,7 @@ export class BillingService {
         }
     }
 
-    public static async voidInvoice(
-        invoiceId: string
-    ): Promise<Stripe.Invoice> {
+    public async voidInvoice(invoiceId: string): Promise<Stripe.Invoice> {
         const invoice: Stripe.Invoice = await this.stripe.invoices.voidInvoice(
             invoiceId
         );
@@ -550,7 +542,7 @@ export class BillingService {
         return invoice;
     }
 
-    public static async payInvoice(
+    public async payInvoice(
         customerId: string,
         invoiceId: string
     ): Promise<Invoice> {
@@ -583,4 +575,4 @@ export class BillingService {
     }
 }
 
-export default BillingService;
+export default new BillingService();

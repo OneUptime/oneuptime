@@ -162,7 +162,7 @@ export default class QueueWorkflow {
             runLog.workflowStatus = WorkflowStatus.Scheduled;
             runLog.logs =
                 OneUptimeDate.getCurrentDateAsFormattedString() +
-                ': Workflow Scheduled.';
+                `: Workflow ${workflowId.toString()} Scheduled.`;
 
             workflowLog = await WorkflowLogService.create({
                 data: runLog,
