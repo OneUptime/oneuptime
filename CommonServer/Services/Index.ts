@@ -76,7 +76,6 @@ import BillingService from './BillingService';
 import AccessTokenService from './AccessTokenService';
 import CallService from './CallService';
 import DataMigrationService from './DataMigrationService';
-import GlobalConfigService from './GlobalConfigService';
 import IncidentCustomFieldService from './IncidentCustomFieldService';
 import IncidentOwnerTeamService from './IncidentOwnerTeamService';
 import IncidentOwnerUserService from './IncidentOwnerUserService';
@@ -133,7 +132,6 @@ const services: Array<BaseService> = [
 
     FileService,
 
-    GlobalConfigService,
     GreenlockCertificateService,
     GreenlockChallengeService,
 

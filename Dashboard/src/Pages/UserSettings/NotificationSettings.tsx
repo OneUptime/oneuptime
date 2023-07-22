@@ -181,7 +181,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
                         NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
                         NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-                        NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
                     ],
                     title: 'Monitor Notifications',
                     description:
@@ -194,7 +193,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     eventOptions: [
                         NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
                         NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
-                        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+                        NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
                     ],
                     title: 'Status Page Notifications',
                     description:
