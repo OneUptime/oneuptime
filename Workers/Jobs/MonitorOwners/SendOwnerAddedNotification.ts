@@ -1,9 +1,7 @@
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
-import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from 'CommonServer/Utils/Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from 'CommonServer/Services/MonitorService';
@@ -15,6 +13,11 @@ import ObjectID from 'Common/Types/ObjectID';
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import MonitorOwnerUserService from 'CommonServer/Services/MonitorOwnerUserService';
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
 RunCron(
     'MonitorOwner:SendOwnerAddedEmail',
@@ -166,13 +169,32 @@ RunCron(
             };
 
             for (const user of users) {
-                MailService.sendMail({
-                    toEmail: user.email!,
+                const emailMessage: EmailEnvelope = {
                     templateType: EmailTemplateType.MonitorOwnerAdded,
                     vars: vars,
                     subject: 'You have been added as the owner of the monitor.',
-                }).catch((err: Error) => {
-                    logger.error(err);
+                };
+
+                const sms: SMSMessage = {
+                    message: `This is a message from OneUptime. You have been added as the owner of the monitor - ${monitor.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+                };
+
+                const callMessage: CallRequestMessage = {
+                    data: [
+                        {
+                            sayMessage: `This is a message from OneUptime. You have been added as the owner of the monitor ${monitor.name}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                        },
+                    ],
+                };
+
+                await UserNotificationSettingService.sendUserNotification({
+                    userId: user.id!,
+                    projectId: monitor.projectId!,
+                    emailEnvelope: emailMessage,
+                    smsMessage: sms,
+                    callRequestMessage: callMessage,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
                 });
             }
         }

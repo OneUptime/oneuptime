@@ -179,13 +179,13 @@ RunCron(
                 };
 
                 const sms: SMSMessage = {
-                    message: `This is a message from OneUptime. New note posted on scheduled maintenance event - ${scheduledMaintenance.title}. To view this note, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard.`,
+                    message: `This is a message from OneUptime. New note posted on scheduled maintenance event - ${scheduledMaintenance.title}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
                 };
 
                 const callMessage: CallRequestMessage = {
                     data: [
                         {
-                            sayMessage: `This is a message from OneUptime. New note posted on scheduled maintenance event ${scheduledMaintenance.title}. To view this note, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
+                            sayMessage: `This is a message from OneUptime. New note posted on scheduled maintenance event ${scheduledMaintenance.title}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
                         },
                     ],
                 };

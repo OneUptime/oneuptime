@@ -1,15 +1,18 @@
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
-import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from 'CommonServer/Utils/Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from 'CommonServer/Services/MonitorService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Markdown from 'CommonServer/Types/Markdown';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
 RunCron(
     'MonitorOwner:SendCreatedResourceEmail',
@@ -87,13 +90,32 @@ RunCron(
             }
 
             for (const user of owners) {
-                MailService.sendMail({
-                    toEmail: user.email!,
+                const emailMessage: EmailEnvelope = {
                     templateType: EmailTemplateType.MonitorOwnerResourceCreated,
                     vars: vars,
                     subject: 'New monitor created - ' + monitor.name!,
-                }).catch((err: Error) => {
-                    logger.error(err);
+                };
+
+                const sms: SMSMessage = {
+                    message: `This is a message from OneUptime. New monitor created - ${monitor.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+                };
+
+                const callMessage: CallRequestMessage = {
+                    data: [
+                        {
+                            sayMessage: `This is a message from OneUptime. New monitor was created ${monitor.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                        },
+                    ],
+                };
+
+                await UserNotificationSettingService.sendUserNotification({
+                    userId: user.id!,
+                    projectId: monitor.projectId!,
+                    emailEnvelope: emailMessage,
+                    smsMessage: sms,
+                    callRequestMessage: callMessage,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
                 });
             }
         }

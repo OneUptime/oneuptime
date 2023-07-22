@@ -1,9 +1,7 @@
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
-import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from 'CommonServer/Utils/Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
@@ -15,6 +13,11 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
 import StatusPageOwnerUserService from 'CommonServer/Services/StatusPageOwnerUserService';
 import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
+import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
+import { SMSMessage } from 'Common/Types/SMS/SMS';
+import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
+import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 
 RunCron(
     'StatusPageOwner:SendOwnerAddedEmail',
@@ -168,14 +171,33 @@ RunCron(
             };
 
             for (const user of users) {
-                MailService.sendMail({
-                    toEmail: user.email!,
+                const emailMessage: EmailEnvelope = {
                     templateType: EmailTemplateType.StatusPageOwnerAdded,
                     vars: vars,
                     subject:
                         'You have been added as the owner of the status page.',
-                }).catch((err: Error) => {
-                    logger.error(err);
+                };
+
+                const sms: SMSMessage = {
+                    message: `This is a message from OneUptime. You have been added as the owner of the status page. Status Page Name: ${statusPage.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+                };
+
+                const callMessage: CallRequestMessage = {
+                    data: [
+                        {
+                            sayMessage: `This is a message from OneUptime. You have been added as the owner of the status page. Status Page ${statusPage.name}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                        },
+                    ],
+                };
+
+                await UserNotificationSettingService.sendUserNotification({
+                    userId: user.id!,
+                    projectId: statusPage.projectId!,
+                    emailEnvelope: emailMessage,
+                    smsMessage: sms,
+                    callRequestMessage: callMessage,
+                    eventType:
+                        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
                 });
             }
         }

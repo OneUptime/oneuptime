@@ -126,7 +126,7 @@ RunCron(
                     message: `This is a message from OneUptime. Scheduled maintenance event - ${
                         scheduledMaintenance.title
                     }, state changed to ${scheduledMaintenanceState!
-                        .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard.`,
+                        .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
                 };
 
                 const callMessage: CallRequestMessage = {
@@ -135,7 +135,7 @@ RunCron(
                             sayMessage: `This is a message from OneUptime. Scheduled maintenance event ${
                                 scheduledMaintenance.title
                             } state changed to ${scheduledMaintenanceState!
-                                .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe go to User Settings in OneUptime Dashboard. Good bye.`,
+                                .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
                         },
                     ],
                 };
