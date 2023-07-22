@@ -20,6 +20,9 @@ import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 import ObjectID from 'Common/Types/ObjectID';
 import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import EmailLog from 'Model/Models/EmailLog';
+import MailStatus from 'Common/Types/Mail/MailStatus';
+import EmailLogService from 'CommonServer/Services/EmailLogService';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -36,8 +39,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                    obj['SMTP_EMAIL'] +
-                    ' is not a valid email'
+                obj['SMTP_EMAIL'] +
+                ' is not a valid email'
             );
             return false;
         }
@@ -189,11 +192,14 @@ export default class MailService {
 
     private static async transportMail(
         mail: EmailMessage,
-        emailServer: EmailServer
+        options: {
+            emailServer: EmailServer,
+            projectId?: ObjectID | undefined;
+        }
     ): Promise<void> {
-        const mailer: Transporter = this.createMailer(emailServer);
+        const mailer: Transporter = this.createMailer(options.emailServer);
         await mailer.sendMail({
-            from: `${emailServer.fromName.toString()} <${emailServer.fromEmail.toString()}>`,
+            from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
             to: mail.toEmail.toString(),
             subject: mail.subject,
             html: mail.body,
@@ -202,13 +208,25 @@ export default class MailService {
 
     public static async send(
         mail: EmailMessage,
-        emailServer?: EmailServer,
-        options?:
-            | {
-                  userOnCallLogTimelineId?: ObjectID | undefined;
-              }
+        options?: {
+            projectId?: ObjectID | undefined,
+            emailServer?: EmailServer | undefined,
+            userOnemailLogTimelineId?: ObjectID | undefined;
+        }
             | undefined
     ): Promise<void> {
+
+
+        let emailLog: EmailLog | undefined = undefined; 
+
+        if (options && options.projectId) {
+            emailLog = new EmailLog();
+            emailLog.projectId = options.projectId;
+            emailLog.toEmail = mail.toEmail;
+            emailLog.subject = mail.subject;
+        }
+
+
         // default vars.
         if (!mail.vars) {
             mail.vars = {};
@@ -223,7 +241,7 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
         try {
-            if (!emailServer && SendGridApiKey) {
+            if ((!options || !options.emailServer) && SendGridApiKey) {
                 SendgridMail.setApiKey(SendGridApiKey);
 
                 const msg: MailDataRequired = {
@@ -233,35 +251,87 @@ export default class MailService {
                     html: mail.body,
                 };
 
+                if(emailLog){
+                    emailLog.fromEmail = this.getGlobalFromEmail();
+                }
+
                 await SendgridMail.send(msg);
-                if (options?.userOnCallLogTimelineId) {
+
+                if(emailLog){
+                    emailLog.status = MailStatus.Success;
+                    emailLog.statusMessage = 'Email sent successfully';
+
+                    await EmailLogService.create({
+                        data: emailLog,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+                }
+
+
+                if (options?.userOnemailLogTimelineId) {
                     await this.updateUserNotificationLogTimelineAsSent(
-                        options?.userOnCallLogTimelineId
+                        options?.userOnemailLogTimelineId
                     );
                 }
                 return;
             }
 
-            if (!emailServer) {
-                emailServer = this.getGlobalSmtpSettings();
+            if (!options || !options.emailServer) {
+                if (!options) {
+                    options = {}
+                }
+                options.emailServer = this.getGlobalSmtpSettings();
             }
 
-            await this.transportMail(mail, emailServer);
+            if(options.emailServer && emailLog){
+                emailLog.fromEmail = options.emailServer.fromEmail;
+            }
 
-            if (options?.userOnCallLogTimelineId) {
+            await this.transportMail(mail, {
+                emailServer: options.emailServer,
+                projectId: options.projectId,
+            });
+
+            if(emailLog){
+                emailLog.status = MailStatus.Success;
+                emailLog.statusMessage = 'Email sent successfully';
+
+                await EmailLogService.create({
+                    data: emailLog,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+            if (options?.userOnemailLogTimelineId) {
                 await this.updateUserNotificationLogTimelineAsSent(
-                    options?.userOnCallLogTimelineId
+                    options?.userOnemailLogTimelineId
                 );
             }
         } catch (err: any) {
             logger.error(err);
-            if (options?.userOnCallLogTimelineId) {
+            if (options?.userOnemailLogTimelineId) {
                 await UserOnCallLogTimelineService.updateOneById({
                     data: {
                         status: UserNotificationStatus.Error,
                         statusMessage: err.message || 'Email failed to send',
                     },
-                    id: options.userOnCallLogTimelineId,
+                    id: options.userOnemailLogTimelineId,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+
+            if(emailLog){
+                emailLog.status = MailStatus.Error;
+                emailLog.statusMessage = err.message || 'Email sent successfully';
+
+                await EmailLogService.create({
+                    data: emailLog,
                     props: {
                         isRoot: true,
                     },
