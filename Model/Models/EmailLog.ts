@@ -234,7 +234,6 @@ export default class EmailLog extends BaseModel {
     })
     public status?: MailStatus = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [

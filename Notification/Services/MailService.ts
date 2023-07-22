@@ -88,13 +88,15 @@ export default class MailService {
     }
 
     public static getEmailServer(obj: JSONObject): EmailServer {
-
         if (!this.isSMTPConfigValid(obj)) {
             throw new BadDataException('SMTP Config is not valid');
         }
 
         return {
-            id: obj && obj['SMTP_ID'] ? new ObjectID(obj['SMTP_ID'].toString()) : undefined,
+            id:
+                obj && obj['SMTP_ID']
+                    ? new ObjectID(obj['SMTP_ID'].toString())
+                    : undefined,
             username: obj['SMTP_USERNAME']?.toString()!,
             password: obj['SMTP_PASSWORD']?.toString()!,
             host: new Hostname(obj['SMTP_HOST']?.toString()!),
@@ -225,8 +227,8 @@ export default class MailService {
             emailLog.projectId = options.projectId;
             emailLog.toEmail = mail.toEmail;
             emailLog.subject = mail.subject;
-            
-            if(options.emailServer?.id){
+
+            if (options.emailServer?.id) {
                 emailLog.projectSmtpConfigId = options.emailServer?.id;
             }
         }

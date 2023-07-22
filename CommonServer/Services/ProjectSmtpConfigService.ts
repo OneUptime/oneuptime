@@ -12,13 +12,11 @@ export class Service extends DatabaseService<Model> {
     public toEmailServer(
         projectSmtpConfig: Model | undefined
     ): EmailServer | undefined {
-
-
         if (!projectSmtpConfig) {
             return undefined;
         }
 
-        if(!projectSmtpConfig.id){
+        if (!projectSmtpConfig.id) {
             throw new BadDataException('Project SMTP config id is not set');
         }
 
