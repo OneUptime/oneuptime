@@ -59,7 +59,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                     }}
                     formProps={{
                         saveRequestOptions: {
-                            isMultiTenantRequest: true, // because this is a tenant request, we do not have to incclude the header in the reqeuest
+                            isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request
                         },
                         model: new Project(),
                         id: 'create-project-from',
