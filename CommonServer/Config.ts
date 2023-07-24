@@ -28,7 +28,7 @@ export const DatabasePort: Port = new Port(
 );
 
 export const DatabaseUsername: string =
-    process.env['DATABASE_USERNAME'] || 'oneuptimedbuser';
+    process.env['DATABASE_USERNAME'] || 'postgres';
 
 export const DatabasePassword: string =
     process.env['DATABASE_PASSWORD'] || 'password';
