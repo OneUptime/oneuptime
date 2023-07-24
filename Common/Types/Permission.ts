@@ -480,7 +480,7 @@ export class PermissionHelper {
                 permission: Permission.ProjectOwner,
                 title: 'Project Owner',
                 description:
-                    'Owner of this project, manages billing, inviting other admins to this project, and can delete this project.',
+                    'Owner of this project. Manages billing, inviting other admins to this project, and can delete this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -496,7 +496,7 @@ export class PermissionHelper {
                 permission: Permission.ProjectAdmin,
                 title: 'Project Admin',
                 description:
-                    'Owner of this project, manages billing, inviting other admins to this project, and can delete this project.',
+                    'Admin of this project. Manages team members in this project, however cannot manage billing or delete this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

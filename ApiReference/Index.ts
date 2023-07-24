@@ -20,7 +20,7 @@ import DataTypeServiceHandler from './Service/DataType';
 import Dictionary from 'Common/Types/Dictionary';
 
 const ResourceDictionary: Dictionary<ModelDocumentation> =
-    ResourceUtil.getReosurceDictionaryByPath();
+    ResourceUtil.getResourceDictionaryByPath();
 
 const APP_NAME: string = 'reference';
 

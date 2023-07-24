@@ -53,6 +53,27 @@ export const getIncidentEventItem: Function = (
     let currentStateStatus: string = '';
     let currentStatusColor: Color = Green;
 
+    if (isSummary) {
+        // If this is summary then reverse the order so we show the latest first
+        incidentPublicNotes.sort(
+            (a: IncidentPublicNote, b: IncidentPublicNote) => {
+                return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) ===
+                    false
+                    ? 1
+                    : -1;
+            }
+        );
+
+        incidentStateTimelines.sort(
+            (a: IncidentStateTimeline, b: IncidentStateTimeline) => {
+                return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) ===
+                    false
+                    ? 1
+                    : -1;
+            }
+        );
+    }
+
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
             incidentPublicNote.incidentId?.toString() ===

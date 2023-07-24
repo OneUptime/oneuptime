@@ -36,7 +36,7 @@ const Home: FunctionComponent<PageComponentProps> = (
             <CardModelDetail
                 cardProps={{
                     title: 'Basic Info',
-                    description: "Here's are some of your details.",
+                    description: 'Here are some of your details.',
                     icon: IconProp.User,
                 }}
                 name="User Profile > Basic Info"
