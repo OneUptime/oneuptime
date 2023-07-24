@@ -97,7 +97,7 @@ npm run dev
 
 ## Philosophy
 
-Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we build a platform that help you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
+Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we built a platform that helps you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
 
 ## Contributing
 
