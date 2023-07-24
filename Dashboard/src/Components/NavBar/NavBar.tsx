@@ -123,7 +123,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             footer={{
                                 title: 'Report a bug or request a feature.',
                                 description:
-                                    'We embrace open-source. Please report any issue your find or any feature requests on GitHub.',
+                                    'We embrace open source! Please report any issue you find and make feature requests on GitHub.',
                                 link: URL.fromString(
                                     'https://github.com/OneUptime/oneuptime/issues/new/choose'
                                 ),
