@@ -15,7 +15,7 @@ import PageNotFoundServiceHandler from './PageNotFound';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const ResourceDictionary: Dictionary<ModelDocumentation> =
-    ResourceUtil.getReosurceDictionaryByPath();
+    ResourceUtil.getResourceDictionaryByPath();
 
 const PermissionDictionary: Dictionary<PermissionProps> =
     PermissionHelper.getAllPermissionPropsAsDictionary();

@@ -478,7 +478,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         let currentStatus: MonitorStatus = new MonitorStatus();
         currentStatus.name = 'Operational';
         currentStatus.color = Green;
-        let hasReosurce: boolean = false;
+        let hasResource: boolean = false;
 
         for (const resource of statusPageResources) {
             if (
@@ -490,7 +490,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
-                hasReosurce = true;
+                hasResource = true;
                 const currentMonitorStatus: MonitorStatus | undefined =
                     monitorStatuses.find((status: MonitorStatus) => {
                         return (
@@ -512,7 +512,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
         }
 
-        if (hasReosurce) {
+        if (hasResource) {
             return (
                 <div
                     className="bold font16"

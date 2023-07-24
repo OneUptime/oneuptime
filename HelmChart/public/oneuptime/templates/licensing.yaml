@@ -1,6 +1,6 @@
 
 ####################################
-#IMPORTANT: Kube Reosurces below are ONLY for SaaS service
+#IMPORTANT: Kube Resources below are ONLY for SaaS service
 ####################################
 
 {{- if .Values.saas.isSaasService }}
