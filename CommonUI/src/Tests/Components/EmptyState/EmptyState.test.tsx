@@ -1,13 +1,13 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import EmnptyState from '../../../Components/EmptyState/EmptyState';
+import EmptyState from '../../../Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 describe('EmptyState', () => {
     test('renders correctly with all props', () => {
         render(
-            <EmnptyState
+            <EmptyState
                 title="Empty State Title"
                 description="This is an empty state description"
                 icon={IconProp.User}
@@ -28,7 +28,7 @@ describe('EmptyState', () => {
     });
     test('renders without an icon', () => {
         render(
-            <EmnptyState
+            <EmptyState
                 icon={undefined}
                 title="Title"
                 description="Description"
