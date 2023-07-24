@@ -54,11 +54,12 @@ export const getAnnouncementEventItem: Function = (
               ),
         isDetailItem: !isSummary,
         eventTypeColor: Blue,
-        eventSecondDescription:
-            'Announced at ' +
-            OneUptimeDate.getDateAsLocalFormattedString(
-                announcement.showAnnouncementAt!
-            ),
+        eventSecondDescription: announcement.showAnnouncementAt!
+            ? 'Announced at ' +
+              OneUptimeDate.getDateAsLocalFormattedString(
+                  announcement.showAnnouncementAt!
+              )
+            : '',
     };
 };
 

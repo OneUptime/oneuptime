@@ -63,7 +63,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Logs">
                 <SideMenuItem
                     link={{
-                        title: 'On Call Logs',
+                        title: 'On-Call Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.USER_SETTINGS_ON_CALL_LOGS

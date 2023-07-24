@@ -138,11 +138,12 @@ export const getScheduledEventEventItem: Function = (
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
         eventTypeColor: Yellow,
-        eventSecondDescription:
-            'Scheduled at ' +
-            OneUptimeDate.getDateAsLocalFormattedString(
-                scheduledMaintenance.startsAt!
-            ),
+        eventSecondDescription: scheduledMaintenance.startsAt
+            ? 'Scheduled at ' +
+              OneUptimeDate.getDateAsLocalFormattedString(
+                  scheduledMaintenance.startsAt!
+              )
+            : '',
     };
 };
 

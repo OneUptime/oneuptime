@@ -185,7 +185,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             <br />
                             <span>
                                 Please note: Some domain changes might take 72
-                                hours to propogate.
+                                hours to propagate.
                             </span>
                         </div>
                     }
