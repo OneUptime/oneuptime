@@ -52,7 +52,7 @@ export default class ResourceUtil {
         );
     }
 
-    public static getReosurceDictionaryByPath(): Dictionary<ModelDocumentation> {
+    public static getResourceDictionaryByPath(): Dictionary<ModelDocumentation> {
         const dict: Dictionary<ModelDocumentation> = {};
 
         const resources: Array<ModelDocumentation> =
