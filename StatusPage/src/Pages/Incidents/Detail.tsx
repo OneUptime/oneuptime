@@ -145,9 +145,10 @@ export const getIncidentEventItem: Function = (
         currentStatusColor: currentStatusColor,
         anotherStatusColor: incident.incidentSeverity?.color || undefined,
         anotherStatus: incident.incidentSeverity?.name,
-        eventSecondDescription:
-            'Created at ' +
-            OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!),
+        eventSecondDescription: incident.createdAt
+            ? 'Created at ' +
+              OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
+            : '',
         eventTypeColor: Red,
     };
 
