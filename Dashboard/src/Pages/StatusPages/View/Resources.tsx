@@ -127,7 +127,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description: 'Resources that will be shown on the page',
                 }}
                 noItemsMessage={
-                    'No status page reosurces created for this status page.'
+                    'No status page resources created for this status page.'
                 }
                 formFields={[
                     {
