@@ -44,7 +44,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
 import { getAnnouncementEventItem } from '../Announcement/Detail';
-import EmnptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
 import StatusPage from 'Model/Models/StatusPage';
@@ -698,7 +698,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         activeAnnouncements.length === 0 &&
                         !isLoading &&
                         !error && (
-                            <EmnptyState
+                            <EmptyState
                                 icon={IconProp.CheckCircle}
                                 title={'Everything looks great'}
                                 description="Everything is great. Nothig posted on this status page so far."

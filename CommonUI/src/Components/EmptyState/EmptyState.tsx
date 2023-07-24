@@ -9,7 +9,7 @@ export interface ComponentProps {
     footer?: ReactElement | undefined;
 }
 
-const EmnptyState: FunctionComponent<ComponentProps> = (
+const EmptyState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -36,4 +36,4 @@ const EmnptyState: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default EmnptyState;
+export default EmptyState;
