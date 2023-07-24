@@ -53,6 +53,33 @@ export const getScheduledEventEventItem: Function = (
 
     const timeline: Array<TimelineItem> = [];
 
+    if (isSummary) {
+        // If this is summary then reverse the order so we show the latest first
+        scheduledMaintenanceEventsPublicNotes.sort(
+            (
+                a: ScheduledMaintenancePublicNote,
+                b: ScheduledMaintenancePublicNote
+            ) => {
+                return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) ===
+                    false
+                    ? 1
+                    : -1;
+            }
+        );
+
+        scheduledMaintenanceStateTimelines.sort(
+            (
+                a: ScheduledMaintenanceStateTimeline,
+                b: ScheduledMaintenanceStateTimeline
+            ) => {
+                return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) ===
+                    false
+                    ? 1
+                    : -1;
+            }
+        );
+    }
+
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
@@ -66,6 +93,7 @@ export const getScheduledEventEventItem: Function = (
                 icon: IconProp.Chat,
                 iconColor: Grey,
             });
+
             if (isSummary) {
                 break;
             }
