@@ -34,6 +34,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -93,6 +94,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setIsLoading(false);
             props.onLoadComplete();
         } catch (err) {
+            if (err instanceof HTTPErrorResponse) {
+                StatusPageUtil.checkIfTheUserIsAuthenticated(err);
+            }
             setError(BaseAPI.getFriendlyMessage(err));
             setIsLoading(false);
         }

@@ -33,6 +33,7 @@ import { Blue } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -129,6 +130,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setIsLoading(false);
             props.onLoadComplete();
         } catch (err) {
+            if (err instanceof HTTPErrorResponse) {
+                StatusPageUtil.checkIfTheUserIsAuthenticated(err);
+            }
+
             setError(BaseAPI.getFriendlyMessage(err));
             setIsLoading(false);
         }

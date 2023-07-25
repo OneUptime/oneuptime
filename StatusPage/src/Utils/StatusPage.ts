@@ -4,6 +4,7 @@ import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import UserUtil from './User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export default class StatusPageUtil {
     public static getStatusPageId(): ObjectID | null {
@@ -34,20 +35,36 @@ export default class StatusPageUtil {
         return Navigation.containsInPath('/status-page/');
     }
 
+    public static navigateToLoginPage(): void {
+        Navigation.navigate(
+            new Route(
+                StatusPageUtil.isPreviewPage()
+                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
+                    : `/login?redirectUrl=${Navigation.getCurrentPath()}`
+            ),
+            { forceNavigate: true }
+        );
+    }
+
     public static checkIfUserHasLoggedIn(): void {
         if (
             StatusPageUtil.getStatusPageId() &&
             StatusPageUtil.isPrivateStatusPage() &&
             !UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
         ) {
-            Navigation.navigate(
-                new Route(
-                    StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
-                        : `/login?redirectUrl=${Navigation.getCurrentPath()}`
-                ),
-                { forceNavigate: true }
-            );
+            StatusPageUtil.navigateToLoginPage();
+        }
+    }
+
+    public static checkIfTheUserIsAuthenticated(
+        errorResponse: HTTPErrorResponse
+    ): void {
+        if (
+            errorResponse instanceof HTTPErrorResponse &&
+            errorResponse.statusCode === 401
+        ) {
+            UserUtil.logout(StatusPageUtil.getStatusPageId()!);
+            StatusPageUtil.navigateToLoginPage();
         }
     }
 }

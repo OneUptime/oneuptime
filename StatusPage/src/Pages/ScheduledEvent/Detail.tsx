@@ -38,6 +38,7 @@ import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -266,6 +267,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setIsLoading(false);
             props.onLoadComplete();
         } catch (err) {
+            if (err instanceof HTTPErrorResponse) {
+                StatusPageUtil.checkIfTheUserIsAuthenticated(err);
+            }
             setError(BaseAPI.getFriendlyMessage(err));
             setIsLoading(false);
         }
