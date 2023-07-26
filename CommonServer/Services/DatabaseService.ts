@@ -530,27 +530,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         projectId: ObjectID,
         triggerType: DatabaseTriggerType
     ): Promise<void> {
-        API.post(
-            new URL(
-                Protocol.HTTP,
-                WorkflowHostname,
-                new Route(
-                    `${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
-                        this.getModel().tableName!
-                    )}/${triggerType}`
-                )
-            ),
-            {
-                data: {
-                    _id: id.toString(),
+        if (this.getModel().enableWorkflowOn) {
+            API.post(
+                new URL(
+                    Protocol.HTTP,
+                    WorkflowHostname,
+                    new Route(
+                        `${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                            this.getModel().tableName!
+                        )}/${triggerType}`
+                    )
+                ),
+                {
+                    data: {
+                        _id: id.toString(),
+                    },
                 },
-            },
-            {
-                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
-            }
-        ).catch((error: Error) => {
-            logger.error(error);
-        });
+                {
+                    ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+                }
+            ).catch((error: Error) => {
+                logger.error(error);
+            });
+        }
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
@@ -621,22 +623,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             }
 
             // hit workflow.;
-            if (
-                this.getModel().enableWorkflowOn?.create &&
-                (createBy.props.tenantId ||
-                    (this.getModel().getTenantColumn() &&
-                        createBy.data.getValue<ObjectID>(
-                            this.getModel().getTenantColumn()!
-                        )))
-            ) {
-                await this.onTrigger(
-                    createBy.data.id!,
-                    createBy.props.tenantId ||
-                        createBy.data.getValue<ObjectID>(
-                            this.getModel().getTenantColumn()!
-                        ),
-                    'on-create'
-                );
+            if (this.getModel().enableWorkflowOn?.create) {
+                let tenantId: ObjectID | undefined = createBy.props.tenantId;
+
+                if (!tenantId && this.getModel().getTenantColumn()) {
+                    tenantId = createBy.data.getValue<ObjectID>(
+                        this.getModel().getTenantColumn()!
+                    );
+                }
+
+                if (tenantId) {
+                    await this.onTrigger(
+                        createBy.data.id!,
+                        tenantId,
+                        'on-create'
+                    );
+                }
             }
 
             return createBy.data;
@@ -962,21 +964,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 (deleteBy.props.tenantId || this.getModel().getTenantColumn())
             ) {
                 for (const item of items) {
-                    if (
-                        (this.getModel().getTenantColumn() &&
-                            item.getValue<ObjectID>(
+                    if (this.getModel().enableWorkflowOn?.create) {
+                        let tenantId: ObjectID | undefined =
+                            deleteBy.props.tenantId;
+
+                        if (!tenantId && this.getModel().getTenantColumn()) {
+                            tenantId = item.getValue<ObjectID>(
                                 this.getModel().getTenantColumn()!
-                            )) ||
-                        deleteBy.props.tenantId
-                    ) {
-                        await this.onTrigger(
-                            item.id!,
-                            deleteBy.props.tenantId ||
-                                item.getValue<ObjectID>(
-                                    this.getModel().getTenantColumn()!
-                                ),
-                            'on-delete'
-                        );
+                            );
+                        }
+
+                        if (tenantId) {
+                            await this.onTrigger(
+                                item.id!,
+                                tenantId,
+                                'on-delete'
+                            );
+                        }
                     }
                 }
             }
@@ -1256,22 +1260,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 await this.getRepository().save(updatedItem);
 
                 // hit workflow.
-                if (
-                    (this.getModel().enableWorkflowOn?.update &&
-                        updateBy.props.tenantId) ||
-                    (this.getModel().getTenantColumn() &&
-                        item.getValue<ObjectID>(
+                if (this.getModel().enableWorkflowOn?.update) {
+                    let tenantId: ObjectID | undefined =
+                        updateBy.props.tenantId;
+
+                    if (!tenantId && this.getModel().getTenantColumn()) {
+                        tenantId = item.getValue<ObjectID>(
                             this.getModel().getTenantColumn()!
-                        ))
-                ) {
-                    await this.onTrigger(
-                        item.id!,
-                        updateBy.props.tenantId ||
-                            item.getValue<ObjectID>(
-                                this.getModel().getTenantColumn()!
-                            ),
-                        'on-update'
-                    );
+                        );
+                    }
+
+                    if (tenantId) {
+                        await this.onTrigger(item.id!, tenantId, 'on-update');
+                    }
                 }
             }
 
