@@ -3,6 +3,7 @@ enum HTTPMethod {
     POST = 'POST',
     DELETE = 'DELETE',
     PUT = 'PUT',
+    HEAD = 'HEAD',
 }
 
 export default HTTPMethod;

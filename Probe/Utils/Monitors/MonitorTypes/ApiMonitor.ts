@@ -28,16 +28,25 @@ export default class ApiMonitor {
             requestHeaders?: Headers | undefined;
             requestBody?: JSONObject | undefined;
             requestType?: HTTPMethod | undefined;
-        },
-        retry?: number | undefined
+            isHeadRequest?: boolean | undefined;
+            retry?: number | undefined;
+        }
     ): Promise<APIResponse> {
+        let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
+
+        if (options.isHeadRequest) {
+            requestType = HTTPMethod.HEAD;
+        }
+
         try {
-            logger.info(`API Monitor - Pinging ${url.toString()}`);
+            logger.info(
+                `API Monitor - Pinging ${requestType} ${url.toString()}`
+            );
 
             const startTime: [number, number] = process.hrtime();
             const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
                 await API.fetch(
-                    options.requestType || HTTPMethod.GET,
+                    requestType,
                     url,
                     options.requestBody || undefined,
                     options.requestHeaders || undefined
@@ -61,27 +70,23 @@ export default class ApiMonitor {
             };
 
             logger.info(
-                `API Monitor - Pinging ${url.toString()} Success - Response: ${JSON.stringify(
+                `API Monitor - Pinging ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
                     apiResponse
                 )}`
             );
 
             return apiResponse;
         } catch (err) {
-            logger.error(
-                `API Monitor - Pinging ${url.toString()} - Error: ${err}`
-            );
-
-            if (!retry) {
-                retry = 0; // default value
+            if (!options.retry) {
+                options.retry = 0; // default value
             }
 
-            if (retry < 5) {
-                retry++;
-                return await this.ping(url, options, retry);
+            if (options.retry < 5) {
+                options.retry++;
+                return await this.ping(url, options);
             }
 
-            return {
+            const apiResponse: APIResponse = {
                 url: url,
                 isOnline: false,
                 requestBody: options.requestBody || {},
@@ -92,6 +97,14 @@ export default class ApiMonitor {
                 responseBody: '',
                 responseHeaders: {},
             };
+
+            logger.error(
+                `API Monitor - Pinging ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
+                    apiResponse
+                )}`
+            );
+
+            return apiResponse;
         }
     }
 }

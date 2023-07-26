@@ -16,6 +16,8 @@ import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import logger from 'CommonServer/Utils/Logger';
 import ProbeUtil from '../Probe';
+import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
+import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -63,6 +65,47 @@ export default class MonitorUtil {
         return results;
     }
 
+    public static isHeadRequest(monitorStep: MonitorStep): boolean {
+        // If its not GET requestm it cannot be a head request
+        if (
+            monitorStep.data?.requestType &&
+            monitorStep.data?.requestType !== HTTPMethod.GET
+        ) {
+            return false;
+        }
+
+        // check if monitor step has any criteria with needs request body. If no, then return true otherwise return false.
+
+        if (
+            monitorStep.data?.monitorCriteria.data
+                ?.monitorCriteriaInstanceArray &&
+            monitorStep.data?.monitorCriteria.data?.monitorCriteriaInstanceArray
+                .length > 0
+        ) {
+            const criteriaArray: Array<MonitorCriteriaInstance> =
+                monitorStep.data?.monitorCriteria.data
+                    ?.monitorCriteriaInstanceArray;
+
+            for (const criteria of criteriaArray) {
+                if (
+                    criteria.data?.filters &&
+                    criteria.data?.filters.length > 0
+                ) {
+                    const filters: Array<CriteriaFilter> =
+                        criteria.data?.filters;
+
+                    for (const filter of filters) {
+                        if (filter.checkOn === CheckOn.ResponseBody) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     public static async probeMonitorStep(
         monitorStep: MonitorStep,
         monitor: Monitor
@@ -91,7 +134,10 @@ export default class MonitorUtil {
 
         if (monitor.monitorType === MonitorType.Website) {
             const response: ProbeWebsiteResponse = await WebsiteMonitor.ping(
-                monitorStep.data?.monitorDestination as URL
+                monitorStep.data?.monitorDestination as URL,
+                {
+                    isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
+                }
             );
 
             result.isOnline = response.isOnline;
@@ -117,6 +163,7 @@ export default class MonitorUtil {
                 {
                     requestHeaders: monitorStep.data?.requestHeaders || {},
                     requestBody: requestBody || undefined,
+                    isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
                     requestType:
                         monitorStep.data?.requestType || HTTPMethod.GET,
                 }

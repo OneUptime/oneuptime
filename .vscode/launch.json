@@ -86,7 +86,7 @@
         {
             "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Probe",
-            "name": "Dashboard API: Debug with Docker",
+            "name": "Probe: Debug with Docker",
             "port": 9655,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
@@ -326,20 +326,6 @@
             "localRoot": "${workspaceFolder}/InitScript",
             "name": "Init Script: Debug with Docker",
             "port": 9237,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/probe",
-            "name": "Probe: Debug with Docker",
-            "port": 9238,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

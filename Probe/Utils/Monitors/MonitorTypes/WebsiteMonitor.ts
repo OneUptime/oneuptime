@@ -5,6 +5,8 @@ import Protocol from 'Common/Types/API/Protocol';
 import WebsiteRequest, { WebsiteResponse } from 'Common/Types/WebsiteRequest';
 import HTML from 'Common/Types/Html';
 import { AxiosError } from 'axios';
+import logger from 'CommonServer/Utils/Logger';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
 
 export interface ProbeWebsiteResponse {
     url: URL;
@@ -20,17 +22,33 @@ export interface ProbeWebsiteResponse {
 export default class WebsiteMonitor {
     public static async ping(
         url: URL,
-        retry?: number | undefined
+        options: {
+            retry?: number | undefined;
+            isHeadRequest?: boolean | undefined;
+        }
     ): Promise<ProbeWebsiteResponse> {
+        let requestType: HTTPMethod = HTTPMethod.GET;
+
+        if (options.isHeadRequest) {
+            requestType = HTTPMethod.HEAD;
+        }
+
         try {
+            logger.info(
+                `Website Monitor - Pinging ${requestType} ${url.toString()}`
+            );
+
             const startTime: [number, number] = process.hrtime();
-            const result: WebsiteResponse = await WebsiteRequest.get(url, {});
+            const result: WebsiteResponse = await WebsiteRequest.fetch(url, {
+                isHeadRequest: options.isHeadRequest,
+            });
+
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
             );
 
-            return {
+            const probeWebsiteResponse: ProbeWebsiteResponse = {
                 url: url,
                 requestHeaders: {},
                 isOnline: true,
@@ -40,18 +58,33 @@ export default class WebsiteMonitor {
                 responseBody: result.responseBody,
                 responseHeaders: result.responseHeaders,
             };
+
+            logger.info(
+                `Website Monitor - Pinging ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
+                    probeWebsiteResponse
+                )}`
+            );
+
+            return probeWebsiteResponse;
         } catch (err) {
-            if (!retry) {
-                retry = 0; // default value
+            if (!options) {
+                options = {};
             }
 
-            if (retry < 5) {
-                retry++;
-                return await this.ping(url, retry);
+            if (!options.retry) {
+                options.retry = 0; // default value
             }
+
+            if (options.retry < 5) {
+                options.retry++;
+                return await this.ping(url, options);
+            }
+
+            let probeWebisteResponse: ProbeWebsiteResponse | undefined =
+                undefined;
 
             if (err instanceof AxiosError) {
-                return {
+                probeWebisteResponse = {
                     url: url,
                     isOnline: Boolean(err.response),
                     requestHeaders: {},
@@ -61,18 +94,26 @@ export default class WebsiteMonitor {
                     responseBody: err.response?.data,
                     responseHeaders: (err.response?.headers as Headers) || {},
                 };
+            } else {
+                probeWebisteResponse = {
+                    url: url,
+                    isOnline: false,
+                    requestHeaders: {},
+                    isSecure: url.protocol === Protocol.HTTPS,
+                    responseTimeInMS: new PositiveNumber(0),
+                    statusCode: undefined,
+                    responseBody: undefined,
+                    responseHeaders: undefined,
+                };
             }
 
-            return {
-                url: url,
-                isOnline: false,
-                requestHeaders: {},
-                isSecure: url.protocol === Protocol.HTTPS,
-                responseTimeInMS: new PositiveNumber(0),
-                statusCode: undefined,
-                responseBody: undefined,
-                responseHeaders: undefined,
-            };
+            logger.error(
+                `Website Monitor - Pinging ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
+                    probeWebisteResponse
+                )}`
+            );
+
+            return probeWebisteResponse;
         }
     }
 }

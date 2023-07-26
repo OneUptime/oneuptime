@@ -1,7 +1,8 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import Headers from './API/Headers';
 import URL from './API/URL';
 import HTML from './Html';
+import HTTPMethod from './API/HTTPMethod';
 
 export interface WebsiteResponse {
     url: URL;
@@ -13,18 +14,32 @@ export interface WebsiteResponse {
 }
 
 export default class WebsiteRequest {
-    public static async get(
+    public static async fetch(
         url: URL,
         options: {
             headers?: Headers | undefined;
             timeout?: number | undefined;
+            isHeadRequest?: boolean | undefined;
         }
     ): Promise<WebsiteResponse> {
-        // use axios to fetch an HTML page
-        const response: AxiosResponse = await axios.get(url.toString(), {
-            headers: options.headers || {},
+        const axiosOptions: AxiosRequestConfig = {
             timeout: options.timeout || 5000,
-        });
+            method: HTTPMethod.GET,
+        };
+
+        if (options.headers) {
+            axiosOptions.headers = options.headers;
+        }
+
+        if (options.isHeadRequest) {
+            axiosOptions.method = HTTPMethod.HEAD;
+        }
+
+        // use axios to fetch an HTML page
+        const response: AxiosResponse = await axios(
+            url.toString(),
+            axiosOptions
+        );
 
         // return the response
         return {
