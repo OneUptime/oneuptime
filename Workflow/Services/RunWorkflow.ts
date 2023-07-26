@@ -346,17 +346,17 @@ export default class RunWorkflow {
         const argumentObj: JSONObject = {};
 
         const serializeValueForJSON: Function = (value: string): string => {
-            if (typeof value !== 'string') {
-                value = JSON.stringify(value);
-            }
-
             if (!value) {
                 return value;
             }
 
+            if (typeof value !== 'string') {
+                value = JSON.stringify(value);
+            }
+
             const lines: Array<string> = value.split('\n');
 
-            const result = lines.join('\\n');
+            const result: string = lines.join('\\n');
 
             return result;
         };
