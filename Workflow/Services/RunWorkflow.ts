@@ -354,7 +354,11 @@ export default class RunWorkflow {
                 return value;
             }
 
-            return value.replace(/\n/g, '\\n');
+            const lines: Array<string> = value.split('\n');
+
+            const result = lines.join('\\n');
+
+            return result;
         };
 
         const deepFind: Function = (
