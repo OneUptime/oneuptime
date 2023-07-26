@@ -176,15 +176,15 @@ export default class Incident extends BaseModel {
     @Index()
     @TableColumn({
         required: true,
-        type: TableColumnType.ShortText,
+        type: TableColumnType.LongText,
         canReadOnRelationQuery: true,
         title: 'Title',
         description: 'Title of this incident',
     })
     @Column({
         nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
     })
     public title?: string = undefined;
 
