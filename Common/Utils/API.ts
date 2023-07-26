@@ -88,6 +88,24 @@ export default class API {
         );
     }
 
+    public async head<
+        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+    >(
+        path: Route,
+        data?: JSONObject | JSONArray,
+        headers?: Headers
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+        return await API.head<T>(
+            new URL(
+                this.protocol,
+                this.hostname,
+                this.baseRoute.addRoute(path)
+            ),
+            data,
+            headers
+        );
+    }
+
     public async put<
         T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
     >(
@@ -177,6 +195,16 @@ export default class API {
         headers?: Headers
     ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await this.fetch(HTTPMethod.DELETE, url, data, headers);
+    }
+
+    public static async head<
+        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+    >(
+        url: URL,
+        data?: JSONObject | JSONArray,
+        headers?: Headers
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+        return await this.fetch(HTTPMethod.HEAD, url, data, headers);
     }
 
     public static async put<
