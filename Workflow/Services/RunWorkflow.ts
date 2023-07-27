@@ -354,11 +354,21 @@ export default class RunWorkflow {
                 value = JSON.stringify(value);
             }
 
-            const lines: Array<string> = value.split('\n');
+            value = value
+                .split('\t')
+                .join('\\t')
+                .split('\n')
+                .join('\\n')
+                .split('\r')
+                .join('\\r')
+                .split('\b')
+                .join('\\b')
+                .split('\f')
+                .join('\\f')
+                .split('"')
+                .join('\\"');
 
-            const result: string = lines.join('\\n');
-
-            return result;
+            return value;
         };
 
         const deepFind: Function = (

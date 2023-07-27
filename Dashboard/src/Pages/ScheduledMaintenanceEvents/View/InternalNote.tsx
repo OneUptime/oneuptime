@@ -132,24 +132,22 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
-                                    <UserElement
-                                        user={
-                                            JSONFunctions.fromJSON(
-                                                item[
-                                                    'createdByUser'
-                                                ] as JSONObject,
-                                                User
-                                            ) as User
-                                        }
-                                        suffix={'wrote'}
-                                        usernameClassName={
-                                            'text-base text-gray-900'
-                                        }
-                                        suffixClassName={
-                                            'text-base text-gray-500 mt-1'
-                                        }
-                                    />
-                                );
+                                <UserElement
+                                    user={
+                                        JSONFunctions.fromJSON(
+                                            item['createdByUser'] as JSONObject,
+                                            User
+                                        ) as User
+                                    }
+                                    suffix={'wrote'}
+                                    usernameClassName={
+                                        'text-base text-gray-900'
+                                    }
+                                    suffixClassName={
+                                        'text-base text-gray-500 mt-1'
+                                    }
+                                />
+                            );
                         },
                     },
                     {

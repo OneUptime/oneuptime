@@ -30,9 +30,6 @@ const UserElement: FunctionComponent<ComponentProps> = (
 
     if (JSONFunctions.isEmptyObject(user)) {
         return (
-
-
-
             <div className="flex">
                 <div>
                     <Image
@@ -45,7 +42,9 @@ const UserElement: FunctionComponent<ComponentProps> = (
                     <div>
                         <span
                             className={
-                                props.prefixClassName ? props.prefixClassName : ''
+                                props.prefixClassName
+                                    ? props.prefixClassName
+                                    : ''
                             }
                         >
                             {props.prefix}
@@ -56,7 +55,9 @@ const UserElement: FunctionComponent<ComponentProps> = (
                                     ? props.usernameClassName
                                     : ''
                             }
-                        >{'OneUptime Automation'}</span>{' '}
+                        >
+                            {'OneUptime Automation'}
+                        </span>{' '}
                     </div>
                 </div>
                 {props.suffix && (
@@ -69,15 +70,17 @@ const UserElement: FunctionComponent<ComponentProps> = (
     }
 
     if (user) {
-
         return (
             <div className="flex">
                 <div>
                     {props.user?.profilePictureId && (
                         <Image
                             className="h-8 w-8 rounded-full"
-                            imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
-                                '/image/' + props.user?.profilePictureId.toString()
+                            imageUrl={URL.fromString(
+                                FILE_URL.toString()
+                            ).addRoute(
+                                '/image/' +
+                                    props.user?.profilePictureId.toString()
                             )}
                             alt={user['name']?.toString() || 'User'}
                         />
@@ -94,7 +97,9 @@ const UserElement: FunctionComponent<ComponentProps> = (
                     <div>
                         <span
                             className={
-                                props.prefixClassName ? props.prefixClassName : ''
+                                props.prefixClassName
+                                    ? props.prefixClassName
+                                    : ''
                             }
                         >
                             {props.prefix}
@@ -105,10 +110,11 @@ const UserElement: FunctionComponent<ComponentProps> = (
                                     ? props.usernameClassName
                                     : ''
                             }
-                        >{`${(user['name']?.toString() as string) ||
+                        >{`${
+                            (user['name']?.toString() as string) ||
                             (user['email']?.toString() as string) ||
                             ''
-                            }`}</span>{' '}
+                        }`}</span>{' '}
                     </div>
                 </div>
                 {props.suffix && (
@@ -119,7 +125,6 @@ const UserElement: FunctionComponent<ComponentProps> = (
             </div>
         );
     }
-
 
     return <></>;
 };
