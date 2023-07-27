@@ -39,6 +39,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from '../../Utils/API/API';
 import { FormStep } from './Types/FormStep';
 import Field from './Types/Field';
+import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 
 export enum FormType {
     Create,
@@ -204,6 +205,19 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                         return iFieldKey === key;
                     }).length === 0
                 ) {
+                    // check if has maxLength
+                    if (
+                        !field.validation?.maxLength &&
+                        model.getTableColumnMetadata(key)?.type
+                    ) {
+                        field.validation = {
+                            ...field.validation,
+                            maxLength: getMaxLengthFromTableColumnType(
+                                model.getTableColumnMetadata(key).type
+                            ),
+                        };
+                    }
+
                     fieldsToSet.push(field);
                 }
             }

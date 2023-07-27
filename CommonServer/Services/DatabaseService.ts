@@ -51,6 +51,7 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import Text from 'Common/Types/Text';
 import logger from '../Utils/Logger';
 import BaseService from './BaseService';
+import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 
 export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 
@@ -436,6 +437,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         props: DatabaseCommonInteractionProps,
         isUpdate: boolean = false
     ): Promise<TBaseModel | QueryDeepPartialEntity<TBaseModel>> {
+        data = this.checkMaxLengthOfFields(data as TBaseModel);
+
         const columns: Columns = this.model.getTableColumns();
 
         for (const columnName of columns.columns) {
@@ -646,6 +649,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private checkMaxLengthOfFields<TBaseModel extends BaseModel>(
+        data: TBaseModel
+    ): TBaseModel {
+        // Check required fields.
+
+        const tableColumns: Array<string> =
+            this.model.getTableColumns().columns;
+
+        for (const column of tableColumns) {
+            const metadata: TableColumnMetadata =
+                this.model.getTableColumnMetadata(column);
+            if (
+                (data as any)[column] &&
+                metadata.type &&
+                getMaxLengthFromTableColumnType(metadata.type)
+            ) {
+                if (
+                    (data as any)[column].toString().length >
+                    getMaxLengthFromTableColumnType(metadata.type)!
+                ) {
+                    throw new BadDataException(
+                        `${column} length cannot be more than ${getMaxLengthFromTableColumnType(
+                            metadata.type
+                        )} characters`
+                    );
+                }
+            }
+        }
+
+        return data;
     }
 
     private async checkTotalItemsBy(
