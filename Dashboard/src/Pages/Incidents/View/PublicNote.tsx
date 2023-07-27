@@ -129,7 +129,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
 
                         getElement: (item: JSONObject): ReactElement => {
-                            if (item['createdByUser']) {
+                           
                                 return (
                                     <UserElement
                                         user={
@@ -149,8 +149,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         }
                                     />
                                 );
-                            }
-                            return <></>;
+
                         },
                     },
                     {

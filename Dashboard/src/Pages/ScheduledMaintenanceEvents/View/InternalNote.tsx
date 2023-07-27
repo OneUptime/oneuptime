@@ -131,8 +131,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
 
                         getElement: (item: JSONObject): ReactElement => {
-                            if (item['createdByUser']) {
-                                return (
+                            return (
                                     <UserElement
                                         user={
                                             JSONFunctions.fromJSON(
@@ -151,8 +150,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                                         }
                                     />
                                 );
-                            }
-                            return <></>;
                         },
                     },
                     {

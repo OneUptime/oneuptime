@@ -1,7 +1,5 @@
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import Icon, { ThickProp } from 'CommonUI/src/Components/Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import User from 'Model/Models/User';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Image from 'CommonUI/src/Components/Image/Image';
@@ -30,76 +28,100 @@ const UserElement: FunctionComponent<ComponentProps> = (
         user = props.user;
     }
 
-    if (!user) {
+    if (JSONFunctions.isEmptyObject(user)) {
         return (
+
+
+
             <div className="flex">
                 <div>
-                    <Icon icon={IconProp.Automation} thick={ThickProp.Thick} />
+                    <Image
+                        className="h-8 w-8 rounded-full"
+                        imageUrl={Route.fromString(`${BlankProfilePic}`)}
+                        alt={'Automation'}
+                    />
                 </div>
-                <div
-                    style={{
-                        marginLeft: '5px',
-                        marginBottom: '5px',
-                        marginTop: '1px',
-                    }}
-                >
-                    <div className="bold">
-                        {props.prefix} OneUptime Automation
+                <div className="mt-1 mr-1 ml-3">
+                    <div>
+                        <span
+                            className={
+                                props.prefixClassName ? props.prefixClassName : ''
+                            }
+                        >
+                            {props.prefix}
+                        </span>{' '}
+                        <span
+                            className={
+                                props.usernameClassName
+                                    ? props.usernameClassName
+                                    : ''
+                            }
+                        >{'OneUptime Automation'}</span>{' '}
                     </div>
                 </div>
+                {props.suffix && (
+                    <div>
+                        <p className={props.suffixClassName}>{props.suffix}</p>
+                    </div>
+                )}
             </div>
         );
     }
 
-    return (
-        <div className="flex">
-            <div>
-                {props.user?.profilePictureId && (
-                    <Image
-                        className="h-8 w-8 rounded-full"
-                        imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
-                            '/image/' + props.user?.profilePictureId.toString()
-                        )}
-                        alt={user['name']?.toString() || 'User'}
-                    />
-                )}
-                {!props.user?.profilePictureId && (
-                    <Image
-                        className="h-8 w-8 rounded-full"
-                        imageUrl={Route.fromString(`${BlankProfilePic}`)}
-                        alt={user['name']?.toString() || 'User'}
-                    />
+    if (user) {
+
+        return (
+            <div className="flex">
+                <div>
+                    {props.user?.profilePictureId && (
+                        <Image
+                            className="h-8 w-8 rounded-full"
+                            imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
+                                '/image/' + props.user?.profilePictureId.toString()
+                            )}
+                            alt={user['name']?.toString() || 'User'}
+                        />
+                    )}
+                    {!props.user?.profilePictureId && (
+                        <Image
+                            className="h-8 w-8 rounded-full"
+                            imageUrl={Route.fromString(`${BlankProfilePic}`)}
+                            alt={user['name']?.toString() || 'User'}
+                        />
+                    )}
+                </div>
+                <div className="mt-1 mr-1 ml-3">
+                    <div>
+                        <span
+                            className={
+                                props.prefixClassName ? props.prefixClassName : ''
+                            }
+                        >
+                            {props.prefix}
+                        </span>{' '}
+                        <span
+                            className={
+                                props.usernameClassName
+                                    ? props.usernameClassName
+                                    : ''
+                            }
+                        >{`${(user['name']?.toString() as string) ||
+                            (user['email']?.toString() as string) ||
+                            ''
+                            }`}</span>{' '}
+                    </div>
+                </div>
+                {props.suffix && (
+                    <div>
+                        <p className={props.suffixClassName}>{props.suffix}</p>
+                    </div>
                 )}
             </div>
-            <div className="mt-1 mr-1 ml-3">
-                <div>
-                    <span
-                        className={
-                            props.prefixClassName ? props.prefixClassName : ''
-                        }
-                    >
-                        {props.prefix}
-                    </span>{' '}
-                    <span
-                        className={
-                            props.usernameClassName
-                                ? props.usernameClassName
-                                : ''
-                        }
-                    >{`${
-                        (user['name']?.toString() as string) ||
-                        (user['email']?.toString() as string) ||
-                        ''
-                    }`}</span>{' '}
-                </div>
-            </div>
-            {props.suffix && (
-                <div>
-                    <p className={props.suffixClassName}>{props.suffix}</p>
-                </div>
-            )}
-        </div>
-    );
+        );
+    }
+
+
+    return <></>;
 };
 
 export default UserElement;

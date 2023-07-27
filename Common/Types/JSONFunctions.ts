@@ -10,6 +10,16 @@ import SerializableObjectDictionary from './SerializableObjectDictionary';
 import JSON5 from 'json5';
 
 export default class JSONFunctions {
+
+    public static isEmptyObject(obj: JSONObject | BaseModel | null | undefined): boolean {
+
+        if(!obj) {
+            return true;
+        }
+
+        return Object.keys(obj).length === 0;
+    }
+
     public static toJSON(
         model: BaseModel,
         modelType: { new (): BaseModel }
