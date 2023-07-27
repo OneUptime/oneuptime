@@ -379,9 +379,17 @@ export default class RunWorkflow {
 
                 if (openBracketIndex !== -1 && closeBracketIndex !== -1) {
                     const arrayKey: string = key.slice(0, openBracketIndex);
-                    const index: number = parseInt(
-                        key.slice(openBracketIndex + 1, closeBracketIndex)
+                    const indexString: string = key.slice(
+                        openBracketIndex + 1,
+                        closeBracketIndex
                     );
+                    let index: number = 0;
+
+                    if (indexString !== 'last') {
+                        index = parseInt(indexString);
+                    } else {
+                        index = current[arrayKey].length - 1;
+                    }
 
                     if (
                         Array.isArray(current[arrayKey]) &&
