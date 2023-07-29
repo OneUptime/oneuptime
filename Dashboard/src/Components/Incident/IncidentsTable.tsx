@@ -68,7 +68,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     id: 'resources-affected',
                 },
                 {
-                    title: 'On Call',
+                    title: 'On-Call',
                     id: 'on-call',
                 },
                 {
@@ -139,7 +139,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         onCallDutyPolicies: true,
                     },
-                    title: 'On Call Policy',
+                    title: 'On-Call Policy',
                     stepId: 'on-call',
                     description:
                         'Select on call duty policy to execute when this incident is created.',

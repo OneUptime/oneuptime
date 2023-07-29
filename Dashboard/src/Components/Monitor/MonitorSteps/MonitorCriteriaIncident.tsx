@@ -90,7 +90,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                     },
                     {
                         key: 'onCallPolicyIds',
-                        title: 'On Call Policies',
+                        title: 'On-Call Policies',
                         description:
                             'These are the on call policies that will be executed when this incident is created.',
                         fieldType: FieldType.Element,

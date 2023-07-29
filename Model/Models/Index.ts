@@ -30,7 +30,7 @@ import StatusPageSSO from './StatusPageSso';
 import StatusPageOwnerTeam from './StatusPageOwnerTeam';
 import StatusPageOwnerUser from './StatusPageOwnerUser';
 
-// On Call Duty
+// On-Call Duty
 import OnCallDutyPolicy from './OnCallDutyPolicy';
 import OnCallDutyPolicyCustomField from './OnCallDutyPolicyCustomField';
 import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';

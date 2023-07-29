@@ -65,8 +65,8 @@ import { JSONObject } from 'Common/Types/JSON';
 })
 @TableMetadata({
     tableName: 'OnCallDutyPolicy',
-    singularName: 'On Call Policy',
-    pluralName: 'On Call Duty Policies',
+    singularName: 'On-Call Policy',
+    pluralName: 'On-Call Duty Policies',
     icon: IconProp.Call,
     tableDescription:
         'Manage on-call duty, schedules and roster for your project',
