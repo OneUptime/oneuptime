@@ -641,7 +641,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (user && user.isEmailVerified) {
-            await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+            await UserNotificationRuleService.addDefaultNotificationRuleForUser(
                 createdItem.id!,
                 user.id!,
                 user.email!
