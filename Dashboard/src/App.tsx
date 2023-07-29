@@ -113,7 +113,7 @@ import UserProfileOverview from './Pages/Global/UserProfile/Index';
 import UserProfilePicture from './Pages/Global/UserProfile/Picture';
 import UserProfilePassword from './Pages/Global/UserProfile/Password';
 
-// On Call Duty
+// On-Call Duty
 import OnCallDutyPoliciesPage from './Pages/OnCallDuty/OnCallDutyPolicies';
 import OnCallDutyExecutionLogs from './Pages/OnCallDuty/OnCallDutyExecutionLogs';
 import OnCallDutyPolicyExecutionLogTimeline from './Pages/OnCallDuty/OnCallDutyExecutionLogView';
@@ -1835,7 +1835,7 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-                {/* On Call Duty */}
+                {/* On-Call Duty */}
 
                 <PageRoute
                     path={RouteMap[PageMap.ON_CALL_DUTY]?.toString() || ''}

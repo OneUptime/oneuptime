@@ -26,7 +26,7 @@ import StatusPageFooterLinkService from './StatusPageFooterLinkService';
 import StatusPageHeaderLinkService from './StatusPageHeaderLinkService';
 import StatusPagePrivateUserService from './StatusPagePrivateUserService';
 
-// On Call Duty
+// On-Call Duty
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 
 // Monitors

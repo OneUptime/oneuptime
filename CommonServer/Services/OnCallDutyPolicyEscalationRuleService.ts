@@ -59,7 +59,7 @@ export class Service extends DatabaseService<Model> {
 
         if (!rule) {
             throw new BadDataException(
-                `On Call Duty Policy Escalation Rule with id ${ruleId.toString()} not found`
+                `On-Call Duty Policy Escalation Rule with id ${ruleId.toString()} not found`
             );
         }
 

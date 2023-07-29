@@ -61,7 +61,7 @@ import './Jobs/StatusPageOwners/SendOwnerAddedNotification';
 import './Jobs/StatusPageOwners/SendAnnouncementCreatedNotification';
 import RunDatabaseMigrations from './Utils/DataMigration';
 
-// On Call Duty Policy Executions.
+// On-Call Duty Policy Executions.
 import './Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions';
 import './Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions';
 
