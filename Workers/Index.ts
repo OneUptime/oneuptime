@@ -45,7 +45,7 @@ import './Jobs/MonitorOwners/SendStatusChangeNotification';
 
 // Incident Owners
 import './Jobs/IncidentOwners/SendCreatedResourceNotification';
-import './Jobs/IncidentOwners/SendOwnerAddedNotifiation';
+import './Jobs/IncidentOwners/SendOwnerAddedNotification';
 import './Jobs/IncidentOwners/SendStateChangeNotification';
 import './Jobs/IncidentOwners/SendNotePostedNotification';
 
