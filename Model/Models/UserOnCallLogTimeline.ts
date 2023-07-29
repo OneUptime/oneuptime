@@ -55,7 +55,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
     singularName: 'User On-Call Log Timeline',
     pluralName: 'User  On-Call  Log Timelines',
     icon: IconProp.Logs,
-    tableDescription: 'Timeline events for user on call log.',
+    tableDescription: 'Timeline events for user on-call log.',
 })
 export default class UserOnCallLogTimeline extends BaseModel {
     @ColumnAccessControl({
@@ -256,7 +256,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
         modelType: OnCallDutyPolicy,
         title: 'OnCallDutyPolicy',
         description:
-            'Relation to on call duty policy Resource in which this object belongs',
+            'Relation to on-call duty policy Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -284,7 +284,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
         canReadOnRelationQuery: true,
         title: 'OnCallDutyPolicy ID',
         description:
-            'ID of your OneUptime on call duty policy in which this object belongs',
+            'ID of your OneUptime on-call duty policy in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,

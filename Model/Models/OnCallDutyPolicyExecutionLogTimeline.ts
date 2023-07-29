@@ -131,7 +131,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         modelType: OnCallDutyPolicy,
         title: 'OnCallDutyPolicy',
         description:
-            'Relation to on call duty policy Resource in which this object belongs',
+            'Relation to on-call duty policy Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -164,7 +164,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         canReadOnRelationQuery: true,
         title: 'OnCallDutyPolicy ID',
         description:
-            'ID of your OneUptime on call duty policy in which this object belongs',
+            'ID of your OneUptime on-call duty policy in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -392,7 +392,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Notification Event Type',
-        description: 'Type of event tat triggered this on call duty policy.',
+        description: 'Type of event that triggered this on-call duty policy.',
         canReadOnRelationQuery: false,
     })
     @Column({

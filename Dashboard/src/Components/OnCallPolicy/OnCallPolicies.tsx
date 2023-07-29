@@ -12,7 +12,7 @@ const OnCallDutyPoliciesView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     if (!props.onCallPolicies || props.onCallPolicies.length === 0) {
-        return <p>No on call policies.</p>;
+        return <p>No on-call policies.</p>;
     }
 
     return (

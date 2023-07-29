@@ -345,7 +345,7 @@ export default class UserOnCallLog extends BaseModel {
         modelType: Incident,
         title: 'Triggered By Incident',
         description:
-            'Relation to Incident which triggered this on call duty policy.',
+            'Relation to Incident which triggered this on-call duty policy.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -370,7 +370,7 @@ export default class UserOnCallLog extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'Triggered By Incident ID',
         description:
-            'ID of the incident which triggered this on call escalation policy.',
+            'ID of the incident which triggered this on-call escalation policy.',
     })
     @Column({
         type: ColumnType.ObjectID,
