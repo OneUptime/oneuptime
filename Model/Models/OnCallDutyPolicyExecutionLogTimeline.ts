@@ -440,7 +440,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         modelType: Team,
         title: 'User Belongs To Team',
         description:
-            'Which team does the user belogns to when the alert was sent?',
+            'Which team did the user belong to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -470,7 +470,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'User Belongs To Team ID',
         description:
-            'Which team ID does the user belogns to when the alert was sent?',
+            'Which team ID did the user belong to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,
