@@ -65,7 +65,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 name="Workflow > Workflow Details"
                 cardProps={{
                     title: 'Workflow Details',
-                    description: "Here's more details for this workflow.",
+                    description: "Here are more details for this workflow.",
                     icon: IconProp.Workflow,
                 }}
                 isEditable={true}

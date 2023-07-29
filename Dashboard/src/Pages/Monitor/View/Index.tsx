@@ -129,7 +129,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 ]}
                 cardProps={{
                     title: 'Monitor Details',
-                    description: "Here's more details for this monitor.",
+                    description: "Here are more details for this monitor.",
                     icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}

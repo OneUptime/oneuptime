@@ -72,7 +72,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                 name="Scheduled Maintenance Details"
                 cardProps={{
                     title: 'Scheduled Maintenance Details',
-                    description: "Here's more details for this event.",
+                    description: "Here are more details for this event.",
                     icon: IconProp.Clock,
                 }}
                 formSteps={[
