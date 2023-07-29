@@ -52,9 +52,9 @@ jobs:
             ghcr.io/oneuptime/nginx
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -111,9 +111,9 @@ jobs:
             ghcr.io/oneuptime/test-server
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -170,9 +170,9 @@ jobs:
             ghcr.io/oneuptime/workflow
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -229,9 +229,9 @@ jobs:
             ghcr.io/oneuptime/link-shortner
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -288,9 +288,9 @@ jobs:
             ghcr.io/oneuptime/workers
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -347,9 +347,9 @@ jobs:
             ghcr.io/oneuptime/status-page
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -406,9 +406,9 @@ jobs:
             ghcr.io/oneuptime/realtime
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -465,9 +465,9 @@ jobs:
             ghcr.io/oneuptime/probe-api
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -524,9 +524,9 @@ jobs:
             ghcr.io/oneuptime/notification
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -583,9 +583,9 @@ jobs:
             ghcr.io/oneuptime/licensing
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -642,9 +642,9 @@ jobs:
             ghcr.io/oneuptime/integrations
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -701,9 +701,9 @@ jobs:
             ghcr.io/oneuptime/probe
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -760,9 +760,9 @@ jobs:
             ghcr.io/oneuptime/identity
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -819,9 +819,9 @@ jobs:
             ghcr.io/oneuptime/home
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -878,9 +878,9 @@ jobs:
             ghcr.io/oneuptime/helm-chart
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -937,9 +937,9 @@ jobs:
             ghcr.io/oneuptime/haraka
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -996,9 +996,9 @@ jobs:
             ghcr.io/oneuptime/file
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1055,9 +1055,9 @@ jobs:
             ghcr.io/oneuptime/dashboard
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1114,9 +1114,9 @@ jobs:
             ghcr.io/oneuptime/dashboard-api
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1173,9 +1173,9 @@ jobs:
             ghcr.io/oneuptime/api-reference
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1232,9 +1232,9 @@ jobs:
             ghcr.io/oneuptime/accounts
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern=7.0.${{needs.generate-build-number.outputs.build_number}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
