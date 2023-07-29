@@ -57,8 +57,8 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/LinkShortner",
-            "name": "Link Shortner: Debug with Docker",
+            "localRoot": "${workspaceFolder}/LinkShortener",
+            "name": "Link Shortener: Debug with Docker",
             "port": 9826,
             "remoteRoot": "/usr/src/app",
             "request": "attach",

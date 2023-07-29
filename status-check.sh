@@ -46,9 +46,9 @@ echo "Checking API Docs Server Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/reference/status)" != "200" ]]; do sleep 5; done'
 echo "API Docs Server is up ✔️"
 
-echo "Checking Link Shortner Status..."
+echo "Checking Link Shortener Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/l/status)" != "200" ]]; do sleep 5; done'
-echo "Link Shortner Server is up ✔️"
+echo "Link Shortener Server is up ✔️"
 
 echo "⌛️ OneUptime is up!"
 echo ""

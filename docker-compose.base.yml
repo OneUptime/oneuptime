@@ -206,13 +206,13 @@ services:
        
 
 
-    link-shortner:
+    link-shortener:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-server-variables
-            PORT: ${LINK_SHORTNER_PORT}
+            PORT: ${LINK_SHORTENER_PORT}
         depends_on:
             - redis
             - postgres

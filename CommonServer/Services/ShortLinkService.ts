@@ -4,7 +4,7 @@ import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';
-import { Domain, HttpProtocol, LinkShortnerRoute } from '../Config';
+import { Domain, HttpProtocol, LinkShortenerRoute } from '../Config';
 import Route from 'Common/Types/API/Route';
 
 export class Service extends DatabaseService<Model> {
@@ -31,7 +31,7 @@ export class Service extends DatabaseService<Model> {
         return new URL(
             HttpProtocol,
             Domain,
-            new Route(LinkShortnerRoute.toString()).addRoute(
+            new Route(LinkShortenerRoute.toString()).addRoute(
                 '/' + model.shortId?.toString()
             )
         );

@@ -2,13 +2,13 @@ import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import logger from 'CommonServer/Utils/Logger';
-import LinkShortnerAPI from './API/LinkShortner';
+import LinkShortenerAPI from './API/LinkShortener';
 
 const APP_NAME: string = 'l';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-app.use([`/${APP_NAME}/`, '/'], LinkShortnerAPI);
+app.use([`/${APP_NAME}/`, '/'], LinkShortenerAPI);
 
 const init: Function = async (): Promise<void> => {
     try {
