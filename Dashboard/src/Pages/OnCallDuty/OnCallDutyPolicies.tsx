@@ -31,7 +31,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On Call Duty',
+                    title: 'On-Call Duty',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY] as Route
                     ),
@@ -49,14 +49,14 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                 modelType={OnCallDutyPolicy}
                 id="on-call-duty-table"
                 isDeleteable={false}
-                name="On Call > Policies"
+                name="On-Call > Policies"
                 showViewIdButton={true}
                 isEditable={false}
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
                     icon: IconProp.Call,
-                    title: 'On Call Duty Policies',
+                    title: 'On-Call Duty Policies',
                     description:
                         'Here is a list of on-call-duty policies for this project.',
                 }}
@@ -69,7 +69,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'On Call Duty Name',
+                        placeholder: 'On-Call Duty Name',
                         validation: {
                             minLength: 2,
                         },

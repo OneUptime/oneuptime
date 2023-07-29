@@ -291,7 +291,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     _id: true,
                                 },
                             },
-                            title: 'On Call Duty Policies',
+                            title: 'On-Call Duty Policies',
                             fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (

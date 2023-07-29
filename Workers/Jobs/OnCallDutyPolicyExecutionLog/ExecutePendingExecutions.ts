@@ -17,7 +17,7 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-        // get all pending on call executions and execute them all at once.
+        // get all pending on-call executions and execute them all at once.
 
         const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
             await OnCallDutyPolicyExecutionLogService.findBy({
@@ -205,7 +205,7 @@ const executeOnCallPolicy: Function = async (
                 status: OnCallDutyPolicyStatus.Error,
                 statusMessage:
                     err.message ||
-                    'Error occurred while executing the on call policy.',
+                    'Error occurred while executing the on-call policy.',
             },
             props: {
                 isRoot: true,

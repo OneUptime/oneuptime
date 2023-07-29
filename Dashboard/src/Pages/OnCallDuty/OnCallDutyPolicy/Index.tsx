@@ -24,7 +24,7 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-            title="On Call Policy"
+            title="On-Call Policy"
             modelType={OnCallDutyPolicy}
             modelId={modelId}
             modelNameField="name"
@@ -37,14 +37,14 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On Call Policy',
+                    title: 'On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGES] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View On Call Policy',
+                    title: 'View On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
                         { modelId }
@@ -55,15 +55,15 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
         >
             {/* OnCallDutyPolicy View  */}
             <CardModelDetail
-                name="On Call Policy > On Call Policy Details"
+                name="On-Call Policy > On-Call Policy Details"
                 cardProps={{
-                    title: 'On Call Policy Details',
+                    title: 'On-Call Policy Details',
                     description: "Here's more details for this on call policy.",
                     icon: IconProp.Call,
                 }}
                 formSteps={[
                     {
-                        title: 'On Call Policy Info',
+                        title: 'On-Call Policy Info',
                         id: 'on-call-policy-info',
                     },
                     {
@@ -81,7 +81,7 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                         stepId: 'on-call-policy-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'On Call Policy Name',
+                        placeholder: 'On-Call Policy Name',
                         validation: {
                             minLength: 2,
                         },
@@ -123,7 +123,7 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                             field: {
                                 _id: true,
                             },
-                            title: 'On Call Policy ID',
+                            title: 'On-Call Policy ID',
                         },
                         {
                             field: {
