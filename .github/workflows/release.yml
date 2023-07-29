@@ -52,9 +52,9 @@ jobs:
             ghcr.io/oneuptime/nginx
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -95,9 +95,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   test-server-docker-image-deploy:
     needs: generate-build-number
@@ -112,9 +111,9 @@ jobs:
             ghcr.io/oneuptime/test-server
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -155,9 +154,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   workflow-docker-image-deploy:
     needs: generate-build-number
@@ -172,9 +170,9 @@ jobs:
             ghcr.io/oneuptime/workflow
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -215,9 +213,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   link-shortner-docker-image-deploy:
     needs: generate-build-number
@@ -232,9 +229,9 @@ jobs:
             ghcr.io/oneuptime/link-shortner
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -275,9 +272,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   workers-docker-image-deploy:
     needs: generate-build-number
@@ -292,9 +288,9 @@ jobs:
             ghcr.io/oneuptime/workers
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -335,9 +331,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   status-page-docker-image-deploy:
     needs: generate-build-number
@@ -352,9 +347,9 @@ jobs:
             ghcr.io/oneuptime/status-page
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -395,9 +390,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   realtime-docker-image-deploy:
     needs: generate-build-number
@@ -412,9 +406,9 @@ jobs:
             ghcr.io/oneuptime/realtime
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -455,9 +449,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   probe-api-docker-image-deploy:
     needs: generate-build-number
@@ -472,9 +465,9 @@ jobs:
             ghcr.io/oneuptime/probe-api
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -515,9 +508,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   notification-docker-image-deploy:
     needs: generate-build-number
@@ -532,9 +524,9 @@ jobs:
             ghcr.io/oneuptime/notification
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -575,9 +567,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   licensing-docker-image-deploy:
     needs: generate-build-number
@@ -592,9 +583,9 @@ jobs:
             ghcr.io/oneuptime/licensing
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -635,9 +626,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   integrations-docker-image-deploy:
     needs: generate-build-number
@@ -652,9 +642,9 @@ jobs:
             ghcr.io/oneuptime/integrations
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -695,9 +685,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   probe-docker-image-deploy:
     needs: generate-build-number
@@ -712,9 +701,9 @@ jobs:
             ghcr.io/oneuptime/probe
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -755,9 +744,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   identity-docker-image-deploy:
     needs: generate-build-number
@@ -772,9 +760,9 @@ jobs:
             ghcr.io/oneuptime/identity
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -815,9 +803,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   home-docker-image-deploy:
     needs: generate-build-number
@@ -832,9 +819,9 @@ jobs:
             ghcr.io/oneuptime/home
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -875,9 +862,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   helm-chart-docker-image-deploy:
     needs: generate-build-number
@@ -892,9 +878,9 @@ jobs:
             ghcr.io/oneuptime/helm-chart
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -935,9 +921,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   haraka-docker-image-deploy:
     needs: generate-build-number
@@ -952,9 +937,9 @@ jobs:
             ghcr.io/oneuptime/haraka
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -995,9 +980,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   file-docker-image-deploy:
     needs: generate-build-number
@@ -1012,9 +996,9 @@ jobs:
             ghcr.io/oneuptime/file
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1055,9 +1039,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   dashboard-docker-image-deploy:
     needs: generate-build-number
@@ -1072,9 +1055,9 @@ jobs:
             ghcr.io/oneuptime/dashboard
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1115,9 +1098,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   dashboard-api-docker-image-deploy:
     needs: generate-build-number
@@ -1132,9 +1114,9 @@ jobs:
             ghcr.io/oneuptime/dashboard-api
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1175,9 +1157,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   api-reference-docker-image-deploy:
     needs: generate-build-number
@@ -1192,9 +1173,9 @@ jobs:
             ghcr.io/oneuptime/api-reference
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1235,9 +1216,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   accounts-docker-image-deploy:
     needs: generate-build-number
@@ -1252,9 +1232,9 @@ jobs:
             ghcr.io/oneuptime/accounts
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}-test",enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
-            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern="7.0.${{needs.generate-build-number.outputs.build_number}}",enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
 
       - uses: actions/checkout@v3
         with:
@@ -1295,6 +1275,5 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
