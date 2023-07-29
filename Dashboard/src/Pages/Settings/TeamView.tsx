@@ -70,7 +70,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 name="Team Details"
                 cardProps={{
                     title: 'Team Details',
-                    description: "Here are more details for this team.",
+                    description: 'Here are more details for this team.',
                     icon: IconProp.User,
                 }}
                 isEditable={true}

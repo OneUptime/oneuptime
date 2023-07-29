@@ -134,7 +134,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 name="Plan Details"
                 cardProps={{
                     title: 'Current Plan',
-                    description: "Here are more details for this Project.",
+                    description: 'Here are more details for this Project.',
                     icon: IconProp.Billing,
                 }}
                 isEditable={true}
