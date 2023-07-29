@@ -8,6 +8,8 @@ export default interface ProbeMonitorResponse {
     responseCode?: number | undefined;
     responseHeaders?: Dictionary<string> | undefined;
     responseBody?: string | JSONObject | undefined;
+    requestHeaders?: Dictionary<string> | undefined;
+    requestBody?: string | JSONObject | undefined;
     monitorStepId: ObjectID;
     monitorId: ObjectID;
     probeId: ObjectID;

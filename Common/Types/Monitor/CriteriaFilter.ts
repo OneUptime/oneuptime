@@ -5,6 +5,10 @@ export enum CheckOn {
     ResponseHeaderValue = 'Response Header Value',
     ResponseBody = 'Response Body',
     IsOnline = 'Is Online',
+    IncomingRequest = 'Incoming Request',
+    RequestBody = 'Request Body',
+    RequestHeader = 'Request Header',
+    RequestHeaderValue = 'Request Header Value',
 }
 
 export interface CriteriaFilter {
@@ -28,6 +32,8 @@ export enum FilterType {
     IsNotEmpty = 'Is Not Empty',
     True = 'True',
     False = 'False',
+    NotRecievedInMinutes = 'Not Recieved In Minutes',
+    RecievedInMinutes = 'Recieved In Minutes',
 }
 
 export enum FilterCondition {

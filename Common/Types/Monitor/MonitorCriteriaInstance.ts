@@ -53,7 +53,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     public static getDefaultOnlineMonitorCriteriaInstance(arg: {
         monitorType: MonitorType;
         monitorStatusId: ObjectID;
-    }): MonitorCriteriaInstance {
+    }): MonitorCriteriaInstance | null {
+
+        if(arg.monitorType === MonitorType.IncomingRequest) {
+            return null; 
+        }
+
         const monitorCriteriaInstance: MonitorCriteriaInstance =
             new MonitorCriteriaInstance();
 
@@ -147,6 +152,38 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                         checkOn: CheckOn.ResponseStatusCode,
                         filterType: FilterType.NotEqualTo,
                         value: 200,
+                    },
+                ],
+                incidents: [
+                    {
+                        title: `${arg.monitorType} monitor is offline`,
+                        description: `${arg.monitorType} monitor is currently offline.`,
+                        incidentSeverityId: arg.incidentSeverityId,
+                        autoResolveIncident: true,
+                        id: ObjectID.generate().toString(),
+                        onCallPolicyIds: [],
+                    },
+                ],
+                changeMonitorStatus: true,
+                createIncidents: true,
+                name: 'Check if offline',
+                description: 'This criteria cheks if the monitor is offline',
+            };
+        }
+
+
+        if (
+            arg.monitorType === MonitorType.IncomingRequest
+        ) {
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.Any,
+                filters: [
+                    {
+                        checkOn: CheckOn.IncomingRequest,
+                        filterType: FilterType.NotRecievedInMinutes,
+                        value: 30, // if the request is not recieved in 30 minutes, then the monitor is offline
                     },
                 ],
                 incidents: [

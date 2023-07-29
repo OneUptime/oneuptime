@@ -7,7 +7,7 @@ enum MonitorType {
     Ping = 'Ping',
     Kubernetes = 'Kubernetes',
     IP = 'IP',
-    IncomingRequest = 'IncomingRequest',
+    IncomingRequest = 'Incoming Request',
 }
 
 export default MonitorType;
@@ -57,12 +57,12 @@ export class MonitorTypeHelper {
                 description:
                     'This monitor types lets you monitor any IPv4 or IPv6 addresses.',
             },
-            // {
-            //     monitorType: MonitorType.IncomingRequest,
-            //     title: 'Incoming Request',
-            //     description:
-            //         'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
-            // },
+            {
+                monitorType: MonitorType.IncomingRequest,
+                title: 'Incoming Request',
+                description:
+                    'This monitor types lets you ping OneUptime from any external device or service with a custom payload.',
+            },
         ];
 
         return monitorTypeProps;

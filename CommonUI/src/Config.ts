@@ -26,6 +26,8 @@ export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
 
 export const DASHBOARD_API_ROUTE: Route = new Route(env('DASHBOARD_API_ROUTE'));
 
+export const PROBE_API_ROUTE: Route = new Route(env('PROBE_API_ROUTE'));
+
 export const IDENTITY_ROUTE: Route = new Route(env('IDENTITY_ROUTE'));
 
 export const WORKFLOW_ROUTE: Route = new Route(env('WORKFLOW_ROUTE'));
@@ -72,6 +74,8 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
 
 export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
+export const PROBE_API_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
@@ -107,6 +111,13 @@ export const WORKFLOW_URL: URL = new URL(
     WORKFLOW_HOSTNAME,
     WORKFLOW_ROUTE
 );
+
+export const PROBE_API_URL: URL = new URL(
+    HTTP_PROTOCOL,
+    PROBE_API_HOSTNAME,
+    PROBE_API_ROUTE
+);
+
 
 export const STATUS_PAGE_URL: URL = new URL(
     HTTP_PROTOCOL,

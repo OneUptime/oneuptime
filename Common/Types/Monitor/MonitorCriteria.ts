@@ -28,24 +28,36 @@ export default class MonitorCriteria extends DatabaseProperty {
         defaultIncidentSeverityId: ObjectID;
     }): MonitorCriteria {
         const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+        const offlineCriteria: MonitorCriteriaInstance = MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance(
+            {
+                monitorType: arg.monitorType,
+                monitorStatusId: arg.offlineMonitorStatusId,
+                incidentSeverityId: arg.defaultIncidentSeverityId,
+            }
+        );
+
+
+        const onlineCriteria: MonitorCriteriaInstance | null = MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
+            {
+                monitorType: arg.monitorType,
+                monitorStatusId: arg.onlineMonitorStatusId,
+            }
+        );
 
         monitorCriteria.data = {
             monitorCriteriaInstanceArray: [
-                MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance(
-                    {
-                        monitorType: arg.monitorType,
-                        monitorStatusId: arg.offlineMonitorStatusId,
-                        incidentSeverityId: arg.defaultIncidentSeverityId,
-                    }
-                ),
-                MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance(
-                    {
-                        monitorType: arg.monitorType,
-                        monitorStatusId: arg.onlineMonitorStatusId,
-                    }
-                ),
+
+
             ],
         };
+
+        if (offlineCriteria) {
+            monitorCriteria.data.monitorCriteriaInstanceArray.push(offlineCriteria);
+        }
+
+        if (onlineCriteria) {
+            monitorCriteria.data.monitorCriteriaInstanceArray.push(onlineCriteria);
+        }
 
         return monitorCriteria;
     }
