@@ -100,7 +100,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         forceShow: true,
                         title: 'Owner - Teams',
                         stepId: 'owners',
-                        description: 'Select which teams own this status page. ',
+                        description:
+                            'Select which teams own this status page. ',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Team,

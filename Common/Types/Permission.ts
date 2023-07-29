@@ -620,8 +620,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProjectLabel,
                 title: 'Can Read Label',
-                description:
-                    'This permission can read labels of this project.',
+                description: 'This permission can read labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -850,8 +849,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProjectDomain,
                 title: 'Can Read Domain',
-                description:
-                    'This permission can read Domain in this project.',
+                description: 'This permission can read Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
