@@ -5,20 +5,18 @@ import Express, {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
-import ProbeAuthorization from '../Middleware/ProbeAuthorization';
-import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeMonitorResponseService from '../Service/ProbeMonitorResponse';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Dictionary from 'Common/Types/Dictionary';
 import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 
 const router: ExpressRouter = Express.getRouter();
 
 router.post(
     '/incoming-request/:monitor-id',
-    ProbeAuthorization.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -28,17 +26,34 @@ router.post(
             const requestHeaders: Dictionary<string> = req.headers as Dictionary<string>;
             const requesdyBody:  string | JSONObject  = req.body as  string | JSONObject;
 
+            const monitorIdAsString: string | undefined = req.params['monitor-id'];
+
+            if(!monitorIdAsString) {
+                throw new BadDataException('Monitor Id is required');
+            }
+
+            const monitorId: ObjectID = ObjectID.fromString(monitorIdAsString);
+            
+
+            const incomingRequest: IncomingMonitorRequest = {
+                monitorId: monitorId,
+                requestHeaders: requestHeaders,
+                requestBody: requesdyBody,
+            };
             
 
             // process probe response here.
             const probeApiIngestResponse: ProbeApiIngestResponse =
                 await ProbeMonitorResponseService.processProbeResponse(
-                    probeResponse
+                    incomingRequest
                 );
 
             return Response.sendJsonObjectResponse(req, res, {
-                probeApiIngestResponse: probeApiIngestResponse,
+                monitorId: probeApiIngestResponse.monitorId.toString(),
+                rootCause: probeApiIngestResponse.rootCause,
+                criteriaMetId: probeApiIngestResponse.criteriaMetId?.toString(),
             } as any);
+
         } catch (err) {
             return next(err);
         }

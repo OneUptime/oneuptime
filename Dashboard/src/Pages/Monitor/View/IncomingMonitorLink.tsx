@@ -2,7 +2,7 @@ import URL from 'Common/Types/API/URL';
 import ObjectID from 'Common/Types/ObjectID';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
-import { PROBE_API_URL } from 'CommonUI/src/Config';
+import { DOMAIN, HTTP_PROTOCOL } from 'CommonUI/src/Config';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
@@ -21,13 +21,9 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
                         Please send inbound heartbeat requests to this URL{' '}
                         <Link
                             openInNewTab={true}
-                            to={URL.fromString(
-                                `${PROBE_API_URL.toString()}/${props.modelId}`
-                            )}
+                            to={new URL(HTTP_PROTOCOL, DOMAIN).addRoute("/heartbeat").addRoute(props.modelId.toString())}
                         >
-                            <span>{`${PROBE_API_URL.toString()}/${
-                                props.modelId
-                            }`}</span>
+                            <span>{new URL(HTTP_PROTOCOL, DOMAIN).addRoute("/heartbeat").addRoute(props.modelId.toString()).toString()}</span>
                         </Link>
                     </span>
                 }
