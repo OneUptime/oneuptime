@@ -98,6 +98,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   test-server-docker-image-deploy:
     needs: generate-build-number
@@ -158,6 +159,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   workflow-docker-image-deploy:
     needs: generate-build-number
@@ -218,6 +220,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   link-shortner-docker-image-deploy:
     needs: generate-build-number
@@ -278,6 +281,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   workers-docker-image-deploy:
     needs: generate-build-number
@@ -338,6 +342,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   status-page-docker-image-deploy:
     needs: generate-build-number
@@ -398,6 +403,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   realtime-docker-image-deploy:
     needs: generate-build-number
@@ -458,6 +464,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   probe-api-docker-image-deploy:
     needs: generate-build-number
@@ -518,6 +525,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   notification-docker-image-deploy:
     needs: generate-build-number
@@ -578,6 +586,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   licensing-docker-image-deploy:
     needs: generate-build-number
@@ -638,6 +647,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   integrations-docker-image-deploy:
     needs: generate-build-number
@@ -698,6 +708,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   probe-docker-image-deploy:
     needs: generate-build-number
@@ -758,6 +769,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   identity-docker-image-deploy:
     needs: generate-build-number
@@ -818,6 +830,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   home-docker-image-deploy:
     needs: generate-build-number
@@ -878,6 +891,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   helm-chart-docker-image-deploy:
     needs: generate-build-number
@@ -938,6 +952,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   haraka-docker-image-deploy:
     needs: generate-build-number
@@ -998,6 +1013,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   file-docker-image-deploy:
     needs: generate-build-number
@@ -1058,6 +1074,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   dashboard-docker-image-deploy:
     needs: generate-build-number
@@ -1118,6 +1135,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   dashboard-api-docker-image-deploy:
     needs: generate-build-number
@@ -1178,6 +1196,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   api-reference-docker-image-deploy:
     needs: generate-build-number
@@ -1238,6 +1257,7 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   accounts-docker-image-deploy:
     needs: generate-build-number
@@ -1298,3 +1318,4 @@ jobs:
           build-args: |
             VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
