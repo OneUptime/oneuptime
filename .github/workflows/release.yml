@@ -61,6 +61,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy nginx.
 
       - name: Login to Docker Hub 
@@ -108,6 +111,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy test-server.
 
@@ -157,6 +163,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy workflow.
 
       - name: Login to Docker Hub 
@@ -204,6 +213,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy link-shortner.
 
@@ -253,6 +265,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy workers.
 
       - name: Login to Docker Hub 
@@ -300,6 +315,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy status-page.
 
@@ -349,6 +367,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy realtime.
 
       - name: Login to Docker Hub 
@@ -396,6 +417,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy probe-api.
 
@@ -445,6 +469,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy notification.
 
       - name: Login to Docker Hub 
@@ -492,6 +519,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy licensing.
 
@@ -541,6 +571,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy integrations.
 
       - name: Login to Docker Hub 
@@ -588,6 +621,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy probe.
 
@@ -637,6 +673,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy identity.
 
       - name: Login to Docker Hub 
@@ -684,6 +723,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy home.
 
@@ -733,6 +775,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy helm-chart.
 
       - name: Login to Docker Hub 
@@ -780,6 +825,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy haraka.
 
@@ -829,6 +877,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy file.
 
       - name: Login to Docker Hub 
@@ -876,6 +927,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy dashboard.
 
@@ -925,6 +979,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy dashboard-api.
 
       - name: Login to Docker Hub 
@@ -973,6 +1030,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
       # Build and deploy api-reference.
 
       - name: Login to Docker Hub 
@@ -1020,6 +1080,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
 
       # Build and deploy accounts.
 
