@@ -1,12 +1,12 @@
-name: Release 
+name: Deploy Images to Registries 
 
 on:
   push:
     branches:
+      - "master"
       - "release"
 
 jobs:
-
   generate-build-number:
     runs-on: ubuntu-latest
     outputs:
@@ -24,8 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -36,7 +34,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v3.7.1
       - uses: ncipollo/release-action@v1
         with:
-          tag: ${{env.ONEUPTIME_VERSION}}
+          tag: "7.0.${{needs.generate-build-number.outputs.build_number}}"
           artifactErrorsFailBuild: true
           body: |
             ${{steps.build_changelog.outputs.changelog}}
@@ -44,9 +42,20 @@ jobs:
   nginx-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/nginx
+            ghcr.io/oneuptime/nginx
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -86,18 +95,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/nginx:$ONEUPTIME_VERSION
-            oneuptime/nginx:release
-            ghcr.io/oneuptime/nginx:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/nginx:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   test-server-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/test-server
+            ghcr.io/oneuptime/test-server
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -137,18 +155,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/test-server:$ONEUPTIME_VERSION
-            oneuptime/test-server:release
-            ghcr.io/oneuptime/test-server:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/test-server:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   workflow-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/workflow
+            ghcr.io/oneuptime/workflow
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -188,18 +215,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/workflow:$ONEUPTIME_VERSION
-            oneuptime/workflow:release
-            ghcr.io/oneuptime/workflow:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/workflow:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   link-shortner-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/link-shortner
+            ghcr.io/oneuptime/link-shortner
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -239,18 +275,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/link-shortner:$ONEUPTIME_VERSION
-            oneuptime/link-shortner:release
-            ghcr.io/oneuptime/link-shortner:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/link-shortner:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   workers-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/workers
+            ghcr.io/oneuptime/workers
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -290,18 +335,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/workers:$ONEUPTIME_VERSION
-            oneuptime/workers:release
-            ghcr.io/oneuptime/workers:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/workers:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   status-page-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/status-page
+            ghcr.io/oneuptime/status-page
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -341,18 +395,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/status-page:$ONEUPTIME_VERSION
-            oneuptime/status-page:release
-            ghcr.io/oneuptime/status-page:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/status-page:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   realtime-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/realtime
+            ghcr.io/oneuptime/realtime
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -392,18 +455,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/realtime:$ONEUPTIME_VERSION
-            oneuptime/realtime:release
-            ghcr.io/oneuptime/realtime:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/realtime:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   probe-api-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/probe-api
+            ghcr.io/oneuptime/probe-api
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -443,18 +515,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/probe-api:$ONEUPTIME_VERSION
-            oneuptime/probe-api:release
-            ghcr.io/oneuptime/probe-api:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/probe-api:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   notification-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/notification
+            ghcr.io/oneuptime/notification
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -494,18 +575,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/notification:$ONEUPTIME_VERSION
-            oneuptime/notification:release
-            ghcr.io/oneuptime/notification:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/notification:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   licensing-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/licensing
+            ghcr.io/oneuptime/licensing
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -545,18 +635,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/licensing:$ONEUPTIME_VERSION
-            oneuptime/licensing:release
-            ghcr.io/oneuptime/licensing:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/licensing:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   integrations-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/integrations
+            ghcr.io/oneuptime/integrations
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -596,18 +695,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/integrations:$ONEUPTIME_VERSION
-            oneuptime/integrations:release
-            ghcr.io/oneuptime/integrations:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/integrations:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   probe-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/probe
+            ghcr.io/oneuptime/probe
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -647,18 +755,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/probe:$ONEUPTIME_VERSION
-            oneuptime/probe:release
-            ghcr.io/oneuptime/probe:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/probe:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   identity-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/identity
+            ghcr.io/oneuptime/identity
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -698,18 +815,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/identity:$ONEUPTIME_VERSION
-            oneuptime/identity:release
-            ghcr.io/oneuptime/identity:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/identity:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   home-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/home
+            ghcr.io/oneuptime/home
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -749,18 +875,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/home:$ONEUPTIME_VERSION
-            oneuptime/home:release
-            ghcr.io/oneuptime/home:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/home:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   helm-chart-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/helm-chart
+            ghcr.io/oneuptime/helm-chart
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -800,18 +935,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/helm-chart:$ONEUPTIME_VERSION
-            oneuptime/helm-chart:release
-            ghcr.io/oneuptime/helm-chart:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/helm-chart:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   haraka-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/haraka
+            ghcr.io/oneuptime/haraka
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -851,18 +995,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/haraka:$ONEUPTIME_VERSION
-            oneuptime/haraka:release
-            ghcr.io/oneuptime/haraka:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/haraka:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   file-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/file
+            ghcr.io/oneuptime/file
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -902,18 +1055,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/file:$ONEUPTIME_VERSION
-            oneuptime/file:release
-            ghcr.io/oneuptime/file:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/file:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   dashboard-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/dashboard
+            ghcr.io/oneuptime/dashboard
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -953,18 +1115,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/dashboard:$ONEUPTIME_VERSION
-            oneuptime/dashboard:release
-            ghcr.io/oneuptime/dashboard:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/dashboard:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   dashboard-api-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/dashboard-api
+            ghcr.io/oneuptime/dashboard-api
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -1004,18 +1175,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/dashboard-api:$ONEUPTIME_VERSION
-            oneuptime/dashboard-api:release
-            ghcr.io/oneuptime/dashboard-api:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/dashboard-api:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   api-reference-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/api-reference
+            ghcr.io/oneuptime/api-reference
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -1055,18 +1235,27 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/api-reference:$ONEUPTIME_VERSION
-            oneuptime/api-reference:release
-            ghcr.io/oneuptime/api-reference:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/api-reference:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
 
   accounts-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    env:
-      ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
     steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/accounts
+            ghcr.io/oneuptime/accounts
+          tags: |
+            type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=semver,pattern={{version}}-test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=release,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=semver,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+
       - uses: actions/checkout@v3
         with:
           ref: release
@@ -1106,8 +1295,6 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            oneuptime/accounts:$ONEUPTIME_VERSION
-            oneuptime/accounts:release
-            ghcr.io/oneuptime/accounts:$ONEUPTIME_VERSION
-            ghcr.io/oneuptime/accounts:release
+          build-args: |
+            VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          tags: ${{ steps.meta.outputs.tags }}
