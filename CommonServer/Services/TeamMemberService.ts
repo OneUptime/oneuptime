@@ -211,7 +211,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                     item.userId!,
                     item.projectId!
                 );
-                await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                await UserNotificationRuleService.addDefaultNotificationRuleForUser(
                     item.projectId!,
                     item.userId!,
                     item.user?.email!

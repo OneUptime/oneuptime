@@ -600,7 +600,7 @@ export class Service extends DatabaseService<Model> {
         };
     }
 
-    public async addDefaultNotifictionRuleForUser(
+    public async addDefaultNotificationRuleForUser(
         projectId: ObjectID,
         userId: ObjectID,
         email: Email

@@ -118,7 +118,7 @@ export class Service extends DatabaseService<Model> {
 
                 for (const member of teamMembers) {
                     // create default policies for this user.
-                    await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                    await UserNotificationRuleService.addDefaultNotificationRuleForUser(
                         member.projectId!,
                         user.id!,
                         user.email!
