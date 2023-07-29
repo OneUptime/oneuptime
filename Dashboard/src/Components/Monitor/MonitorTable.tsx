@@ -176,7 +176,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Owner - Teams',
                     stepId: 'owners',
                     description:
-                        'Select teams who own this monitor. They will be notified when monitor status changes.',
+                        'Select which teams own this monitor. They will be notified when monitor status changes.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: Team,
@@ -195,7 +195,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Owner - Users',
                     stepId: 'owners',
                     description:
-                        'Select users who own this incident. They will be notified when monitor status changes.',
+                        'Select which users own this incident. They will be notified when monitor status changes.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     fetchDropdownOptions: async () => {
                         return await ProjectUser.fetchProjectUsersAsDropdownOptions(
