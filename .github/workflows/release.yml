@@ -93,7 +93,6 @@ jobs:
     needs: generate-build-number
     runs-on: ubuntu-latest
     env:
-      GHCR_TOKEN: ${{secrets.GHCR_TOKEN}}
       DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
       DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
       ONEUPTIME_VERSION: "7.0.${{needs.generate-build-number.outputs.build_number}}"
@@ -111,7 +110,7 @@ jobs:
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: echo "$GHCR_TOKEN" | docker login ghcr.io -u $ --password-stdin
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/oneuptime/workflow:$ONEUPTIME_VERSION --tag ghcr.io/oneuptime/workflow:release --tag oneuptime/workflow:$ONEUPTIME_VERSION --tag oneuptime/workflow:release --push -f ./Workflow/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/workflow:$ONEUPTIME_VERSION --tag oneuptime/workflow:release --push -f ./Workflow/Dockerfile .
 
   link-shortner-docker-image-deploy:
     needs: generate-build-number
