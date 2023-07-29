@@ -433,7 +433,7 @@ export default class Incident extends BaseModel {
         type: TableColumnType.EntityArray,
         modelType: Monitor,
         title: 'On-Call Duty Policies',
-        description: 'List of on call duty policy affected by this incident.',
+        description: 'List of on-call duty policy affected by this incident.',
     })
     @ManyToMany(
         () => {

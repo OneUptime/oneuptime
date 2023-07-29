@@ -53,12 +53,12 @@ export default (product: string): Product => {
             faq: [
                 {
                     question: 'How does OneUptime compare with PagerDuty?',
-                    answer: 'PagerDuty is an incident management and on call tool whereas OneUptime is a complete Observability platform. OneUptime offers mostly everything that PagerDuty offers, but a lot more like monitoring, StatusPage, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                    answer: 'PagerDuty is an incident management and on-call tool whereas OneUptime is a complete Observability platform. OneUptime offers mostly everything that PagerDuty offers, but a lot more like monitoring, StatusPage, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
                         'Do I need to buy a monitoring solution to monitor my resources?',
-                    answer: 'PagerDuty needs a seperate monitoring solution that you need to buy which then sends data to PagerDuty for on call and incident management. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'PagerDuty needs a seperate monitoring solution that you need to buy which then sends data to PagerDuty for on-call and incident management. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:

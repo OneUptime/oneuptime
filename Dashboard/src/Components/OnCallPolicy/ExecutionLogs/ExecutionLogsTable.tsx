@@ -66,7 +66,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                             />
                         );
                     }
-                    return <p>No on call policy.</p>;
+                    return <p>No on-call policy.</p>;
                 },
             },
         ]);

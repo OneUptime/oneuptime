@@ -62,7 +62,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Alert,
                     title: 'Active Incidents',
                     description:
-                        'Here is a list of active incidents that belogns to all the projects you ara a part of.',
+                        'Here is a list of active incidents for all of the projects you are a part of.',
                 }}
                 noItemsMessage={'No incident found.'}
                 singularName="Active Incident"

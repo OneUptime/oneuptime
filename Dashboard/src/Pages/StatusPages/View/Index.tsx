@@ -61,7 +61,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                 name="Status Page > Status Page Details"
                 cardProps={{
                     title: 'Status Page Details',
-                    description: "Here's more details for this status page.",
+                    description: "Here are more details for this status page.",
                     icon: IconProp.CheckCircle,
                 }}
                 formSteps={[

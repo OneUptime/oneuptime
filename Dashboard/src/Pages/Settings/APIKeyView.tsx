@@ -65,7 +65,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 name="API Key Details"
                 cardProps={{
                     title: 'API Key Details',
-                    description: "Here's more details on this API Key.",
+                    description: "Here are more details for this API Key.",
                     icon: IconProp.Terminal,
                 }}
                 isEditable={true}

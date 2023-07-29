@@ -142,7 +142,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     title: 'On-Call Policy',
                     stepId: 'on-call',
                     description:
-                        'Select on call duty policy to execute when this incident is created.',
+                        'Select on-call duty policy to execute when this incident is created.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: OnCallDutyPolicy,
@@ -150,7 +150,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         valueField: '_id',
                     },
                     required: false,
-                    placeholder: 'Select on call policies',
+                    placeholder: 'Select on-call policies',
                 },
                 {
                     field: {

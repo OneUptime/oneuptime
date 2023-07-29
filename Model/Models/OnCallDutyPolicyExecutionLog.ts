@@ -188,7 +188,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         modelType: Incident,
         title: 'Triggered By Incident',
         description:
-            'Relation to Incident which triggered this on call duty policy.',
+            'Relation to Incident which triggered this on-call duty policy.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -218,7 +218,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'Triggered By Incident ID',
         description:
-            'ID of the incident which triggered this on call escalation policy.',
+            'ID of the incident which triggered this on-call escalation policy.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -289,7 +289,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Notification Event Type',
-        description: 'Type of event tat triggered this on call duty policy.',
+        description: 'Type of event that triggered this on-call duty policy.',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -656,7 +656,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         isDefaultValueColumn: true,
         canReadOnRelationQuery: true,
         title: 'On-Call Policy Execution Repeat Count',
-        description: 'How many times did we execute this on call policy?',
+        description: 'How many times did we execute this on-call policy?',
     })
     @Column({
         type: ColumnType.Number,

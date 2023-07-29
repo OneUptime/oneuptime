@@ -131,7 +131,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         modelType: OnCallDutyPolicy,
         title: 'OnCallDutyPolicy',
         description:
-            'Relation to on call duty policy Resource in which this object belongs',
+            'Relation to on-call duty policy Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -164,7 +164,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         canReadOnRelationQuery: true,
         title: 'OnCallDutyPolicy ID',
         description:
-            'ID of your OneUptime on call duty policy in which this object belongs',
+            'ID of your OneUptime on-call duty policy in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -392,7 +392,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Notification Event Type',
-        description: 'Type of event tat triggered this on call duty policy.',
+        description: 'Type of event that triggered this on-call duty policy.',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -440,7 +440,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         modelType: Team,
         title: 'User Belongs To Team',
         description:
-            'Which team does the user belogns to when the alert was sent?',
+            'Which team did the user belong to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
@@ -470,7 +470,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'User Belongs To Team ID',
         description:
-            'Which team ID does the user belogns to when the alert was sent?',
+            'Which team ID did the user belong to when the alert was sent?',
     })
     @Column({
         type: ColumnType.ObjectID,

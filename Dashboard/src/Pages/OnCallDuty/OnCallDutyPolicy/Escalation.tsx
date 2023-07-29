@@ -107,7 +107,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         'Escalation rules are used to determine who to contact and when to contact them when an incident is triggered.',
                 }}
                 noItemsMessage={
-                    'There are no escalation rules for this on call policy.'
+                    'There are no escalation rules for this on-call policy.'
                 }
                 formSteps={[
                     {
@@ -282,7 +282,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Repeat Policy',
                     description:
-                        'Repeat policies are used to determine how often an on call policy should be repeated.',
+                        'Repeat policies are used to determine how often an on-call policy should be repeated.',
                     icon: IconProp.Call,
                 }}
                 isEditable={true}
@@ -295,7 +295,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         description:
-                            'If enabled, the on call policy will repeat if no one acknowledges the incident.',
+                            'If enabled, the on-call policy will repeat if no one acknowledges the incident.',
                         validation: {
                             minLength: 2,
                         },
@@ -308,7 +308,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Number,
                         required: false,
                         description:
-                            'The number of times to repeat the on call policy if no one acknowledges the incident.',
+                            'The number of times to repeat the on-call policy if no one acknowledges the incident.',
                         placeholder: 3,
                     },
                 ]}
@@ -324,7 +324,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             title: 'Repeat Policy If No One Acknowledges',
                             fieldType: FieldType.Boolean,
                             description:
-                                'If enabled, the on call policy will repeat if no one acknowledges the incident.',
+                                'If enabled, the on-call policy will repeat if no one acknowledges the incident.',
                             placeholder: 'No',
                         },
                         {
@@ -335,7 +335,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Number,
                             placeholder: '0',
                             description:
-                                'The number of times to repeat the on call policy if no one acknowledges the incident.',
+                                'The number of times to repeat the on-call policy if no one acknowledges the incident.',
                         },
                     ],
                     modelId: modelId,
