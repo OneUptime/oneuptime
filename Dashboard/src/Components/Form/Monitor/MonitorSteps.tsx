@@ -289,7 +289,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             <div className="mt-4">
                 <FieldLabelElement
                     title="Default Monitor Status"
-                    description="What would like the monitor status to be when none of the above criteria is met?"
+                    description="What would should the monitor status be when none of the above criteria is met?"
                     required={true}
                 />
 

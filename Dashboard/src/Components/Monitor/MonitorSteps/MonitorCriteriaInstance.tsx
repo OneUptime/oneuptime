@@ -51,7 +51,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                             )
                         </span>{' '}
                         {props.monitorCriteriaInstance.data?.filterCondition} of
-                        these should match for this criteria to be met:
+                        these can match for this criteria to be met:
                     </div>
                 </div>
 

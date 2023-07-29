@@ -72,7 +72,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             changeMonitorStatus: true,
             createIncidents: false,
             name: 'Check if online',
-            description: 'This criteria cheks if the monitor is online',
+            description: 'This criteria checks if the monitor is online',
         };
 
         if (
@@ -125,7 +125,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 changeMonitorStatus: true,
                 createIncidents: true,
                 name: 'Check if offline',
-                description: 'This criteria cheks if the monitor is offline',
+                description: 'This criteria checks if the monitor is offline',
             };
         }
 

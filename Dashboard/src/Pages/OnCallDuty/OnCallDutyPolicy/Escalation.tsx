@@ -154,7 +154,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Teams',
                         stepId: 'notification',
                         description:
-                            'Select teams who will be notified when incident is triggered.',
+                            'Select which teams will be notified when incident is triggered.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Team,
@@ -173,7 +173,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Users',
                         stepId: 'notification',
                         description:
-                            'Select users who will be notified when incident is triggered.',
+                            'Select which users will be notified when incident is triggered.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         fetchDropdownOptions: async () => {
                             return await ProjectUser.fetchProjectUsersAsDropdownOptions(

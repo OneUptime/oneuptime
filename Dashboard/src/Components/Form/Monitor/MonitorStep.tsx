@@ -183,7 +183,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 <div className="mt-5">
                     <FieldLabelElement
                         title={'API Request Type'}
-                        description={'Whats the type of the API request?'}
+                        description={'What is the type of the API request?'}
                         required={true}
                     />
                     <Dropdown
@@ -299,7 +299,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     title="Monitor Criteria"
                     isHeading={true}
                     description={
-                        'Add Monitoiring Criteria for this monitor. Monitor different properties.'
+                        'Add Monitoring Criteria for this monitor. Monitor different properties.'
                     }
                     required={true}
                 />
