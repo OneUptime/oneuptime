@@ -745,7 +745,7 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        //check reponse code
+        //check response code
         if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
             if (!value) {
                 return null;

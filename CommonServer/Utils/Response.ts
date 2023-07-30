@@ -145,7 +145,7 @@ export default class Response {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-        oneUptimeResponse.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
+        oneUptimeResponse.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log response data;
         const status: number = error.code || 500;
         const message: string = error.message || 'Server Error';
 
@@ -265,7 +265,7 @@ export default class Response {
             oneUptimeResponse.status(200).send(csv);
         } else {
             oneUptimeResponse.status(200).send(listData);
-            oneUptimeResponse.logBody = listData.toJSON(); // To be used in 'auditLog' middleware to log reponse data;
+            oneUptimeResponse.logBody = listData.toJSON(); // To be used in 'auditLog' middleware to log response data;
             this.logResponse(req, res, listData.toJSON());
         }
     }
