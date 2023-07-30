@@ -1217,7 +1217,7 @@ export default class ModelPermission {
         // Include global permission in userPermissions.
 
         if (props.userGlobalAccessPermission) {
-            /// take gloabl permissions.
+            /// take global permissions.
             userPermissions =
                 props.userGlobalAccessPermission.globalPermissions.map(
                     (permission: Permission) => {
