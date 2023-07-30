@@ -69,6 +69,8 @@ import './Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions';
 import './Jobs/UserOnCallLog/ExecutePendingExecutions';
 import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
 
+import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
+
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();
