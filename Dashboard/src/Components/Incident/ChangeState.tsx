@@ -33,7 +33,7 @@ export interface ComponentProps {
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isLoading, setIsLaoding] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [incidentTimeline, setIncidentTimeline] = useState<
         IncidentStateTimeline | undefined
     >(undefined);
@@ -103,7 +103,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                         : ButtonStyleType.SUCCESS_OUTLINE
                 }
                 onClick={async () => {
-                    setIsLaoding(true);
+                    setIsLoading(true);
                     const projectId: ObjectID | undefined | null =
                         ProjectUtil.getCurrentProject()?.id;
 
@@ -165,7 +165,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                     );
 
                     props.onActionComplete();
-                    setIsLaoding(false);
+                    setIsLoading(false);
                 }}
             />
         </div>

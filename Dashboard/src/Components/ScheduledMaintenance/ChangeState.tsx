@@ -33,7 +33,7 @@ export interface ComponentProps {
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isLoading, setIsLaoding] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [scheduledMaintenanceTimeline, setScheduledMaintenanceTimeline] =
         useState<ScheduledMaintenanceStateTimeline | undefined>(undefined);
 
@@ -98,7 +98,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                         : ButtonStyleType.SUCCESS_OUTLINE
                 }
                 onClick={async () => {
-                    setIsLaoding(true);
+                    setIsLoading(true);
                     const projectId: ObjectID | undefined | null =
                         ProjectUtil.getCurrentProject()?.id;
 
@@ -163,7 +163,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                     );
 
                     props.onActionComplete();
-                    setIsLaoding(false);
+                    setIsLoading(false);
                 }}
             />
         </div>
