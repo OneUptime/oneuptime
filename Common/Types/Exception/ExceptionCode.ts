@@ -9,7 +9,7 @@ enum ExceptionCode {
     BadRequestException = 400,
     ServerException = 500,
     NotAuthorizedException = 403,
-    NotAuthenticatedxception = 401,
+    NotAuthenticatedException = 401,
     PaymentRequiredException = 402,
     NotFoundException = 404,
     TimeoutException = 408,
