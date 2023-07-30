@@ -19,7 +19,7 @@ import ComponentValuePickerModal from './ComponentValuePickerModal';
 
 export interface ComponentProps {
     component: NodeDataProp;
-    onHasFormValidatonErrors: (values: Dictionary<boolean>) => void;
+    onHasFormValidationErrors: (values: Dictionary<boolean>) => void;
     workflowId: ObjectID;
     graphComponents: Array<NodeDataProp>;
     onFormChange: (value: NodeDataProp) => void;
@@ -33,14 +33,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
     const [showComponentPickerModal, setShowComponentPickerModal] =
         useState<boolean>(false);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
+    const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
         Dictionary<boolean>
     >({});
 
     const [selectedArgId, setSelectedArgId] = useState<string>('');
 
     useEffect(() => {
-        props.onHasFormValidatonErrors(hasFormValidationErrors);
+        props.onHasFormValidationErrors(hasFormValidationErrors);
     }, [hasFormValidationErrors]);
 
     useEffect(() => {
@@ -88,7 +88,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                                 if (
                                     hasFormValidationErrors['id'] !== hasError
                                 ) {
-                                    setHasFormValidatonErrors({
+                                    setHasFormValidationErrors({
                                         ...hasFormValidationErrors,
                                         id: hasError,
                                     });
