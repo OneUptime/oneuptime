@@ -250,7 +250,7 @@ export class Service extends DatabaseService<Model> {
             notificationRuleType =
                 NotificationRuleType.ON_CALL_INCIDENT_CREATED;
         } else {
-            // Invlaid user notification event type.
+            // Invalid user notification event type.
             throw new BadDataException('Invalid user notification event type.');
         }
         return notificationRuleType;
