@@ -46,7 +46,7 @@ export const DatabaseSslCert: string | undefined =
     process.env['DATABASE_SSL_CERT'] || undefined;
 
 export const DatabaseRejectUnauthorized: boolean =
-    Boolean(process.env['DATABASE_SSL_REJECT_UNAUTHORIZED']) || false;
+    process.env['DATABASE_SSL_REJECT_UNAUTHORIZED'] === 'true';
 
 export const ShouldDatabaseSslEnable: boolean = Boolean(
     DatabaseSslCa || (DatabaseSslCert && DatabaseSslKey)
