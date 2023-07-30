@@ -2537,7 +2537,9 @@ export function instanceOfUserTenantAccessPermission(
     return object._type === 'UserTenantAccessPermission';
 }
 
-export function instanceOfUserPermission(object: any): object is UserPermission {
+export function instanceOfUserPermission(
+    object: any
+): object is UserPermission {
     return object._type === 'UserPermission';
 }
 
