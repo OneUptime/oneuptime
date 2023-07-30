@@ -7,7 +7,7 @@ import {
     PROBE_NAME,
 } from '../Config';
 import URL from 'Common/Types/API/URL';
-import { ClusterKey, hasClusterKey } from 'CommonServer/Config';
+import { ClusterKey, HasClusterKey } from 'CommonServer/Config';
 import logger from 'CommonServer/Utils/Logger';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONObject } from 'Common/Types/JSON';
@@ -15,7 +15,7 @@ import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 
 export default class Register {
     public static async registerProbe(): Promise<void> {
-        if (hasClusterKey) {
+        if (HasClusterKey) {
             const resullt: HTTPResponse<JSONObject> = await API.post(
                 URL.fromString(PROBE_API_URL.toString()).addRoute('/register'),
                 {

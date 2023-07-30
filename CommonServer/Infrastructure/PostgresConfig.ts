@@ -5,6 +5,11 @@ import {
     DatabasePassword,
     DatabasePort,
     DatabaseUsername,
+    DatabaseSslCa,
+    DatabaseSslKey,
+    DatabaseSslCert,
+    DatabaseRejectUnauthorized,
+    ShouldDatabaseSslEnable,
     Env,
 } from '../Config';
 import Entities from 'Model/Models/Index';
@@ -23,6 +28,14 @@ export const dataSourceOptions: DataSourceOptions = {
     migrationsTableName: 'migrations',
     migrations: Migrations,
     entities: Entities,
+    ssl: ShouldDatabaseSslEnable
+        ? {
+              rejectUnauthorized: DatabaseRejectUnauthorized,
+              ca: DatabaseSslCa,
+              key: DatabaseSslKey,
+              cert: DatabaseSslCert,
+          }
+        : false,
     // logging: 'all',
     // synchronize: Env === AppEnvironment.Development,
     synchronize: true,
