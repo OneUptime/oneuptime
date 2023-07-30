@@ -22,7 +22,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-            title="On Call Policy"
+            title="On-Call Policy"
             modelType={OnCallDutyPolicy}
             modelId={onCallDutyPolicyId}
             modelNameField="name"
@@ -35,14 +35,14 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On Call Duty',
+                    title: 'On-Call Duty',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View On Call Policy',
+                    title: 'View On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
                         { modelId }

@@ -52,10 +52,10 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 })
 @TableMetadata({
     tableName: 'UserOnCallLogTimeline',
-    singularName: 'User On Call Log Timeline',
-    pluralName: 'User  On Call  Log Timelines',
+    singularName: 'User On-Call Log Timeline',
+    pluralName: 'User  On-Call  Log Timelines',
     icon: IconProp.Logs,
-    tableDescription: 'Timeline events for user on call log.',
+    tableDescription: 'Timeline events for user on-call log.',
 })
 export default class UserOnCallLogTimeline extends BaseModel {
     @ColumnAccessControl({
@@ -256,7 +256,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
         modelType: OnCallDutyPolicy,
         title: 'OnCallDutyPolicy',
         description:
-            'Relation to on call duty policy Resource in which this object belongs',
+            'Relation to on-call duty policy Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -284,7 +284,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
         canReadOnRelationQuery: true,
         title: 'OnCallDutyPolicy ID',
         description:
-            'ID of your OneUptime on call duty policy in which this object belongs',
+            'ID of your OneUptime on-call duty policy in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -350,9 +350,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyExecutionLogId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicyExecutionLog,
-        title: 'On Call Policy Execution Log',
+        title: 'On-Call Policy Execution Log',
         description:
-            'Relation to On Call Policy Execution Log where this timeline event belongs.',
+            'Relation to On-Call Policy Execution Log where this timeline event belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -378,9 +378,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy Execution Log Timeline ID',
+        title: 'On-Call Policy Execution Log Timeline ID',
         description:
-            'ID of your On Call Policy Execution Log Timeline where this timeline event belongs.',
+            'ID of your On-Call Policy Execution Log Timeline where this timeline event belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -398,9 +398,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyExecutionLogTimelineId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicyExecutionLogTimeline,
-        title: 'On Call Policy Execution Log Timeline',
+        title: 'On-Call Policy Execution Log Timeline',
         description:
-            'Relation to On Call Policy Execution Log Timeline where this timeline event belongs.',
+            'Relation to On-Call Policy Execution Log Timeline where this timeline event belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -427,9 +427,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy Execution Log ID',
+        title: 'On-Call Policy Execution Log ID',
         description:
-            'ID of your On Call Policy Execution Log where this timeline event belongs.',
+            'ID of your On-Call Policy Execution Log where this timeline event belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -447,9 +447,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyEscalationRuleId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicyEscalationRule,
-        title: 'On Call Policy Escalation Rule',
+        title: 'On-Call Policy Escalation Rule',
         description:
-            'Relation to On Call Policy Escalation Rule where this timeline event belongs.',
+            'Relation to On-Call Policy Escalation Rule where this timeline event belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -494,9 +494,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy Escalation Rule ID',
+        title: 'On-Call Policy Escalation Rule ID',
         description:
-            'ID of your On Call Policy Escalation Rule where this timeline event belongs.',
+            'ID of your On-Call Policy Escalation Rule where this timeline event belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,

@@ -19,7 +19,7 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-        // get all pending on call executions and execute them all at once.
+        // get all pending on-call executions and execute them all at once.
         const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
         const stuckExecutions: Array<UserOnCallLog> =

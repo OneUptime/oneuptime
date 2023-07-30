@@ -21,7 +21,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On Call Duty',
+                    title: 'On-Call Duty',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY] as Route
                     ),

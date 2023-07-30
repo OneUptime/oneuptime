@@ -40,7 +40,7 @@ export default class ResourceUtil {
             'Status Page',
             'Incident',
             'Team',
-            'On Call Duty',
+            'On-Call Duty',
             'Label',
             'Team Member',
         ];

@@ -38,7 +38,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 name="Project Details"
                 cardProps={{
                     title: 'Project Details',
-                    description: "Here's more details on this Project.",
+                    description: 'Here are more details for this Project.',
                     icon: IconProp.Folder,
                 }}
                 isEditable={true}

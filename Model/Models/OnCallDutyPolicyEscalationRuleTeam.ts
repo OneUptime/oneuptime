@@ -53,8 +53,8 @@ import OnCallDutyPolicyEscalationRule from './OnCallDutyPolicyEscalationRule';
 })
 @TableMetadata({
     tableName: 'OnCallDutyPolicyEscalationRuleTeam',
-    singularName: 'On Call Duty Escalation Rule',
-    pluralName: 'On Call Duty Escalation Rules',
+    singularName: 'On-Call Duty Escalation Rule',
+    pluralName: 'On-Call Duty Escalation Rules',
     icon: IconProp.Call,
     tableDescription:
         'Manage on-call duty escalation rule for the on-call policy.',
@@ -147,9 +147,9 @@ export default class OnCallDutyPolicyEscalationRuleTeam extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicy,
-        title: 'On Call Policy',
+        title: 'On-Call Policy',
         description:
-            'Relation to On Call Policy where this escalation rule belongs.',
+            'Relation to On-Call Policy where this escalation rule belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -185,9 +185,9 @@ export default class OnCallDutyPolicyEscalationRuleTeam extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy ID',
+        title: 'On-Call Policy ID',
         description:
-            'ID of your On Call Policy where this escalation rule belongs.',
+            'ID of your On-Call Policy where this escalation rule belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -280,7 +280,7 @@ export default class OnCallDutyPolicyEscalationRuleTeam extends BaseModel {
         modelType: OnCallDutyPolicyEscalationRule,
         title: 'Escalation Rule',
         description:
-            'Relation to On Call Policy Escalation Rule where this user belongs.',
+            'Relation to On-Call Policy Escalation Rule where this user belongs.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -316,9 +316,9 @@ export default class OnCallDutyPolicyEscalationRuleTeam extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy Escalation Rule ID',
+        title: 'On-Call Policy Escalation Rule ID',
         description:
-            'ID of your On Call Policy Escalation Rule where this user belongs.',
+            'ID of your On-Call Policy Escalation Rule where this user belongs.',
     })
     @Column({
         type: ColumnType.ObjectID,

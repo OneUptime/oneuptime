@@ -17,7 +17,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-            title="On Call Policy"
+            title="On-Call Policy"
             modelType={OnCallDutyPolicy}
             modelId={modelId}
             modelNameField="name"
@@ -30,21 +30,21 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On Call Duty',
+                    title: 'On-Call Duty',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View On Call Policy',
+                    title: 'View On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'Delete On Call Policy',
+                    title: 'Delete On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
                             PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE

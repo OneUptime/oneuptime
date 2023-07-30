@@ -113,7 +113,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                         },
-                        title: 'On Call Policy',
+                        title: 'On-Call Policy',
                         type: FieldType.Element,
                         isFilterable: true,
                         filterEntityType: OnCallDutyPolicy,

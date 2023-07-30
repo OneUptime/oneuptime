@@ -265,7 +265,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
             ],
         },
         {
-            name: 'On Call and Alerts',
+            name: 'On-Call and Alerts',
             data: [
                 {
                     name: 'Phone Alerts',

@@ -47,7 +47,7 @@ export default class MigrateDefaultUserNotificationRule extends DataMigrationBas
                 });
 
             for (const teamMember of teamMembers) {
-                await UserNotificationRuleService.addDefaultNotifictionRuleForUser(
+                await UserNotificationRuleService.addDefaultNotificationRuleForUser(
                     teamMember.projectId!,
                     user.id!,
                     user.email!

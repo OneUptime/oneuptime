@@ -32,7 +32,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-            title="On Call Policy"
+            title="On-Call Policy"
             modelType={OnCallDutyPolicy}
             modelId={modelId}
             modelNameField="name"
@@ -45,21 +45,21 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On Call Duty',
+                    title: 'On-Call Duty',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View On Call Policy',
+                    title: 'View On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'Delete On Call Policy',
+                    title: 'Delete On-Call Policy',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
                             PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
@@ -107,7 +107,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         'Escalation rules are used to determine who to contact and when to contact them when an incident is triggered.',
                 }}
                 noItemsMessage={
-                    'There are no escalation rules for this on call policy.'
+                    'There are no escalation rules for this on-call policy.'
                 }
                 formSteps={[
                     {
@@ -154,7 +154,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Teams',
                         stepId: 'notification',
                         description:
-                            'Select teams who will be notified when incident is triggered.',
+                            'Select which teams will be notified when incident is triggered.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Team,
@@ -173,7 +173,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Users',
                         stepId: 'notification',
                         description:
-                            'Select users who will be notified when incident is triggered.',
+                            'Select which users will be notified when incident is triggered.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         fetchDropdownOptions: async () => {
                             return await ProjectUser.fetchProjectUsersAsDropdownOptions(
@@ -278,11 +278,11 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail
-                name="On Call Policy > On Call Policy Details"
+                name="On-Call Policy > On-Call Policy Details"
                 cardProps={{
                     title: 'Repeat Policy',
                     description:
-                        'Repeat policies are used to determine how often an on call policy should be repeated.',
+                        'Repeat policies are used to determine how often an on-call policy should be repeated.',
                     icon: IconProp.Call,
                 }}
                 isEditable={true}
@@ -295,7 +295,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         description:
-                            'If enabled, the on call policy will repeat if no one acknowledges the incident.',
+                            'If enabled, the on-call policy will repeat if no one acknowledges the incident.',
                         validation: {
                             minLength: 2,
                         },
@@ -308,7 +308,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Number,
                         required: false,
                         description:
-                            'The number of times to repeat the on call policy if no one acknowledges the incident.',
+                            'The number of times to repeat the on-call policy if no one acknowledges the incident.',
                         placeholder: 3,
                     },
                 ]}
@@ -324,7 +324,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             title: 'Repeat Policy If No One Acknowledges',
                             fieldType: FieldType.Boolean,
                             description:
-                                'If enabled, the on call policy will repeat if no one acknowledges the incident.',
+                                'If enabled, the on-call policy will repeat if no one acknowledges the incident.',
                             placeholder: 'No',
                         },
                         {
@@ -335,7 +335,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Number,
                             placeholder: '0',
                             description:
-                                'The number of times to repeat the on call policy if no one acknowledges the incident.',
+                                'The number of times to repeat the on-call policy if no one acknowledges the incident.',
                         },
                     ],
                     modelId: modelId,

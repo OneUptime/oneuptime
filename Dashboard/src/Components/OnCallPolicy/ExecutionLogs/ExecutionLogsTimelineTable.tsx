@@ -39,7 +39,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         props.onCallPolicyExecutionLogId.toString(),
                 }}
                 id="notification-logs-timeline-table"
-                name="On Call > Execution Logs > Timeline"
+                name="On-Call > Execution Logs > Timeline"
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={false}

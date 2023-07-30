@@ -74,7 +74,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 name="Incident Details"
                 cardProps={{
                     title: 'Incident Details',
-                    description: "Here's more details for this incident.",
+                    description: 'Here are more details for this incident.',
                     icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}
@@ -291,7 +291,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     _id: true,
                                 },
                             },
-                            title: 'On Call Duty Policies',
+                            title: 'On-Call Duty Policies',
                             fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (

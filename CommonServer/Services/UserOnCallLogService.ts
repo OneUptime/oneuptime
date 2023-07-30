@@ -147,7 +147,7 @@ export class Service extends DatabaseService<Model> {
                 data: {
                     status: UserNotificationExecutionStatus.Error, // now the worker will pick this up and complete this or mark this as failed.
                     statusMessage:
-                        'No notification rules found. Please add rules in User Settings > On Call Rules.',
+                        'No notification rules found. Please add rules in User Settings > On-Call Rules.',
                 },
                 props: {
                     isRoot: true,
@@ -160,7 +160,7 @@ export class Service extends DatabaseService<Model> {
                 data: {
                     status: OnCallDutyExecutionLogTimelineStatus.Error,
                     statusMessage:
-                        'No notification rules found. Please add rules in User Settings > On Call Rules.',
+                        'No notification rules found. Please add rules in User Settings > On-Call Rules.',
                 },
                 props: {
                     isRoot: true,

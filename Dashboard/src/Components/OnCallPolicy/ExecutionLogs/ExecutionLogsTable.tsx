@@ -66,7 +66,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                             />
                         );
                     }
-                    return <p>No on call policy.</p>;
+                    return <p>No on-call policy.</p>;
                 },
             },
         ]);
@@ -184,14 +184,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 modelType={OnCallDutyPolicyExecutionLog}
                 query={query}
                 id="execution-logs-table"
-                name="On Call Policy > Logs"
+                name="On-Call Policy > Logs"
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={false}
                 isViewable={true}
                 cardProps={{
                     icon: IconProp.Logs,
-                    title: 'On Call Policy Logs',
+                    title: 'On-Call Policy Logs',
                     description:
                         'Here are all the notification logs. This will help you to debug any notification issues that your team may face.',
                 }}

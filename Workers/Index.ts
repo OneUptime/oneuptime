@@ -45,7 +45,7 @@ import './Jobs/MonitorOwners/SendStatusChangeNotification';
 
 // Incident Owners
 import './Jobs/IncidentOwners/SendCreatedResourceNotification';
-import './Jobs/IncidentOwners/SendOwnerAddedNotifiation';
+import './Jobs/IncidentOwners/SendOwnerAddedNotification';
 import './Jobs/IncidentOwners/SendStateChangeNotification';
 import './Jobs/IncidentOwners/SendNotePostedNotification';
 
@@ -61,7 +61,7 @@ import './Jobs/StatusPageOwners/SendOwnerAddedNotification';
 import './Jobs/StatusPageOwners/SendAnnouncementCreatedNotification';
 import RunDatabaseMigrations from './Utils/DataMigration';
 
-// On Call Duty Policy Executions.
+// On-Call Duty Policy Executions.
 import './Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions';
 import './Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions';
 

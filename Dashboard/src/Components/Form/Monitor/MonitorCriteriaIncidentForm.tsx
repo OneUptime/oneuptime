@@ -84,14 +84,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         field: {
                             onCallPolicyIds: true,
                         },
-                        title: 'On Call Policy',
+                        title: 'On-Call Policy',
                         stepId: 'incident-details',
                         description:
-                            'Execute these on call policies when this incident is created.',
+                            'Execute these on-call policies when this incident is created.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownOptions: props.onCallPolicyDropdownOptions,
                         required: false,
-                        placeholder: 'Select On Call Policies',
+                        placeholder: 'Select On-Call Policies',
                     },
                     {
                         field: {

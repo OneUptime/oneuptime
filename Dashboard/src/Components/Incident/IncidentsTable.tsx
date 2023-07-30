@@ -68,7 +68,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     id: 'resources-affected',
                 },
                 {
-                    title: 'On Call',
+                    title: 'On-Call',
                     id: 'on-call',
                 },
                 {
@@ -139,10 +139,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         onCallDutyPolicies: true,
                     },
-                    title: 'On Call Policy',
+                    title: 'On-Call Policy',
                     stepId: 'on-call',
                     description:
-                        'Select on call duty policy to execute when this incident is created.',
+                        'Select on-call duty policy to execute when this incident is created.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: OnCallDutyPolicy,
@@ -150,7 +150,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         valueField: '_id',
                     },
                     required: false,
-                    placeholder: 'Select on call policies',
+                    placeholder: 'Select on-call policies',
                 },
                 {
                     field: {
@@ -177,7 +177,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     title: 'Owner - Teams',
                     stepId: 'owners',
                     description:
-                        'Select teams who own this incident. They will be notified when the incident is created or updated.',
+                        'Select which teams own this incident. They will be notified when the incident is created or updated.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: Team,
@@ -196,7 +196,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     title: 'Owner - Users',
                     stepId: 'owners',
                     description:
-                        'Select users who own this incident. They will be notified when the incident is created or updated.',
+                        'Select which users own this incident. They will be notified when the incident is created or updated.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     fetchDropdownOptions: async () => {
                         return await ProjectUser.fetchProjectUsersAsDropdownOptions(

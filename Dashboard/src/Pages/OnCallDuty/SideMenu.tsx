@@ -28,7 +28,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Overview">
                 <SideMenuItem
                     link={{
-                        title: 'On Call Policies',
+                        title: 'On-Call Policies',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
                         ),

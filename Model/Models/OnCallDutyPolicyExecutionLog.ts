@@ -50,8 +50,8 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 })
 @TableMetadata({
     tableName: 'OnCallDutyPolicyExecutionLog',
-    singularName: 'On Call Duty Execution Log',
-    pluralName: 'On Call Duty Execution Log',
+    singularName: 'On-Call Duty Execution Log',
+    pluralName: 'On-Call Duty Execution Log',
     icon: IconProp.Call,
     tableDescription: 'Logs for on-call duty policy execution.',
 })
@@ -128,9 +128,9 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         manyToOneRelationColumn: 'onCallDutyPolicyId',
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicy,
-        title: 'On Call Policy',
+        title: 'On-Call Policy',
         description:
-            'Relation to On Call Policy which belongs to this execution log event.',
+            'Relation to On-Call Policy which belongs to this execution log event.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -161,9 +161,9 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy ID',
+        title: 'On-Call Policy ID',
         description:
-            'ID of your On Call Policy which belongs to this execution log event.',
+            'ID of your On-Call Policy which belongs to this execution log event.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -188,7 +188,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         modelType: Incident,
         title: 'Triggered By Incident',
         description:
-            'Relation to Incident which triggered this on call duty policy.',
+            'Relation to Incident which triggered this on-call duty policy.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -218,7 +218,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         type: TableColumnType.ObjectID,
         title: 'Triggered By Incident ID',
         description:
-            'ID of the incident which triggered this on call escalation policy.',
+            'ID of the incident which triggered this on-call escalation policy.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -289,7 +289,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         required: true,
         type: TableColumnType.ShortText,
         title: 'Notification Event Type',
-        description: 'Type of event tat triggered this on call duty policy.',
+        description: 'Type of event that triggered this on-call duty policy.',
         canReadOnRelationQuery: false,
     })
     @Column({
@@ -583,7 +583,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         modelType: OnCallDutyPolicyEscalationRule,
         title: 'Last Executed Escalation Rule',
         description:
-            'Relation to On Call Policy Last Executed Escalation Rule.',
+            'Relation to On-Call Policy Last Executed Escalation Rule.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -615,7 +615,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         required: false,
         canReadOnRelationQuery: true,
         title: 'Last Executed Escalation Rule ID',
-        description: 'ID of your On Call Policy Last Executed Escalation Rule.',
+        description: 'ID of your On-Call Policy Last Executed Escalation Rule.',
     })
     @Column({
         type: ColumnType.ObjectID,
@@ -655,8 +655,8 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         required: true,
         isDefaultValueColumn: true,
         canReadOnRelationQuery: true,
-        title: 'On Call Policy Execution Repeat Count',
-        description: 'How many times did we execute this on call policy?',
+        title: 'On-Call Policy Execution Repeat Count',
+        description: 'How many times did we execute this on-call policy?',
     })
     @Column({
         type: ColumnType.Number,

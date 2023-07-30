@@ -558,7 +558,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectApiKey,
                 title: 'Can Delete API Key',
                 description:
-                    'This permission  can delete api keys of this project.',
+                    'This permission can delete api keys of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -566,7 +566,7 @@ export class PermissionHelper {
                 permission: Permission.CanEditProjectApiKeyPermissions,
                 title: 'Can Edit API Key Permissions',
                 description:
-                    'This permission  can edit api key permissions of this project.',
+                    'This permission can edit api key permissions of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -582,7 +582,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectApiKey,
                 title: 'Can Read API Key',
                 description:
-                    'This permission  can read api keys of this project.',
+                    'This permission can read api keys of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -598,7 +598,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectLabel,
                 title: 'Can Delete Label',
                 description:
-                    'This permission  can delete labels of this project.',
+                    'This permission can delete labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -620,8 +620,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProjectLabel,
                 title: 'Can Read Label',
-                description:
-                    'This permission  can read labels of this project.',
+                description: 'This permission can read labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -638,7 +637,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentState,
                 title: 'Can Delete Incident State',
                 description:
-                    'This permission  can delete incident states of this project.',
+                    'This permission can delete incident states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -654,7 +653,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentState,
                 title: 'Can Read Incident State',
                 description:
-                    'This permission  can read incident states of this project.',
+                    'This permission can read incident states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -671,7 +670,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentStateTimeline,
                 title: 'Can Delete Incident State Timeline',
                 description:
-                    'This permission  can delete incident state history of an incident in this project.',
+                    'This permission can delete incident state history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -704,7 +703,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteMonitorStatusTimeline,
                 title: 'Can Delete Monitor Status Timeline',
                 description:
-                    'This permission  can delete Monitor Status history of an incident in this project.',
+                    'This permission can delete Monitor Status history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -737,7 +736,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectMonitorStatus,
                 title: 'Can Delete Monitor Status',
                 description:
-                    'This permission  can delete monitor statuses of this project.',
+                    'This permission can delete monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -753,7 +752,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectMonitorStatus,
                 title: 'Can Read Monitor Status',
                 description:
-                    'This permission  can read monitor statuses of this project.',
+                    'This permission can read monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -770,7 +769,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageAnnouncement,
                 title: 'Can Delete Status Page Announcement',
                 description:
-                    'This permission  can delete Status Page Announcement of this project.',
+                    'This permission can delete Status Page Announcement of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -786,7 +785,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageAnnouncement,
                 title: 'Can Read Status Page Announcement',
                 description:
-                    'This permission  can read Status Page Announcement of this project.',
+                    'This permission can read Status Page Announcement of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -803,7 +802,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageAnnouncement,
                 title: 'Can Delete Monitor Status',
                 description:
-                    'This permission  can delete monitor statuses of this project.',
+                    'This permission can delete monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -819,7 +818,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageAnnouncement,
                 title: 'Can Read Monitor Status',
                 description:
-                    'This permission  can read monitor statuses of this project.',
+                    'This permission can read monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -836,7 +835,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectDomain,
                 title: 'Can Delete Domain',
                 description:
-                    'This permission  can delete Domain in this project.',
+                    'This permission can delete Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -850,8 +849,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProjectDomain,
                 title: 'Can Read Domain',
-                description:
-                    'This permission  can read Domain in this project.',
+                description: 'This permission can read Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -868,7 +866,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageHeaderLink,
                 title: 'Can Delete Header Link',
                 description:
-                    'This permission  can delete Header Link in this project.',
+                    'This permission can delete Header Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -884,7 +882,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageHeaderLink,
                 title: 'Can Read Header Link',
                 description:
-                    'This permission  can read Header Link in this project.',
+                    'This permission can read Header Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -901,7 +899,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageFooterLink,
                 title: 'Can Delete Footer Link',
                 description:
-                    'This permission  can delete Footer Link in this project.',
+                    'This permission can delete Footer Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -917,7 +915,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageFooterLink,
                 title: 'Can Read Footer Link',
                 description:
-                    'This permission  can read Footer Link in this project.',
+                    'This permission can read Footer Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -934,7 +932,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageResource,
                 title: 'Can Delete Status Page Resource',
                 description:
-                    'This permission  can delete Status Page Resource in this project.',
+                    'This permission can delete Status Page Resource in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -950,7 +948,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageResource,
                 title: 'Can Read Status Page Resource',
                 description:
-                    'This permission  can read Status Page Resource in this project.',
+                    'This permission can read Status Page Resource in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -967,7 +965,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteWorkflow,
                 title: 'Can Delete Workflow',
                 description:
-                    'This permission  can delete Workflow in this project.',
+                    'This permission can delete Workflow in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -983,7 +981,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadWorkflow,
                 title: 'Can Read Workflow',
                 description:
-                    'This permission  can read Workflow in this project.',
+                    'This permission can read Workflow in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -991,7 +989,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanDeleteProject,
                 title: 'Can Delete Project',
-                description: 'This permission  can delete Project.',
+                description: 'This permission can delete Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1005,7 +1003,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProject,
                 title: 'Can Read Project',
-                description: 'This permission  can read this Project.',
+                description: 'This permission can read this Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1022,7 +1020,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteWorkflowVariable,
                 title: 'Can Delete Workflow Variables',
                 description:
-                    'This permission  can delete Workflow Variables in this project.',
+                    'This permission can delete Workflow Variables in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1038,7 +1036,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadWorkflowVariable,
                 title: 'Can Read Workflow Variables',
                 description:
-                    'This permission  can read Workflow Variables in this project.',
+                    'This permission can read Workflow Variables in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1055,7 +1053,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteWorkflowLog,
                 title: 'Can Delete Workflow Log',
                 description:
-                    'This permission  can delete Workflow Log in this project.',
+                    'This permission can delete Workflow Log in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1071,7 +1069,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadWorkflowLog,
                 title: 'Can Read Workflow Log',
                 description:
-                    'This permission  can read Workflow Log in this project.',
+                    'This permission can read Workflow Log in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1088,7 +1086,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageGroup,
                 title: 'Can Delete Status Page Group',
                 description:
-                    'This permission  can delete Status Page Group in this project.',
+                    'This permission can delete Status Page Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1104,7 +1102,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageGroup,
                 title: 'Can Read Status Page Group',
                 description:
-                    'This permission  can read Status Page Group in this project.',
+                    'This permission can read Status Page Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1121,7 +1119,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageDomain,
                 title: 'Can Delete Status Page Domain',
                 description:
-                    'This permission  can delete Status Page Domain in this project.',
+                    'This permission can delete Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1137,7 +1135,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageDomain,
                 title: 'Can Read Status Page Domain',
                 description:
-                    'This permission  can read Status Page Domain in this project.',
+                    'This permission can read Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1154,7 +1152,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectSSO,
                 title: 'Can Delete Project SSO',
                 description:
-                    'This permission  can delete Project SSO in this project.',
+                    'This permission can delete Project SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1170,7 +1168,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectSSO,
                 title: 'Can Read Project SSO',
                 description:
-                    'This permission  can read Project SSO in this project.',
+                    'This permission can read Project SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1187,7 +1185,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageSSO,
                 title: 'Can Delete Status Page SSO',
                 description:
-                    'This permission  can delete Status Page SSO in this project.',
+                    'This permission can delete Status Page SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1203,7 +1201,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageSSO,
                 title: 'Can Read Status Page SSO',
                 description:
-                    'This permission  can read Status Page SSO in this project.',
+                    'This permission can read Status Page SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1220,7 +1218,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectSMTPConfig,
                 title: 'Can Delete SMTP Config',
                 description:
-                    'This permission  can delete SMTP configs of this project.',
+                    'This permission can delete SMTP configs of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1236,7 +1234,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectSMTPConfig,
                 title: 'Can Read SMTP Config',
                 description:
-                    'This permission  can read SMTP configs of this project.',
+                    'This permission can read SMTP configs of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1253,7 +1251,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageDomain,
                 title: 'Can Delete Status Page Domain',
                 description:
-                    'This permission  can delete Status Page Domain in this project.',
+                    'This permission can delete Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1269,7 +1267,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageDomain,
                 title: 'Can Read Status Page Domain',
                 description:
-                    'This permission  can read Status Page Domain in this project.',
+                    'This permission can read Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1286,7 +1284,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentSeverity,
                 title: 'Can Delete Incident Severity',
                 description:
-                    'This permission  can delete Incident Severity of this project.',
+                    'This permission can delete Incident Severity of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1302,7 +1300,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentSeverity,
                 title: 'Can Read Incident Severity',
                 description:
-                    'This permission  can read Incident Severity of this project.',
+                    'This permission can read Incident Severity of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1318,7 +1316,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectTeam,
                 title: 'Can Delete Team',
                 description:
-                    'This permission  can delete teams of this project.',
+                    'This permission can delete teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1347,7 +1345,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProjectTeam,
                 title: 'Can Read Teams',
-                description: 'This permission  can read teams of this project.',
+                description: 'This permission can read teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1363,7 +1361,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectMonitor,
                 title: 'Can Delete Monitor',
                 description:
-                    'This permission  can delete monitor of this project.',
+                    'This permission can delete monitor of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1379,7 +1377,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectMonitor,
                 title: 'Can Read Monitor',
                 description:
-                    'This permission  can read monitor of this project.',
+                    'This permission can read monitor of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1396,7 +1394,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentInternalNote,
                 title: 'Can Delete Incident Internal Note',
                 description:
-                    'This permission  can delete Incident Internal Note of this project.',
+                    'This permission can delete Incident Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1412,7 +1410,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentInternalNote,
                 title: 'Can Read Incident Internal Note',
                 description:
-                    'This permission  can read Incident Internal Note of this project.',
+                    'This permission can read Incident Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1429,7 +1427,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentPublicNote,
                 title: 'Can Delete Incident Status Page Note',
                 description:
-                    'This permission  can delete Incident Status Page Note of this project.',
+                    'This permission can delete Incident Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1445,7 +1443,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentPublicNote,
                 title: 'Can Read Incident Status Page Note',
                 description:
-                    'This permission  can read Incident Status Page Note of this project.',
+                    'This permission can read Incident Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1462,7 +1460,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteInvoices,
                 title: 'Can Delete Invoices',
                 description:
-                    'This permission  can delete Invoices of this project.',
+                    'This permission can delete Invoices of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1478,7 +1476,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadInvoices,
                 title: 'Can Read Invoices',
                 description:
-                    'This permission  can read Invoices of this project.',
+                    'This permission can read Invoices of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1495,7 +1493,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteBillingPaymentMethod,
                 title: 'Can Delete Payment Method',
                 description:
-                    'This permission  can delete Payment Method of this project.',
+                    'This permission can delete Payment Method of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1511,7 +1509,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadBillingPaymentMethod,
                 title: 'Can Read Payment Method',
                 description:
-                    'This permission  can read Payment Method of this project.',
+                    'This permission can read Payment Method of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1550,7 +1548,7 @@ export class PermissionHelper {
                     Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam,
                 title: 'Can Delete On-Call Duty Policy Escalation Rule Team',
                 description:
-                    'This permission  can delete teams in on-call duty escalation rule of this project.',
+                    'This permission can delete teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1568,7 +1566,7 @@ export class PermissionHelper {
                     Permission.CanReadProjectOnCallDutyPolicyEscalationRuleTeam,
                 title: 'Can Read On-Call Duty Policy Escalation Rule Team',
                 description:
-                    'This permission  can read teams in on-call duty escalation rule of this project.',
+                    'This permission can read teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1587,7 +1585,7 @@ export class PermissionHelper {
                     Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleUser,
                 title: 'Can Delete On-Call Duty Policy Escalation Rule User',
                 description:
-                    'This permission  can delete on-call duty escalation rule of this project.',
+                    'This permission can delete on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1605,7 +1603,7 @@ export class PermissionHelper {
                     Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
                 title: 'Can Read On-Call Duty Policy Escalation Rule User',
                 description:
-                    'This permission  can read on-call duty escalation rule of this project.',
+                    'This permission can read on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1624,7 +1622,7 @@ export class PermissionHelper {
                     Permission.CanDeleteProjectOnCallDutyPolicyEscalationRule,
                 title: 'Can Delete On-Call Duty Policy Escalation Rule',
                 description:
-                    'This permission  can delete on-call duty escalation rule of this project.',
+                    'This permission can delete on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1642,7 +1640,7 @@ export class PermissionHelper {
                     Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
                 title: 'Can Read On-Call Duty Policy Escalation Rule',
                 description:
-                    'This permission  can read on-call duty escalation rule of this project.',
+                    'This permission can read on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1659,7 +1657,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectOnCallDutyPolicy,
                 title: 'Can Delete On-Call Duty Policy',
                 description:
-                    'This permission  can delete on-call duty of this project.',
+                    'This permission can delete on-call duty of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1675,7 +1673,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectOnCallDutyPolicy,
                 title: 'Can Read On-Call Duty Policy',
                 description:
-                    'This permission  can read on-call duty of this project.',
+                    'This permission can read on-call duty of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1692,7 +1690,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectStatusPage,
                 title: 'Can Delete Status Page',
                 description:
-                    'This permission  can delete status pages of this project.',
+                    'This permission can delete status pages of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1708,7 +1706,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectStatusPage,
                 title: 'Can Read Status Page',
                 description:
-                    'This permission  can read status pages of this project.',
+                    'This permission can read status pages of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -1724,7 +1722,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectProbe,
                 title: 'Can Delete Probe',
                 description:
-                    'This permission  can delete probe of this project.',
+                    'This permission can delete probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1738,40 +1736,40 @@ export class PermissionHelper {
             {
                 permission: Permission.CanReadProjectProbe,
                 title: 'Can Read Probe',
-                description: 'This permission  can read probe of this project.',
+                description: 'This permission can read probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
                 permission: Permission.CanCreateOnCallDutyPolicyCustomField,
-                title: 'Can Create On Call Policy Custom Field',
+                title: 'Can Create On-Call Policy Custom Field',
                 description:
-                    'This permission can create On Call Policy Custom Field this project.',
+                    'This permission can create On-Call Policy Custom Field this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanDeleteOnCallDutyPolicyCustomField,
-                title: 'Can Delete On Call Policy Custom Field',
+                title: 'Can Delete On-Call Policy Custom Field',
                 description:
-                    'This permission  can delete On Call Policy Custom Field of this project.',
+                    'This permission can delete On-Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanEditOnCallDutyPolicyCustomField,
-                title: 'Can Edit On Call Policy Custom Field',
+                title: 'Can Edit On-Call Policy Custom Field',
                 description:
-                    'This permission can edit On Call Policy Custom Field of this project.',
+                    'This permission can edit On-Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
                 permission: Permission.CanReadOnCallDutyPolicyCustomField,
-                title: 'Can Read On Call Policy Custom Field',
+                title: 'Can Read On-Call Policy Custom Field',
                 description:
-                    'This permission  can read On Call Policy Custom Field of this project.',
+                    'This permission can read On-Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1788,7 +1786,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteMonitorCustomField,
                 title: 'Can Delete Monitor Custom Field',
                 description:
-                    'This permission  can delete Monitor Custom Field of this project.',
+                    'This permission can delete Monitor Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1804,7 +1802,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadMonitorCustomField,
                 title: 'Can Read Monitor Custom Field',
                 description:
-                    'This permission  can read Monitor Custom Field of this project.',
+                    'This permission can read Monitor Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1821,7 +1819,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentCustomField,
                 title: 'Can Delete Incident Custom Field',
                 description:
-                    'This permission  can delete Incident Custom Field of this project.',
+                    'This permission can delete Incident Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1837,7 +1835,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentCustomField,
                 title: 'Can Read Incident Custom Field',
                 description:
-                    'This permission  can read Incident Custom Field of this project.',
+                    'This permission can read Incident Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1854,7 +1852,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageCustomField,
                 title: 'Can Delete Status Page Custom Field',
                 description:
-                    'This permission  can delete Status Page Custom Field of this project.',
+                    'This permission can delete Status Page Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1870,7 +1868,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageCustomField,
                 title: 'Can Read Status Page Custom Field',
                 description:
-                    'This permission  can read Status Page Custom Field of this project.',
+                    'This permission can read Status Page Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1887,7 +1885,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteScheduledMaintenanceCustomField,
                 title: 'Can Delete Scheduled Maintenance Custom Field',
                 description:
-                    'This permission  can delete Scheduled Maintenance Custom Field of this project.',
+                    'This permission can delete Scheduled Maintenance Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1903,7 +1901,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadScheduledMaintenanceCustomField,
                 title: 'Can Read Scheduled Maintenance Custom Field',
                 description:
-                    'This permission  can read Scheduled Maintenance Custom Field of this project.',
+                    'This permission can read Scheduled Maintenance Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1912,7 +1910,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadSmsLog,
                 title: 'Can Read SMS Log',
                 description:
-                    'This permission  can read SMS Log of this project.',
+                    'This permission can read SMS Log of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1921,7 +1919,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadCallLog,
                 title: 'Can Read Call Log',
                 description:
-                    'This permission  can read Call Logs of this project.',
+                    'This permission can read Call Logs of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1938,7 +1936,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteMonitorProbe,
                 title: 'Can Delete Monitor Probe',
                 description:
-                    'This permission  can delete Monitor Probe of this project.',
+                    'This permission can delete Monitor Probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1954,7 +1952,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadMonitorProbe,
                 title: 'Can Read Monitor Probe',
                 description:
-                    'This permission  can read Monitor Probe of this project.',
+                    'This permission can read Monitor Probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1971,7 +1969,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteScheduledMaintenanceOwnerTeam,
                 title: 'Can Delete Scheduled Maintenance Team Owner',
                 description:
-                    'This permission  can delete Scheduled Maintenance Team Owner of this project.',
+                    'This permission can delete Scheduled Maintenance Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1987,7 +1985,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadScheduledMaintenanceOwnerTeam,
                 title: 'Can Read Scheduled Maintenance Team Owner',
                 description:
-                    'This permission  can read Scheduled Maintenance Team Owner of this project.',
+                    'This permission can read Scheduled Maintenance Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2004,7 +2002,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteScheduledMaintenanceOwnerUser,
                 title: 'Can Delete Scheduled Maintenance User Owner',
                 description:
-                    'This permission  can delete Scheduled Maintenance User Owner of this project.',
+                    'This permission can delete Scheduled Maintenance User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2020,7 +2018,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadScheduledMaintenanceOwnerUser,
                 title: 'Can Read Scheduled Maintenance User Owner',
                 description:
-                    'This permission  can read Scheduled Maintenance User Owner of this project.',
+                    'This permission can read Scheduled Maintenance User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2037,7 +2035,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentOwnerTeam,
                 title: 'Can Delete Incident Team Owner',
                 description:
-                    'This permission  can delete Incident Team Owner of this project.',
+                    'This permission can delete Incident Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2053,7 +2051,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentOwnerTeam,
                 title: 'Can Read Incident Team Owner',
                 description:
-                    'This permission  can read Incident Team Owner of this project.',
+                    'This permission can read Incident Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2070,7 +2068,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteIncidentOwnerUser,
                 title: 'Can Delete Incident User Owner',
                 description:
-                    'This permission  can delete Incident User Owner of this project.',
+                    'This permission can delete Incident User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2086,7 +2084,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadIncidentOwnerUser,
                 title: 'Can Read Incident User Owner',
                 description:
-                    'This permission  can read Incident User Owner of this project.',
+                    'This permission can read Incident User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2103,7 +2101,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageOwnerTeam,
                 title: 'Can Delete Status Page Team Owner',
                 description:
-                    'This permission  can delete Status Page Team Owner of this project.',
+                    'This permission can delete Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2119,7 +2117,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageOwnerTeam,
                 title: 'Can Read Status Page Team Owner',
                 description:
-                    'This permission  can read Status Page Team Owner of this project.',
+                    'This permission can read Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2136,7 +2134,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageOwnerUser,
                 title: 'Can Delete Status Page User Owner',
                 description:
-                    'This permission  can delete Status Page User Owner of this project.',
+                    'This permission can delete Status Page User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2152,7 +2150,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageOwnerUser,
                 title: 'Can Read Status Page User Owner',
                 description:
-                    'This permission  can read Status Page User Owner of this project.',
+                    'This permission can read Status Page User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2169,7 +2167,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteMonitorOwnerTeam,
                 title: 'Can Delete Monitor Team Owner',
                 description:
-                    'This permission  can delete Monitor Team Owner of this project.',
+                    'This permission can delete Monitor Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2185,7 +2183,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadMonitorOwnerTeam,
                 title: 'Can Read Monitor Team Owner',
                 description:
-                    'This permission  can read Monitor Team Owner of this project.',
+                    'This permission can read Monitor Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2202,7 +2200,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteMonitorOwnerUser,
                 title: 'Can Delete Monitor User Owner',
                 description:
-                    'This permission  can delete Monitor User Owner of this project.',
+                    'This permission can delete Monitor User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2218,7 +2216,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadMonitorOwnerUser,
                 title: 'Can Read Monitor User Owner',
                 description:
-                    'This permission  can read Monitor User Owner of this project.',
+                    'This permission can read Monitor User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2235,7 +2233,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectIncident,
                 title: 'Can Delete Incident',
                 description:
-                    'This permission  can delete incident of this project.',
+                    'This permission can delete incident of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -2251,7 +2249,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectIncident,
                 title: 'Can Read Incident',
                 description:
-                    'This permission  can read incident of this project.',
+                    'This permission can read incident of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -2268,7 +2266,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPageSubscriber,
                 title: 'Can Delete Status Page Subscriber',
                 description:
-                    'This permission  can delete subscriber on status page of this project.',
+                    'This permission can delete subscriber on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2284,7 +2282,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPageSubscriber,
                 title: 'Can Read Status Page Subscriber',
                 description:
-                    'This permission  can read subscriber on status page of this project.',
+                    'This permission can read subscriber on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2301,7 +2299,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteStatusPagePrivateUser,
                 title: 'Can Delete Status Page PrivateUser',
                 description:
-                    'This permission  can delete private user on status page of this project.',
+                    'This permission can delete private user on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2317,7 +2315,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadStatusPagePrivateUser,
                 title: 'Can Read Status Page Private User',
                 description:
-                    'This permission  can read private user on status page of this project.',
+                    'This permission can read private user on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2336,7 +2334,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteScheduledMaintenanceState,
                 title: 'Can Delete Scheduled Maintenance State',
                 description:
-                    'This permission  can delete Scheduled Maintenance states of this project.',
+                    'This permission can delete Scheduled Maintenance states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2352,7 +2350,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadScheduledMaintenanceState,
                 title: 'Can Read Scheduled Maintenance State',
                 description:
-                    'This permission  can read Scheduled Maintenance states of this project.',
+                    'This permission can read Scheduled Maintenance states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2369,7 +2367,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteProjectScheduledMaintenance,
                 title: 'Can Delete Scheduled Maintenance',
                 description:
-                    'This permission  can delete Scheduled Maintenance of this project.',
+                    'This permission can delete Scheduled Maintenance of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -2385,7 +2383,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectScheduledMaintenance,
                 title: 'Can Read Scheduled Maintenance',
                 description:
-                    'This permission  can read Scheduled Maintenance of this project.',
+                    'This permission can read Scheduled Maintenance of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
@@ -2404,7 +2402,7 @@ export class PermissionHelper {
                     Permission.CanDeleteScheduledMaintenanceStateTimeline,
                 title: 'Can Delete Scheduled Maintenance State Timeline',
                 description:
-                    'This permission  can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
+                    'This permission can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2439,7 +2437,7 @@ export class PermissionHelper {
                     Permission.CanDeleteScheduledMaintenanceInternalNote,
                 title: 'Can Delete Scheduled Maintenance Internal Note',
                 description:
-                    'This permission  can delete Scheduled Maintenance Internal Note of this project.',
+                    'This permission can delete Scheduled Maintenance Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2455,7 +2453,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadScheduledMaintenanceInternalNote,
                 title: 'Can Read Scheduled Maintenance Internal Note',
                 description:
-                    'This permission  can read Scheduled Maintenance Internal Note of this project.',
+                    'This permission can read Scheduled Maintenance Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2472,7 +2470,7 @@ export class PermissionHelper {
                 permission: Permission.CanDeleteScheduledMaintenancePublicNote,
                 title: 'Can Delete Scheduled Maintenance Status Page Note',
                 description:
-                    'This permission  can delete Scheduled Maintenance Status Page Note of this project.',
+                    'This permission can delete Scheduled Maintenance Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2488,7 +2486,7 @@ export class PermissionHelper {
                 permission: Permission.CanReadScheduledMaintenancePublicNote,
                 title: 'Can Read Scheduled Maintenance Status Page Note',
                 description:
-                    'This permission  can read Scheduled Maintenance Status Page Note of this project.',
+                    'This permission can read Scheduled Maintenance Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

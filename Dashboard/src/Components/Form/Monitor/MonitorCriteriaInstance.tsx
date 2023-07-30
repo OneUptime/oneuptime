@@ -263,7 +263,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <div className="mt-4">
                 <Toggle
                     initialValue={Boolean(showMonitorStatusChangeControl)}
-                    title="When filters match, Change monitor status"
+                    title="When filters match, change monitor status."
                     onChange={(value: boolean) => {
                         setShowMonitorStatusChangeControl(value);
                         monitorCriteriaInstance.setChangeMonitorStatus(value);
@@ -321,7 +321,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <div className="mt-4">
                 <Toggle
                     initialValue={showIncidentControl}
-                    title="When filters match, Create an incident."
+                    title="When filters match, create an incident."
                     onChange={(value: boolean) => {
                         setShowIncidentControl(value);
                         monitorCriteriaInstance.setCreateIncidents(value);

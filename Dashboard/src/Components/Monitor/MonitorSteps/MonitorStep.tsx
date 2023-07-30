@@ -106,7 +106,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             <FieldLabelElement
                 title={'Request Details'}
                 description={
-                    'Here is the details of the request we will send to monitor your resource status.'
+                    'Here are the details of the request we will send to monitor your resource status.'
                 }
                 required={true}
                 isHeading={true}

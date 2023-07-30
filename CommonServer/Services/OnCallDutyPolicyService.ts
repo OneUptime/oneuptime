@@ -45,7 +45,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
         if (!policy) {
             throw new BadDataException(
-                `On Call Duty Policy with id ${policyId.toString()} not found`
+                `On-Call Duty Policy with id ${policyId.toString()} not found`
             );
         }
 
