@@ -737,16 +737,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
             const query: Query<TBaseModel> = {};
 
-            for (const uniqueByCoumnName of uniqueColumnsBy[
+            for (const uniqueByColumnName of uniqueColumnsBy[
                 key
             ] as Array<string>) {
                 const columnValue: JSONValue = (createBy.data as any)[
-                    uniqueByCoumnName as string
+                    uniqueByColumnName as string
                 ];
                 if (columnValue === null || columnValue === undefined) {
-                    (query as any)[uniqueByCoumnName] = QueryHelper.isNull();
+                    (query as any)[uniqueByColumnName] = QueryHelper.isNull();
                 } else {
-                    (query as any)[uniqueByCoumnName] = columnValue;
+                    (query as any)[uniqueByColumnName] = columnValue;
                 }
             }
 
