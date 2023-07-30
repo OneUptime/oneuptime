@@ -68,7 +68,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Interval',
                     id: 'monitoring-interval',
                     showIf: (values: FormValues<Monitor>) => {
-                        return values.monitorType !== MonitorType.Manual && values.monitorType !== MonitorType.IncomingRequest; 
+                        return (
+                            values.monitorType !== MonitorType.Manual &&
+                            values.monitorType !== MonitorType.IncomingRequest
+                        );
                     },
                 },
                 {

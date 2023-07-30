@@ -16,11 +16,11 @@ import OneUptimeDate from 'Common/Types/Date';
 
 const router: ExpressRouter = Express.getRouter();
 
-
-
-const processIncomingRequest = async (req: ExpressRequest,
+const processIncomingRequest: Function = async (
+    req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction) => {
+    next: NextFunction
+): Promise<void> => {
     try {
         const requestHeaders: Dictionary<string> =
             req.headers as Dictionary<string>;
@@ -28,8 +28,7 @@ const processIncomingRequest = async (req: ExpressRequest,
             | string
             | JSONObject;
 
-        const monitorIdAsString: string | undefined =
-            req.params['monitor-id'];
+        const monitorIdAsString: string | undefined = req.params['monitor-id'];
 
         if (!monitorIdAsString) {
             throw new BadDataException('Monitor Id is required');
@@ -59,8 +58,7 @@ const processIncomingRequest = async (req: ExpressRequest,
     } catch (err) {
         return next(err);
     }
-}
-
+};
 
 router.post(
     '/incoming-request/:monitor-id',
@@ -73,7 +71,6 @@ router.post(
     }
 );
 
-
 router.get(
     '/incoming-request/:monitor-id',
     async (
@@ -84,7 +81,5 @@ router.get(
         await processIncomingRequest(req, res, next);
     }
 );
-
-
 
 export default router;

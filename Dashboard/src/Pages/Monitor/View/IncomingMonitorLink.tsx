@@ -18,7 +18,8 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
                 title={`Incoming Request URL / Heartbeat URL`}
                 description={
                     <span>
-                        Please send inbound heartbeat GET or POST requests to this URL{' '}
+                        Please send inbound heartbeat GET or POST requests to
+                        this URL{' '}
                         <Link
                             openInNewTab={true}
                             to={new URL(HTTP_PROTOCOL, DOMAIN)

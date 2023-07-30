@@ -128,10 +128,11 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.CustomComponent,
                         required: true,
                         customValidation: (values: FormValues<Monitor>) => {
-                            const error: string | null =  MonitorStepsType.getValidationError(
-                                values.monitorSteps as MonitorStepsType,
-                                monitorType
-                            );
+                            const error: string | null =
+                                MonitorStepsType.getValidationError(
+                                    values.monitorSteps as MonitorStepsType,
+                                    monitorType
+                                );
 
                             return error;
                         },

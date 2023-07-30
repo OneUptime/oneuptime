@@ -5,12 +5,13 @@ import MonitorService from 'CommonServer/Services/MonitorService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
+import Monitor from 'Model/Models/Monitor';
 
 RunCron(
     'HardDelete:HardDeleteItemsInDatabase',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const incomingRequestMonitors = await MonitorService.findBy({
+        const incomingRequestMonitors: Array<Monitor> = await MonitorService.findBy({
             query: {
                 monitorType: MonitorType.IncomingRequest,
             },

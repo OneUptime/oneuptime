@@ -44,11 +44,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     const endDate: Date = OneUptimeDate.getCurrentDate();
 
-
     const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
         undefined
     );
-
 
     useAsyncEffect(async () => {
         await fetchItem();
@@ -238,14 +236,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -274,7 +272,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -294,7 +292,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             />
 
             {/* Heartbeat URL */}
-            {monitorType === MonitorType.IncomingRequest && <IncomingMonitorLink modelId={modelId} />}
+            {monitorType === MonitorType.IncomingRequest && (
+                <IncomingMonitorLink modelId={modelId} />
+            )}
 
             <Card
                 title="Uptime Graph"
