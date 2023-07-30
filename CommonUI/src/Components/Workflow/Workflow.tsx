@@ -120,9 +120,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }, []);
 
     const edgeUpdateSuccessful: any = useRef(true);
-    const [showComponentSettingsModal, setshowComponentSettingsModal] =
+    const [showComponentSettingsModal, setShowComponentSettingsModal] =
         useState<boolean>(false);
-    const [selectedNodeData, setSeletedNodeData] =
+    const [selectedNodeData, setSelectedNodeData] =
         useState<NodeDataProp | null>(null);
 
     const onNodeClick: Function = (data: NodeDataProp) => {
@@ -135,8 +135,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 setShowTriggersModal(true);
             }
         } else {
-            setshowComponentSettingsModal(true);
-            setSeletedNodeData(data);
+            setShowComponentSettingsModal(true);
+            setSelectedNodeData(data);
         }
     };
 
@@ -481,7 +481,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             : 'Edit Component Properties and variables here.'
                     }
                     onClose={() => {
-                        setshowComponentSettingsModal(false);
+                        setShowComponentSettingsModal(false);
                     }}
                     onSave={(componentData: NodeDataProp) => {
                         // Update the node.
@@ -499,7 +499,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             });
                         });
 
-                        setshowComponentSettingsModal(false);
+                        setShowComponentSettingsModal(false);
                     }}
                 />
             )}
