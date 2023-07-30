@@ -74,10 +74,10 @@ describe('type Char', () => {
         expect(characters).toEqual(['a', 'A', '1']);
     });
     test('type Char to be used in dictionary', () => {
-        const characterDictonary: Dictionary<Char> = {
+        const characterDictionary: Dictionary<Char> = {
             a: 'a',
             A: 'A',
         };
-        expect(characterDictonary['a']).toEqual('a');
+        expect(characterDictionary['a']).toEqual('a');
     });
 });
