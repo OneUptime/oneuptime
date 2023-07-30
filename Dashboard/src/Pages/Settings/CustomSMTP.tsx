@@ -328,9 +328,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 <ConfirmModal
                     title={`Email Sent`}
                     error={error}
-                    description={
-                        'Email sent successfully. Please check your inbox. Please don't forget to check spam. It should take couple of minutes to arrive.'
-                    }
+                    description={`Email sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.`}
                     submitButtonType={ButtonStyleType.NORMAL}
                     submitButtonText={'Close'}
                     onSubmit={async () => {
