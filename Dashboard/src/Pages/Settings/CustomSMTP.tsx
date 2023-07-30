@@ -329,7 +329,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                     title={`Email Sent`}
                     error={error}
                     description={
-                        'Email sent successfully. Please check your inbox. Please dont forget to check spam. It should take couple of minutes to arrive.'
+                        'Email sent successfully. Please check your inbox. Please don't forget to check spam. It should take couple of minutes to arrive.'
                     }
                     submitButtonType={ButtonStyleType.NORMAL}
                     submitButtonText={'Close'}

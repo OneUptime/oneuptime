@@ -140,7 +140,7 @@ export default class MailService {
         emailTemplateType: EmailTemplateType,
         vars: Dictionary<string>
     ): Promise<string> {
-        // Localcache templates, so we dont read from disk all the time.
+        // Localcache templates, so we don't read from disk all the time.
 
         let templateData: string;
         if (

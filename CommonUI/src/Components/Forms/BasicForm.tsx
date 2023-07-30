@@ -233,7 +233,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         const submitForm: Function = (): void => {
-            // check for any boolean values and if they dont exist in values - mark them as false.
+            // check for any boolean values and if they don't exist in values - mark them as false.
 
             setAllTouched();
 

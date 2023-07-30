@@ -57,7 +57,7 @@ cp config.example.env config.env
 npm start
 ```
 
-If you dont like to use npm or do not have it installed, run this instead: 
+If you don't like to use npm or do not have it installed, run this instead: 
 
 ```
 # Read env vars from config.env file and run docker-compose up.
@@ -90,7 +90,7 @@ cd oneuptime
 # Copy config.example.env to config.env
 cp config.example.env config.env
 
-# Since this is dev, you dont have to edit any of those values in config.env. You can, but that's optional.
+# Since this is dev, you don't have to edit any of those values in config.env. You can, but that's optional.
 npm run dev
 ```
 
