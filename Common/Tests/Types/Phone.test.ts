@@ -22,7 +22,7 @@ describe('Testing Class Phone', () => {
         }).toThrowError(BadDataException);
     });
 
-    test('try to mutating Phone.phone with invalid value should throw an BadDataExcepection', () => {
+    test('try to mutating Phone.phone with invalid value should throw a BadDataException', () => {
         const valid: string = '+251912974103';
         const invalid: string = '278@$90> ';
         const value: Phone = new Phone(valid);
