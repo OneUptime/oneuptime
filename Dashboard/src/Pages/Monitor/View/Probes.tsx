@@ -134,7 +134,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     description={
                         <>
                             This is a manual monitor. It does not monitor
-                            anything and so, it cannot have monitorting probes
+                            anything and so, it cannot have monitoring probes
                             set. You can have monitoring probes on other monitor
                             types.{' '}
                         </>
