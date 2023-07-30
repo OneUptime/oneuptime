@@ -387,9 +387,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         const result: JSONObject = {};
 
         for (const field of fields) {
-            if (field.overideFieldKey && values[field.overideFieldKey]) {
-                result[field.overideFieldKey] =
-                    values[field.overideFieldKey] || null;
+            if (field.overrideFieldKey && values[field.overrideFieldKey]) {
+                result[field.overrideFieldKey] =
+                    values[field.overrideFieldKey] || null;
             }
         }
 

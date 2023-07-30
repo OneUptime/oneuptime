@@ -164,7 +164,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Email,
                         required: false,
                         placeholder: 'member@company.com',
-                        overideFieldKey: 'email',
+                        overrideFieldKey: 'email',
                     },
                 ]}
                 showRefreshButton={true}

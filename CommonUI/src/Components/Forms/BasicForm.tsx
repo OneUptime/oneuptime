@@ -189,8 +189,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         }, [props.fields]);
 
         const getFieldName: Function = (field: Field<T>): string => {
-            const fieldName: string = field.overideFieldKey
-                ? field.overideFieldKey
+            const fieldName: string = field.overrideFieldKey
+                ? field.overrideFieldKey
                 : (Object.keys(field.field)[0] as string);
 
             return fieldName;

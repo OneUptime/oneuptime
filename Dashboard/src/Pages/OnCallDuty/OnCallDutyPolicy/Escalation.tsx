@@ -163,7 +163,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         },
                         required: false,
                         placeholder: 'Select Teams',
-                        overideFieldKey: 'teams',
+                        overrideFieldKey: 'teams',
                     },
                     {
                         field: {
@@ -182,7 +182,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         },
                         required: false,
                         placeholder: 'Select Users',
-                        overideFieldKey: 'users',
+                        overrideFieldKey: 'users',
                     },
                     {
                         field: {

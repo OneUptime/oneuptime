@@ -67,7 +67,7 @@ export default interface Field<TEntity> {
     showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
     onChange?: ((value: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
-    overideFieldKey?: string;
+    overrideFieldKey?: string;
     defaultValue?: boolean | string | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
