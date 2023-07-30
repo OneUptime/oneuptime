@@ -220,17 +220,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             // if (index === undefined) {
                             //     return;
                             // }
-                            //     const newMonitorStepss: Array<MonitorStep> = [
+                            //     const newMonitorSteps: Array<MonitorStep> = [
                             //         ...(monitorSteps.data
                             //             ?.monitorStepsInstanceArray || []),
                             //     ];
-                            //     newMonitorStepss.splice(index, 1);
+                            //     newMonitorSteps.splice(index, 1);
                             //     setMonitorSteps(
                             //         new MonitorSteps().fromJSON({
                             //             _type: 'MonitorSteps',
                             //             value: {
                             //                 monitorStepsInstanceArray:
-                            //                     newMonitorStepss,
+                            //                     newMonitorSteps,
                             //             },
                             //         })
                             //     );
@@ -249,13 +249,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                     return;
                                 }
 
-                                const newMonitorStepss: Array<MonitorStep> = [
+                                const newMonitorSteps: Array<MonitorStep> = [
                                     ...(monitorSteps.data
                                         ?.monitorStepsInstanceArray || []),
                                 ];
-                                newMonitorStepss[index] = value;
+                                newMonitorSteps[index] = value;
                                 monitorSteps.setMonitorStepsInstanceArray(
-                                    newMonitorStepss
+                                    newMonitorSteps
                                 );
                                 setMonitorSteps(
                                     MonitorSteps.clone(monitorSteps)
