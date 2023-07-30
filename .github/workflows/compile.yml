@@ -39,7 +39,7 @@ jobs:
       - run: cd CommonServer && npm install
       - run: cd ApiReference && npm install && npm run compile
 
-  compile-link-shortner:
+  compile-link-shortener:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -51,7 +51,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd LinkShortner && npm install && npm run compile
+      - run: cd LinkShortener && npm install && npm run compile
 
   compile-common-server:
     runs-on: ubuntu-latest

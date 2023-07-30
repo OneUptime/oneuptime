@@ -217,7 +217,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  link-shortner-docker-image-deploy:
+  link-shortener-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
     steps:
@@ -226,8 +226,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            oneuptime/link-shortner
-            ghcr.io/oneuptime/link-shortner
+            oneuptime/link-shortener
+            ghcr.io/oneuptime/link-shortener
           tags: |
             type=raw,value=test,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
@@ -251,7 +251,7 @@ jobs:
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
-      # Build and deploy link-shortner.
+      # Build and deploy link-shortener.
 
       - name: Login to Docker Hub 
         uses: docker/login-action@v2.2.0
@@ -269,7 +269,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
-          file: ./LinkShortner/Dockerfile
+          file: ./LinkShortener/Dockerfile
           context: .
           platforms: linux/amd64,linux/arm64
           push: true

@@ -64,11 +64,11 @@ services:
        
 
 
-    link-shortner:
-        image:  oneuptime/link-shortner:${APP_TAG}
+    link-shortener:
+        image:  oneuptime/link-shortener:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
-            service: link-shortner
+            service: link-shortener
         
 
     workflow:
