@@ -76,7 +76,7 @@ export class NotificationService extends BaseService {
                     amountInUSD * 100
             );
 
-            // If the recharge is succcessful, then update the project balance.
+            // If the recharge is successful, then update the project balance.
             await BillingService.generateInvoiceAndChargeCustomer(
                 project.paymentProviderCustomerId!,
                 'SMS or Call Balance Recharge',
