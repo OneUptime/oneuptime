@@ -336,10 +336,10 @@ export class BillingService extends BaseService {
             );
         }
 
-        const paymenMethods: Array<PaymentMethod> =
+        const paymentMethods: Array<PaymentMethod> =
             await this.getPaymentMethods(customerId);
 
-        if (paymenMethods.length === 1) {
+        if (paymentMethods.length === 1) {
             throw new BadDataException(
                 "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account."
             );
@@ -364,7 +364,7 @@ export class BillingService extends BaseService {
                 'Billing is not enabled for this server.'
             );
         }
-        const paymenMethods: Array<PaymentMethod> = [];
+        const paymentMethods: Array<PaymentMethod> = [];
 
         const cardPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
             await this.stripe.paymentMethods.list({
@@ -391,7 +391,7 @@ export class BillingService extends BaseService {
             });
 
         cardPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
-            paymenMethods.push({
+            paymentMethods.push({
                 type: item.card?.brand || 'Card',
                 last4Digits: item.card?.last4 || 'xxxx',
                 isDefault: false,
@@ -400,7 +400,7 @@ export class BillingService extends BaseService {
         });
 
         bacsPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
-            paymenMethods.push({
+            paymentMethods.push({
                 type: 'UK Bank Account',
                 last4Digits: item.bacs_debit?.last4 || 'xxxx',
                 isDefault: false,
@@ -409,7 +409,7 @@ export class BillingService extends BaseService {
         });
 
         usBankPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
-            paymenMethods.push({
+            paymentMethods.push({
                 type: 'US Bank Account',
                 last4Digits: item.us_bank_account?.last4 || 'xxxx',
                 isDefault: false,
@@ -418,7 +418,7 @@ export class BillingService extends BaseService {
         });
 
         sepaPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
-            paymenMethods.push({
+            paymentMethods.push({
                 type: 'EU Bank Account',
                 last4Digits: item.sepa_debit?.last4 || 'xxxx',
                 isDefault: false,
@@ -426,7 +426,7 @@ export class BillingService extends BaseService {
             });
         });
 
-        return paymenMethods;
+        return paymentMethods;
     }
 
     public async getSetupIntentSecret(customerId: string): Promise<string> {
