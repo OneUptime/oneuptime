@@ -35,7 +35,7 @@ export default class UserAPI extends BaseAPI<
                 try {
                     if (!IsBillingEnabled) {
                         throw new BadDataException(
-                            'Billign is not enabled for this server'
+                            'Billing is not enabled for this server'
                         );
                     }
 
