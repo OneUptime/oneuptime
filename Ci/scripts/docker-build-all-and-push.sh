@@ -4,7 +4,7 @@ echo "
 ======== IMPORTANT! =========
 This script will take ~30+ mins to complete.
 - Builds a docker container
-- This scirpt takes a long time to run when you run it for the first time
+- This script takes a long time to run when you run it for the first time
 - Next subsequent executions would be a lot faster.
 "
 
