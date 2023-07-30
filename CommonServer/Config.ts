@@ -36,6 +36,19 @@ export const DatabasePassword: string =
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
+export const DatabaseSslCa: string =
+    process.env['DATABASE_SSL_CA'] || undefined;
+
+export const DatabaseSslKey: string =
+    process.env['DATABASE_SSL_KEY'] || undefined;
+
+export const DatabaseSslCert: string =
+    process.env['DATABASE_SSL_CERT'] || undefined;
+
+export const DatabaseRejectUnauthorized: boolean = Boolean(process.env['DATABASE_SSL_REJECT_UNAUTHORIZED']) || false;
+
+export const shouldDatabaseSslEnable: boolean = Boolean(DatabaseSslCa || DatabaseSslCert || DatabaseSslKey);
+
 export const EncryptionSecret: ObjectID = new ObjectID(
     process.env['ENCRYPTION_SECRET'] || 'secret'
 );
