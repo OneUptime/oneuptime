@@ -85,7 +85,7 @@ export default class CallService {
 
                 if (!project.enableCallNotifications) {
                     callLog.status = CallStatus.Error;
-                    callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in project settings.`;
+                    callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in Project Settings.`;
 
                     await CallLogService.create({
                         data: callLog,
@@ -109,7 +109,7 @@ export default class CallService {
                             project.id!,
                             'Call notifications not enabled for ' +
                                 (project.name || ''),
-                            `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in project settings.`
+                            `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in Project Settings.`
                         );
                     }
                     return;

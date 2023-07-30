@@ -62,11 +62,11 @@ export class NotificationService extends BaseService {
                             (project.name || ''),
                         `We have tried to recharge your SMS and Call balance for project - ${
                             project.name || ''
-                        } and failed. We could not find a payment method for the project. Please add a payment method in project settings.`
+                        } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`
                     );
                 }
                 throw new BadDataException(
-                    'No payment methods found for the project. Please add a payment method in project settings to continue.'
+                    'No payment methods found for the project. Please add a payment method in Project Settings to continue.'
                 );
             }
 
@@ -127,7 +127,7 @@ export class NotificationService extends BaseService {
                     (project.name || ''),
                 `We have tried recharged your SMS and Call balance for project - ${
                     project.name || ''
-                } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in project settings.`
+                } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`
             );
             logger.error(err);
             throw err;
