@@ -2,8 +2,6 @@ import Dictionary from '../Dictionary';
 import { JSONObject } from '../JSON';
 import ObjectID from '../ObjectID';
 
-
-
 export default interface ProbeMonitorResponse {
     isOnline?: boolean | undefined;
     responseTimeInMs?: number | undefined;

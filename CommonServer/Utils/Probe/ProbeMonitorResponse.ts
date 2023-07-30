@@ -12,31 +12,30 @@ import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Typeof from 'Common/Types/Typeof';
-import MonitorService from 'CommonServer/Services/MonitorService';
-import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
-import IncidentService from 'CommonServer/Services/IncidentService';
-import logger from 'CommonServer/Utils/Logger';
+import MonitorService from '../../Services/MonitorService';
+import MonitorStatusTimelineService from '../../Services/MonitorStatusTimelineService';
+import IncidentService from '../../Services/IncidentService';
+import logger from '../../Utils/Logger';
 import Incident from 'Model/Models/Incident';
 import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
-import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
+import MonitorProbeService from '../../Services/MonitorProbeService';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorProbe from 'Model/Models/MonitorProbe';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
+import IncidentStateTimelineService from '../../Services/IncidentStateTimelineService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import IncidentSeverityService from 'CommonServer/Services/IncidentSeverityService';
+import IncidentSeverityService from '../../Services/IncidentSeverityService';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export default class ProbeMonitorResponseService {
-
     public static async processProbeResponse(
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest
     ): Promise<ProbeApiIngestResponse> {
@@ -69,15 +68,20 @@ export default class ProbeMonitorResponseService {
 
         // get last log. We do this because there are many monitoring steps and we need to store those.
 
-
-        if (monitor.monitorType === MonitorType.API || monitor.monitorType === MonitorType.IP || monitor.monitorType === MonitorType.Ping || monitor.monitorType === MonitorType.Website) {
+        if (
+            monitor.monitorType === MonitorType.API ||
+            monitor.monitorType === MonitorType.IP ||
+            monitor.monitorType === MonitorType.Ping ||
+            monitor.monitorType === MonitorType.Website
+        ) {
             dataToProcess = dataToProcess as ProbeMonitorResponse;
             if ((dataToProcess as ProbeMonitorResponse).probeId) {
                 const monitorProbe: MonitorProbe | null =
                     await MonitorProbeService.findOneBy({
                         query: {
                             monitorId: monitor.id!,
-                            probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
+                            probeId: (dataToProcess as ProbeMonitorResponse)
+                                .probeId!,
                         },
                         select: {
                             lastMonitoringLog: true,
@@ -88,18 +92,23 @@ export default class ProbeMonitorResponseService {
                     });
 
                 if (!monitorProbe) {
-                    throw new BadDataException('Probe is not assigned to this monitor');
+                    throw new BadDataException(
+                        'Probe is not assigned to this monitor'
+                    );
                 }
 
                 await MonitorProbeService.updateOneBy({
                     query: {
                         monitorId: monitor.id!,
-                        probeId: dataToProcess.probeId!,
+                        probeId: (dataToProcess as ProbeMonitorResponse)
+                            .probeId!,
                     },
                     data: {
                         lastMonitoringLog: {
                             ...(monitorProbe.lastMonitoringLog || {}),
-                            [dataToProcess.monitorStepId.toString()]: {
+                            [(
+                                dataToProcess as ProbeMonitorResponse
+                            ).monitorStepId.toString()]: {
                                 ...JSON.parse(JSON.stringify(dataToProcess)),
                                 monitoredAt: OneUptimeDate.getCurrentDate(),
                             },
@@ -112,25 +121,31 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        if(monitor.monitorType === MonitorType.IncomingRequest) {
+        if (
+            monitor.monitorType === MonitorType.IncomingRequest &&
+            (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt
+        ) {
             await MonitorService.updateOneById({
                 id: monitor.id!,
                 data: {
-                    incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
+                    incomingRequestReceivedAt: (
+                        dataToProcess as IncomingMonitorRequest
+                    ).incomingRequestReceivedAt!,
                 },
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
-
-
 
         // TODO: save data to Clickhouse.
 
         const monitorSteps: MonitorSteps = monitor.monitorSteps!;
 
-        if (!monitorSteps.data?.monitorStepsInstanceArray || monitorSteps.data?.monitorStepsInstanceArray.length === 0) {
+        if (
+            !monitorSteps.data?.monitorStepsInstanceArray ||
+            monitorSteps.data?.monitorStepsInstanceArray.length === 0
+        ) {
             // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
             return response;
         }
@@ -169,7 +184,7 @@ export default class ProbeMonitorResponseService {
                     if (incidentTemplate.autoResolveIncident) {
                         if (
                             !autoResolveCriteriaInstanceIdIncidentIdsDictonary[
-                            criteriaInstance.data.id.toString()
+                                criteriaInstance.data.id.toString()
                             ]
                         ) {
                             autoResolveCriteriaInstanceIdIncidentIdsDictonary[
@@ -185,19 +200,21 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        const monitorStep: MonitorStep | undefined = monitorSteps.data.monitorStepsInstanceArray[0]; 
+        const monitorStep: MonitorStep | undefined =
+            monitorSteps.data.monitorStepsInstanceArray[0];
 
         if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
             monitorSteps.data.monitorStepsInstanceArray.find(
                 (monitorStep: MonitorStep) => {
                     return (
                         monitorStep.id.toString() ===
-                        (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
+                        (
+                            dataToProcess as ProbeMonitorResponse
+                        ).monitorStepId.toString()
                     );
                 }
             );
         }
-            
 
         if (!monitorStep) {
             // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
@@ -242,7 +259,7 @@ export default class ProbeMonitorResponseService {
             !response.criteriaMetId &&
             monitorSteps.data.defaultMonitorStatusId &&
             monitor.currentMonitorStatusId?.toString() !==
-            monitorSteps.data.defaultMonitorStatusId.toString()
+                monitorSteps.data.defaultMonitorStatusId.toString()
         ) {
             // if no criteria is met then update monitor to default state.
             const monitorStatusTimeline: MonitorStatusTimeline =
@@ -282,7 +299,7 @@ export default class ProbeMonitorResponseService {
             input.criteriaInstance.data?.changeMonitorStatus &&
             input.criteriaInstance.data?.monitorStatusId &&
             input.criteriaInstance.data?.monitorStatusId.toString() !==
-            input.monitor.currentMonitorStatusId?.toString()
+                input.monitor.currentMonitorStatusId?.toString()
         ) {
             // change monitor status
 
@@ -363,9 +380,9 @@ export default class ProbeMonitorResponseService {
                     openIncidents.find((incident: Incident) => {
                         return (
                             incident.createdCriteriaId ===
-                            input.criteriaInstance.data?.id.toString() &&
+                                input.criteriaInstance.data?.id.toString() &&
                             incident.createdIncidentTemplateId ===
-                            criteriaIncident.id.toString()
+                                criteriaIncident.id.toString()
                         );
                     })
                 );
@@ -506,7 +523,7 @@ export default class ProbeMonitorResponseService {
 
         if (
             input.autoResolveCriteriaInstanceIdIncidentIdsDictonary[
-            input.openIncident.createdCriteriaId?.toString()
+                input.openIncident.createdCriteriaId?.toString()
             ]
         ) {
             if (
@@ -622,7 +639,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.Any ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria === true
             ) {
                 finalResult = rootCause;
@@ -630,7 +647,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria === false
             ) {
                 finalResult = null;
@@ -639,7 +656,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria &&
                 rootCause
             ) {
@@ -703,44 +720,60 @@ export default class ProbeMonitorResponseService {
 
             if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs! >
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs! > (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse).responseTimeInMs} ms which is greater than the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is greater than the criteria value of ${value} ms.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.LessThan) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs! <
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs! < (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse).responseTimeInMs} ms which is less than the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is less than the criteria value of ${value} ms.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.EqualTo) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs ===
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs === (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse).responseTimeInMs} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs !==
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs !== (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse).responseTimeInMs} ms which is not equal to the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is not equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -750,11 +783,15 @@ export default class ProbeMonitorResponseService {
                 FilterType.GreaterThanOrEqualTo
             ) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs! >=
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs! >= (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse).responseTimeInMs} ms which is greater than or equal to the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is greater than or equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -763,11 +800,15 @@ export default class ProbeMonitorResponseService {
                 input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
             ) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs! <=
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseTimeInMs! <= (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse).responseTimeInMs} ms which is less than or equal to the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is less than or equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -794,42 +835,60 @@ export default class ProbeMonitorResponseService {
 
             if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode! > (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode! > (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse).responseCode} which is greater than the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is greater than the criteria value of ${value}.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.LessThan) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode! < (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode! < (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse).responseCode} which is less than the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is less than the criteria value of ${value}.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.EqualTo) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode ===
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode === (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse).responseCode}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    }.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode !==
-                    (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode !== (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse).responseCode} which is not equal to the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is not equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -839,10 +898,15 @@ export default class ProbeMonitorResponseService {
                 FilterType.GreaterThanOrEqualTo
             ) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode! >= (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode! >= (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse).responseCode} which is greater than or equal to the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is greater than or equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -851,18 +915,24 @@ export default class ProbeMonitorResponseService {
                 input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
             ) {
                 if (
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse).responseCode! <= (value as number)
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode &&
+                    (input.dataToProcess as ProbeMonitorResponse)
+                        .responseCode! <= (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse).responseCode} which is less than or equal to the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is less than or equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.ResponseBody) {
-            let responseBody: string | JSONObject | undefined =
-                (input.dataToProcess as ProbeMonitorResponse).responseBody;
+            let responseBody: string | JSONObject | undefined = (
+                input.dataToProcess as ProbeMonitorResponse
+            ).responseBody;
 
             if (responseBody && typeof responseBody === Typeof.Object) {
                 responseBody = JSON.stringify(responseBody);
@@ -896,10 +966,127 @@ export default class ProbeMonitorResponseService {
             }
         }
 
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
+            const headerKeys: Array<string> = Object.keys(
+                (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
+                    {}
+            ).map((key: string) => {
+                return key.toLowerCase();
+            });
 
-        if (input.criteriaFilter.checkOn === CheckOn.RequestBody) {
-            let responseBody: string | JSONObject | undefined =
-                (input.dataToProcess as IncomingMonitorRequest).requestBody;
+            // contains
+            if (input.criteriaFilter.filterType === FilterType.Contains) {
+                if (
+                    value &&
+                    headerKeys &&
+                    headerKeys.includes(value as string)
+                ) {
+                    return `Response header contains ${value}.`;
+                }
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.NotContains) {
+                if (
+                    value &&
+                    headerKeys &&
+                    !headerKeys.includes(value as string)
+                ) {
+                    return `Response header does not contain ${value}.`;
+                }
+                return null;
+            }
+        }
+
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
+            const headerValues: Array<string> = Object.values(
+                (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
+                    {}
+            ).map((key: string) => {
+                return key.toLowerCase();
+            });
+
+            // contains
+            if (input.criteriaFilter.filterType === FilterType.Contains) {
+                if (
+                    value &&
+                    headerValues &&
+                    headerValues.includes(value as string)
+                ) {
+                    return `Response header value contains ${value}.`;
+                }
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.NotContains) {
+                if (
+                    value &&
+                    headerValues &&
+                    !headerValues.includes(value as string)
+                ) {
+                    return `Response header value does not contain ${value}.`;
+                }
+                return null;
+            }
+        }
+
+        // All incoming request related checks
+
+        if (input.criteriaFilter.checkOn === CheckOn.IncomingRequest) {
+            const lastCheckTime: Date = (
+                input.dataToProcess as IncomingMonitorRequest
+            ).incomingRequestReceivedAt;
+            const differenceInMinutes: number =
+                OneUptimeDate.getDifferenceInMinutes(
+                    lastCheckTime,
+                    OneUptimeDate.getCurrentDate()
+                );
+
+            if (!value) {
+                return null;
+            }
+
+            if (typeof value === Typeof.String) {
+                try {
+                    value = parseInt(value as string);
+                } catch (err) {
+                    logger.error(err);
+                    return null;
+                }
+            }
+
+            if (typeof value !== Typeof.Number) {
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType === FilterType.RecievedInMinutes
+            ) {
+                if (value && differenceInMinutes <= (value as number)) {
+                    return `Incoming request / heartbeat received in ${value} minutes.`;
+                }
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType ===
+                FilterType.NotRecievedInMinutes
+            ) {
+                if (value && differenceInMinutes > (value as number)) {
+                    return `Incoming request / heartbeat not received in ${value} minutes.`;
+                }
+                return null;
+            }
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.RequestBody &&
+            !(input.dataToProcess as IncomingMonitorRequest)
+                .onlyCheckForIncomingRequestReceivedAt
+        ) {
+            let responseBody: string | JSONObject | undefined = (
+                input.dataToProcess as IncomingMonitorRequest
+            ).requestBody;
 
             if (responseBody && typeof responseBody === Typeof.Object) {
                 responseBody = JSON.stringify(responseBody);
@@ -933,72 +1120,14 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
+        if (
+            input.criteriaFilter.checkOn === CheckOn.RequestHeader &&
+            !(input.dataToProcess as IncomingMonitorRequest)
+                .onlyCheckForIncomingRequestReceivedAt
+        ) {
             const headerKeys: Array<string> = Object.keys(
-                (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {}
-            ).map((key: string) => {
-                return key.toLowerCase();
-            });
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    headerKeys &&
-                    headerKeys.includes(value as string)
-                ) {
-                    return `Response header contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    headerKeys &&
-                    !headerKeys.includes(value as string)
-                ) {
-                    return `Response header does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
-            const headerValues: Array<string> = Object.values(
-                (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {}
-            ).map((key: string) => {
-                return key.toLowerCase();
-            });
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    headerValues &&
-                    headerValues.includes(value as string)
-                ) {
-                    return `Response header value contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    headerValues &&
-                    !headerValues.includes(value as string)
-                ) {
-                    return `Response header value does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-
-        if (input.criteriaFilter.checkOn === CheckOn.RequestHeader) {
-            const headerKeys: Array<string> = Object.keys(
-                (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {}
+                (input.dataToProcess as IncomingMonitorRequest)
+                    .requestHeaders || {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });
@@ -1027,9 +1156,14 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        if (input.criteriaFilter.checkOn === CheckOn.RequestHeaderValue) {
+        if (
+            input.criteriaFilter.checkOn === CheckOn.RequestHeaderValue &&
+            !(input.dataToProcess as IncomingMonitorRequest)
+                .onlyCheckForIncomingRequestReceivedAt
+        ) {
             const headerValues: Array<string> = Object.values(
-                (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {}
+                (input.dataToProcess as IncomingMonitorRequest)
+                    .requestHeaders || {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });
@@ -1057,7 +1191,6 @@ export default class ProbeMonitorResponseService {
                 return null;
             }
         }
-
 
         return null;
     }

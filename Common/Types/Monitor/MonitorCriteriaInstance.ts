@@ -54,9 +54,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         monitorType: MonitorType;
         monitorStatusId: ObjectID;
     }): MonitorCriteriaInstance | null {
-
-        if(arg.monitorType === MonitorType.IncomingRequest) {
-            return null; 
+        if (arg.monitorType === MonitorType.IncomingRequest) {
+            return null;
         }
 
         const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -171,10 +170,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             };
         }
 
-
-        if (
-            arg.monitorType === MonitorType.IncomingRequest
-        ) {
+        if (arg.monitorType === MonitorType.IncomingRequest) {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
                 monitorStatusId: arg.monitorStatusId,

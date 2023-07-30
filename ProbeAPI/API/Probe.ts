@@ -9,7 +9,7 @@ import ProbeAuthorization from '../Middleware/ProbeAuthorization';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ProbeMonitorResponseService from '../Service/ProbeMonitorResponse';
+import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const router: ExpressRouter = Express.getRouter();

@@ -674,7 +674,6 @@ export default class Monitor extends BaseModel {
     })
     public disableActiveMonitoring?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -701,7 +700,8 @@ export default class Monitor extends BaseModel {
         required: false,
         isDefaultValueColumn: false,
         title: 'Incoming Request Received At',
-        description: 'This field is for Incoming Request monitor only. When was the last time we received a request?',
+        description:
+            'This field is for Incoming Request monitor only. When was the last time we received a request?',
     })
     @Column({
         type: ColumnType.Date,

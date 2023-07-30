@@ -50,6 +50,32 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             });
         }
 
+        if (props.monitorType === MonitorType.IncomingRequest) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === CheckOn.IncomingRequest ||
+                    i.value === CheckOn.RequestBody ||
+                    i.value === CheckOn.RequestHeader ||
+                    i.value === CheckOn.RequestHeaderValue
+                );
+            });
+        }
+
+        if (
+            props.monitorType === MonitorType.Website ||
+            props.monitorType === MonitorType.API
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === CheckOn.IsOnline ||
+                    i.value === CheckOn.ResponseTime ||
+                    i.value === CheckOn.ResponseBody ||
+                    i.value === CheckOn.ResponseHeader ||
+                    i.value === CheckOn.ResponseHeaderValue
+                );
+            });
+        }
+
         setCheckOnOptions(options);
         setIsLoading(false);
     }, [props.monitorType]);
@@ -77,6 +103,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             });
         }
 
+        if (criteriaFilter?.checkOn === CheckOn.IncomingRequest) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.NotRecievedInMinutes ||
+                    i.value === FilterType.RecievedInMinutes
+                );
+            });
+        }
+
         if (criteriaFilter?.checkOn === CheckOn.IsOnline) {
             options = options.filter((i: DropdownOption) => {
                 return (
@@ -88,7 +123,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         if (
             criteriaFilter?.checkOn === CheckOn.ResponseBody ||
             criteriaFilter?.checkOn === CheckOn.ResponseHeader ||
-            criteriaFilter?.checkOn === CheckOn.ResponseHeaderValue
+            criteriaFilter?.checkOn === CheckOn.ResponseHeaderValue ||
+            criteriaFilter?.checkOn === CheckOn.RequestBody ||
+            criteriaFilter?.checkOn === CheckOn.RequestHeader ||
+            criteriaFilter?.checkOn === CheckOn.RequestHeaderValue
         ) {
             options = options.filter((i: DropdownOption) => {
                 return (

@@ -118,7 +118,6 @@ export const PROBE_API_URL: URL = new URL(
     PROBE_API_ROUTE
 );
 
-
 export const STATUS_PAGE_URL: URL = new URL(
     HTTP_PROTOCOL,
     STATUS_PAGE_HOSTNAME,

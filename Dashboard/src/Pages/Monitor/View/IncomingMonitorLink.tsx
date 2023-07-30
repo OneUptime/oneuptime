@@ -21,9 +21,16 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
                         Please send inbound heartbeat requests to this URL{' '}
                         <Link
                             openInNewTab={true}
-                            to={new URL(HTTP_PROTOCOL, DOMAIN).addRoute("/heartbeat").addRoute(props.modelId.toString())}
+                            to={new URL(HTTP_PROTOCOL, DOMAIN)
+                                .addRoute('/heartbeat')
+                                .addRoute(props.modelId.toString())}
                         >
-                            <span>{new URL(HTTP_PROTOCOL, DOMAIN).addRoute("/heartbeat").addRoute(props.modelId.toString()).toString()}</span>
+                            <span>
+                                {new URL(HTTP_PROTOCOL, DOMAIN)
+                                    .addRoute('/heartbeat')
+                                    .addRoute(props.modelId.toString())
+                                    .toString()}
+                            </span>
                         </Link>
                     </span>
                 }
