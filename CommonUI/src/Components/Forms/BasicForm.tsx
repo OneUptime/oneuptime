@@ -372,7 +372,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     );
                 }
 
-                // if the field is still null but has a default value then... have the default inital value
+                // if the field is still null but has a default value then... have the default initial value
                 if (
                     field.defaultValue &&
                     (values as any)[fieldName] === undefined
