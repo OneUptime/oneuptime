@@ -28,12 +28,14 @@ export const dataSourceOptions: DataSourceOptions = {
     migrationsTableName: 'migrations',
     migrations: Migrations,
     entities: Entities,
-    ssl: shouldDatabaseSslEnable ? {
-        rejectUnauthorized: DatabaseRejectUnauthorized,
-        ca: DatabaseSslCa,
-        key: DatabaseSslKey,
-        cert: DatabaseSslCert
-    } : undefined,
+    ssl: shouldDatabaseSslEnable
+        ? {
+              rejectUnauthorized: DatabaseRejectUnauthorized,
+              ca: DatabaseSslCa,
+              key: DatabaseSslKey,
+              cert: DatabaseSslCert,
+          }
+        : undefined,
     // logging: 'all',
     // synchronize: Env === AppEnvironment.Development,
     synchronize: true,

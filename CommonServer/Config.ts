@@ -45,9 +45,12 @@ export const DatabaseSslKey: string =
 export const DatabaseSslCert: string =
     process.env['DATABASE_SSL_CERT'] || undefined;
 
-export const DatabaseRejectUnauthorized: boolean = Boolean(process.env['DATABASE_SSL_REJECT_UNAUTHORIZED']) || false;
+export const DatabaseRejectUnauthorized: boolean =
+    Boolean(process.env['DATABASE_SSL_REJECT_UNAUTHORIZED']) || false;
 
-export const shouldDatabaseSslEnable: boolean = Boolean(DatabaseSslCa || DatabaseSslCert || DatabaseSslKey);
+export const shouldDatabaseSslEnable: boolean = Boolean(
+    DatabaseSslCa || DatabaseSslCert || DatabaseSslKey
+);
 
 export const EncryptionSecret: ObjectID = new ObjectID(
     process.env['ENCRYPTION_SECRET'] || 'secret'
