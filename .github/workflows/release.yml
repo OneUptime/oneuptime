@@ -22,7 +22,7 @@ jobs:
   github-release:
     needs: generate-build-number
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/release'
     permissions:
       contents: write
     steps:
