@@ -14,7 +14,7 @@ export default class ServiceHandler {
         const pageData: any = {};
 
         pageTitle = 'Errors';
-        pageDescription = 'Learn more about how we reuturn errors from API';
+        pageDescription = 'Learn more about how we return errors from API';
 
         return res.render('pages/index', {
             page: page,
