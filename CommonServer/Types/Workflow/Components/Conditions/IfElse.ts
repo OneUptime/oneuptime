@@ -18,7 +18,7 @@ export default class IfElse extends ComponentCode {
 
         if (!Component) {
             throw new BadDataException(
-                'Custom JavaScirpt Component not found.'
+                'Custom JavaScript Component not found.'
             );
         }
 
