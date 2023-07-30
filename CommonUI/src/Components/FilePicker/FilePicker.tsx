@@ -56,10 +56,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }, [props.mimeTypes]);
 
     useEffect(() => {
-        setInitalValue();
+        setInitialValue();
     }, [props.initialValue]);
 
-    const setInitalValue: Function = () => {
+    const setInitialValue: Function = () => {
         if (
             Array.isArray(props.initialValue) &&
             props.initialValue &&
@@ -77,7 +77,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 props.value && props.value.length > 0 ? props.value : []
             );
         } else {
-            setInitalValue();
+            setInitialValue();
         }
     }, [props.value]);
 
