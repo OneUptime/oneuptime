@@ -178,7 +178,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     protected checkRequiredFields(data: TBaseModel): TBaseModel {
         // Check required fields.
 
-        const relatationalColumns: Dictionary<string> = {};
+        const relationalColumns: Dictionary<string> = {};
 
         const tableColumns: Array<string> = data.getTableColumns().columns;
 
@@ -186,7 +186,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const metadata: TableColumnMetadata =
                 data.getTableColumnMetadata(column);
             if (metadata.manyToOneRelationColumn) {
-                relatationalColumns[metadata.manyToOneRelationColumn] = column;
+                relationalColumns[metadata.manyToOneRelationColumn] = column;
             }
         }
 
@@ -216,9 +216,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 }
 
                 if (
-                    relatationalColumns[requiredField] &&
+                    relationalColumns[requiredField] &&
                     data.getColumnValue(
-                        relatationalColumns[requiredField] as string
+                        relationalColumns[requiredField] as string
                     )
                 ) {
                     continue;
