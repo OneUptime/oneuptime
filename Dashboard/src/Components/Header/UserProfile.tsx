@@ -9,7 +9,7 @@ import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDr
 import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
 
 export interface ComponentProps {
-    onClickUserProfle: () => void;
+    onClickUserProfile: () => void;
 }
 
 const DashboardUserProfile: FunctionComponent<ComponentProps> = (
@@ -32,7 +32,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
                         title="Profile"
                         onClick={() => {
                             setIsDropdownVisible(false);
-                            props.onClickUserProfle();
+                            props.onClickUserProfile();
                         }}
                         icon={IconProp.User}
                     />
