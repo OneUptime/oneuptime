@@ -40,7 +40,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         return (
             <Toggle
                 title="Yearly Plan"
-                initialValue={isSubsriptionPlanYearly}
+                initialValue={isSubscriptionPlanYearly}
                 description="(Save 20%)"
                 onChange={(value: boolean) => {
                     setIsSubscriptionPlanYearly(value);
@@ -49,7 +49,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
+    const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
 
     const [fields, setFields] = useState<Array<Field<Project>>>([]);
@@ -107,7 +107,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         refreshFields();
-    }, [isSubsriptionPlanYearly]);
+    }, [isSubscriptionPlanYearly]);
 
     const refreshFields: Function = (): void => {
         let formFields: Array<Field<Project>> = [
@@ -143,7 +143,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
                             : `Billed ${
-                                  isSubsriptionPlanYearly ? 'yearly' : 'monthly'
+                                  isSubscriptionPlanYearly ? 'yearly' : 'monthly'
                               }. ${
                                   plan.getTrialPeriod() > 0
                                       ? `Free ${plan.getTrialPeriod()} days trial.`
@@ -151,28 +151,28 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                               }`;
 
                         if (
-                            isSubsriptionPlanYearly &&
+                            isSubscriptionPlanYearly &&
                             plan.getYearlySubscriptionAmountInUSD() === 0
                         ) {
                             description = 'This plan is free, forever. ';
                         }
 
                         if (
-                            !isSubsriptionPlanYearly &&
+                            !isSubscriptionPlanYearly &&
                             plan.getMonthlySubscriptionAmountInUSD() === 0
                         ) {
                             description = 'This plan is free, forever. ';
                         }
 
                         return {
-                            value: isSubsriptionPlanYearly
+                            value: isSubscriptionPlanYearly
                                 ? plan.getYearlyPlanId()
                                 : plan.getMonthlyPlanId(),
                             title: plan.getName(),
                             description: description,
                             sideTitle: plan.isCustomPricing()
                                 ? 'Custom Price'
-                                : isSubsriptionPlanYearly
+                                : isSubscriptionPlanYearly
                                 ? '$' +
                                   plan
                                       .getYearlySubscriptionAmountInUSD()
@@ -184,7 +184,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                                       .toString(),
                             sideDescription: plan.isCustomPricing()
                                 ? ''
-                                : isSubsriptionPlanYearly
+                                : isSubscriptionPlanYearly
                                 ? `~ $${
                                       plan.getYearlySubscriptionAmountInUSD() *
                                       12

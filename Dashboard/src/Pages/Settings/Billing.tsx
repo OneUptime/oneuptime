@@ -48,7 +48,7 @@ export interface ComponentProps extends PageComponentProps {}
 const Settings: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
 ): ReactElement => {
-    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
+    const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
     const [showPaymentMethodModal, setShowPaymentMethodModal] =
         useState<boolean>(false);
@@ -96,7 +96,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         return (
             <Toggle
                 title="Yearly Plan"
-                initialValue={isSubsriptionPlanYearly}
+                initialValue={isSubscriptionPlanYearly}
                 description="(Save 20%)"
                 onChange={(value: boolean) => {
                     setIsSubscriptionPlanYearly(value);
@@ -155,7 +155,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 let description: string = plan.isCustomPricing()
                                     ? `Our sales team will contact you soon.`
                                     : `Billed ${
-                                          isSubsriptionPlanYearly
+                                          isSubscriptionPlanYearly
                                               ? 'yearly'
                                               : 'monthly'
                                       }. ${
@@ -165,7 +165,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                       }`;
 
                                 if (
-                                    isSubsriptionPlanYearly &&
+                                    isSubscriptionPlanYearly &&
                                     plan.getYearlySubscriptionAmountInUSD() ===
                                         0
                                 ) {
@@ -174,7 +174,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 }
 
                                 if (
-                                    !isSubsriptionPlanYearly &&
+                                    !isSubscriptionPlanYearly &&
                                     plan.getMonthlySubscriptionAmountInUSD() ===
                                         0
                                 ) {
@@ -183,14 +183,14 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 }
 
                                 return {
-                                    value: isSubsriptionPlanYearly
+                                    value: isSubscriptionPlanYearly
                                         ? plan.getYearlyPlanId()
                                         : plan.getMonthlyPlanId(),
                                     title: plan.getName(),
                                     description: description,
                                     sideTitle: plan.isCustomPricing()
                                         ? 'Custom Price'
-                                        : isSubsriptionPlanYearly
+                                        : isSubscriptionPlanYearly
                                         ? '$' +
                                           plan
                                               .getYearlySubscriptionAmountInUSD()
@@ -202,7 +202,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                               .toString(),
                                     sideDescription: plan.isCustomPricing()
                                         ? ''
-                                        : isSubsriptionPlanYearly
+                                        : isSubscriptionPlanYearly
                                         ? `~ $${
                                               plan.getYearlySubscriptionAmountInUSD() *
                                               12
