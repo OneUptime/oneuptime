@@ -23,7 +23,7 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission, {
-    instaceOfUserTenantAccessPermission,
+    instanceOfUserTenantAccessPermission,
     PermissionHelper,
     UserPermission,
     UserTenantAccessPermission,
@@ -506,7 +506,7 @@ export default class BaseModel extends BaseEntity {
         let userPermissions: Array<Permission> = [];
 
         if (
-            instaceOfUserTenantAccessPermission(userProjectPermissions) &&
+            instanceOfUserTenantAccessPermission(userProjectPermissions) &&
             userProjectPermissions.permissions &&
             Array.isArray(userProjectPermissions.permissions)
         ) {
