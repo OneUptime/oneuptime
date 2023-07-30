@@ -1156,7 +1156,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         for (const key in findBy.select) {
-            // for each key in sleect check if there's nested properties, this indicates there's a relation.
+            // for each key in select check if there's nested properties, this indicates there's a relation.
             if (typeof findBy.select[key] === Typeof.Object) {
                 // get meta data to check if this column is an entity array.
                 const tableColumnMetadata: TableColumnMetadata =
