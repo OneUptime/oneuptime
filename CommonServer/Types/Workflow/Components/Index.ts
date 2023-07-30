@@ -18,7 +18,7 @@ import UpdateOneBaseModel from './BaseModel/UpdateOneBaseModel';
 import UpdateManyBaseModel from './BaseModel/UpdateManyBaseModel';
 import OnDeleteBaseModel from './BaseModel/OnDeleteBaseModel';
 import DeleteOneBaseModel from './BaseModel/DeleteOneBaseModel';
-import DeleteManyBaseModel from './BaseModel/DeleteManyBaseMoidel';
+import DeleteManyBaseModel from './BaseModel/DeleteManyBaseModel';
 import ManualTrigger from './Manual';
 import JsonToText from './JSON/JsonToText';
 import MergeJSON from './JSON/MergeJson';
