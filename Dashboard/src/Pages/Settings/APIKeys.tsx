@@ -56,7 +56,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Terminal,
                     title: 'API Keys',
                     description:
-                        'All you can do on the dashboard can be done via the API. Use OneUptime API to automated repetitive work or integrate with other platforms you have.',
+                        'Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.',
                 }}
                 noItemsMessage={'No API Keys found.'}
                 formFields={[

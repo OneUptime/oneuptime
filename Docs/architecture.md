@@ -83,7 +83,7 @@ In this case, the user will need to install the server monitor agent in the targ
 
 For every component, the user can define the different criteria that allow the backend to decide whether this component is working properly, degraded, or down.
 
-In addition to the name, type, and criteria, the user can choose the category to which the resource should belong. The categories can be managed through the same dashboard under project settings.
+In addition to the name, type, and criteria, the user can choose the category to which the resource should belong. The categories can be managed through the same dashboard under Project Settings.
 
 #### Status pages
 
