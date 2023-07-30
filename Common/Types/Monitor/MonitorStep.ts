@@ -37,7 +37,7 @@ export default class MonitorStep extends DatabaseProperty {
         };
     }
 
-    public static getDefaultMoniorStep(arg: {
+    public static getDefaultMonitorStep(arg: {
         monitorType: MonitorType;
         onlineMonitorStatusId: ObjectID;
         offlineMonitorStatusId: ObjectID;
