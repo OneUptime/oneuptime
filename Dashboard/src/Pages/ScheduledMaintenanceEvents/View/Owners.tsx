@@ -43,7 +43,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Scheduled MaintenanceOwnerss',
+                    title: 'Scheduled Maintenance Owners',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                         { modelId }
