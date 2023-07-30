@@ -1,6 +1,6 @@
 enum UserNotificationExecutionStatus {
     Scheduled = 'Scheduled',
-    Started = 'Strated',
+    Started = 'Started',
     Executing = 'Executing',
     Completed = 'Completed',
     Error = 'Error',
