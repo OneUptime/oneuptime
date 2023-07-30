@@ -15,20 +15,20 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
     return (
         <>
             <Card
-                title={`Incoming Request Link`}
+                title={`Incoming Request URL / Heartbeat URL`}
                 description={
                     <span>
-                        Please send inbound heartbeat requests to this URL{' '}
+                        Please send inbound heartbeat GET or POST requests to this URL{' '}
                         <Link
                             openInNewTab={true}
                             to={new URL(HTTP_PROTOCOL, DOMAIN)
                                 .addRoute('/heartbeat')
-                                .addRoute(props.modelId.toString())}
+                                .addRoute(`/${props.modelId.toString()}`)}
                         >
                             <span>
                                 {new URL(HTTP_PROTOCOL, DOMAIN)
                                     .addRoute('/heartbeat')
-                                    .addRoute(props.modelId.toString())
+                                    .addRoute(`/${props.modelId.toString()}`)
                                     .toString()}
                             </span>
                         </Link>

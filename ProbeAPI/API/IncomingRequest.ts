@@ -16,6 +16,52 @@ import OneUptimeDate from 'Common/Types/Date';
 
 const router: ExpressRouter = Express.getRouter();
 
+
+
+const processIncomingRequest = async (req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction) => {
+    try {
+        const requestHeaders: Dictionary<string> =
+            req.headers as Dictionary<string>;
+        const requestBody: string | JSONObject = req.body as
+            | string
+            | JSONObject;
+
+        const monitorIdAsString: string | undefined =
+            req.params['monitor-id'];
+
+        if (!monitorIdAsString) {
+            throw new BadDataException('Monitor Id is required');
+        }
+
+        const monitorId: ObjectID = ObjectID.fromString(monitorIdAsString);
+
+        const incomingRequest: IncomingMonitorRequest = {
+            monitorId: monitorId,
+            requestHeaders: requestHeaders,
+            requestBody: requestBody,
+            incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
+            onlyCheckForIncomingRequestReceivedAt: false,
+        };
+
+        // process probe response here.
+        const probeApiIngestResponse: ProbeApiIngestResponse =
+            await ProbeMonitorResponseService.processProbeResponse(
+                incomingRequest
+            );
+
+        return Response.sendJsonObjectResponse(req, res, {
+            monitorId: probeApiIngestResponse.monitorId.toString(),
+            rootCause: probeApiIngestResponse.rootCause,
+            criteriaMetId: probeApiIngestResponse.criteriaMetId?.toString(),
+        } as any);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+
 router.post(
     '/incoming-request/:monitor-id',
     async (
@@ -23,45 +69,22 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        try {
-            const requestHeaders: Dictionary<string> =
-                req.headers as Dictionary<string>;
-            const requestBody: string | JSONObject = req.body as
-                | string
-                | JSONObject;
-
-            const monitorIdAsString: string | undefined =
-                req.params['monitor-id'];
-
-            if (!monitorIdAsString) {
-                throw new BadDataException('Monitor Id is required');
-            }
-
-            const monitorId: ObjectID = ObjectID.fromString(monitorIdAsString);
-
-            const incomingRequest: IncomingMonitorRequest = {
-                monitorId: monitorId,
-                requestHeaders: requestHeaders,
-                requestBody: requestBody,
-                incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
-                onlyCheckForIncomingRequestReceivedAt: false,
-            };
-
-            // process probe response here.
-            const probeApiIngestResponse: ProbeApiIngestResponse =
-                await ProbeMonitorResponseService.processProbeResponse(
-                    incomingRequest
-                );
-
-            return Response.sendJsonObjectResponse(req, res, {
-                monitorId: probeApiIngestResponse.monitorId.toString(),
-                rootCause: probeApiIngestResponse.rootCause,
-                criteriaMetId: probeApiIngestResponse.criteriaMetId?.toString(),
-            } as any);
-        } catch (err) {
-            return next(err);
-        }
+        await processIncomingRequest(req, res, next);
     }
 );
+
+
+router.get(
+    '/incoming-request/:monitor-id',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        await processIncomingRequest(req, res, next);
+    }
+);
+
+
 
 export default router;
