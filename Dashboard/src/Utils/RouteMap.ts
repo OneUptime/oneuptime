@@ -51,7 +51,7 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/user-profile/overview`
     ),
     [PageMap.USER_PROFILE_PASSWORD]: new Route(
-        `/dashboard/user-profile/password-mangement`
+        `/dashboard/user-profile/password-management`
     ),
     [PageMap.USER_PROFILE_PICTURE]: new Route(
         `/dashboard/user-profile/profile-picture`
