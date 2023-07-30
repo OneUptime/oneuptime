@@ -85,7 +85,7 @@ enum IconProp {
     ArrowCircleUp = 'ArrowCircleUp',
     ArrowCircleDown = 'ArrowCircleDown',
     ArrowCircleLeft = 'ArrowCircleLeft',
-    Anouncement = 'Anouncement',
+    Announcement = 'Announcement',
     Window = 'Window',
     AddFolder = 'AddFolder',
     AddImage = 'AddImage',

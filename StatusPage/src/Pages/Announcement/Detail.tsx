@@ -210,7 +210,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 <EmptyState
                     title={'No Announcement'}
                     description={'Announcement not found on this status page.'}
-                    icon={IconProp.Anouncement}
+                    icon={IconProp.Announcement}
                 />
             ) : (
                 <></>

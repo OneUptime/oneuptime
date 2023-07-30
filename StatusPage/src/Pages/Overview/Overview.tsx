@@ -550,7 +550,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         </div>
                     )}
 
-                    {/* Load Active Anouncement */}
+                    {/* Load Active Announcement */}
                     {activeAnnouncements.map(
                         (announcement: StatusPageAnnouncement, i: number) => {
                             return (

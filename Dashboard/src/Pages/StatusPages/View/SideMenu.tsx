@@ -39,7 +39,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             { modelId: props.modelId }
                         ),
                     }}
-                    icon={IconProp.Anouncement}
+                    icon={IconProp.Announcement}
                 />
                 <SideMenuItem
                     link={{
