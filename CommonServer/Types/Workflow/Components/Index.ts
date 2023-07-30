@@ -4,7 +4,7 @@ import Log from './Log';
 import Schedule from './Schedule';
 import Dictionary from 'Common/Types/Dictionary';
 import ComponentCode from '../ComponentCode';
-import JavaScirptCode from './JavaScript';
+import JavaScriptCode from './JavaScript';
 import Services from '../../../Services/Index';
 import BaseModel from 'Common/Models/BaseModel';
 import Text from 'Common/Types/Text';
@@ -37,7 +37,7 @@ const Components: Dictionary<ComponentCode> = {
     [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
     [ComponentID.Log]: new Log(),
     [ComponentID.Schedule]: new Schedule(),
-    [ComponentID.JavaScriptCode]: new JavaScirptCode(),
+    [ComponentID.JavaScriptCode]: new JavaScriptCode(),
     [ComponentID.Manual]: new ManualTrigger(),
     [ComponentID.JsonToText]: new JsonToText(),
     [ComponentID.MergeJson]: new MergeJSON(),

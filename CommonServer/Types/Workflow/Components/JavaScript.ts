@@ -14,18 +14,18 @@ export default class JavaScriptCode extends ComponentCode {
     public constructor() {
         super();
 
-        const JavaScirptComponent: ComponentMetadata | undefined =
+        const JavaScriptComponent: ComponentMetadata | undefined =
             JavaScriptComponents.find((i: ComponentMetadata) => {
                 return i.id === ComponentID.JavaScriptCode;
             });
 
-        if (!JavaScirptComponent) {
+        if (!JavaScriptComponent) {
             throw new BadDataException(
-                'Custom JavaScirpt Component not found.'
+                'Custom JavaScript Component not found.'
             );
         }
 
-        this.setMetadata(JavaScirptComponent);
+        this.setMetadata(JavaScriptComponent);
     }
 
     public override async run(
