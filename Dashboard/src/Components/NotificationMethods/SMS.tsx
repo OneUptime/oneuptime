@@ -205,7 +205,7 @@ const SMS: FunctionComponent = (): ReactElement => {
                         fields: [
                             {
                                 title: 'Verification Code',
-                                description: `We have sent an SMS with your verifiction code. Please dont forget to check your spam.`,
+                                description: `We have sent an SMS with your verification code. Please dont forget to check your spam.`,
                                 field: {
                                     code: true,
                                 },

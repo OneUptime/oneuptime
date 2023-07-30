@@ -205,7 +205,7 @@ const Call: FunctionComponent = (): ReactElement => {
                         fields: [
                             {
                                 title: 'Verification Code',
-                                description: `We're calling you with your verifiction code. Please make sure this device can receive calls.`,
+                                description: `We're calling you with your verification code. Please make sure this device can receive calls.`,
                                 field: {
                                     code: true,
                                 },
