@@ -178,7 +178,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     minValue: minPageNumber,
                                     maxValue: maxPageNumber,
                                 },
-                                fieldType: FormFieldSchemaType.PositveNumber,
+                                fieldType: FormFieldSchemaType.PositiveNumber,
                             },
                             {
                                 title: `${props.pluralLabel} on Page `,
