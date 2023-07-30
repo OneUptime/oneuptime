@@ -209,7 +209,7 @@ export default class Response {
         );
         oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
-        this.logResponse(req, res, { redirct: url.toString() });
+        this.logResponse(req, res, { redirect: url.toString() });
 
         return res.redirect(url.toString());
     }
