@@ -151,7 +151,6 @@ export class Service extends DatabaseService<Model> {
         if (
             createdItem.monitorType &&
             (createdItem.monitorType === MonitorType.API ||
-                createdItem.monitorType === MonitorType.IncomingRequest ||
                 createdItem.monitorType === MonitorType.Website ||
                 createdItem.monitorType === MonitorType.Ping ||
                 createdItem.monitorType === MonitorType.IP)
