@@ -48,7 +48,7 @@ export const DatabaseSslCert: string | undefined =
 export const DatabaseRejectUnauthorized: boolean =
     Boolean(process.env['DATABASE_SSL_REJECT_UNAUTHORIZED']) || false;
 
-export const shouldDatabaseSslEnable: boolean = Boolean(
+export const ShouldDatabaseSslEnable: boolean = Boolean(
     DatabaseSslCa || (DatabaseSslCert && DatabaseSslKey)
 );
 
@@ -64,7 +64,7 @@ export const ClusterKey: ObjectID = new ObjectID(
     process.env['ONEUPTIME_SECRET'] || 'secret'
 );
 
-export const hasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
+export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
 export const Domain: Hostname = Hostname.fromString(
     process.env['DOMAIN'] || 'localhost'

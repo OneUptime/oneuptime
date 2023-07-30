@@ -9,7 +9,7 @@ import {
     DatabaseSslKey,
     DatabaseSslCert,
     DatabaseRejectUnauthorized,
-    shouldDatabaseSslEnable,
+    ShouldDatabaseSslEnable,
     Env,
 } from '../Config';
 import Entities from 'Model/Models/Index';
@@ -28,7 +28,7 @@ export const dataSourceOptions: DataSourceOptions = {
     migrationsTableName: 'migrations',
     migrations: Migrations,
     entities: Entities,
-    ssl: shouldDatabaseSslEnable
+    ssl: ShouldDatabaseSslEnable
         ? {
               rejectUnauthorized: DatabaseRejectUnauthorized,
               ca: DatabaseSslCa,
