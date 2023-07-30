@@ -115,7 +115,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
                 {isLoading && !error && <ComponentLoader />}
                 {!isLoading && !error && schemaList.length === 0 && (
-                    <ErrorMessage error="No custom fields are added for this resource. Please add customm fields for this resource in project settings." />
+                    <ErrorMessage error="No custom fields have been added for this resource. You may add custom fields in Project Settings." />
                 )}
                 {error && <ErrorMessage error={error} />}
                 {!model && <ErrorMessage error={'Item not found'} />}

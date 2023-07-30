@@ -2537,11 +2537,13 @@ export function instanceOfUserTenantAccessPermission(
     return object._type === 'UserTenantAccessPermission';
 }
 
-export function instaceOfUserPermission(object: any): object is UserPermission {
+export function instanceOfUserPermission(
+    object: any
+): object is UserPermission {
     return object._type === 'UserPermission';
 }
 
-export function instaceOfUserGlobalAccessPermission(
+export function instanceOfUserGlobalAccessPermission(
     object: any
 ): object is UserGlobalAccessPermission {
     return object._type === 'UserGlobalAccessPermission';
