@@ -254,7 +254,7 @@ export default class BaseModel extends BaseEntity {
         (this as any)[columnName] = value;
     }
 
-    public doesPermissionHasConditions(
+    public doesPermissionHaveConditions(
         permission: Permission
     ): JSONObject | null {
         return this.isPermissionIf[permission]
