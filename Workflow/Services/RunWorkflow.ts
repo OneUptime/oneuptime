@@ -169,7 +169,7 @@ export default class RunWorkflow {
                 }
 
                 // get component.
-                // and remoev that component from the stack.
+                // and remove that component from the stack.
                 executeComponentId =
                     fifoStackOfComponentsPendingExecution.shift()!;
 
