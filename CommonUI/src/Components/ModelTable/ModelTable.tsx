@@ -129,7 +129,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         descriptionField?: string | undefined;
         orderField: string;
         shouldAddItemInTheEnd?: boolean;
-        shouldAddItemInTheBegining?: boolean;
+        shouldAddItemInTheBeginning?: boolean;
     };
     onViewComplete: (item: TBaseModel) => void;
     name: string;
@@ -1085,8 +1085,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     props.orderedStatesListProps?.descriptionField || ''
                 }
                 orderField={props.orderedStatesListProps?.orderField || ''}
-                shouldAddItemInTheBegining={
-                    props.orderedStatesListProps.shouldAddItemInTheBegining
+                shouldAddItemInTheBeginning={
+                    props.orderedStatesListProps.shouldAddItemInTheBeginning
                 }
                 shouldAddItemInTheEnd={
                     props.orderedStatesListProps.shouldAddItemInTheEnd

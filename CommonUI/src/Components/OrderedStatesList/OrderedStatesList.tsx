@@ -23,7 +23,7 @@ export interface ComponentProps {
     getTitleElement?: ((item: JSONObject) => ReactElement) | undefined;
     getDescriptionElement?: ((item: JSONObject) => ReactElement) | undefined;
     shouldAddItemInTheEnd?: boolean | undefined;
-    shouldAddItemInTheBegining?: boolean | undefined;
+    shouldAddItemInTheBeginning?: boolean | undefined;
 }
 
 const OrderedStatesList: FunctionComponent<ComponentProps> = (
@@ -63,7 +63,7 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                 props.data.length > 0 &&
                 props.data.map((item: JSONObject, i: number) => {
                     const isEnd: boolean = !(i + 1 < props.data.length);
-                    const isBegining: boolean = !(i === 0);
+                    const isBeginning: boolean = !(i === 0);
 
                     return (
                         <div
@@ -72,8 +72,8 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             className="items-center w-fit m-auto"
                         >
                             {props.onCreateNewItem &&
-                                isBegining &&
-                                props.shouldAddItemInTheBegining && (
+                                isBeginning &&
+                                props.shouldAddItemInTheBeginning && (
                                     <div className="text-center">
                                         <div
                                             className="m-auto rounded-full items-center cursor-pointer text-gray-400 hover:bg-gray-50 hover:text-gray-600 items-center border border-gray-300 p-5 w-fit"
