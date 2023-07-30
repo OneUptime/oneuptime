@@ -196,7 +196,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     required: false,
                     placeholder: 'Select Teams',
-                    overideFieldKey: 'ownerTeams',
+                    overrideFieldKey: 'ownerTeams',
                 },
                 {
                     field: {
@@ -215,7 +215,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     required: false,
                     placeholder: 'Select Users',
-                    overideFieldKey: 'ownerUsers',
+                    overrideFieldKey: 'ownerUsers',
                 },
                 {
                     field: {

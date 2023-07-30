@@ -171,7 +171,7 @@ export class Service extends DatabaseService<Model> {
             ],
         };
 
-        // send verifiction sms.
+        // send verification sms.
         CallService.makeCall(callRequest, {
             projectId: item.projectId,
             isSensitive: true,

@@ -22,7 +22,7 @@ const Home: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Page
-            title={'Project Inviations'}
+            title={'Project Invitations'}
             breadcrumbLinks={[
                 {
                     title: 'Home',

@@ -20,7 +20,7 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-        const pendingNotiifcationLogs: Array<UserOnCallLog> =
+        const pendingNotificationLogs: Array<UserOnCallLog> =
             await UserOnCallLogService.findBy({
                 query: {
                     status: UserNotificationExecutionStatus.Executing,
@@ -48,7 +48,7 @@ RunCron(
 
         const promises: Array<Promise<void>> = [];
 
-        for (const pendingNotificationLog of pendingNotiifcationLogs) {
+        for (const pendingNotificationLog of pendingNotificationLogs) {
             promises.push(
                 executePendingNotificationLog(pendingNotificationLog)
             );

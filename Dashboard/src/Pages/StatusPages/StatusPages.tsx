@@ -110,7 +110,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         },
                         required: false,
                         placeholder: 'Select Teams',
-                        overideFieldKey: 'ownerTeams',
+                        overrideFieldKey: 'ownerTeams',
                     },
                     {
                         field: {
@@ -128,7 +128,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         },
                         required: false,
                         placeholder: 'Select Users',
-                        overideFieldKey: 'ownerUsers',
+                        overrideFieldKey: 'ownerUsers',
                     },
                     {
                         field: {

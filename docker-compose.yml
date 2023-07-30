@@ -22,7 +22,7 @@ services:
 
     postgres:
         ports:
-          - "5400:5432" # for access to postgres for backups. If you dont need backup, you can comment this line out to make it more secure.
+          - "5400:5432" # for access to postgres for backups. If you don't need backup, you can comment this line out to make it more secure.
         extends:
             file: ./docker-compose.base.yml
             service: postgres

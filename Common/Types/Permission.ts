@@ -2531,7 +2531,7 @@ export const PermissionsArray: Array<string> = [
     ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
 
-export function instaceOfUserTenantAccessPermission(
+export function instanceOfUserTenantAccessPermission(
     object: any
 ): object is UserTenantAccessPermission {
     return object._type === 'UserTenantAccessPermission';

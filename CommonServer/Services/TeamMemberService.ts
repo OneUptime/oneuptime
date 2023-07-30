@@ -168,7 +168,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             onCreate.createBy.data.projectId!
         );
 
-        await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+        await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
             onCreate.createBy.data.projectId!
         );
 
@@ -282,7 +282,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     ): Promise<OnDelete<TeamMember>> {
         for (const item of onDelete.carryForward as Array<TeamMember>) {
             await this.refreshTokens(item.userId!, item.projectId!);
-            await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+            await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
                 item.projectId!
             );
             await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
@@ -376,7 +376,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         });
     }
 
-    public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+    public async updateSubscriptionSeatsByUniqueTeamMembersInProject(
         projectId: ObjectID
     ): Promise<void> {
         if (!IsBillingEnabled) {

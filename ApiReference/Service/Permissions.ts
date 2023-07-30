@@ -15,7 +15,7 @@ export default class ServiceHandler {
         const pageData: any = {};
 
         pageTitle = 'Permissions';
-        pageDescription = 'Learn how permisisons work with OneUptime';
+        pageDescription = 'Learn how permissions work with OneUptime';
 
         pageData.permissions = PermissionHelper.getAllPermissionProps().filter(
             (i: PermissionProps) => {

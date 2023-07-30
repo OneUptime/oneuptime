@@ -38,7 +38,7 @@ router.get(
             }
 
             // middleware marks the probe as alive.
-            // so we dont need to do anything here.
+            // so we don't need to do anything here.
             return Response.sendCustomResponse(
                 req,
                 res,

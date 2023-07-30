@@ -167,7 +167,7 @@ function BACKUP_FAIL_LOCAL(){
 echo "Taking a backup on the server"
 echo ""
 
-# Drop audit logs collection because we dont need to take backup of that.
+# Drop audit logs collection because we don't need to take backup of that.
 # echo "Removing audit logs collections. This will take some time."
 # sudo mongo ${ONEUPTIME_DB_NAME} --host="${MONGO_HOSTS}" --port="${MONGO_PORT}" --username="$ONEUPTIME_DB_USERNAME" --password="$ONEUPTIME_DB_PASSWORD" --eval 'db.auditlogs.drop()'
 
