@@ -34,7 +34,7 @@ const components: Array<ComponentMetadata> = [
             {
                 title: 'Out',
                 description:
-                    'Connect to this port if you want other componets to execute after the workflow is triggered',
+                    'Connect to this port if you want other components to execute after the workflow is triggered',
                 id: 'out',
             },
         ],
