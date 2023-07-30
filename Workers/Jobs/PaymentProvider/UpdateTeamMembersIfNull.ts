@@ -26,7 +26,7 @@ RunCron(
         });
 
         for (const project of projects) {
-            await TeamMemberService.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+            await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
                 project.id!
             );
         }
