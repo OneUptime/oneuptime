@@ -36,13 +36,13 @@ export const DatabasePassword: string =
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
-export const DatabaseSslCa: string =
+export const DatabaseSslCa: string | undefined =
     process.env['DATABASE_SSL_CA'] || undefined;
 
-export const DatabaseSslKey: string =
+export const DatabaseSslKey: string | undefined =
     process.env['DATABASE_SSL_KEY'] || undefined;
 
-export const DatabaseSslCert: string =
+export const DatabaseSslCert: string | undefined =
     process.env['DATABASE_SSL_CERT'] || undefined;
 
 export const DatabaseRejectUnauthorized: boolean =
