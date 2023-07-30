@@ -208,7 +208,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Email,
                         required: true,
                         description:
-                            'This is the display email your team and customers see, when they recieve emails from OneUptime.',
+                            'This is the display email your team and customers see, when they receive emails from OneUptime.',
                         placeholder: 'email@company.com',
                     },
                     {
@@ -220,7 +220,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         description:
-                            'This is the display name your team and customers see, when they recieve emails from OneUptime.',
+                            'This is the display name your team and customers see, when they receive emails from OneUptime.',
                         placeholder: 'Company, Inc.',
                     },
                 ]}

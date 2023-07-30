@@ -527,7 +527,7 @@ export default (product: string): Product => {
                 {
                     question:
                         'Do I need to buy an incident management and on-call solution for alerts?',
-                    answer: 'Incident.io is a incident management solution and you need to buy an on-call solution and monitoring solution which Incident.io recieves data from. OneUptime has a built in monitoring, on-call and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'Incident.io is a incident management solution and you need to buy an on-call solution and monitoring solution which Incident.io receives data from. OneUptime has a built in monitoring, on-call and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
