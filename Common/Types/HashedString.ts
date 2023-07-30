@@ -67,7 +67,7 @@ export default class HashedString extends DatabaseProperty {
         }
 
         if (this.isHashed) {
-            throw new BadOperationException('Value is alredy hashed');
+            throw new BadOperationException('Value is already hashed');
         }
 
         const valueToHash: string = (encryptionSecret || '') + this.value;
