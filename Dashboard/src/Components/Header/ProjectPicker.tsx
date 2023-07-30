@@ -143,7 +143,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
                             : `Billed ${
-                                  isSubscriptionPlanYearly ? 'yearly' : 'monthly'
+                                  isSubscriptionPlanYearly
+                                      ? 'yearly'
+                                      : 'monthly'
                               }. ${
                                   plan.getTrialPeriod() > 0
                                       ? `Free ${plan.getTrialPeriod()} days trial.`
