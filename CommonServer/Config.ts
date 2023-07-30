@@ -49,7 +49,7 @@ export const DatabaseRejectUnauthorized: boolean =
     Boolean(process.env['DATABASE_SSL_REJECT_UNAUTHORIZED']) || false;
 
 export const shouldDatabaseSslEnable: boolean = Boolean(
-    DatabaseSslCa || DatabaseSslCert || DatabaseSslKey
+    DatabaseSslCa || (DatabaseSslCert && DatabaseSslKey)
 );
 
 export const EncryptionSecret: ObjectID = new ObjectID(
