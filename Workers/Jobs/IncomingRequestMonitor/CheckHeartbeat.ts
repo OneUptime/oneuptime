@@ -11,22 +11,23 @@ RunCron(
     'HardDelete:HardDeleteItemsInDatabase',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const incomingRequestMonitors: Array<Monitor> = await MonitorService.findBy({
-            query: {
-                monitorType: MonitorType.IncomingRequest,
-            },
-            props: {
-                isRoot: true,
-            },
-            select: {
-                _id: true,
-                monitorSteps: true,
-                incomingRequestReceivedAt: true,
-                createdAt: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-        });
+        const incomingRequestMonitors: Array<Monitor> =
+            await MonitorService.findBy({
+                query: {
+                    monitorType: MonitorType.IncomingRequest,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                    monitorSteps: true,
+                    incomingRequestReceivedAt: true,
+                    createdAt: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+            });
 
         for (const monitor of incomingRequestMonitors) {
             const incomingRequest: IncomingMonitorRequest = {
