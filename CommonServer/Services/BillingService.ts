@@ -501,7 +501,7 @@ export class BillingService extends BaseService {
         });
     }
 
-    public async genrateInvoiceAndChargeCustomer(
+    public async generateInvoiceAndChargeCustomer(
         customerId: string,
         itemText: string,
         amountInUsd: number
