@@ -8,7 +8,7 @@ echo "Starting backup...."
 
 git pull
 
-# Backup as SQL, CANNOT be used with pg_reestore.
+# Backup as SQL, CANNOT be used with pg_restore.
 sudo docker run --net=host --rm \
 --env-file config.env \
 --volume=$(pwd)$DATABASE_BACKUP_DIRECTORY:/var/lib/postgresql/data \
