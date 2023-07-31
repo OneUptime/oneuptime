@@ -306,7 +306,7 @@ export class BillingService extends BaseService {
             endTrialAt = undefined;
         }
 
-        const subscribetoPlan: {
+        const subscribeToPlan: {
             id: string;
             trialEndsAt: Date | null;
         } = await this.subscribeToPlan(
@@ -321,8 +321,8 @@ export class BillingService extends BaseService {
         );
 
         return {
-            id: subscribetoPlan.id,
-            trialEndsAt: subscribetoPlan.trialEndsAt || undefined,
+            id: subscribeToPlan.id,
+            trialEndsAt: subscribeToPlan.trialEndsAt || undefined,
         };
     }
 
