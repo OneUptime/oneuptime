@@ -54,7 +54,7 @@
         "force-build-dev": "npm run config-to-dev && npm run force-build",
         "kill": "npm run stop",
         "prod": "npm run config-to-prod && export $(grep -v '^#' config.env | xargs) && docker compose up -f docker-compose.yml -d",
-        "dev": "npm run config-to-dev && export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up  --remove-orphans  -d $npm_config_services",
+        "dev": "npm run config-to-dev && npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up  --remove-orphans  -d $npm_config_services",
         "stop": "docker compose down --remove-orphans",
         "prune": "docker system prune",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
