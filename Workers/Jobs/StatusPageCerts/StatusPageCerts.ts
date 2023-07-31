@@ -193,7 +193,7 @@ RunCron(
 
         for (const domain of domains) {
             logger.info(
-                `StatusPageCerts:OrderCerts - Checking CNAME ${domain.fullDomain}`
+                `StatusPageCerts:OrderCerts - Ordering Certificate ${domain.fullDomain}`
             );
 
             await greenlock.order(domain.greenlockConfig);
