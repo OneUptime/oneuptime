@@ -5,7 +5,6 @@ import Express, {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
-import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import Dictionary from 'Common/Types/Dictionary';
@@ -45,16 +44,9 @@ const processIncomingRequest: Function = async (
         };
 
         // process probe response here.
-        const probeApiIngestResponse: ProbeApiIngestResponse =
-            await ProbeMonitorResponseService.processProbeResponse(
-                incomingRequest
-            );
+        await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
 
-        return Response.sendJsonObjectResponse(req, res, {
-            monitorId: probeApiIngestResponse.monitorId.toString(),
-            rootCause: probeApiIngestResponse.rootCause,
-            criteriaMetId: probeApiIngestResponse.criteriaMetId?.toString(),
-        } as any);
+        return Response.sendEmptyResponse(req, res);
     } catch (err) {
         return next(err);
     }

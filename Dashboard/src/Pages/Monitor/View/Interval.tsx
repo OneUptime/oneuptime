@@ -99,6 +99,25 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
             );
         }
 
+        if (monitorType === MonitorType.IncomingRequest) {
+            return (
+                <EmptyState
+                    icon={IconProp.Clock}
+                    title={
+                        'No Monitoring Interval for Incoming Request / Heartbeat Monitors'
+                    }
+                    description={
+                        <>
+                            This is a incoming request / heartbeat monitor.
+                            Since OneUptime does not send an outbound request,
+                            we do not need monitoring interval. You can have
+                            monitoring interval on other monitor types.{' '}
+                        </>
+                    }
+                />
+            );
+        }
+
         return (
             <CardModelDetail
                 name="Monitoring Interval"
