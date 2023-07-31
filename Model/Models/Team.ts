@@ -413,7 +413,7 @@ export default class Team extends BaseModel {
         type: ColumnType.Boolean,
         default: false,
     })
-    public shouldHaveAtleastOneMember?: boolean = undefined;
+    public shouldHaveAtLeastOneMember?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
