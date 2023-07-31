@@ -176,7 +176,7 @@ RunCron(
         const domains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
                 query: {
-                    isAddedtoGreenlock: true,
+                    isAddedToGreenlock: true,
                     isSslProvisioned: false,
                 },
                 select: {
@@ -208,7 +208,7 @@ RunCron(
         const domains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
                 query: {
-                    isAddedtoGreenlock: false,
+                    isAddedToGreenlock: false,
                 },
                 select: {
                     _id: true,
@@ -256,7 +256,7 @@ RunCron(
                 await StatusPageDomainService.updateOneById({
                     id: domain.id!,
                     data: {
-                        isAddedtoGreenlock: true,
+                        isAddedToGreenlock: true,
                     },
                     props: {
                         isRoot: true,
@@ -284,7 +284,7 @@ RunCron(
         const domains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
                 query: {
-                    isAddedtoGreenlock: true,
+                    isAddedToGreenlock: true,
                 },
                 select: {
                     _id: true,
@@ -321,7 +321,7 @@ RunCron(
                 await StatusPageDomainService.updateOneById({
                     id: domain.id!,
                     data: {
-                        isAddedtoGreenlock: false,
+                        isAddedToGreenlock: false,
                         isCnameVerified: false,
                     },
                     props: {
@@ -485,7 +485,7 @@ RunCron(
         const domains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
                 query: {
-                    isAddedtoGreenlock: true,
+                    isAddedToGreenlock: true,
                 },
                 select: {
                     _id: true,

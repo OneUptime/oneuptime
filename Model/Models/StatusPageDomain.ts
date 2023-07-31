@@ -515,7 +515,7 @@ export default class StatusPageDomain extends BaseModel {
         unique: false,
         default: false,
     })
-    public isAddedtoGreenlock?: boolean = undefined;
+    public isAddedToGreenlock?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
