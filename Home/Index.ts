@@ -226,6 +226,15 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     },
                 },
                 {
+                    name: 'Inbound Webhook / Heartbeat Monitoring',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
                     name: 'Container Monitoring',
                     plans: {
                         free: 'Coming Soon',
