@@ -261,6 +261,15 @@ export default class ProbeMonitorResponseService {
             monitor.currentMonitorStatusId?.toString() !==
                 monitorSteps.data.defaultMonitorStatusId.toString()
         ) {
+            await this.checkOpenIncidentsAndCloseIfResolved({
+                monitorId: monitor.id!,
+                autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+                rootCause:
+                    'No monitoring criteria met. Change to default status.',
+                criteriaInstance: null, // no criteria met!
+                dataToProcess: dataToProcess,
+            });
+
             // if no criteria is met then update monitor to default state.
             const monitorStatusTimeline: MonitorStatusTimeline =
                 new MonitorStatusTimeline();
@@ -282,6 +291,60 @@ export default class ProbeMonitorResponseService {
         }
 
         return response;
+    }
+
+    private static async checkOpenIncidentsAndCloseIfResolved(input: {
+        monitorId: ObjectID;
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+            Array<string>
+        >;
+        rootCause: string;
+        criteriaInstance: MonitorCriteriaInstance | null;
+        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+    }): Promise<Array<Incident>> {
+        // check active incidents and if there are open incidents, do not cretae anothr incident.
+        const openIncidents: Array<Incident> = await IncidentService.findBy({
+            query: {
+                monitors: [input.monitorId] as any,
+                currentIncidentState: {
+                    isResolvedState: false,
+                },
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            select: {
+                _id: true,
+                createdCriteriaId: true,
+                createdIncidentTemplateId: true,
+                projectId: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        // check if should close the incident.
+
+        for (const openIncident of openIncidents) {
+            const shouldClose: boolean =
+                ProbeMonitorResponseService.shouldCloseIncident({
+                    openIncident,
+                    autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+                        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+                    criteriaInstance: input.criteriaInstance,
+                });
+
+            if (shouldClose) {
+                // then resolve incident.
+                await ProbeMonitorResponseService.resolveOpenIncident({
+                    openIncident: openIncident,
+                    rootCause: input.rootCause,
+                    dataToProcess: input.dataToProcess,
+                });
+            }
+        }
+
+        return openIncidents;
     }
 
     private static async criteriaMetCreateIncidentsAndUpdateMonitorStatus(input: {
@@ -329,46 +392,15 @@ export default class ProbeMonitorResponseService {
         // check open incidents
 
         // check active incidents and if there are open incidents, do not cretae anothr incident.
-        const openIncidents: Array<Incident> = await IncidentService.findBy({
-            query: {
-                monitors: [input.monitor.id!] as any,
-                currentIncidentState: {
-                    isResolvedState: false,
-                },
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            select: {
-                _id: true,
-                createdCriteriaId: true,
-                createdIncidentTemplateId: true,
-                projectId: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
-
-        // check if should close the incident.
-
-        for (const openIncident of openIncidents) {
-            const shouldClose: boolean =
-                ProbeMonitorResponseService.shouldCloseIncident({
-                    openIncident,
-                    autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-                        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-                    criteriaInstance: input.criteriaInstance,
-                });
-
-            if (shouldClose) {
-                // then resolve incident.
-                await ProbeMonitorResponseService.resolveOpenIncident({
-                    openIncident: openIncident,
-                    rootCause: input.rootCause,
-                    dataToProcess: input.dataToProcess,
-                });
-            }
-        }
+        const openIncidents: Array<Incident> =
+            await this.checkOpenIncidentsAndCloseIfResolved({
+                monitorId: input.monitor.id!,
+                autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+                    input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+                rootCause: input.rootCause,
+                criteriaInstance: input.criteriaInstance,
+                dataToProcess: input.dataToProcess,
+            });
 
         if (input.criteriaInstance.data?.createIncidents) {
             // create incidents
@@ -501,11 +533,11 @@ export default class ProbeMonitorResponseService {
         autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
             Array<string>
         >;
-        criteriaInstance: MonitorCriteriaInstance;
+        criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
     }): boolean {
         if (
             input.openIncident.createdCriteriaId?.toString() ===
-            input.criteriaInstance.data?.id.toString()
+            input.criteriaInstance?.data?.id.toString()
         ) {
             // same incident active. So, do not close.
             return false;

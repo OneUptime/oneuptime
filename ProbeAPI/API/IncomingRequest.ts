@@ -28,7 +28,7 @@ const processIncomingRequest: Function = async (
             | string
             | JSONObject;
 
-        const monitorIdAsString: string | undefined = req.params['monitor-id'];
+        const monitorIdAsString: string | undefined = req.params['id'];
 
         if (!monitorIdAsString) {
             throw new BadDataException('Monitor Id is required');
@@ -61,7 +61,7 @@ const processIncomingRequest: Function = async (
 };
 
 router.post(
-    '/incoming-request/:monitor-id',
+    '/incoming-request/:id',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -72,7 +72,7 @@ router.post(
 );
 
 router.get(
-    '/incoming-request/:monitor-id',
+    '/incoming-request/:id',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
