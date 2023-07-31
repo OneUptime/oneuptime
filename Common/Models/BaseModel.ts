@@ -119,7 +119,7 @@ export default class BaseModel extends BaseEntity {
     public pluralName!: string | null;
 
     // total items  by
-    public totalItemsByColumnnName!: string | null;
+    public totalItemsByColumnName!: string | null;
     public totalItemsNumber!: number | null;
     public totalItemsErrorMessage!: string | null;
 
@@ -280,7 +280,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getTotalItemsByColumnName(): string | null {
-        return this.totalItemsByColumnnName;
+        return this.totalItemsByColumnName;
     }
 
     public getTotalItemsByErrorMessage(): string | null {
