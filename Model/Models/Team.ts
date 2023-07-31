@@ -407,7 +407,7 @@ export default class Team extends BaseModel {
         type: TableColumnType.Boolean,
         title: 'Should have one member?',
         description:
-            'Can this team have no members? Owner team should have atleast 1 member, other teams can have no members',
+            'Can this team have no members? Owner team should have at least 1 member, other teams can have no members',
     })
     @Column({
         type: ColumnType.Boolean,

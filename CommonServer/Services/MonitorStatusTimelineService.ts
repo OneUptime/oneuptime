@@ -113,7 +113,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
                 if (monitorStatusTimeline.isOne()) {
                     throw new BadDataException(
-                        'Cannot delete the only status timeline. Monitor should have atleast one status timeline.'
+                        'Cannot delete the only status timeline. Monitor should have at least one status timeline.'
                     );
                 }
             }
