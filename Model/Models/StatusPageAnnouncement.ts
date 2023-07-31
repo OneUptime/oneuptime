@@ -70,7 +70,7 @@ import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
     tableName: 'StatusPageAnnouncement',
     singularName: 'Status Page Announcement',
     pluralName: 'Status Page Announcements',
-    icon: IconProp.Anouncement,
+    icon: IconProp.Announcement,
     tableDescription: 'Manage announcements on your status page',
 })
 @Entity({

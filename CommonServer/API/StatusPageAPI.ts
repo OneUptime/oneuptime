@@ -661,7 +661,7 @@ export default class StatusPageAPI extends BaseAPI<
                             });
                     }
 
-                    // check if status page has actuve announcement.
+                    // check if status page has active announcement.
 
                     const today: Date = OneUptimeDate.getCurrentDate();
 
@@ -1447,7 +1447,7 @@ export default class StatusPageAPI extends BaseAPI<
             throw new BadDataException('Status Page not found');
         }
 
-        // check if status page has actuve announcement.
+        // check if status page has active announcement.
 
         const today: Date = OneUptimeDate.getCurrentDate();
         const historyDays: Date = OneUptimeDate.getSomeDaysAgo(

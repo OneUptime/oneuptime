@@ -400,7 +400,7 @@ class UserNotificationRule extends BaseModel {
         canReadOnRelationQuery: true,
         title: 'Notify After Minutes',
         description:
-            'How long should we wait before sending a notification to the user after the event has occured?',
+            'How long should we wait before sending a notification to the user after the event has occurred?',
     })
     @Column({
         type: ColumnType.Number,

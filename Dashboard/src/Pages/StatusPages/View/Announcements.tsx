@@ -96,7 +96,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.SMS,
                     title: 'Announcements',
                     description:
-                        'Here are announcements this status page. This will show up on the status page.',
+                        'Here are announcements for this status page. This will show up on the status page.',
                 }}
                 noItemsMessage={'No announcements found.'}
                 formFields={[
@@ -105,7 +105,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             title: true,
                         },
                         title: 'Announcement Title',
-                        description: 'Title of announcemnet',
+                        description: 'Title of announcement',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Title',
@@ -118,7 +118,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
                         description:
-                            'Add a announcement note. This is in Markdown.',
+                            'Add an announcement note. This is in Markdown.',
                     },
                     {
                         field: {

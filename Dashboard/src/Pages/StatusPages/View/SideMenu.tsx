@@ -31,7 +31,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Annoucements',
+                        title: 'Announcements',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
@@ -39,7 +39,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             { modelId: props.modelId }
                         ),
                     }}
-                    icon={IconProp.Anouncement}
+                    icon={IconProp.Announcement}
                 />
                 <SideMenuItem
                     link={{

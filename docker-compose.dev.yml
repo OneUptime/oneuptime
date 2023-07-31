@@ -159,9 +159,9 @@ services:
        
 
 
-    link-shortner:
+    link-shortener:
         volumes:
-            - ./LinkShortner:/usr/src/app
+            - ./LinkShortener:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -175,13 +175,13 @@ services:
             - /usr/src/Model/node_modules/
         extends:
             file: ./docker-compose.base.yml
-            service: link-shortner
+            service: link-shortener
         ports:
             - '9826:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./LinkShortner/Dockerfile
+            dockerfile: ./LinkShortener/Dockerfile
         
 
     workflow:

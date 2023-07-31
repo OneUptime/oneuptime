@@ -156,7 +156,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
                 if (scheduledMaintenanceStateTimeline.isOne()) {
                     throw new BadDataException(
-                        'Cannot delete the only state timeline. Scheduled Maintenance should have atleast one state in its timeline.'
+                        'Cannot delete the only state timeline. Scheduled Maintenance should have at least one state in its timeline.'
                     );
                 }
             }

@@ -4,7 +4,7 @@ import TextArea from '../../Components/TextArea/TextArea';
 import '@testing-library/jest-dom/extend-expect';
 
 describe('TextArea', () => {
-    test('renders textarea element with initalValue only', () => {
+    test('renders textarea element with initialValue only', () => {
         const { getByRole } = render(<TextArea initialValue="initial value" />);
         const textarea: HTMLElement = getByRole('textbox');
 
@@ -67,7 +67,7 @@ describe('TextArea', () => {
         expect(onBlur).toHaveBeenCalledTimes(1);
     });
 
-    test('sets initalValue', () => {
+    test('sets initialValue', () => {
         const { getByDisplayValue } = render(
             <TextArea initialValue="initial value" />
         );

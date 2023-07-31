@@ -1,4 +1,4 @@
-import './Envrionment';
+import './Environment';
 import './Process';
 import logger from './Logger';
 import cors from 'cors';

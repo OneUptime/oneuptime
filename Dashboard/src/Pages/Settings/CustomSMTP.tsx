@@ -208,7 +208,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Email,
                         required: true,
                         description:
-                            'This is the display email your team and customers see, when they recieve emails from OneUptime.',
+                            'This is the display email your team and customers see, when they receive emails from OneUptime.',
                         placeholder: 'email@company.com',
                     },
                     {
@@ -220,7 +220,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         description:
-                            'This is the display name your team and customers see, when they recieve emails from OneUptime.',
+                            'This is the display name your team and customers see, when they receive emails from OneUptime.',
                         placeholder: 'Company, Inc.',
                     },
                 ]}
@@ -328,9 +328,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 <ConfirmModal
                     title={`Email Sent`}
                     error={error}
-                    description={
-                        'Email sent successfully. Please check your inbox. Please dont forget to check spam. It should take couple of minutes to arrive.'
-                    }
+                    description={`Email sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.`}
                     submitButtonType={ButtonStyleType.NORMAL}
                     submitButtonText={'Close'}
                     onSubmit={async () => {

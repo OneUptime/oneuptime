@@ -213,7 +213,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                         button.onClick(
                                                                             props.item,
                                                                             () => {
-                                                                                // on aciton complete
+                                                                                // on action complete
                                                                                 isButtonLoading[
                                                                                     i
                                                                                 ] =

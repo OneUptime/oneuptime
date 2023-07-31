@@ -58,7 +58,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
                     );
                 }
 
-                //cehck user id
+                //check user id
 
                 if (
                     item.userId?.toString() !==

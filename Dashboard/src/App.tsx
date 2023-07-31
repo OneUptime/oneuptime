@@ -13,7 +13,7 @@ import Init from './Pages/Init/Init';
 
 import Home from './Pages/Home/Home';
 import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
-import OngoingScheduledEvents from './Pages/Home/OngingScheduledMaintenance';
+import OngoingScheduledEvents from './Pages/Home/OngoingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 

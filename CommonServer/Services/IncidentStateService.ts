@@ -23,11 +23,11 @@ export class Service extends DatabaseService<Model> {
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         if (!createBy.data.order) {
-            throw new BadDataException('Incient State order is required');
+            throw new BadDataException('Incident State order is required');
         }
 
         if (!createBy.data.projectId) {
-            throw new BadDataException('Incient State projectId is required');
+            throw new BadDataException('Incident State projectId is required');
         }
 
         await this.rearrangeOrder(

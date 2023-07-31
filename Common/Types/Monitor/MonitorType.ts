@@ -47,9 +47,9 @@ export class MonitorTypeHelper {
             },
             // {
             //     monitorType: MonitorType.Kubernetes,
-            //     title: 'Kubenretes',
+            //     title: 'Kubernetes',
             //     description:
-            //         'This monitor types lets you monitor kuberetes clusters.',
+            //         'This monitor types lets you monitor Kubernetes clusters.',
             // },
             {
                 monitorType: MonitorType.IP,

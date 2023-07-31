@@ -19,7 +19,7 @@ router.post(
     ): Promise<void> => {
         try {
             // middleware marks the probe as alive.
-            // so we dont need to do anything here.
+            // so we don't need to do anything here.
             return Response.sendEmptyResponse(req, res);
         } catch (err) {
             return next(err);

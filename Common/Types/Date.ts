@@ -346,9 +346,9 @@ export default class OneUptimeDate {
         return moment(date).isAfter(startDate);
     }
 
-    public static hasExpired(expiratinDate: Date): boolean {
-        expiratinDate = this.fromString(expiratinDate);
-        return !moment(this.getCurrentDate()).isBefore(expiratinDate);
+    public static hasExpired(expirationDate: Date): boolean {
+        expirationDate = this.fromString(expirationDate);
+        return !moment(this.getCurrentDate()).isBefore(expirationDate);
     }
 
     public static isBefore(date: Date, endDate: Date): boolean {

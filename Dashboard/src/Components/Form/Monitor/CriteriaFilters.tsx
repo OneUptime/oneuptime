@@ -89,7 +89,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             </div>
             {showCantDeleteModal ? (
                 <ConfirmModal
-                    description={`We need at least one filter for this criteria. We cant delete one remaining filter. If you dont need filters, please feel free to delete criteria instead.`}
+                    description={`We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`}
                     title={`Cannot delete last remaining filter.`}
                     onSubmit={() => {
                         setShowCantDeleteModal(false);

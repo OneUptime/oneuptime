@@ -82,7 +82,7 @@ export default class SmsService {
 
                 if (!project.enableSmsNotifications) {
                     smsLog.status = SmsStatus.Error;
-                    smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in project settings.`;
+                    smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
 
                     await SmsLogService.create({
                         data: smsLog,
@@ -105,7 +105,7 @@ export default class SmsService {
                             project.id!,
                             'SMS notifications not enabled for ' +
                                 (project.name || ''),
-                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in project settings.`
+                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`
                         );
                     }
                     return;

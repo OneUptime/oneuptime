@@ -280,7 +280,7 @@ describe('SubscriptionPlan', () => {
         it('should return true if the subscription status is unpaid', () => {
             const subscriptionStatus: string =
                 'incomplete' ||
-                'ncomplete_expired' ||
+                'incomplete_expired' ||
                 'past_due' ||
                 'canceled' ||
                 'unpaid';

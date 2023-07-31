@@ -21,7 +21,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.trigger);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] =
+    const [hasFormValidationErrors, setHasFormValidationErrors] =
         useState<boolean>(false);
     const [showRunConfirmation, setShowRunConfirmation] =
         useState<boolean>(false);
@@ -116,8 +116,8 @@ const RunModal: FunctionComponent<ComponentProps> = (
                         onFormChange={(component: NodeDataProp) => {
                             setComponent({ ...component });
                         }}
-                        onHasFormValidatonErrors={(value: boolean) => {
-                            setHasFormValidatonErrors(value);
+                        onHasFormValidationErrors={(value: boolean) => {
+                            setHasFormValidationErrors(value);
                         }}
                     />
                 )}

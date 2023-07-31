@@ -22,7 +22,7 @@ describe('Testing class port', () => {
         expect(value.port.toNumber()).toEqual(7000);
     });
 
-    test('try to mutating Port.port with invalid value should throw an BadDataExcepection', () => {
+    test('try to mutating Port.port with invalid value should throw an BadDataException', () => {
         const value: Port = new Port(3000);
         expect(() => {
             value.port = new PositiveNumber('hj567');

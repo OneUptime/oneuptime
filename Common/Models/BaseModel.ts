@@ -23,7 +23,7 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission, {
-    instaceOfUserTenantAccessPermission,
+    instanceOfUserTenantAccessPermission,
     PermissionHelper,
     UserPermission,
     UserTenantAccessPermission,
@@ -119,7 +119,7 @@ export default class BaseModel extends BaseEntity {
     public pluralName!: string | null;
 
     // total items  by
-    public totalItemsByColumnnName!: string | null;
+    public totalItemsByColumnName!: string | null;
     public totalItemsNumber!: number | null;
     public totalItemsErrorMessage!: string | null;
 
@@ -254,7 +254,7 @@ export default class BaseModel extends BaseEntity {
         (this as any)[columnName] = value;
     }
 
-    public doesPermissionHasConfitions(
+    public doesPermissionHaveConditions(
         permission: Permission
     ): JSONObject | null {
         return this.isPermissionIf[permission]
@@ -280,7 +280,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getTotalItemsByColumnName(): string | null {
-        return this.totalItemsByColumnnName;
+        return this.totalItemsByColumnName;
     }
 
     public getTotalItemsByErrorMessage(): string | null {
@@ -506,7 +506,7 @@ export default class BaseModel extends BaseEntity {
         let userPermissions: Array<Permission> = [];
 
         if (
-            instaceOfUserTenantAccessPermission(userProjectPermissions) &&
+            instanceOfUserTenantAccessPermission(userProjectPermissions) &&
             userProjectPermissions.permissions &&
             Array.isArray(userProjectPermissions.permissions)
         ) {

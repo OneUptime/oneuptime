@@ -27,7 +27,7 @@ export interface UpdateProps {
     workflowId: ObjectID;
 }
 
-export default class TrigegrCode extends ComponentCode {
+export default class TriggerCode extends ComponentCode {
     public executeWorkflow:
         | ((executeWorkflow: ExecuteWorkflowType) => Promise<void>)
         | null = null;

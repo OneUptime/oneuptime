@@ -98,7 +98,7 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
-    // Second priorioty.
+    // Second priority.
 
     if (
         argValue &&

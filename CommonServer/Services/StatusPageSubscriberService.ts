@@ -99,7 +99,7 @@ export class Service extends DatabaseService<Model> {
             // Call mail service and send an email.
 
             // get status page domain for this status page.
-            // if the domain is not found, use the internal sttaus page preview link.
+            // if the domain is not found, use the internal status page preview link.
 
             const statusPageURL: string =
                 await StatusPageService.getStatusPageURL(

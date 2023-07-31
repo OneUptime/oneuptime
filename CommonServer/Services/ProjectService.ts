@@ -520,7 +520,7 @@ export class Service extends DatabaseService<Model> {
         let ownerTeam: Team = new Team();
         ownerTeam.projectId = createdItem.id!;
         ownerTeam.name = 'Owners';
-        ownerTeam.shouldHaveAtleastOneMember = true;
+        ownerTeam.shouldHaveAtLeastOneMember = true;
         ownerTeam.isPermissionsEditable = false;
         ownerTeam.isTeamEditable = false;
         ownerTeam.isTeamDeleteable = false;

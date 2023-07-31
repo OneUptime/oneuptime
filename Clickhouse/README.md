@@ -1,3 +1,3 @@
 # Clickhouse
 
-This folder is for clickhouse related files.
+This folder is for Clickhouse related files.

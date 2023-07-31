@@ -155,7 +155,7 @@ export default class QueueWorkflow {
         // Add Workflow Run Log.
         let workflowLog: WorkflowLog | null = null;
         if (!scheduleAt) {
-            // if the workflow is to be run immeidately.
+            // if the workflow is to be run immediately.
             const runLog: WorkflowLog = new WorkflowLog();
             runLog.workflowId = workflowId;
             runLog.projectId = workflow.projectId;

@@ -68,7 +68,7 @@ import WorkflowService from './WorkflowService';
 import WorkflowVariablesService from './WorkflowVariableService';
 import WorkflowLogService from './WorkflowLogService';
 
-// SMS Log Servce
+// SMS Log Service
 import SmsLogService from './SmsLogService';
 import CallLogService from './CallLogService';
 import EmailLogService from './EmailLogService';

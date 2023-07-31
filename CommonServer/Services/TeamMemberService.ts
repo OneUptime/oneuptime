@@ -122,7 +122,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             }
         }
 
-        //check if this user is already ivnited.
+        //check if this user is already invited.
 
         const member: TeamMember | null = await this.findOneBy({
             query: {
@@ -168,7 +168,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             onCreate.createBy.data.projectId!
         );
 
-        await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+        await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
             onCreate.createBy.data.projectId!
         );
 
@@ -234,7 +234,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 hasAcceptedInvitation: true,
                 team: {
                     _id: true,
-                    shouldHaveAtleastOneMember: true,
+                    shouldHaveAtLeastOneMember: true,
                 },
             },
             limit: LIMIT_MAX,
@@ -246,7 +246,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
         // check if there's one member in the team.
         for (const member of members) {
-            if (member.team?.shouldHaveAtleastOneMember) {
+            if (member.team?.shouldHaveAtLeastOneMember) {
                 if (!member.hasAcceptedInvitation) {
                     continue;
                 }
@@ -265,7 +265,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
                 if (membersInTeam.toNumber() <= 1) {
                     throw new BadDataException(
-                        'This team should have atleast 1 member who has accepted the invitation.'
+                        'This team should have at least 1 member who has accepted the invitation.'
                     );
                 }
             }
@@ -282,7 +282,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     ): Promise<OnDelete<TeamMember>> {
         for (const item of onDelete.carryForward as Array<TeamMember>) {
             await this.refreshTokens(item.userId!, item.projectId!);
-            await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+            await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
                 item.projectId!
             );
             await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
@@ -376,7 +376,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         });
     }
 
-    public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+    public async updateSubscriptionSeatsByUniqueTeamMembersInProject(
         projectId: ObjectID
     ): Promise<void> {
         if (!IsBillingEnabled) {

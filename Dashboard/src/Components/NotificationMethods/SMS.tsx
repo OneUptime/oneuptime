@@ -205,7 +205,7 @@ const SMS: FunctionComponent = (): ReactElement => {
                         fields: [
                             {
                                 title: 'Verification Code',
-                                description: `We have sent an SMS with your verifiction code. Please dont forget to check your spam.`,
+                                description: `We have sent a SMS with your verification code. Please don't forget to check your spam.`,
                                 field: {
                                     code: true,
                                 },
@@ -276,9 +276,7 @@ const SMS: FunctionComponent = (): ReactElement => {
                 <ConfirmModal
                     title={`Code sent successfully`}
                     error={error}
-                    description={
-                        'We have sent verification code to your sms. Please dont forget to check your spam.'
-                    }
+                    description={`We have sent a verification code via SMS. Please don't forget to check your spam.`}
                     submitButtonText={'Close'}
                     onSubmit={async () => {
                         setShowVerificationCodeResentModal(false);

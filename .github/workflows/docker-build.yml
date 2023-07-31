@@ -25,7 +25,7 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Accounts/Dockerfile .
 
-  docker-build-link-shortner:
+  docker-build-link-shortener:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -38,7 +38,7 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./LinkShortner/Dockerfile .
+        run: sudo docker build -f ./LinkShortener/Dockerfile .
 
   docker-build-api-reference:
     runs-on: ubuntu-latest

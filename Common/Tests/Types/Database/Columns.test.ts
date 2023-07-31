@@ -15,7 +15,7 @@ describe('class Columns', () => {
         expect(new Columns(cols).columns).toContain('col3');
     });
 
-    test('it should return true if column is inckuded', () => {
+    test('it should return true if column is included', () => {
         const cols: Array<string> = ['col1', 'col2'];
         expect(new Columns(cols).hasColumn('col2')).toBeTruthy();
     });

@@ -20,7 +20,7 @@ describe('Badge', () => {
         const testId: HTMLElement = screen.getByText(1);
         expect(testId).toHaveClass('text-emerald-600');
     });
-    test('it should show sucess when badgetype is equal to success', () => {
+    test('it should show success when badgetype is equal to success', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.SUCCESS} />);
         const testId: HTMLElement = screen.getByText(1);
         expect(testId).toHaveClass('text-emerald-600');

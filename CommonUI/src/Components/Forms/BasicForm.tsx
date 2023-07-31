@@ -189,8 +189,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         }, [props.fields]);
 
         const getFieldName: Function = (field: Field<T>): string => {
-            const fieldName: string = field.overideFieldKey
-                ? field.overideFieldKey
+            const fieldName: string = field.overrideFieldKey
+                ? field.overrideFieldKey
                 : (Object.keys(field.field)[0] as string);
 
             return fieldName;
@@ -233,7 +233,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         const submitForm: Function = (): void => {
-            // check for any boolean values and if they dont exist in values - mark them as false.
+            // check for any boolean values and if they don't exist in values - mark them as false.
 
             setAllTouched();
 
@@ -372,7 +372,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     );
                 }
 
-                // if the field is still null but has a default value then... have the default inital value
+                // if the field is still null but has a default value then... have the default initial value
                 if (
                     field.defaultValue &&
                     (values as any)[fieldName] === undefined

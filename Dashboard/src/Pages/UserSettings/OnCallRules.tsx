@@ -149,7 +149,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             notificationMethod: true,
                         },
                         forceShow: true,
-                        overideFieldKey: 'notificationMethod',
+                        overrideFieldKey: 'notificationMethod',
                         title: 'Notification Method',
                         description: 'How do you want to be notified?',
                         fieldType: FormFieldSchemaType.Dropdown,

@@ -20,7 +20,7 @@ export interface ComponentProps {
     isInitiallyExpanded?: boolean | undefined;
 }
 
-const Accordian: FunctionComponent<ComponentProps> = (
+const Accordion: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -117,4 +117,4 @@ const Accordian: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default Accordian;
+export default Accordion;

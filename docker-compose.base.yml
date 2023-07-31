@@ -42,6 +42,10 @@ x-common-server-variables: &common-server-variables
     DATABASE_PASSWORD: ${DATABASE_PASSWORD}
     DATABASE_NAME: ${DATABASE_NAME}
     DATABASE_HOST: ${DATABASE_HOST}
+    DATABASE_SSL_CA: ${DATABASE_SSL_CA}
+    DATABASE_SSL_KEY: ${DATABASE_SSL_KEY}
+    DATABASE_SSL_CERT: ${DATABASE_SSL_CERT}
+    DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED}
 
     REDIS_PASSWORD: ${REDIS_PASSWORD}
     REDIS_HOST: ${REDIS_HOST}
@@ -206,13 +210,13 @@ services:
        
 
 
-    link-shortner:
+    link-shortener:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-server-variables
-            PORT: ${LINK_SHORTNER_PORT}
+            PORT: ${LINK_SHORTENER_PORT}
         depends_on:
             - redis
             - postgres

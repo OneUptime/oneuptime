@@ -132,7 +132,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             };
                         }
 
-                        // see if it has the trighger node.
+                        // see if it has the trigger node.
 
                         if (
                             !nodes.find((node: Node) => {

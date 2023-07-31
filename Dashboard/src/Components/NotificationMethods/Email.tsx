@@ -205,7 +205,7 @@ const Email: FunctionComponent = (): ReactElement => {
                         fields: [
                             {
                                 title: 'Verification Code',
-                                description: `We have sent verifiction code to your email. Please dont forget to check your spam.`,
+                                description: `We have sent verification code to your email. Please don't forget to check your spam.`,
                                 field: {
                                     code: true,
                                 },
@@ -276,9 +276,7 @@ const Email: FunctionComponent = (): ReactElement => {
                 <ConfirmModal
                     title={`Code sent successfully`}
                     error={error}
-                    description={
-                        'We have sent verification code to your email. Please dont forget to check your spam.'
-                    }
+                    description={`We have sent a verification code to your email. Please don't forget to check your spam.`}
                     submitButtonText={'Close'}
                     onSubmit={async () => {
                         setShowVerificationCodeResentModal(false);

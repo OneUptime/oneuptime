@@ -35,7 +35,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
             },
         });
 
-        // udpate this count in project as well.
+        // update this count in project as well.
         await ProjectService.updateOneById({
             id: projectId,
             data: {
@@ -46,7 +46,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
             },
         });
 
-        // udpate this count in project as well.
+        // update this count in project as well.
         const project: Project | null = await ProjectService.findOneById({
             id: projectId,
             select: {

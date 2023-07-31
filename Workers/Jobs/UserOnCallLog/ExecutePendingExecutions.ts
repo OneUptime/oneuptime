@@ -20,7 +20,7 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-        const pendingNotiifcationLogs: Array<UserOnCallLog> =
+        const pendingNotificationLogs: Array<UserOnCallLog> =
             await UserOnCallLogService.findBy({
                 query: {
                     status: UserNotificationExecutionStatus.Executing,
@@ -48,7 +48,7 @@ RunCron(
 
         const promises: Array<Promise<void>> = [];
 
-        for (const pendingNotificationLog of pendingNotiifcationLogs) {
+        for (const pendingNotificationLog of pendingNotificationLogs) {
             promises.push(
                 executePendingNotificationLog(pendingNotificationLog)
             );
@@ -77,7 +77,7 @@ const executePendingNotificationLog: Function = async (
             },
         });
 
-        const notificaionRules: Array<UserNotificationRule> =
+        const notificationRules: Array<UserNotificationRule> =
             await UserNotificationRuleService.findBy({
                 query: {
                     projectId: pendingNotificationLog.projectId!,
@@ -104,7 +104,7 @@ const executePendingNotificationLog: Function = async (
                 OneUptimeDate.getCurrentDate()
             );
 
-        for (const notificationRule of notificaionRules) {
+        for (const notificationRule of notificationRules) {
             // check if this rule is already executed.
             const isAlreadyExecuted: boolean = Object.keys(
                 pendingNotificationLog.executedNotificationRules! || {}

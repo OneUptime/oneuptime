@@ -167,7 +167,7 @@ export default class ProbeMonitorResponseService {
                 })
                 .flat();
 
-        const autoResolveCriteriaInstanceIdIncidentIdsDictonary: Dictionary<
+        const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
             Array<string>
         > = {};
         const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
@@ -183,16 +183,16 @@ export default class ProbeMonitorResponseService {
                     .incidents) {
                     if (incidentTemplate.autoResolveIncident) {
                         if (
-                            !autoResolveCriteriaInstanceIdIncidentIdsDictonary[
+                            !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
                                 criteriaInstance.data.id.toString()
                             ]
                         ) {
-                            autoResolveCriteriaInstanceIdIncidentIdsDictonary[
+                            autoResolveCriteriaInstanceIdIncidentIdsDictionary[
                                 criteriaInstance.data.id.toString()
                             ] = [];
                         }
 
-                        autoResolveCriteriaInstanceIdIncidentIdsDictonary[
+                        autoResolveCriteriaInstanceIdIncidentIdsDictionary[
                             criteriaInstance.data.id.toString()
                         ]?.push(incidentTemplate.id);
                     }
@@ -252,7 +252,7 @@ export default class ProbeMonitorResponseService {
                 monitor: monitor,
                 rootCause: response.rootCause,
                 dataToProcess: dataToProcess,
-                autoResolveCriteriaInstanceIdIncidentIdsDictonary,
+                autoResolveCriteriaInstanceIdIncidentIdsDictionary,
                 criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
             });
         } else if (
@@ -289,7 +289,7 @@ export default class ProbeMonitorResponseService {
         monitor: Monitor;
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
         rootCause: string;
-        autoResolveCriteriaInstanceIdIncidentIdsDictonary: Dictionary<
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
             Array<string>
         >;
     }): Promise<void> {
@@ -355,8 +355,8 @@ export default class ProbeMonitorResponseService {
             const shouldClose: boolean =
                 ProbeMonitorResponseService.shouldCloseIncident({
                     openIncident,
-                    autoResolveCriteriaInstanceIdIncidentIdsDictonary:
-                        input.autoResolveCriteriaInstanceIdIncidentIdsDictonary,
+                    autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+                        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
                     criteriaInstance: input.criteriaInstance,
                 });
 
@@ -498,7 +498,7 @@ export default class ProbeMonitorResponseService {
 
     private static shouldCloseIncident(input: {
         openIncident: Incident;
-        autoResolveCriteriaInstanceIdIncidentIdsDictonary: Dictionary<
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
             Array<string>
         >;
         criteriaInstance: MonitorCriteriaInstance;
@@ -522,12 +522,12 @@ export default class ProbeMonitorResponseService {
         }
 
         if (
-            input.autoResolveCriteriaInstanceIdIncidentIdsDictonary[
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
                 input.openIncident.createdCriteriaId?.toString()
             ]
         ) {
             if (
-                input.autoResolveCriteriaInstanceIdIncidentIdsDictonary[
+                input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
                     input.openIncident.createdCriteriaId?.toString()
                 ]?.includes(
                     input.openIncident.createdIncidentTemplateId?.toString()
@@ -814,7 +814,7 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        //check reponse code
+        //check response code
         if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
             if (!value) {
                 return null;

@@ -36,6 +36,22 @@ export const DatabasePassword: string =
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
+export const DatabaseSslCa: string | undefined =
+    process.env['DATABASE_SSL_CA'] || undefined;
+
+export const DatabaseSslKey: string | undefined =
+    process.env['DATABASE_SSL_KEY'] || undefined;
+
+export const DatabaseSslCert: string | undefined =
+    process.env['DATABASE_SSL_CERT'] || undefined;
+
+export const DatabaseRejectUnauthorized: boolean =
+    process.env['DATABASE_SSL_REJECT_UNAUTHORIZED'] === 'true';
+
+export const ShouldDatabaseSslEnable: boolean = Boolean(
+    DatabaseSslCa || (DatabaseSslCert && DatabaseSslKey)
+);
+
 export const EncryptionSecret: ObjectID = new ObjectID(
     process.env['ENCRYPTION_SECRET'] || 'secret'
 );
@@ -48,7 +64,7 @@ export const ClusterKey: ObjectID = new ObjectID(
     process.env['ONEUPTIME_SECRET'] || 'secret'
 );
 
-export const hasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
+export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
 export const Domain: Hostname = Hostname.fromString(
     process.env['DOMAIN'] || 'localhost'
@@ -66,8 +82,8 @@ export const WorkerHostname: Hostname = Hostname.fromString(
     process.env['WORKER_HOSTNAME'] || 'worker'
 );
 
-export const LinkShortnerHostname: Route = new Route(
-    process.env['LINK_SHORTNER_HOSTNAME'] || 'link-shortner'
+export const LinkShortenerHostname: Route = new Route(
+    process.env['LINK_SHORTENER_HOSTNAME'] || 'link-shortener'
 );
 
 export const WorkflowHostname: Hostname = Hostname.fromString(
@@ -128,8 +144,8 @@ export const StatusPageRoute: Route = new Route(
     process.env['STATUS_PAGE_ROUTE'] || '/status-page'
 );
 
-export const LinkShortnerRoute: Route = new Route(
-    process.env['LINK_SHORTNER_ROUTE'] || '/l'
+export const LinkShortenerRoute: Route = new Route(
+    process.env['LINK_SHORTENER_ROUTE'] || '/l'
 );
 
 export const DashboardRoute: Route = new Route(

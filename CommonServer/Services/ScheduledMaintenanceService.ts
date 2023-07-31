@@ -51,7 +51,7 @@ export class Service extends DatabaseService<Model> {
 
         if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
             throw new BadDataException(
-                'Scheduled state not found for this project. Please add an scheduled evenmt state from settings.'
+                'Scheduled state not found for this project. Please add an scheduled event state from settings.'
             );
         }
 
@@ -71,8 +71,8 @@ export class Service extends DatabaseService<Model> {
             new ScheduledMaintenanceStateTimeline();
         timeline.projectId = createdItem.projectId!;
         timeline.scheduledMaintenanceId = createdItem.id!;
-        timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, you dont have to notify them for timeline event.
-        timeline.isStatusPageSubscribersNotified = true; // ignore notifying subscribers because you already notify for Scheduled Event, you dont have to notify them for timeline event.
+        timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, you don't have to notify them for timeline event.
+        timeline.isStatusPageSubscribersNotified = true; // ignore notifying subscribers because you already notify for Scheduled Event, you don't have to notify them for timeline event.
         timeline.scheduledMaintenanceStateId =
             createdItem.currentScheduledMaintenanceStateId!;
 

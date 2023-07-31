@@ -1,7 +1,7 @@
 {
     "query": {
         "age": {
-            "_type": "GraterThan",
+            "_type": "GreaterThan",
             "value": 10
         }
     }

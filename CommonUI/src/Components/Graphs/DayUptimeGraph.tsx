@@ -8,7 +8,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Tooltip from '../Tooltip/Toolip';
+import Tooltip from '../Tooltip/Tooltip';
 
 export interface Event {
     startDate: Date;

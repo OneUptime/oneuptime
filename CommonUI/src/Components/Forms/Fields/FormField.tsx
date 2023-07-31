@@ -492,7 +492,7 @@ const FormField: Function = <T extends Object>(
                         props.field.fieldType === FormFieldSchemaType.Phone ||
                         props.field.fieldType === FormFieldSchemaType.Domain ||
                         props.field.fieldType ===
-                            FormFieldSchemaType.PositveNumber) && (
+                            FormFieldSchemaType.PositiveNumber) && (
                         <Input
                             autoFocus={!props.disableAutofocus && index === 1}
                             tabIndex={index}

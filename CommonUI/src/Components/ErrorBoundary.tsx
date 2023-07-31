@@ -36,7 +36,7 @@ const ErrorBoundary: FunctionComponent<ComponentProps> = (
             }}
         >
             <div>
-                An unexpected error has occured. Please reload the page to
+                An unexpected error has occurred. Please reload the page to
                 continue
             </div>
         </div>

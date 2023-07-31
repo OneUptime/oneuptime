@@ -90,11 +90,11 @@ describe('Button', () => {
         );
     });
 
-    test('it should have buttonStyle SECONDRY', () => {
+    test('it should have buttonStyle SECONDARY', () => {
         render(
             <Button
                 dataTestId="test-id"
-                buttonStyle={ButtonStyleType.SECONDRY}
+                buttonStyle={ButtonStyleType.SECONDARY}
             />
         );
         const testId: HTMLElement = screen.getByTestId('test-id');

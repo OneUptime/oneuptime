@@ -1323,7 +1323,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanInviteProjectTeamMembers,
                 title: 'Can Invite New Members',
-                description: 'This permission can inivte users to the team.',
+                description: 'This permission can invite users to the team.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2531,17 +2531,19 @@ export const PermissionsArray: Array<string> = [
     ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
 
-export function instaceOfUserTenantAccessPermission(
+export function instanceOfUserTenantAccessPermission(
     object: any
 ): object is UserTenantAccessPermission {
     return object._type === 'UserTenantAccessPermission';
 }
 
-export function instaceOfUserPermission(object: any): object is UserPermission {
+export function instanceOfUserPermission(
+    object: any
+): object is UserPermission {
     return object._type === 'UserPermission';
 }
 
-export function instaceOfUserGlobalAccessPermission(
+export function instanceOfUserGlobalAccessPermission(
     object: any
 ): object is UserGlobalAccessPermission {
     return object._type === 'UserGlobalAccessPermission';

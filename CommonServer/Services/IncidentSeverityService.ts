@@ -23,12 +23,12 @@ export class Service extends DatabaseService<Model> {
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         if (!createBy.data.order) {
-            throw new BadDataException('Incient severity order is required');
+            throw new BadDataException('Incident severity order is required');
         }
 
         if (!createBy.data.projectId) {
             throw new BadDataException(
-                'Incient severity projectId is required'
+                'Incident severity projectId is required'
             );
         }
 

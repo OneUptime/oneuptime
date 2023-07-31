@@ -29,7 +29,7 @@ export default class MigrateDefaultUserNotificationRule extends DataMigrationBas
         });
 
         for (const user of users) {
-            // then get all the projects the user belogs to.
+            // then get all the projects the user belongs to.
             const teamMembers: Array<TeamMember> =
                 await TeamMemberService.findBy({
                     query: {

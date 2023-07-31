@@ -14,7 +14,7 @@ describe('OrderedSateList', () => {
         orderField: 'order',
         noItemsMessage: 'No Item',
         shouldAddItemInTheEnd: true,
-        shouldAddItemInTheBegining: true,
+        shouldAddItemInTheBeginning: true,
     };
 
     it('should render all components', () => {

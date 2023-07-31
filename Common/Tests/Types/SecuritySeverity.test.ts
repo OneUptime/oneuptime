@@ -1,7 +1,7 @@
 import SecuritySeverity from '../../Types/SecuritySeverity';
 
 describe('enum SecuritySeverity', () => {
-    test('SecuritySeverity.Critical should be Critcal', () => {
+    test('SecuritySeverity.Critical should be Critical', () => {
         expect(SecuritySeverity.Critical).toEqual('Critical');
     });
     test('SecuritySeverity.High should be High', () => {

@@ -1,7 +1,7 @@
 import Dictionary from 'Common/Types/Dictionary';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-export default class JobDictonary {
+export default class JobDictionary {
     private static dictionary: Dictionary<Function> = {};
 
     public static getJobFunction(name: string): Function {

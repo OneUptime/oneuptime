@@ -144,7 +144,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     public sendVerificationCode(item: Model): void {
-        // send verifiction sms.
+        // send verification sms.
         SmsService.sendSms(
             {
                 to: item.phone!,

@@ -142,7 +142,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                     fieldType: FormFieldSchemaType.Password,
                                     placeholder: 'Confirm Password',
                                     title: 'Confirm Password',
-                                    overideFieldKey: 'confirmPassword',
+                                    overrideFieldKey: 'confirmPassword',
                                     required: true,
                                 },
                             ]}

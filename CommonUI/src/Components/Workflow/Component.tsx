@@ -8,7 +8,7 @@ import {
     NodeType,
     Port,
 } from 'Common/Types/Workflow/Component';
-import Tooltip from '../Tooltip/Toolip';
+import Tooltip from '../Tooltip/Tooltip';
 import Pill from '../Pill/Pill';
 import { Green } from 'Common/Types/BrandColors';
 

@@ -43,7 +43,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Announcements"
-                icon={IconProp.Anouncement}
+                icon={IconProp.Announcement}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)

@@ -5,10 +5,10 @@
 - Make sure Docker and Docker Compose is installed. 
 - Make sure Node and NPM are installed. 
 - Run: `npm run dev`
-- Docker will build and run contaienrs. This will take some time. 
+- Docker will build and run containers. This will take some time. 
 - You should see OneUptime Home Page on `http://localhost`
 - The containers are hot reloadable, so any changes you do in local development, it should auto-restart. 
-- However, containers dont auto-restart for chages made to `package.json` / `webpack.config.js` files. If you've made a change to those files, you should build the container again by running: 
+- However, containers don't auto-restart for changes made to `package.json` / `webpack.config.js` files. If you've made a change to those files, you should build the container again by running: 
 ```
 npm run force-build-dev <application_name>
 

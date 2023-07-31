@@ -69,13 +69,13 @@ export default class Hostname extends DatabaseProperty {
     }
 
     public override toString(): string {
-        let hostame: string = this.hostname;
+        let hostname: string = this.hostname;
 
         if (this.port) {
-            hostame += ':' + this.port.toString();
+            hostname += ':' + this.port.toString();
         }
 
-        return hostame;
+        return hostname;
     }
 
     public static fromString(hostname: string): Hostname {

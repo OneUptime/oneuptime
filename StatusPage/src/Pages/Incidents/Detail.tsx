@@ -89,7 +89,7 @@ export const getIncidentEventItem: Function = (
                 iconColor: Grey,
             });
 
-            // If this incident is a sumamry then dont include all the notes .
+            // If this incident is a sumamry then don't include all the notes .
             if (isSummary) {
                 break;
             }
@@ -123,7 +123,7 @@ export const getIncidentEventItem: Function = (
                     incidentStateTimeline.incidentState?.color || Green;
             }
 
-            // If this incident is a sumamry then dont include all the notes .
+            // If this incident is a sumamry then don't include all the notes .
             if (isSummary) {
                 break;
             }

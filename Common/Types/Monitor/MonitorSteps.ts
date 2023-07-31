@@ -43,7 +43,7 @@ export default class MonitorSteps extends DatabaseProperty {
         const monitorSteps: MonitorSteps = new MonitorSteps();
 
         monitorSteps.data = {
-            monitorStepsInstanceArray: [MonitorStep.getDefaultMoniorStep(arg)],
+            monitorStepsInstanceArray: [MonitorStep.getDefaultMonitorStep(arg)],
             defaultMonitorStatusId: arg.defaultMonitorStatusId,
         };
 
