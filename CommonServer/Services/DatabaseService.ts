@@ -178,7 +178,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     protected checkRequiredFields(data: TBaseModel): TBaseModel {
         // Check required fields.
 
-        const relatationalColumns: Dictionary<string> = {};
+        const relationalColumns: Dictionary<string> = {};
 
         const tableColumns: Array<string> = data.getTableColumns().columns;
 
@@ -186,7 +186,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const metadata: TableColumnMetadata =
                 data.getTableColumnMetadata(column);
             if (metadata.manyToOneRelationColumn) {
-                relatationalColumns[metadata.manyToOneRelationColumn] = column;
+                relationalColumns[metadata.manyToOneRelationColumn] = column;
             }
         }
 
@@ -216,9 +216,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 }
 
                 if (
-                    relatationalColumns[requiredField] &&
+                    relationalColumns[requiredField] &&
                     data.getColumnValue(
-                        relatationalColumns[requiredField] as string
+                        relationalColumns[requiredField] as string
                     )
                 ) {
                     continue;
@@ -737,16 +737,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
             const query: Query<TBaseModel> = {};
 
-            for (const uniqueByCoumnName of uniqueColumnsBy[
+            for (const uniqueByColumnName of uniqueColumnsBy[
                 key
             ] as Array<string>) {
                 const columnValue: JSONValue = (createBy.data as any)[
-                    uniqueByCoumnName as string
+                    uniqueByColumnName as string
                 ];
                 if (columnValue === null || columnValue === undefined) {
-                    (query as any)[uniqueByCoumnName] = QueryHelper.isNull();
+                    (query as any)[uniqueByColumnName] = QueryHelper.isNull();
                 } else {
-                    (query as any)[uniqueByCoumnName] = columnValue;
+                    (query as any)[uniqueByColumnName] = columnValue;
                 }
             }
 
@@ -1156,7 +1156,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         for (const key in findBy.select) {
-            // for each key in sleect check if there's nested properties, this indicates there's a relation.
+            // for each key in select check if there's nested properties, this indicates there's a relation.
             if (typeof findBy.select[key] === Typeof.Object) {
                 // get meta data to check if this column is an entity array.
                 const tableColumnMetadata: TableColumnMetadata =

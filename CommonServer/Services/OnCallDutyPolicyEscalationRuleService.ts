@@ -139,7 +139,7 @@ export class Service extends DatabaseService<Model> {
 
         // get unique users and notify all the users.
 
-        const startUserNotifcationRuleExecution: Function = async (
+        const startUserNotificationRuleExecution: Function = async (
             userId: ObjectID,
             teamId: ObjectID | undefined
         ): Promise<void> => {
@@ -190,7 +190,7 @@ export class Service extends DatabaseService<Model> {
                     })
                 ) {
                     uniqueUserIds.push(user.id!);
-                    await startUserNotifcationRuleExecution(
+                    await startUserNotificationRuleExecution(
                         user.id!,
                         teamInRule.teamId!
                     );
@@ -221,7 +221,7 @@ export class Service extends DatabaseService<Model> {
                 })
             ) {
                 uniqueUserIds.push(userRule.userId!);
-                await startUserNotifcationRuleExecution(
+                await startUserNotificationRuleExecution(
                     userRule.userId!,
                     undefined
                 );

@@ -114,7 +114,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                         {!componentsToShow ||
                             (componentsToShow.length === 0 && (
                                 <div className="w-full flex justify-center mt-20">
-                                    <ErrorMessage error="No components that match your search. If you are looking for an intergration that does not exist currently - you can use Custom Code or API component to build anything you like. If you are an enterprise customer, feel free to talk to us and we will build it for you." />
+                                    <ErrorMessage error="No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like. If you are an enterprise customer, feel free to talk to us and we will build it for you." />
                                 </div>
                             ))}
 

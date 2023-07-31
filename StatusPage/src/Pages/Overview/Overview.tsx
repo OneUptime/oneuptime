@@ -6,8 +6,8 @@ import React, {
 } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
-import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
-import AccordianGroup from 'CommonUI/src/Components/Accordian/AccordianGroup';
+import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
+import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
 import Alert from 'CommonUI/src/Components/Alerts/Alert';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -477,7 +477,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return groups;
         };
 
-    const getRightAccordianElement: Function = (
+    const getRightAccordionElement: Function = (
         group: StatusPageGroup
     ): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();
@@ -550,7 +550,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         </div>
                     )}
 
-                    {/* Load Active Anouncement */}
+                    {/* Load Active Announcement */}
                     {activeAnnouncements.map(
                         (announcement: StatusPageAnnouncement, i: number) => {
                             return (
@@ -634,13 +634,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                     {statusPageResources.length > 0 && (
                         <div className="bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5">
-                            <AccordianGroup>
+                            <AccordionGroup>
                                 {statusPageResources.filter(
                                     (resources: StatusPageResource) => {
                                         return !resources.statusPageGroupId;
                                     }
                                 ).length > 0 ? (
-                                    <Accordian
+                                    <Accordion
                                         key={Math.random()}
                                         title={undefined}
                                         isLastElement={
@@ -648,7 +648,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         }
                                     >
                                         {getMonitorOverviewListInGroup(null)}
-                                    </Accordian>
+                                    </Accordion>
                                 ) : (
                                     <></>
                                 )}
@@ -665,9 +665,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                 i: number
                                             ) => {
                                                 return (
-                                                    <Accordian
+                                                    <Accordion
                                                         key={i}
-                                                        rightElement={getRightAccordianElement(
+                                                        rightElement={getRightAccordionElement(
                                                             resourceGroup
                                                         )}
                                                         isInitiallyExpanded={
@@ -688,12 +688,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         {getMonitorOverviewListInGroup(
                                                             resourceGroup
                                                         )}
-                                                    </Accordian>
+                                                    </Accordion>
                                                 );
                                             }
                                         )}
                                 </div>
-                            </AccordianGroup>
+                            </AccordionGroup>
                         </div>
                     )}
 

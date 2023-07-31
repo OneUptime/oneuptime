@@ -1,4 +1,4 @@
-import JobDictonary from './JobDictionary';
+import JobDictionary from './JobDictionary';
 import Queue, { QueueName } from 'CommonServer/Infrastructure/Queue';
 import logger from 'CommonServer/Utils/Logger';
 
@@ -10,7 +10,7 @@ const RunCron: Function = (
     },
     runFunction: Function
 ): void => {
-    JobDictonary.setJobFunction(jobName, runFunction);
+    JobDictionary.setJobFunction(jobName, runFunction);
 
     logger.info('Adding job to the queue: ' + jobName);
 

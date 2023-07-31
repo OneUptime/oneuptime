@@ -51,7 +51,7 @@ export class Service extends DatabaseService<Model> {
 
         if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
             throw new BadDataException(
-                'Scheduled state not found for this project. Please add an scheduled evenmt state from settings.'
+                'Scheduled state not found for this project. Please add an scheduled event state from settings.'
             );
         }
 

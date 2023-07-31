@@ -36,7 +36,7 @@ import StatusPageCerts from './Jobs/StatusPageCerts/StatusPageCerts';
 
 // Express
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
-import JobDictonary from './Utils/JobDictionary';
+import JobDictionary from './Utils/JobDictionary';
 
 // Monitor Owners
 import './Jobs/MonitorOwners/SendCreatedResourceNotification';
@@ -98,7 +98,7 @@ const init: Function = async (): Promise<void> => {
 
                 logger.info('Running Job: ' + name);
 
-                const funcToRun: Function = JobDictonary.getJobFunction(name);
+                const funcToRun: Function = JobDictionary.getJobFunction(name);
 
                 if (funcToRun) {
                     await funcToRun();

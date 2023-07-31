@@ -180,7 +180,7 @@ export default class FindManyBaseModel<
                 executePort: successPort,
             };
         } catch (err: any) {
-            options.log('Error runnning component');
+            options.log('Error running component');
             options.log(
                 err.message ? err.message : JSON.stringify(err, null, 2)
             );

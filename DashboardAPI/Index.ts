@@ -335,7 +335,7 @@ import OnCallDutyPolicyCustomFieldService, {
     Service as OnCallDutyPolicyCustomFieldServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyCustomFieldService';
 
-import UserNotificaitonLogTimelineAPI from 'CommonServer/API/UserOnCallLogTimelineAPI';
+import UserNotificationLogTimelineAPI from 'CommonServer/API/UserOnCallLogTimelineAPI';
 
 import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import UserOnCallLogService, {
@@ -759,7 +759,7 @@ app.use(
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new UserNotificaitonLogTimelineAPI().getRouter()
+    new UserNotificationLogTimelineAPI().getRouter()
 );
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());

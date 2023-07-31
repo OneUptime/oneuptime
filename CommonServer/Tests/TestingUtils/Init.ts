@@ -1,5 +1,5 @@
 process.env['NODE_ENV'] = 'test';
-import '../../Utils/Envrionment';
+import '../../Utils/Environment';
 
 import dotenv from 'dotenv';
 

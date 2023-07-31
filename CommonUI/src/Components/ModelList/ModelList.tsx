@@ -10,7 +10,7 @@ import ModelAPI, {
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
 import Input from '../Input/Input';
-import StaicModelList from '../ModelList/StaticModelList';
+import StaticModelList from '../ModelList/StaticModelList';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import API from '../../Utils/API/API';
 import URL from 'Common/Types/API/URL';
@@ -167,7 +167,7 @@ const ModelList: Function = <TBaseModel extends BaseModel>(
                 )}
 
                 {!error && !isLoading && (
-                    <StaicModelList<WorkflowVariable>
+                    <StaticModelList<WorkflowVariable>
                         list={searchedList}
                         headerField={props.headerField}
                         descriptionField={props.descriptionField}

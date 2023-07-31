@@ -56,7 +56,7 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
-        // get user notifcation log and see if this rule has already been executed. If so then skip.
+        // get user notification log and see if this rule has already been executed. If so then skip.
 
         const userOnCallLog: UserOnCallLog | null =
             await UserOnCallLogService.findOneById({

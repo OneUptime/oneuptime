@@ -12,7 +12,7 @@ describe('class Version', () => {
         expect(version.version).toEqual('1.2.2');
         expect(version.toString()).toEqual('1.2.2');
     });
-    test('mutating Version.version with invalid data should throw an BadDataExcepection', () => {
+    test('mutating Version.version with invalid data should throw an BadDataException', () => {
         const version: Version = new Version('1.0.0');
         expect(() => {
             version.version = '1';
@@ -24,7 +24,7 @@ describe('class Version', () => {
             version.version = '1.1.0.0';
         }).toThrowError(BadDataException);
     });
-    test('creating version new  Version with invalid data should throw an BadDataExcepection', () => {
+    test('creating version new  Version with invalid data should throw an BadDataException', () => {
         expect(() => {
             new Version('1');
         }).toThrowError(BadDataException);

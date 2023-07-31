@@ -31,7 +31,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [component, setComponent] = useState<NodeDataProp>(props.component);
-    const [hasFormValidationErrors, setHasFormValidatonErrors] = useState<
+    const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
         Dictionary<boolean>
     >({});
     const [showDeleteConfirmation, setShowDeleteConfirmation] =
@@ -83,7 +83,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                             setComponent({ ...component, ...values });
                         }}
                         onFormValidationErrorChanged={(hasError: boolean) => {
-                            setHasFormValidatonErrors({
+                            setHasFormValidationErrors({
                                 ...hasFormValidationErrors,
                                 id: hasError,
                             });
@@ -126,8 +126,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     onFormChange={(component: NodeDataProp) => {
                         setComponent({ ...component });
                     }}
-                    onHasFormValidatonErrors={(value: Dictionary<boolean>) => {
-                        setHasFormValidatonErrors({
+                    onHasFormValidationErrors={(value: Dictionary<boolean>) => {
+                        setHasFormValidationErrors({
                             ...hasFormValidationErrors,
                             ...value,
                         });

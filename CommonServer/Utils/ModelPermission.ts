@@ -972,7 +972,7 @@ export default class ModelPermission {
             if (!canReadOnTheseColumns.columns.includes(key)) {
                 if (!tableColumns.includes(key)) {
                     throw new BadDataException(
-                        `Invalid select clause. Cannnot select on "${key}". This column does not exist on ${
+                        `Invalid select clause. Cannot select on "${key}". This column does not exist on ${
                             model.singularName
                         }. Here are the columns you can select on instead: ${tableColumns.join(
                             ', '
@@ -1217,7 +1217,7 @@ export default class ModelPermission {
         // Include global permission in userPermissions.
 
         if (props.userGlobalAccessPermission) {
-            /// take gloabl permissions.
+            /// take global permissions.
             userPermissions =
                 props.userGlobalAccessPermission.globalPermissions.map(
                     (permission: Permission) => {

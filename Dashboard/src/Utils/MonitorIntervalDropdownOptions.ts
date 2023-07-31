@@ -1,6 +1,6 @@
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
-const MonitoringIntrerval: Array<DropdownOption> = [
+const MonitoringInterval: Array<DropdownOption> = [
     {
         value: '* * * * *',
         label: 'Every Minute',
@@ -35,4 +35,4 @@ const MonitoringIntrerval: Array<DropdownOption> = [
     },
 ];
 
-export default MonitoringIntrerval;
+export default MonitoringInterval;

@@ -37,7 +37,7 @@ export class Service extends DatabaseService<Model> {
         _updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
         if (onUpdate.updateBy.data.status) {
-            //update the correspomnding oncallTimeline.
+            //update the corresponding oncallTimeline.
             const items: Array<Model> = await this.findBy({
                 query: onUpdate.updateBy.query,
                 select: {
@@ -250,7 +250,7 @@ export class Service extends DatabaseService<Model> {
             notificationRuleType =
                 NotificationRuleType.ON_CALL_INCIDENT_CREATED;
         } else {
-            // Invlaid user notification event type.
+            // Invalid user notification event type.
             throw new BadDataException('Invalid user notification event type.');
         }
         return notificationRuleType;

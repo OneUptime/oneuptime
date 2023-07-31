@@ -48,7 +48,7 @@ const components: Array<ComponentMetadata> = [
             {
                 title: 'Out',
                 description:
-                    'Connect to this port if you want other componets to execute after tha value has been logged.',
+                    'Connect to this port if you want other components to execute after the value has been logged.',
                 id: 'out',
             },
         ],

@@ -117,7 +117,7 @@ describe('Input', () => {
         expect(screen.getByDisplayValue(value)).toBeInTheDocument();
     });
 
-    test('value overrides initalValue', () => {
+    test('value overrides initialValue', () => {
         const value: string = 'value';
         const initialValue: string = 'initial value';
 
@@ -136,7 +136,7 @@ describe('Input', () => {
         expect(screen.getByDisplayValue(newValue)).toBeInTheDocument();
     });
 
-    test('resets input to initalValue when value changes to empty string', () => {
+    test('resets input to initialValue when value changes to empty string', () => {
         const value: string = 'value';
         const initialValue: string = 'initial value';
 

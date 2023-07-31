@@ -144,7 +144,7 @@ export default class UserMiddleware {
             oneuptimeRequest.userAuthorization =
                 JSONWebToken.decode(accessToken);
         } catch (err) {
-            // if the tokken is invalid or expired, it'll throw this error.
+            // if the token is invalid or expired, it'll throw this error.
             oneuptimeRequest.userType = UserType.Public;
             return next();
         }

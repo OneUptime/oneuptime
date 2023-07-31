@@ -77,7 +77,7 @@ const executePendingNotificationLog: Function = async (
             },
         });
 
-        const notificaionRules: Array<UserNotificationRule> =
+        const notificationRules: Array<UserNotificationRule> =
             await UserNotificationRuleService.findBy({
                 query: {
                     projectId: pendingNotificationLog.projectId!,
@@ -104,7 +104,7 @@ const executePendingNotificationLog: Function = async (
                 OneUptimeDate.getCurrentDate()
             );
 
-        for (const notificationRule of notificaionRules) {
+        for (const notificationRule of notificationRules) {
             // check if this rule is already executed.
             const isAlreadyExecuted: boolean = Object.keys(
                 pendingNotificationLog.executedNotificationRules! || {}

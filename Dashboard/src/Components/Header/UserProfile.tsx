@@ -5,11 +5,11 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
-import IconDropdwonItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
-import IconDropdwonMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
+import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
+import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
 
 export interface ComponentProps {
-    onClickUserProfle: () => void;
+    onClickUserProfile: () => void;
 }
 
 const DashboardUserProfile: FunctionComponent<ComponentProps> = (
@@ -27,17 +27,17 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
                     setIsDropdownVisible(true);
                 }}
             >
-                <IconDropdwonMenu>
-                    <IconDropdwonItem
+                <IconDropdownMenu>
+                    <IconDropdownItem
                         title="Profile"
                         onClick={() => {
                             setIsDropdownVisible(false);
-                            props.onClickUserProfle();
+                            props.onClickUserProfile();
                         }}
                         icon={IconProp.User}
                     />
 
-                    <IconDropdwonItem
+                    <IconDropdownItem
                         title="Log out"
                         onClick={() => {
                             setIsDropdownVisible(false);
@@ -47,7 +47,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
                         )}
                         icon={IconProp.Logout}
                     />
-                </IconDropdwonMenu>
+                </IconDropdownMenu>
             </HeaderIconDropdownButton>
         </>
     );

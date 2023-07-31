@@ -53,7 +53,7 @@ export class Service extends DatabaseService<Model> {
         const domains: Array<Model> = await this.findBy({
             query: {
                 ...deleteBy.query,
-                isAddedtoGreenlock: true,
+                isAddedToGreenlock: true,
             },
 
             skip: 0,

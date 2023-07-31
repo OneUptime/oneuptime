@@ -82,7 +82,7 @@ const VerifyEmail: FunctionComponent = () => {
                                                     Your email is verified.
                                                 </h5>
                                                 <p className="text-muted mt-2 mb-0">
-                                                    Thank you for veryfing your
+                                                    Thank you for verifying your
                                                     email. You can now log in to
                                                     OneUptime.{' '}
                                                 </p>

@@ -221,7 +221,7 @@ export default class JSONFunctions {
         return returnValue as JSONValue;
     }
 
-    // this funciton serializes JSON with Common Objects to JSON that can be stringified.
+    // this function serializes JSON with Common Objects to JSON that can be stringified.
     public static serialize(val: JSONObject): JSONObject {
         const newVal: JSONObject = {};
 

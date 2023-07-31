@@ -227,7 +227,7 @@ backendProtocol:
 # Status page CNAME to display whcih customers will set on the cusom domain tab of status page.
 statusPageDomain:
 
-# Push notificaitons. 
+# Push Notifications. 
 # Generate public and pivate key for push notifications. 
 # These are just the test keys. 
 # You can generate them by: 

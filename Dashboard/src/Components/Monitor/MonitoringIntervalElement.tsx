@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import MonitoringIntrerval from '../../Utils/MonitorIntervalDropdownOptions';
+import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 export interface ComponentProps {
@@ -13,7 +13,7 @@ const MonitoringIntervalElement: FunctionComponent<ComponentProps> = (
         return (
             <div>
                 {
-                    MonitoringIntrerval.find((item: DropdownOption) => {
+                    MonitoringInterval.find((item: DropdownOption) => {
                         return item.value === props.monitoringInterval;
                     })?.label
                 }

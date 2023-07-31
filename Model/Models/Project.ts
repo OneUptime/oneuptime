@@ -592,7 +592,7 @@ export default class Model extends TenantModel {
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Enable SMS Notifications',
-        description: 'Enable SMS notificaitons for this project.',
+        description: 'Enable SMS notifications for this project.',
     })
     @Column({
         nullable: false,
@@ -618,7 +618,7 @@ export default class Model extends TenantModel {
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Enable Call Notifications',
-        description: 'Enable call notificaitons for this project.',
+        description: 'Enable call notifications for this project.',
     })
     @Column({
         nullable: false,

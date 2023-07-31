@@ -47,7 +47,7 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnDelete<Model>> {
         if (!deleteBy.query._id && !deleteBy.props.isRoot) {
             throw new BadDataException(
-                '_id should be present when deleting Monitor Statuss. Please try the delete with objectId'
+                '_id should be present when deleting Monitor Status. Please try the delete with objectId'
             );
         }
 

@@ -102,7 +102,7 @@ export default class RunWorkflow {
 
             if (!runProps.workflowLogId) {
                 // create a new workflow log here.
-                // if the workflow is to be run immeidately.
+                // if the workflow is to be run immediately.
                 const runLog: WorkflowLog = new WorkflowLog();
                 runLog.workflowId = runProps.workflowId;
                 runLog.projectId = workflow.projectId!;
@@ -169,7 +169,7 @@ export default class RunWorkflow {
                 }
 
                 // get component.
-                // and remoev that component from the stack.
+                // and remove that component from the stack.
                 executeComponentId =
                     fifoStackOfComponentsPendingExecution.shift()!;
 

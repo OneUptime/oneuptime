@@ -31,7 +31,7 @@ describe('AlertEventType', () => {
         );
     });
 
-    test('AlertEventType.ScheduledMaintenanceResolved to sheduled mantainance resolved', () => {
+    test('AlertEventType.ScheduledMaintenanceResolved to scheduled maintenance resolved', () => {
         expect(AlertEventType.ScheduledMaintenanceResolved).toBe(
             'Scheduled maintenance resolved'
         );

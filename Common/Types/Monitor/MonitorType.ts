@@ -47,9 +47,9 @@ export class MonitorTypeHelper {
             },
             // {
             //     monitorType: MonitorType.Kubernetes,
-            //     title: 'Kubenretes',
+            //     title: 'Kubernetes',
             //     description:
-            //         'This monitor types lets you monitor kuberetes clusters.',
+            //         'This monitor types lets you monitor Kubernetes clusters.',
             // },
             {
                 monitorType: MonitorType.IP,
@@ -61,7 +61,7 @@ export class MonitorTypeHelper {
             //     monitorType: MonitorType.IncomingRequest,
             //     title: 'Incoming Request',
             //     description:
-            //         'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
+            //         'This monitor types lets you ping OneUptime from any external device or service with a custom payload.',
             // },
         ];
 

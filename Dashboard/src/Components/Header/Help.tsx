@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
-import IconDropdwonItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
-import IconDropdwonMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
-import IconDropdwonRow from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownRow';
+import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
+import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
+import IconDropdownRow from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownRow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import URL from 'Common/Types/API/URL';
 
@@ -18,9 +18,9 @@ const Help: FunctionComponent = (): ReactElement => {
                 setIsDropdownVisible(true);
             }}
         >
-            <IconDropdwonMenu>
-                <IconDropdwonRow>
-                    <IconDropdwonItem
+            <IconDropdownMenu>
+                <IconDropdownRow>
+                    <IconDropdownItem
                         title="Support Email"
                         icon={IconProp.Email}
                         openInNewTab={true}
@@ -29,7 +29,7 @@ const Help: FunctionComponent = (): ReactElement => {
                             setIsDropdownVisible(false);
                         }}
                     />
-                    <IconDropdwonItem
+                    <IconDropdownItem
                         title="Chat on Slack"
                         icon={IconProp.Slack}
                         openInNewTab={true}
@@ -40,7 +40,7 @@ const Help: FunctionComponent = (): ReactElement => {
                             'https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ'
                         )}
                     />
-                    <IconDropdwonItem
+                    <IconDropdownItem
                         title="Request Demo"
                         icon={IconProp.Window}
                         onClick={() => {
@@ -51,8 +51,8 @@ const Help: FunctionComponent = (): ReactElement => {
                             'https://oneuptime.com/enterprise/demo'
                         )}
                     />
-                </IconDropdwonRow>
-            </IconDropdwonMenu>
+                </IconDropdownRow>
+            </IconDropdownMenu>
         </HeaderIconDropdownButton>
     );
 };

@@ -14,7 +14,7 @@ import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
 const Upgrade: FunctionComponent = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
-    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
+    const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
 
     const getFooter: Function = (): ReactElement => {
@@ -25,7 +25,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
         return (
             <Toggle
                 title="Yearly Plan"
-                initialValue={isSubsriptionPlanYearly}
+                initialValue={isSubscriptionPlanYearly}
                 description="(Save 20%)"
                 onChange={(value: boolean) => {
                     setIsSubscriptionPlanYearly(value);
@@ -83,7 +83,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                 plan.isCustomPricing()
                                                     ? `Our sales team will contact you soon.`
                                                     : `Billed ${
-                                                          isSubsriptionPlanYearly
+                                                          isSubscriptionPlanYearly
                                                               ? 'yearly'
                                                               : 'monthly'
                                                       }. ${
@@ -94,7 +94,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                       }`;
 
                                             if (
-                                                isSubsriptionPlanYearly &&
+                                                isSubscriptionPlanYearly &&
                                                 plan.getYearlySubscriptionAmountInUSD() ===
                                                     0
                                             ) {
@@ -103,7 +103,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                             }
 
                                             if (
-                                                !isSubsriptionPlanYearly &&
+                                                !isSubscriptionPlanYearly &&
                                                 plan.getMonthlySubscriptionAmountInUSD() ===
                                                     0
                                             ) {
@@ -112,7 +112,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                             }
 
                                             return {
-                                                value: isSubsriptionPlanYearly
+                                                value: isSubscriptionPlanYearly
                                                     ? plan.getYearlyPlanId()
                                                     : plan.getMonthlyPlanId(),
                                                 title: plan.getName(),
@@ -120,7 +120,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                 sideTitle:
                                                     plan.isCustomPricing()
                                                         ? 'Custom Price'
-                                                        : isSubsriptionPlanYearly
+                                                        : isSubscriptionPlanYearly
                                                         ? '$' +
                                                           plan
                                                               .getYearlySubscriptionAmountInUSD()
@@ -133,7 +133,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                 sideDescription:
                                                     plan.isCustomPricing()
                                                         ? ''
-                                                        : isSubsriptionPlanYearly
+                                                        : isSubscriptionPlanYearly
                                                         ? `~ $${
                                                               plan.getYearlySubscriptionAmountInUSD() *
                                                               12

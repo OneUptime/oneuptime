@@ -1323,7 +1323,7 @@ export class PermissionHelper {
             {
                 permission: Permission.CanInviteProjectTeamMembers,
                 title: 'Can Invite New Members',
-                description: 'This permission can inivte users to the team.',
+                description: 'This permission can invite users to the team.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
