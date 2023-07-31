@@ -7,7 +7,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 
 export enum ButtonStyleType {
     PRIMARY,
-    SECONDRY,
+    SECONDARY,
     OUTLINE,
     NORMAL,
     DANGER,
@@ -152,7 +152,7 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     }
 
-    if (buttonStyle === ButtonStyleType.SECONDRY) {
+    if (buttonStyle === ButtonStyleType.SECONDARY) {
         loadingIconClassName += ` text-indigo-500`;
         buttonStyleCssClass = `inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 ${
             disabled ? 'hover:bg-indigo-200' : ''
