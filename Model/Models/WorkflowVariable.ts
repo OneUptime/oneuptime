@@ -272,7 +272,7 @@ export default class WorkflowVariable extends BaseModel {
     })
     @TableColumn({
         required: true,
-        type: TableColumnType.LongText,
+        type: TableColumnType.VeryLongText,
         title: 'Content',
         description: 'Content of the variable',
     })

@@ -18,6 +18,7 @@ enum ColumnType {
     ShortText = 'Text',
     OTP = 'One Time Password',
     LongText = 'Long Text',
+    VeryLongText = 'Very Long Text',
     HTML = 'HTML',
     JavaScript = 'JavaSCript',
     CSS = 'CSS',

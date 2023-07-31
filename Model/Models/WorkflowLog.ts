@@ -180,7 +180,7 @@ export default class WorkflowLog extends BaseModel {
     })
     @TableColumn({
         required: false,
-        type: TableColumnType.LongText,
+        type: TableColumnType.VeryLongText,
         title: 'Logs',
         description: 'Logs',
     })
