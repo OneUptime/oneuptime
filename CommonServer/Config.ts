@@ -134,7 +134,7 @@ export const RedisPassword: string =
 export const RedisTlsCa: string | undefined =
     process.env['REDIS_TLS_CA'] || undefined;
 export const RedisTlsSentinelMode: boolean =
-    process.env['REDIS_TLS_SENTINEL_MODE'] === 'true'
+    process.env['REDIS_TLS_SENTINEL_MODE'] === 'true';
 
 export const DashboardApiRoute: Route = new Route(
     process.env['DASHBOARD_API_ROUTE'] || '/dashboard-api'
