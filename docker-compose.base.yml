@@ -88,6 +88,18 @@ x-common-server-variables: &common-server-variables
 
 
 services:
+
+    minio: 
+        networks:
+          - oneuptime
+        image:  minio/minio:latest
+        restart: always
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+            MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+        volumes: 
+            - minio:/data
     
     haraka:
         networks:
@@ -383,6 +395,7 @@ services:
 volumes:
     postgres:
     clickhouse:
+    minio: 
 
 networks:
   oneuptime:

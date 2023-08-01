@@ -2,6 +2,15 @@ version: '3.7'
 
 services:
     
+
+    minio:
+        ports: 
+            - '3552:9000'
+            - '3553:9001'
+        extends:
+            file: ./docker-compose.base.yml
+            service: minio
+
     haraka:
         extends:
             file: ./docker-compose.base.yml
@@ -399,6 +408,7 @@ services:
 volumes:
     postgres:
     clickhouse:
+    minio:
 
 networks:
   oneuptime: 
