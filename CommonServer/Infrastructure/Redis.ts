@@ -6,8 +6,10 @@ import {
     RedisPort,
     RedisUsername,
     RedisPassword,
+    RedisDb,
     RedisTlsCa,
     RedisTlsSentinelMode,
+    ShouldRedisTlsEnable,
 } from '../Config';
 import logger from '../Utils/Logger';
 
@@ -21,7 +23,7 @@ export default abstract class Redis {
             return false;
         }
 
-        return this.client.isReady;
+        return this.client.status === 'ready';
     }
 
     public static getClient(): RedisClient | null {
@@ -32,16 +34,18 @@ export default abstract class Redis {
         let retry: number = 0;
 
         try {
+            const tlsOptions: object = ShouldRedisTlsEnable
+                ? { ca: RedisTlsCa }
+                : {};
             this.client = new RedisClient({
                 host: RedisHostname,
                 port: RedisPort.toNumber(),
                 username: RedisUsername,
                 password: RedisPassword,
-                db: RedisDB.toNumber(),
-                tls: RedisTlsCa ? {
-                    ca: RedisTlsCa
-                } : false,
-                enableTLSForSentinelMode: RedisTlsSentinelMode
+                db: RedisDb,
+                enableTLSForSentinelMode: RedisTlsSentinelMode,
+                tls: tlsOptions,
+                lazyConnect: true,
             });
 
             const connectToDatabase: Function = async (
