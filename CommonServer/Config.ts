@@ -136,6 +136,10 @@ export const RedisTlsCa: string | undefined =
 export const RedisTlsSentinelMode: boolean =
     process.env['REDIS_TLS_SENTINEL_MODE'] === 'true';
 
+export const ShouldRedisTlsEnable: boolean = Boolean(
+    RedisTlsCa || RedisTlsSentinelMode
+);
+
 export const DashboardApiRoute: Route = new Route(
     process.env['DASHBOARD_API_ROUTE'] || '/dashboard-api'
 );
