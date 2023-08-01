@@ -1,12 +1,20 @@
 import Sleep from 'Common/Types/Sleep';
-import { createClient, RedisClientType } from 'redis';
-import { RedisHostname, RedisPassword, RedisPort } from '../Config';
+// import { createClient, RedisClientType } from 'redis';
+import { Redis as RedisClient } from 'ioredis';
+import {
+    RedisHostname,
+    RedisPort,
+    RedisUsername,
+    RedisPassword,
+    RedisTlsCa,
+    RedisTlsSentinelMode,
+} from '../Config';
 import logger from '../Utils/Logger';
 
-export type ClientType = RedisClientType;
+export type ClientType = RedisClient;
 
 export default abstract class Redis {
-    private static client: RedisClientType | null = null;
+    private static client: RedisClient | null = null;
 
     public static isConnected(): boolean {
         if (!this.client) {
@@ -16,24 +24,28 @@ export default abstract class Redis {
         return this.client.isReady;
     }
 
-    public static getClient(): RedisClientType | null {
+    public static getClient(): RedisClient | null {
         return this.client;
     }
 
-    public static async connect(): Promise<RedisClientType> {
+    public static async connect(): Promise<RedisClient> {
         let retry: number = 0;
 
         try {
-            this.client = createClient({
+            this.client = new RedisClient({
+                host: RedisHostname,
+                port: RedisPort.toNumber(),
+                username: RedisUsername,
                 password: RedisPassword,
-                socket: {
-                    host: RedisHostname,
-                    port: RedisPort.toNumber(),
-                },
+                db: RedisDB.toNumber(),
+                tls: RedisTlsCa ? {
+                    ca: RedisTlsCa
+                } : false,
+                enableTLSForSentinelMode: RedisTlsSentinelMode
             });
 
             const connectToDatabase: Function = async (
-                client: RedisClientType
+                client: RedisClient
             ): Promise<void> => {
                 try {
                     await client.connect();
@@ -66,9 +78,9 @@ export default abstract class Redis {
         }
     }
 
-    public static async disconnect(): Promise<void> {
+    public static disconnect(): void {
         if (this.isConnected()) {
-            await this.client?.disconnect();
+            this.client?.disconnect();
             this.client = null;
         }
     }

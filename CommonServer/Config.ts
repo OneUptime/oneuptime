@@ -126,9 +126,15 @@ export const HttpProtocol: Protocol = (
 
 // Redis does not require password.
 export const RedisHostname: string = process.env['REDIS_HOST'] || 'redis';
+export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '6379');
+export const RedisDb: number = Number(process.env['REDIS_DB']) || 0;
+export const RedisUsername: string = process.env['REDIS_USERNAME'] || 'default';
 export const RedisPassword: string =
     process.env['REDIS_PASSWORD'] || 'password';
-export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '6379');
+export const RedisTlsCa: string | undefined =
+    process.env['REDIS_TLS_CA'] || undefined;
+export const RedisTlsSentinelMode: boolean =
+    process.env['REDIS_TLS_SENTINEL_MODE'] === 'true'
 
 export const DashboardApiRoute: Route = new Route(
     process.env['DASHBOARD_API_ROUTE'] || '/dashboard-api'
