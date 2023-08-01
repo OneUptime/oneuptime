@@ -73,7 +73,9 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={true}
-                ini
+                query={{
+                    monitors: [modelId.toString()],
+                }}
                 isViewable={true}
                 cardProps={{
                     icon: IconProp.Alert,
