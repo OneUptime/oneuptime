@@ -28,6 +28,7 @@ import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
+import { Grey } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -89,6 +90,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 description:
                     props.description ||
                     'Here is a list of monitors for this project.',
+            }}
+            selectMoreFields={{
+                disableActiveMonitoring: true,
             }}
             noItemsMessage={props.noItemsMessage || 'No monitors found.'}
             formFields={[
@@ -272,6 +276,12 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         if (!item['currentMonitorStatus']) {
                             throw new BadDataException(
                                 'Monitor Status not found'
+                            );
+                        }
+
+                        if (item && item['disableActiveMonitoring']) {
+                            return (
+                                <Statusbubble color={Grey} text={'Disabled'} />
                             );
                         }
 

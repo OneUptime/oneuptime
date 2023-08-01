@@ -25,6 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     refresher?: undefined | boolean;
     showDetailsInNumberOfColumns?: number | undefined;
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
+    selectMoreFields?: Select<TBaseModel>;
 }
 
 const ModelDetail: Function = <TBaseModel extends BaseModel>(
@@ -49,6 +50,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             if (key) {
                 (select as Dictionary<boolean>)[key] = true;
             }
+        }
+
+        for (const field of Object.keys(props.selectMoreFields || {})) {
+            (select as Dictionary<boolean>)[field] = true;
         }
 
         return select;

@@ -52,6 +52,7 @@ export default class ProbeMonitorResponseService {
                 monitorSteps: true,
                 monitorType: true,
                 projectId: true,
+                disableActiveMonitoring: true,
                 currentMonitorStatusId: true,
                 _id: true,
             },
@@ -62,6 +63,12 @@ export default class ProbeMonitorResponseService {
 
         if (!monitor) {
             throw new BadDataException('Monitor not found');
+        }
+
+        if (monitor.disableActiveMonitoring) {
+            throw new BadDataException(
+                'Monitor is disabled. Please enable it to start monitoring again.'
+            );
         }
 
         // save the last log to MonitorProbe.

@@ -32,6 +32,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncomingMonitorLink from './IncomingMonitorLink';
+import { Grey } from 'Common/Types/BrandColors';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -199,6 +200,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
+                    selectMoreFields: {
+                        disableActiveMonitoring: true,
+                    },
                     showDetailsInNumberOfColumns: 2,
                     modelType: Monitor,
                     id: 'model-detail-monitors',
@@ -231,6 +235,15 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                     );
                                 }
 
+                                if (item && item['disableActiveMonitoring']) {
+                                    return (
+                                        <Statusbubble
+                                            color={Grey}
+                                            text={'Disabled'}
+                                        />
+                                    );
+                                }
+
                                 return (
                                     <Statusbubble
                                         color={
@@ -251,6 +264,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 );
                             },
                         },
+
                         {
                             field: {
                                 monitorType: true,
