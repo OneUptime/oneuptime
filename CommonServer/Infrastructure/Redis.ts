@@ -33,7 +33,6 @@ export default abstract class Redis {
         let retry: number = 0;
 
         try {
-
             const redisOptions: RedisOptions = {
                 host: RedisHostname,
                 port: RedisPort.toNumber(),
