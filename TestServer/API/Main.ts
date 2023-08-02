@@ -21,7 +21,6 @@ router.get(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             logger.info('Request Headers: ');
             logger.info(req.headers);
             logger.info('Request Body: ');
