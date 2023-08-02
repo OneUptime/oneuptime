@@ -1,6 +1,5 @@
 import Sleep from 'Common/Types/Sleep';
-// import { createClient, RedisClientType } from 'redis';
-import { Redis as RedisClient } from 'ioredis';
+import { Redis as RedisClient, RedisOptions } from 'ioredis';
 import {
     RedisHostname,
     RedisPort,
@@ -34,19 +33,22 @@ export default abstract class Redis {
         let retry: number = 0;
 
         try {
-            const tlsOptions: object = ShouldRedisTlsEnable
-                ? { ca: RedisTlsCa }
-                : {};
-            this.client = new RedisClient({
+
+            const redisOptions: RedisOptions = {
                 host: RedisHostname,
                 port: RedisPort.toNumber(),
                 username: RedisUsername,
                 password: RedisPassword,
                 db: RedisDb,
                 enableTLSForSentinelMode: RedisTlsSentinelMode,
-                tls: tlsOptions,
                 lazyConnect: true,
-            });
+            };
+
+            if (ShouldRedisTlsEnable) {
+                redisOptions.tls = { ca: RedisTlsCa };
+            }
+
+            this.client = new RedisClient(redisOptions);
 
             const connectToDatabase: Function = async (
                 client: RedisClient
