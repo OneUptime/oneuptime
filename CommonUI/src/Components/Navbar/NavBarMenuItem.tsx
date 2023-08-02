@@ -20,7 +20,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
             <Link
                 onClick={props.onClick}
                 to={props.route}
-                className="-m-3 flex items-start rounded-lg p-3 transition duration-150 ease-in-out hover:bg-gray-50"
+                className="-m-3 text-left flex items-start rounded-lg p-3 transition duration-150 ease-in-out hover:bg-gray-50"
             >
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-indigo-500 text-white sm:h-12 sm:w-12">
                     <Icon icon={props.icon} className="h-6 w-6" />
