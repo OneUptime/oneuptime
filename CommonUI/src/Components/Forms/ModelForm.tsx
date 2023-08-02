@@ -451,6 +451,24 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     Array.isArray(valuesToSend[key]) &&
                     (valuesToSend[key] as Array<any>).length > 0 &&
                     typeof (valuesToSend[key] as Array<any>)[0] ===
+                        Typeof.Object &&
+                    typeof (valuesToSend[key] as Array<any>)[0].value ===
+                        Typeof.String
+                ) {
+                    const arr: Array<string> = [];
+                    for (const id of valuesToSend[key] as Array<Object>) {
+                        arr.push((id as any).value as string);
+                    }
+                    valuesToSend[key] = arr;
+                }
+
+                if (
+                    tableColumnMetadata &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray &&
+                    Array.isArray(valuesToSend[key]) &&
+                    (valuesToSend[key] as Array<any>).length > 0 &&
+                    typeof (valuesToSend[key] as Array<any>)[0] ===
                         Typeof.String
                 ) {
                     const arr: Array<BaseModel> = [];
