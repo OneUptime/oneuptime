@@ -208,6 +208,15 @@ services:
             
         
 
+    test-server:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${TEST_SERVER_PORT}
+            
+
     dashboard-api:
         networks:
           - oneuptime
