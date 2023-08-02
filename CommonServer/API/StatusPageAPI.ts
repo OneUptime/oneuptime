@@ -281,6 +281,10 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 link: true,
                                 title: true,
+                                order: true,
+                            },
+                            sort: {
+                                order: SortOrder.Ascending,
                             },
                             limit: LIMIT_PER_PROJECT,
                             skip: 0,
@@ -298,6 +302,10 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 link: true,
                                 title: true,
+                                order: true,
+                            },
+                            sort: {
+                                order: SortOrder.Ascending,
                             },
                             limit: LIMIT_PER_PROJECT,
                             skip: 0,
