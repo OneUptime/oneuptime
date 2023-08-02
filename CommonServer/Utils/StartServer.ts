@@ -30,6 +30,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const app: ExpressApplication = Express.getExpressApp();
 
+app.disable('x-powered-by');
 app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
 
