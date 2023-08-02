@@ -20,7 +20,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <NavBar className="bg-white flex justify-between py-2 mt-5 rounded-lg shadow px-5">
+        <NavBar className="bg-white lg:flex justify-between py-2 mt-5 rounded-lg shadow px-5">
             <NavBarItem
                 title="Overview"
                 icon={IconProp.CheckCircle}
