@@ -50,11 +50,6 @@ export default class MailService {
             return false;
         }
 
-        if (!obj['SMTP_IS_SECURE']) {
-            logger.error('SMTP_IS_SECURE env var not found');
-            return false;
-        }
-
         if (!obj['SMTP_PORT']) {
             logger.error('SMTP_PORT env var not found');
             return false;
