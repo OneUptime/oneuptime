@@ -399,12 +399,12 @@ export default class ProjectSSO extends BaseModel {
     })
     @TableColumn({
         required: true,
-        type: TableColumnType.LongText,
+        type: TableColumnType.VeryLongText,
         canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
-        type: ColumnType.LongText,
+        type: ColumnType.VeryLongText,
     })
     public publicCertificate?: string = undefined;
 
