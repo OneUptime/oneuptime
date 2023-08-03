@@ -71,6 +71,15 @@ export class Service extends DatabaseService<Model> {
             }
 
             if (
+                data.data.paymentProviderPromoCode &&
+                !(await BillingService.isPromoCodeValid(
+                    data.data.paymentProviderPromoCode
+                ))
+            ) {
+                throw new BadDataException('Promo code is invalid.');
+            }
+
+            if (
                 !SubscriptionPlan.isValidPlanId(
                     data.data.paymentProviderPlanId,
                     getAllEnvVars()
@@ -326,15 +335,18 @@ export class Service extends DatabaseService<Model> {
             }
             // add subscription to this customer.
 
-            const { id, trialEndsAt } = await BillingService.subscribeToPlan(
-                createdItem.id!,
+            const { id, trialEndsAt } = await BillingService.subscribeToPlan({
+                projectId: createdItem.id!,
                 customerId,
-                AllMeteredPlans,
+                serverMeteredPlans: AllMeteredPlans,
                 plan,
-                1,
-                plan.getYearlyPlanId() === createdItem.paymentProviderPlanId!,
-                true
-            );
+                quantity: 1,
+                isYearly:
+                    plan.getYearlyPlanId() ===
+                    createdItem.paymentProviderPlanId!,
+                trial: true,
+                promoCode: createdItem.paymentProviderPromoCode,
+            });
 
             await this.updateOneById({
                 id: createdItem.id!,

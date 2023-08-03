@@ -123,6 +123,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                 description: 'Pick a friendly name.',
                 title: 'Project Name',
                 required: true,
+                stepId: BILLING_ENABLED ? 'basic' : undefined,
             },
         ];
 
@@ -133,9 +134,11 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     field: {
                         paymentProviderPlanId: true,
                     },
+                    stepId: 'plan',
                     validation: {
                         minLength: 6,
                     },
+                    footerElement: getFooter(),
                     fieldType: FormFieldSchemaType.RadioButton,
                     radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
                         getAllEnvVars()
@@ -197,6 +200,17 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     title: 'Please select a plan.',
                     required: true,
                 },
+                {
+                    field: {
+                        paymentProviderPromoCode: true,
+                    },
+                    fieldType: FormFieldSchemaType.Text,
+                    placeholder: 'Promo Code (Optional)',
+                    description: 'If you have a coupon code, enter it here.',
+                    title: 'Promo Code',
+                    required: false,
+                    stepId: 'plan',
+                },
             ];
         }
 
@@ -239,6 +253,18 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         props.onProjectModalClose();
                     }}
                     formProps={{
+                        steps: BILLING_ENABLED
+                            ? [
+                                  {
+                                      title: 'Basic',
+                                      id: 'basic',
+                                  },
+                                  {
+                                      title: 'Select Plan',
+                                      id: 'plan',
+                                  },
+                              ]
+                            : undefined,
                         saveRequestOptions: {
                             isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request
                         },
@@ -247,7 +273,6 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         fields: [...fields],
                         formType: FormType.Create,
                     }}
-                    footer={getFooter()}
                 />
             ) : (
                 <></>
