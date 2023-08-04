@@ -17,7 +17,7 @@
         "@babel/plugin-proposal-private-methods": "^7.16.11",
         "@typescript-eslint/eslint-plugin": "^5.16.0",
         "@typescript-eslint/parser": "^5.16.0",
-        "babel-eslint": "^10.1.0",
+        "@babel/eslint-parser": "^7.11.0",
         "ejs-lint": "^1.2.2",
         "eslint": "^8.22.0",
         "eslint-config-airbnb": "^19.0.4",
