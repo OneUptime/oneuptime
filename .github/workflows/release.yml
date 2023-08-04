@@ -31,7 +31,7 @@ jobs:
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
       - name: "Build Changelog"
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v3.7.1
+        uses: mikepenz/release-changelog-builder-action@v3.7.2
       - uses: ncipollo/release-action@v1
         with:
           tag: "7.0.${{needs.generate-build-number.outputs.build_number}}"
