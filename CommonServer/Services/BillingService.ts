@@ -96,6 +96,7 @@ export class BillingService extends BaseService {
         promoCode?: string | undefined;
     }): Promise<{
         id: string;
+        meteredSubscriptionId: string;
         trialEndsAt: Date | null;
     }> {
         if (!this.isBillingEnabled()) {
@@ -144,6 +145,10 @@ export class BillingService extends BaseService {
         }
 
         const subscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.create(subscriptionParams);
+
+        // Create metered subscriptions
+        const meteredSubscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.create(subscriptionParams);
 
         for (const serverMeteredPlan of data.serverMeteredPlans) {
@@ -221,9 +226,7 @@ export class BillingService extends BaseService {
             (item: Stripe.SubscriptionItem) => {
                 return (
                     item.price?.id ===
-                    (isYearly
-                        ? meteredPlan.getYearlyPriceId()
-                        : meteredPlan.getMonthlyPriceId())
+                    meteredPlan.getMonthlyPriceId()
                 );
             }
         );
@@ -235,9 +238,7 @@ export class BillingService extends BaseService {
                     (item: Stripe.SubscriptionItem) => {
                         return (
                             item.price?.id ===
-                            (isYearly
-                                ? meteredPlan.getYearlyPriceId()
-                                : meteredPlan.getMonthlyPriceId())
+                            meteredPlan.getMonthlyPriceId()
                         );
                     }
                 )?.id;
@@ -258,9 +259,7 @@ export class BillingService extends BaseService {
             const subscriptionItem: Stripe.SubscriptionItem =
                 await this.stripe.subscriptionItems.create({
                     subscription: subscriptionId,
-                    price: isYearly
-                        ? meteredPlan.getYearlyPriceId()
-                        : meteredPlan.getMonthlyPriceId(),
+                    price: meteredPlan.getMonthlyPriceId()
                 });
 
             // use stripe usage based api to update the quantity.
