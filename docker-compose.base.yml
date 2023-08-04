@@ -397,7 +397,7 @@ services:
         restart: always
         networks:
           - oneuptime
-        image: nginx:1.23.3-alpine
+        image: nginx:1.25.1-alpine
         environment:
             <<: *common-variables
         ports:
