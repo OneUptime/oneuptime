@@ -115,7 +115,7 @@ services:
             SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
     
     redis:
-        image: redis:7.0.3
+        image: redis:7.0.12
         restart: always
         networks:
           - oneuptime
@@ -124,7 +124,7 @@ services:
             REDIS_PASSWORD: ${REDIS_PASSWORD}
 
     clickhouse:
-        image: clickhouse/clickhouse-server:23.2
+        image: clickhouse/clickhouse-server:23.7
         restart: always
         environment:
             CLICKHOUSE_USER: ${CLICKHOUSE_USER}
@@ -397,7 +397,7 @@ services:
         restart: always
         networks:
           - oneuptime
-        image: nginx:1.23.3-alpine
+        image: nginx:1.25.1-alpine
         environment:
             <<: *common-variables
         ports:
