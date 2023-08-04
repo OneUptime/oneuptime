@@ -11,7 +11,7 @@ import SubscriptionPlan, {
 } from 'Common/Types/Billing/SubscriptionPlan';
 
 RunCron(
-    'PaymentProvider:CheckSubscriptionStatus',
+    'PaymentProvider:PopulatePlanNameInProject',
     { schedule: EVERY_WEEK, runOnStartup: true },
     async () => {
         // get all projects.

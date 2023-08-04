@@ -328,10 +328,11 @@ export class Service extends DatabaseService<Model> {
         // Create billing.
 
         if (IsBillingEnabled) {
-            const customerId: string = await BillingService.createCustomer(
-                createdItem.name!,
-                createdItem.id!
-            );
+            const customerId: string = await BillingService.createCustomer({
+                name: createdItem.name!,
+                email: createdItem.createdOwnerEmail!,
+                id: createdItem.id!,
+            });
 
             const plan: SubscriptionPlan | undefined =
                 SubscriptionPlan.getSubscriptionPlanById(
@@ -754,6 +755,7 @@ export class Service extends DatabaseService<Model> {
                 select: {
                     _id: true,
                     paymentProviderSubscriptionId: true,
+                    paymentProviderMeteredSubscriptionId: true,
                 },
             });
 
@@ -773,6 +775,12 @@ export class Service extends DatabaseService<Model> {
                 if (project.paymentProviderSubscriptionId) {
                     await BillingService.cancelSubscription(
                         project.paymentProviderSubscriptionId
+                    );
+                }
+
+                if (project.paymentProviderMeteredSubscriptionId) {
+                    await BillingService.cancelSubscription(
+                        project.paymentProviderMeteredSubscriptionId
                     );
                 }
             }
@@ -816,7 +824,13 @@ export class Service extends DatabaseService<Model> {
 
         return {
             plan: plan,
-            isSubscriptionUnpaid: !BillingService.isSubscriptionActive(project.paymentProviderSubscriptionStatus!) || !BillingService.isSubscriptionActive(project.paymentProviderMeteredSubscriptionStatus!),
+            isSubscriptionUnpaid:
+                !BillingService.isSubscriptionActive(
+                    project.paymentProviderSubscriptionStatus!
+                ) ||
+                !BillingService.isSubscriptionActive(
+                    project.paymentProviderMeteredSubscriptionStatus!
+                ),
         };
     }
 

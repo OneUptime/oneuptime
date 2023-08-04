@@ -11,7 +11,7 @@ export default class MeteredPlanUtil {
             const content: string =
                 ((env || process.env)['METERED_PLAN_' + name] as string) || '';
             const values: Array<string> = content.split(',');
-            console.log('values', values);
+
             if (values.length > 0) {
                 return new MeteredPlan(
                     values[0] as string,

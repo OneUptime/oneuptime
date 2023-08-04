@@ -23,7 +23,7 @@ RunCron(
             select: {
                 _id: true,
                 paymentProviderSubscriptionId: true,
-                paymentProviderMeteredSubscriptionId: true, 
+                paymentProviderMeteredSubscriptionId: true,
                 paymentProviderCustomerId: true,
             },
             limit: LIMIT_MAX,
@@ -59,7 +59,7 @@ RunCron(
                     await Sleep.sleep(1000);
                 }
 
-                if(project.paymentProviderMeteredSubscriptionId) {
+                if (project.paymentProviderMeteredSubscriptionId) {
                     // get subscription detail.
                     const subscriptionState: SubscriptionStatus =
                         await BillingService.getSubscriptionStatus(

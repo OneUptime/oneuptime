@@ -11,6 +11,7 @@ import { BillingPrivateKey, IsBillingEnabled } from '../Config';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import BaseService from './BaseService';
+import Email from 'Common/Types/Email';
 
 export interface PaymentMethod {
     id: string;
@@ -39,7 +40,11 @@ export class BillingService extends BaseService {
     });
 
     // returns billing id of the customer.
-    public async createCustomer(name: string, id: ObjectID): Promise<string> {
+    public async createCustomer(data: {
+        name: string;
+        id: ObjectID;
+        email: Email;
+    }): Promise<string> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
@@ -48,9 +53,10 @@ export class BillingService extends BaseService {
 
         const customer: Stripe.Response<Stripe.Customer> =
             await this.stripe.customers.create({
-                name,
+                name: data.name,
+                email: data.email.toString(),
                 metadata: {
-                    id: id.toString(),
+                    id: data.id.toString(),
                 },
             });
 
@@ -85,7 +91,14 @@ export class BillingService extends BaseService {
     }
 
     public isSubscriptionActive(status: SubscriptionStatus): boolean {
-        return status === SubscriptionStatus.Active || status === SubscriptionStatus.Trialing;
+        if (!status) {
+            return true;
+        }
+
+        return (
+            status === SubscriptionStatus.Active ||
+            status === SubscriptionStatus.Trialing
+        );
     }
 
     public async subscribeToPlan(data: {
@@ -139,16 +152,13 @@ export class BillingService extends BaseService {
                     : 'now',
         };
 
-
-
         const meteredPlanSubscriptionParams: Stripe.SubscriptionCreateParams = {
             customer: data.customerId,
 
             items: data.serverMeteredPlans.map(
                 (item: typeof ServerMeteredPlan) => {
-
                     return {
-                        price: item.getMeteredPlan()?.getPriceId()!
+                        price: item.getMeteredPlan()?.getPriceId()!,
                     };
                 }
             ),
@@ -173,7 +183,9 @@ export class BillingService extends BaseService {
 
         // Create metered subscriptions
         const meteredSubscription: Stripe.Response<Stripe.Subscription> =
-            await this.stripe.subscriptions.create(meteredPlanSubscriptionParams);
+            await this.stripe.subscriptions.create(
+                meteredPlanSubscriptionParams
+            );
 
         for (const serverMeteredPlan of data.serverMeteredPlans) {
             await serverMeteredPlan.updateCurrentQuantity(data.projectId, {

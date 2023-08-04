@@ -8,7 +8,6 @@ export default class ServerMeteredPlan {
     public static meteredPlan: MeteredPlan | undefined = undefined;
 
     public static getMeteredPlan(): MeteredPlan {
-
         if (!this.meteredPlan) {
             throw new BadDataException('Metered plan not found');
         }

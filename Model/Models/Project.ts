@@ -261,7 +261,6 @@ export default class Model extends TenantModel {
     })
     public paymentProviderSubscriptionStatus?: SubscriptionStatus = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
