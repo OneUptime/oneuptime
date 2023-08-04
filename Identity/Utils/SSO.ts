@@ -1,7 +1,7 @@
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Email from 'Common/Types/Email';
-import xmldom from 'xmldom';
+import xmldom from '@xmldom/xmldom';
 import xmlCrypto, { FileKeyInfo } from 'xml-crypto';
 
 export default class SSOUtil {
