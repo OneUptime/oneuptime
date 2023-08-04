@@ -62,6 +62,11 @@ router.post(
                                     SubscriptionStatus.Active,
                                     SubscriptionStatus.Trialing,
                                 ]),
+                            paymentProviderMeteredSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
                         },
                     },
                     skip: 0,
