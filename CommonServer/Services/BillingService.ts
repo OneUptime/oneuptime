@@ -13,6 +13,8 @@ import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 
+export type SubscriptionItem = Stripe.SubscriptionItem;
+
 export interface PaymentMethod {
     id: string;
     type: string;
@@ -101,6 +103,60 @@ export class BillingService extends BaseService {
         );
     }
 
+    public async subscribeToMeteredPlan(data: {
+        projectId: ObjectID;
+        customerId: string;
+        serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+        trialDate: Date | null;
+        defaultPaymentMethodId?: string | undefined;
+        promoCode?: string | undefined;
+    }): Promise<{
+        meteredSubscriptionId: string;
+        trialEndsAt: Date | null;
+    }> {
+        const meteredPlanSubscriptionParams: Stripe.SubscriptionCreateParams = {
+            customer: data.customerId,
+
+            items: data.serverMeteredPlans.map(
+                (item: typeof ServerMeteredPlan) => {
+                    return {
+                        price: item.getMeteredPlan()?.getPriceId()!,
+                    };
+                }
+            ),
+            trial_end:
+                data.trialDate && OneUptimeDate.isInTheFuture(data.trialDate)
+                    ? OneUptimeDate.toUnixTimestamp(data.trialDate)
+                    : 'now',
+        };
+
+        if (data.promoCode) {
+            meteredPlanSubscriptionParams.coupon = data.promoCode;
+        }
+
+        if (data.defaultPaymentMethodId) {
+            meteredPlanSubscriptionParams.default_payment_method =
+                data.defaultPaymentMethodId;
+        }
+
+        // Create metered subscriptions
+        const meteredSubscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.create(
+                meteredPlanSubscriptionParams
+            );
+
+        for (const serverMeteredPlan of data.serverMeteredPlans) {
+            await serverMeteredPlan.updateCurrentQuantity(data.projectId, {
+                meteredPlanSubscriptionId: meteredSubscription.id,
+            });
+        }
+
+        return {
+            meteredSubscriptionId: meteredSubscription.id,
+            trialEndsAt: data.trialDate,
+        };
+    }
+
     public async subscribeToPlan(data: {
         projectId: ObjectID;
         customerId: string;
@@ -152,25 +208,8 @@ export class BillingService extends BaseService {
                     : 'now',
         };
 
-        const meteredPlanSubscriptionParams: Stripe.SubscriptionCreateParams = {
-            customer: data.customerId,
-
-            items: data.serverMeteredPlans.map(
-                (item: typeof ServerMeteredPlan) => {
-                    return {
-                        price: item.getMeteredPlan()?.getPriceId()!,
-                    };
-                }
-            ),
-            trial_end:
-                trialDate && data.plan.getTrialPeriod() > 0
-                    ? OneUptimeDate.toUnixTimestamp(trialDate)
-                    : 'now',
-        };
-
         if (data.promoCode) {
             subscriptionParams.coupon = data.promoCode;
-            meteredPlanSubscriptionParams.coupon = data.promoCode;
         }
 
         if (data.defaultPaymentMethodId) {
@@ -182,20 +221,17 @@ export class BillingService extends BaseService {
             await this.stripe.subscriptions.create(subscriptionParams);
 
         // Create metered subscriptions
-        const meteredSubscription: Stripe.Response<Stripe.Subscription> =
-            await this.stripe.subscriptions.create(
-                meteredPlanSubscriptionParams
-            );
-
-        for (const serverMeteredPlan of data.serverMeteredPlans) {
-            await serverMeteredPlan.updateCurrentQuantity(data.projectId, {
-                meteredPlanSubscriptionId: meteredSubscription.id,
-            });
-        }
+        const meteredSubscription: {
+            meteredSubscriptionId: string;
+            trialEndsAt: Date | null;
+        } = await this.subscribeToMeteredPlan({
+            ...data,
+            trialDate,
+        });
 
         return {
             subscriptionId: subscription.id,
-            meteredSubscriptionId: meteredSubscription.id,
+            meteredSubscriptionId: meteredSubscription.meteredSubscriptionId,
             trialEndsAt:
                 trialDate && data.plan.getTrialPeriod() > 0 ? trialDate : null,
         };
@@ -258,7 +294,7 @@ export class BillingService extends BaseService {
         // check if this pricing exists
 
         const pricingExists: boolean = subscription.items.data.some(
-            (item: Stripe.SubscriptionItem) => {
+            (item: SubscriptionItem) => {
                 return item.price?.id === meteredPlan.getPriceId();
             }
         );
@@ -266,11 +302,9 @@ export class BillingService extends BaseService {
         if (pricingExists) {
             // update the quantity.
             const subscriptionItemId: string | undefined =
-                subscription.items.data.find(
-                    (item: Stripe.SubscriptionItem) => {
-                        return item.price?.id === meteredPlan.getPriceId();
-                    }
-                )?.id;
+                subscription.items.data.find((item: SubscriptionItem) => {
+                    return item.price?.id === meteredPlan.getPriceId();
+                })?.id;
 
             if (!subscriptionItemId) {
                 throw new BadDataException('Subscription Item not found');
@@ -285,7 +319,7 @@ export class BillingService extends BaseService {
             );
         } else {
             // add the pricing.
-            const subscriptionItem: Stripe.SubscriptionItem =
+            const subscriptionItem: SubscriptionItem =
                 await this.stripe.subscriptionItems.create({
                     subscription: subscriptionId,
                     price: meteredPlan.getPriceId(),
@@ -323,6 +357,62 @@ export class BillingService extends BaseService {
                 (err as Error).message || 'Invalid promo code'
             );
         }
+    }
+
+    public async removeSubscriptionItem(
+        subscriptionId: string,
+        subscriptionItemId: string,
+        isMeteredSubscriptionItem: boolean
+    ): Promise<void> {
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+
+        const subscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.retrieve(subscriptionId);
+
+        if (!subscription) {
+            throw new BadDataException('Subscription not found');
+        }
+
+        if (subscription.status === 'canceled') {
+            // subscription is canceled.
+            return;
+        }
+
+        const subscriptionItemOptions: Stripe.SubscriptionItemDeleteParams =
+            isMeteredSubscriptionItem
+                ? {
+                      proration_behavior: 'create_prorations',
+                      clear_usage: true,
+                  }
+                : {};
+
+        await this.stripe.subscriptionItems.del(
+            subscriptionItemId,
+            subscriptionItemOptions
+        );
+    }
+
+    public async getSubscriptionItems(
+        subscriptionId: string
+    ): Promise<Array<SubscriptionItem>> {
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+
+        const subscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.retrieve(subscriptionId);
+
+        if (!subscription) {
+            throw new BadDataException('Subscription not found');
+        }
+
+        return subscription.items.data;
     }
 
     public async changePlan(data: {
