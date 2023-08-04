@@ -23,6 +23,7 @@ RunCron(
             select: {
                 _id: true,
                 paymentProviderSubscriptionId: true,
+                paymentProviderMeteredSubscriptionId: true, 
                 paymentProviderCustomerId: true,
             },
             limit: LIMIT_MAX,
@@ -55,7 +56,30 @@ RunCron(
                     });
 
                     // after every subscription fetch, sleep for a 5 seconds to avoid stripe rate limit.
-                    await Sleep.sleep(5000);
+                    await Sleep.sleep(1000);
+                }
+
+                if(project.paymentProviderMeteredSubscriptionId) {
+                    // get subscription detail.
+                    const subscriptionState: SubscriptionStatus =
+                        await BillingService.getSubscriptionStatus(
+                            project.paymentProviderMeteredSubscriptionId as string
+                        );
+
+                    await ProjectService.updateOneById({
+                        id: project.id!,
+                        data: {
+                            paymentProviderMeteredSubscriptionStatus:
+                                subscriptionState,
+                        },
+                        props: {
+                            isRoot: true,
+                            ignoreHooks: true,
+                        },
+                    });
+
+                    // after every subscription fetch, sleep for a 5 seconds to avoid stripe rate limit.
+                    await Sleep.sleep(1000);
                 }
             } catch (err) {
                 logger.error(err);

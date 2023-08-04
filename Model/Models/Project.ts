@@ -158,7 +158,6 @@ export default class Model extends TenantModel {
     })
     public paymentProviderSubscriptionId?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -261,6 +260,28 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public paymentProviderSubscriptionStatus?: SubscriptionStatus = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderMeteredSubscriptionStatus?: SubscriptionStatus = undefined;
 
     @ColumnAccessControl({
         create: [Permission.User],

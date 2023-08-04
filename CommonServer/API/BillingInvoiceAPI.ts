@@ -53,9 +53,9 @@ export default class UserAPI extends BaseAPI<
                     ).filter((permission: UserPermission) => {
                         return (
                             permission.permission.toString() ===
-                                Permission.ProjectOwner.toString() ||
+                            Permission.ProjectOwner.toString() ||
                             permission.permission.toString() ===
-                                Permission.CanEditInvoices.toString()
+                            Permission.CanEditInvoices.toString()
                         );
                     });
 
@@ -75,6 +75,7 @@ export default class UserAPI extends BaseAPI<
                                 _id: true,
                                 paymentProviderCustomerId: true,
                                 paymentProviderSubscriptionId: true,
+                                paymentProviderMeteredSubscriptionId: true,
                             },
                         });
 
@@ -140,11 +141,17 @@ export default class UserAPI extends BaseAPI<
                             project.paymentProviderSubscriptionId as string
                         );
 
+                    const meteredSubscriptionState: SubscriptionStatus =
+                        await BillingService.getSubscriptionStatus(
+                            project.paymentProviderMeteredSubscriptionId as string,
+                        );
+
                     await ProjectService.updateOneById({
                         id: project.id!,
                         data: {
                             paymentProviderSubscriptionStatus:
                                 subscriptionState,
+                            paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
                         },
                         props: {
                             isRoot: true,

@@ -40,7 +40,6 @@ import SubscriptionPlan, {
 import UpdateBy from '../Types/Database/UpdateBy';
 import AllMeteredPlans from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import AccessTokenService from './AccessTokenService';
-import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import User from 'Model/Models/User';
 import NotificationService from './NotificationService';
 import MailService from './MailService';
@@ -183,6 +182,7 @@ export class Service extends DatabaseService<Model> {
                     id: new ObjectID(updateBy.query._id! as string),
                     select: {
                         paymentProviderSubscriptionId: true,
+                        paymentProviderMeteredSubscriptionId: true,
                         paymentProviderSubscriptionSeats: true,
                         paymentProviderPlanId: true,
                         trialEndsAt: true,
@@ -218,23 +218,32 @@ export class Service extends DatabaseService<Model> {
                     }
 
                     const subscription: {
-                        id: string;
+                        subscriptionId: string;
+                        meteredSubscriptionId: string;
                         trialEndsAt?: Date | undefined;
-                    } = await BillingService.changePlan(
-                        project.id!,
-                        project.paymentProviderSubscriptionId as string,
-                        AllMeteredPlans,
-                        plan,
-                        project.paymentProviderSubscriptionSeats as number,
-                        plan.getYearlyPlanId() ===
+                    } = await BillingService.changePlan({
+                        projectId: project.id!,
+                        subscriptionId:
+                            project.paymentProviderSubscriptionId as string,
+                        meteredSubscriptionId:
+                            project.paymentProviderMeteredSubscriptionId as string,
+                        serverMeteredPlans: AllMeteredPlans,
+                        newPlan: plan,
+                        quantity:
+                            project.paymentProviderSubscriptionSeats as number,
+                        isYearly:
+                            plan.getYearlyPlanId() ===
                             updateBy.data.paymentProviderPlanId,
-                        project.trialEndsAt
-                    );
+                        endTrialAt: project.trialEndsAt,
+                    });
 
                     await this.updateOneById({
                         id: new ObjectID(updateBy.query._id! as string),
                         data: {
-                            paymentProviderSubscriptionId: subscription.id,
+                            paymentProviderSubscriptionId:
+                                subscription.subscriptionId,
+                            paymentProviderMeteredSubscriptionId:
+                                subscription.meteredSubscriptionId,
                             trialEndsAt: subscription.trialEndsAt || new Date(),
                             planName: SubscriptionPlan.getPlanSelect(
                                 updateBy.data.paymentProviderPlanId! as string
@@ -335,24 +344,26 @@ export class Service extends DatabaseService<Model> {
             }
             // add subscription to this customer.
 
-            const { id, trialEndsAt } = await BillingService.subscribeToPlan({
-                projectId: createdItem.id!,
-                customerId,
-                serverMeteredPlans: AllMeteredPlans,
-                plan,
-                quantity: 1,
-                isYearly:
-                    plan.getYearlyPlanId() ===
-                    createdItem.paymentProviderPlanId!,
-                trial: true,
-                promoCode: createdItem.paymentProviderPromoCode,
-            });
+            const { subscriptionId, meteredSubscriptionId, trialEndsAt } =
+                await BillingService.subscribeToPlan({
+                    projectId: createdItem.id!,
+                    customerId,
+                    serverMeteredPlans: AllMeteredPlans,
+                    plan,
+                    quantity: 1,
+                    isYearly:
+                        plan.getYearlyPlanId() ===
+                        createdItem.paymentProviderPlanId!,
+                    trial: true,
+                    promoCode: createdItem.paymentProviderPromoCode,
+                });
 
             await this.updateOneById({
                 id: createdItem.id!,
                 data: {
                     paymentProviderCustomerId: customerId,
-                    paymentProviderSubscriptionId: id,
+                    paymentProviderSubscriptionId: subscriptionId,
+                    paymentProviderMeteredSubscriptionId: meteredSubscriptionId,
                     paymentProviderSubscriptionSeats: 1,
                     trialEndsAt: (trialEndsAt || null) as any,
                 },
@@ -782,6 +793,7 @@ export class Service extends DatabaseService<Model> {
             select: {
                 paymentProviderPlanId: true,
                 paymentProviderSubscriptionStatus: true,
+                paymentProviderMeteredSubscriptionStatus: true,
             },
             props: {
                 isRoot: true,
@@ -804,13 +816,7 @@ export class Service extends DatabaseService<Model> {
 
         return {
             plan: plan,
-            isSubscriptionUnpaid:
-                plan === PlanSelect.Free
-                    ? false
-                    : SubscriptionPlan.isUnpaid(
-                          project.paymentProviderSubscriptionStatus ||
-                              SubscriptionStatus.Active
-                      ),
+            isSubscriptionUnpaid: !BillingService.isSubscriptionActive(project.paymentProviderSubscriptionStatus!) || !BillingService.isSubscriptionActive(project.paymentProviderMeteredSubscriptionStatus!),
         };
     }
 

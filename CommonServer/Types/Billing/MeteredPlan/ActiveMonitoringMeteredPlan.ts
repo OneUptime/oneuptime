@@ -9,20 +9,19 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import ProjectService from '../../../Services/ProjectService';
 import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
-    public static getMeteredPlan(): MeteredPlan {
+    public static override getMeteredPlan(): MeteredPlan {
         const meteredPlan: MeteredPlan =
             MeteredPlanUtil.getMeteredPlan('ACTIVE_MONITORING');
+        this.meteredPlan = meteredPlan;
         return meteredPlan;
     }
 
     public static override async updateCurrentQuantity(
         projectId: ObjectID,
         options?: {
-            subscriptionId?: string | undefined;
-            isYearlyPlan?: boolean;
+            meteredPlanSubscriptionId?: string | undefined;
         }
     ): Promise<PositiveNumber> {
         const count: PositiveNumber = await MonitorService.countBy({
@@ -50,7 +49,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         const project: Project | null = await ProjectService.findOneById({
             id: projectId,
             select: {
-                paymentProviderSubscriptionId: true,
+                paymentProviderMeteredSubscriptionId: true,
                 paymentProviderPlanId: true,
             },
             props: {
@@ -60,25 +59,14 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
 
         if (
             project &&
-            project.paymentProviderSubscriptionId &&
+            project.paymentProviderMeteredSubscriptionId &&
             project.paymentProviderPlanId
         ) {
-            let isYearlyPlan: boolean = false;
-
-            if (options && options.isYearlyPlan !== undefined) {
-                isYearlyPlan = options.isYearlyPlan;
-            } else {
-                isYearlyPlan = SubscriptionPlan.isYearlyPlan(
-                    project.paymentProviderPlanId
-                );
-            }
-
             await BillingService.addOrUpdateMeteredPricingOnSubscription(
-                options?.subscriptionId ||
-                    project?.paymentProviderSubscriptionId,
+                options?.meteredPlanSubscriptionId ||
+                project?.paymentProviderMeteredSubscriptionId,
                 ActiveMonitoringMeteredPlan.getMeteredPlan(),
-                count.toNumber(),
-                isYearlyPlan
+                count.toNumber()
             );
         }
 
