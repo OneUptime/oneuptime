@@ -71,7 +71,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     i.value === CheckOn.ResponseTime ||
                     i.value === CheckOn.ResponseBody ||
                     i.value === CheckOn.ResponseHeader ||
-                    i.value === CheckOn.ResponseHeaderValue
+                    i.value === CheckOn.ResponseHeaderValue ||
+                    i.value === CheckOn.ResponseStatusCode
                 );
             });
         }
