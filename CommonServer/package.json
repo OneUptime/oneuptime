@@ -22,7 +22,7 @@
         "@types/nodemailer": "^6.4.7",
         "airtable": "^0.11.3",
         "axios": "^1.3.3",
-        "bullmq": "^3.6.6",
+        "bullmq": "^4.0.0",
         "Common": "file:../Common",
         "cors": "^2.8.5",
         "cron-parser": "^4.8.1",
