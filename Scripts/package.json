@@ -6,7 +6,7 @@
     "compile": "tsc"
   },
   "devDependencies": {
-    "@faker-js/faker": "^6.3.1",
+    "@faker-js/faker": "^8.0.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^17.0.22",
     "jest": "^27.5.1",
