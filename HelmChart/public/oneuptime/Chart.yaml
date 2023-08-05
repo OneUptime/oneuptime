@@ -23,7 +23,7 @@ dependencies:
   repository: https://charts.bitnami.com/bitnami
   version: "9.7.7"
 - name: redis
-  version: "10.5.11"
+  version: "17.14.5"
   repository: "https://charts.bitnami.com/bitnami"
 maintainers:
   - name:  OneUptime Support
