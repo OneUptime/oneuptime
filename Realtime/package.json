@@ -15,7 +15,7 @@
     "license": "MIT",
     "type": "module",
     "dependencies": {
-        "axios": "^0.26.1",
+        "axios": "^0.27.0",
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "cors": "^2.8.5",

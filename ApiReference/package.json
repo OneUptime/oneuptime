@@ -22,7 +22,7 @@
         "@types/ejs": "^3.1.1",
         "@types/minify": "^8.0.0",
         "@types/try-to-catch": "^3.0.0",
-        "axios": "^0.26.1",
+        "axios": "^0.27.0",
         "body-parser": "^1.19.2",
         "cli-table": "^0.3.11",
         "Common": "file:../Common",
