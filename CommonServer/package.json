@@ -14,7 +14,7 @@
         "@elastic/elasticsearch": "^8.1.0",
         "@opentelemetry/api": "^1.1.0",
         "@opentelemetry/auto-instrumentations-node": "^0.38.0",
-        "@opentelemetry/sdk-node": "^0.30.0",
+        "@opentelemetry/sdk-node": "^0.41.0",
         "@types/ejs": "^3.1.1",
         "@types/gridfs-stream": "^0.5.35",
         "@types/json2csv": "^5.0.3",
