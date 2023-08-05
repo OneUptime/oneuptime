@@ -18,20 +18,20 @@
     "axios": "^1.4.0",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
-    "ejs": "^3.1.8",
-    "jsrsasign": "^10.6.1",
+    "ejs": "^3.1.9",
+    "jsrsasign": "^10.8.6",
     "Model": "file:../Model",
     "node-cron": "^3.0.2",
     "ping": "^0.4.4",
-    "saml2-js": "^4.0.1",
+    "saml2-js": "^4.0.2",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
-    "@types/jest": "^27.5.2",
-    "@types/node": "^17.0.31",
-    "@types/node-cron": "^3.0.7",
-    "jest": "^28.1.0",
-    "nodemon": "^2.0.20",
-    "ts-jest": "^28.0.2"
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.4.8",
+    "@types/node-cron": "^3.0.8",
+    "jest": "^29.6.2",
+    "nodemon": "^3.0.1",
+    "ts-jest": "^29.1.1"
   }
 }
