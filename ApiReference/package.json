@@ -38,7 +38,7 @@
     "devDependencies": {
         "@types/jest": "^27.5.1",
         "@types/node": "^17.0.22",
-        "chrome-launcher": "^0.15.0",
+        "chrome-launcher": "^1.0.0",
         "commander": "^9.1.0",
         "depcheck": "^1.4.3",
         "jest": "^28.1.0",
