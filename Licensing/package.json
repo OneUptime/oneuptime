@@ -4,7 +4,7 @@
     "private": false,
     "type": "module",
     "dependencies": {
-        "airtable": "^0.11.2",
+        "airtable": "^0.12.0",
         "body-parser": "^1.19.2",
         "chai": "^4.3.6",
         "chai-http": "^4.3.0",
