@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/jest": "^27.5.2",
-    "@types/node": "^17.0.31",
+    "@types/node": "^18.0.0",
     "@types/node-cron": "^3.0.7",
     "jest": "^28.1.0",
     "nodemon": "^2.0.20",

@@ -54,7 +54,7 @@
         "@types/express": "^4.17.13",
         "@types/jest": "^27.4.1",
         "@types/jsonwebtoken": "^8.5.9",
-        "@types/node": "^17.0.22",
+        "@types/node": "^18.0.0",
         "jest": "^27.5.1",
         "ts-jest": "^27.1.4"
     }

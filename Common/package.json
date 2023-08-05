@@ -12,7 +12,7 @@
     "devDependencies": {
         "@faker-js/faker": "^6.3.1",
         "@types/jest": "^27.5.2",
-        "@types/node": "^17.0.22",
+        "@types/node": "^18.0.0",
         "jest": "^27.5.1",
         "ts-jest": "^27.1.4"
     },

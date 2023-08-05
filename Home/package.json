@@ -37,7 +37,7 @@
     "resolutions": {},
     "devDependencies": {
         "@types/jest": "^27.5.1",
-        "@types/node": "^17.0.22",
+        "@types/node": "^18.0.0",
         "chrome-launcher": "^0.15.0",
         "commander": "^9.1.0",
         "depcheck": "^1.4.3",
