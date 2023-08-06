@@ -42,19 +42,17 @@ RunCron(
                     Monitor
                 );
 
-
                 for (const monitor of monitors) {
                     try {
-                        await MonitorUtil.probeMonitor(monitor)
+                        await MonitorUtil.probeMonitor(monitor);
                     } catch (err) {
                         logger.error('Error in probing monitor');
-                        logger.error("Monitor:");
+                        logger.error('Monitor:');
                         logger.error(monitor);
-                        logger.error("Error:");
+                        logger.error('Error:');
                         logger.error(err);
                     }
                 }
-
             } catch (err) {
                 logger.error('Error in fetching monitor list');
                 logger.error(err);
