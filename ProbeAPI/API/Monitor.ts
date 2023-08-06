@@ -17,8 +17,143 @@ import Monitor from 'Model/Models/Monitor';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { JSONObject } from 'Common/Types/JSON';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import ObjectID from 'Common/Types/ObjectID';
+import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
 const router: ExpressRouter = Express.getRouter();
+
+router.get(
+    '/monitor/pending-list/:probeId',
+    ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            if (!req.params['probeId']) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('Probe not found')
+                );
+            }
+
+            //get list of monitors to be monitored
+            const monitorProbes: Array<MonitorProbe> =
+                await MonitorProbeService.findBy({
+                    query: {
+                        probeId: new ObjectID(req.params['probeId']),
+                        isEnabled: true,
+                        nextPingAt: QueryHelper.lessThanEqualToOrNull(
+                            OneUptimeDate.getCurrentDate()
+                        ),
+                        monitor: {
+                            disableActiveMonitoring: false, // do not fetch if disabled is true.
+                        },
+
+                        project: {
+                            // get only active projects
+                            paymentProviderSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
+                            paymentProviderMeteredSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
+                        },
+                    },
+                    skip: 0,
+                    limit: LIMIT_MAX,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+            const monitors: Array<Monitor> = monitorProbes
+                .map((monitorProbe: MonitorProbe) => {
+                    return monitorProbe.monitor!;
+                })
+                .filter((monitor: Monitor) => {
+                    return Boolean(monitor._id);
+                });
+
+            // return the list of monitors to be monitored
+
+            return Response.sendEntityArrayResponse(
+                req,
+                res,
+                monitors,
+                new PositiveNumber(monitors.length),
+                Monitor
+            );
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+// This API returns the count of the monitor waiting to be monitored.
+router.get(
+    '/monitor/pending-count/:probeId',
+    ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            if (!req.params['probeId']) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('Probe not found')
+                );
+            }
+
+            //get list of monitors to be monitored
+            const monitorProbesCount: PositiveNumber =
+                await MonitorProbeService.countBy({
+                    query: {
+                        probeId: new ObjectID(req.params['probeId']),
+                        isEnabled: true,
+                        nextPingAt: QueryHelper.lessThanEqualToOrNull(
+                            OneUptimeDate.getCurrentDate()
+                        ),
+                        monitor: {
+                            disableActiveMonitoring: false, // do not fetch if disabled is true.
+                        },
+                        project: {
+                            // get only active projects
+                            paymentProviderSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
+                            paymentProviderMeteredSubscriptionStatus:
+                                QueryHelper.equalToOrNull([
+                                    SubscriptionStatus.Active,
+                                    SubscriptionStatus.Trialing,
+                                ]),
+                        },
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+            return Response.sendJsonObjectResponse(req, res, {
+                count: monitorProbesCount.toNumber(),
+            });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
 
 router.post(
     '/monitor/list',
