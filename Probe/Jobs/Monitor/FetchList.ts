@@ -42,26 +42,19 @@ RunCron(
                     Monitor
                 );
 
-                const monitoringPromises: Array<Promise<void>> = [];
 
                 for (const monitor of monitors) {
-                    const promise: Promise<void> = new Promise<void>(
-                        (resolve: Function, reject: Function): void => {
-                            MonitorUtil.probeMonitor(monitor)
-                                .then(() => {
-                                    resolve();
-                                })
-                                .catch((err: Error) => {
-                                    logger.error(err);
-                                    reject(err);
-                                });
-                        }
-                    );
-
-                    monitoringPromises.push(promise);
+                    try {
+                        await MonitorUtil.probeMonitor(monitor)
+                    } catch (err) {
+                        logger.error('Error in probing monitor');
+                        logger.error("Monitor:");
+                        logger.error(monitor);
+                        logger.error("Error:");
+                        logger.error(err);
+                    }
                 }
 
-                await Promise.allSettled(monitoringPromises);
             } catch (err) {
                 logger.error('Error in fetching monitor list');
                 logger.error(err);
