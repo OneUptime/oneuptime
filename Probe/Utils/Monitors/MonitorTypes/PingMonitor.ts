@@ -19,19 +19,17 @@ export interface PingOptions {
 }
 
 export default class PingMonitor {
-
-    // burn domain names into the code to see if this probe is online. 
+    // burn domain names into the code to see if this probe is online.
     public static async isProbeOnline(): Promise<boolean> {
-
-        if (await PingMonitor.ping(new Hostname("google.com"))) {
+        if (await PingMonitor.ping(new Hostname('google.com'))) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname("facebook.com"))) {
+        } else if (await PingMonitor.ping(new Hostname('facebook.com'))) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname("microsoft.com"))) {
+        } else if (await PingMonitor.ping(new Hostname('microsoft.com'))) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname("youtube.com"))) {
+        } else if (await PingMonitor.ping(new Hostname('youtube.com'))) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname("apple.com"))) {
+        } else if (await PingMonitor.ping(new Hostname('apple.com'))) {
             return true;
         }
 
@@ -89,15 +87,18 @@ export default class PingMonitor {
                 return await this.ping(host, pingOptions);
             }
 
-            // check if the probe is online. 
+            // check if the probe is online.
 
-            if (await PingMonitor.isProbeOnline()) {
-                return {
-                    isOnline: false,
-                };
-            } else {
+            if (!(await PingMonitor.isProbeOnline())) {
+                logger.error(
+                    `PingMonitor Monitor - Probe is not online. Cannot ping ${host.toString()} - ERROR: ${err}`
+                );
                 return null;
             }
+
+            return {
+                isOnline: false,
+            };
         }
     }
 }

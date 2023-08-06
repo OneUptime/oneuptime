@@ -39,13 +39,10 @@ export default class MonitorUtil {
                 continue;
             }
 
-            const result: ProbeMonitorResponse | null = await this.probeMonitorStep(
-                monitorStep,
-                monitor
-            );
+            const result: ProbeMonitorResponse | null =
+                await this.probeMonitorStep(monitorStep, monitor);
 
             if (result) {
-
                 // report this back to Probe API.
 
                 await API.fetch<JSONObject>(
@@ -143,13 +140,18 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Website) {
-            const response: ProbeWebsiteResponse = await WebsiteMonitor.ping(
-                monitorStep.data?.monitorDestination as URL,
-                {
-                    isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
-                    retry: 5,
-                }
-            );
+            const response: ProbeWebsiteResponse | null =
+                await WebsiteMonitor.ping(
+                    monitorStep.data?.monitorDestination as URL,
+                    {
+                        isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
+                        retry: 5,
+                    }
+                );
+
+            if (!response) {
+                return null;
+            }
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
@@ -169,7 +171,7 @@ export default class MonitorUtil {
                 );
             }
 
-            const response: APIResponse = await ApiMonitor.ping(
+            const response: APIResponse | null = await ApiMonitor.ping(
                 monitorStep.data?.monitorDestination as URL,
                 {
                     requestHeaders: monitorStep.data?.requestHeaders || {},
@@ -180,6 +182,10 @@ export default class MonitorUtil {
                     retry: 5,
                 }
             );
+
+            if (!response) {
+                return null;
+            }
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();

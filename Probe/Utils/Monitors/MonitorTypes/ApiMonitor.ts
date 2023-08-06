@@ -22,6 +22,48 @@ export interface APIResponse {
 }
 
 export default class ApiMonitor {
+    // burn domain names into the code to see if this probe is online.
+    public static async isProbeOnline(): Promise<boolean> {
+        if (
+            await ApiMonitor.ping(URL.fromString('https://google.com'), {
+                requestType: HTTPMethod.GET,
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await ApiMonitor.ping(URL.fromString('https://facebook.com'), {
+                requestType: HTTPMethod.GET,
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await ApiMonitor.ping(URL.fromString('https://microsoft.com'), {
+                requestType: HTTPMethod.GET,
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await ApiMonitor.ping(URL.fromString('https://youtube.com'), {
+                requestType: HTTPMethod.GET,
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await ApiMonitor.ping(URL.fromString('https://apple.com'), {
+                requestType: HTTPMethod.GET,
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static async ping(
         url: URL,
         options: {
@@ -32,7 +74,7 @@ export default class ApiMonitor {
             retry?: number | undefined;
             currentRetryCount?: number | undefined;
         }
-    ): Promise<APIResponse> {
+    ): Promise<APIResponse | null> {
         let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
         if (options.isHeadRequest) {
@@ -89,6 +131,13 @@ export default class ApiMonitor {
             if (options.currentRetryCount < (options.retry || 5)) {
                 options.currentRetryCount++;
                 return await this.ping(url, options);
+            }
+
+            if (!(await ApiMonitor.isProbeOnline())) {
+                logger.error(
+                    `API Monitor - Probe is not online. Cannot ping ${requestType} ${url.toString()} - ERROR: ${err}`
+                );
+                return null;
             }
 
             const apiResponse: APIResponse = {

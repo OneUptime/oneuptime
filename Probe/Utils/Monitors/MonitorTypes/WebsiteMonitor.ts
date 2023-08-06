@@ -20,6 +20,43 @@ export interface ProbeWebsiteResponse {
 }
 
 export default class WebsiteMonitor {
+    // burn domain names into the code to see if this probe is online.
+    public static async isProbeOnline(): Promise<boolean> {
+        if (
+            await WebsiteMonitor.ping(URL.fromString('https://google.com'), {
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await WebsiteMonitor.ping(URL.fromString('https://facebook.com'), {
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await WebsiteMonitor.ping(URL.fromString('https://microsoft.com'), {
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await WebsiteMonitor.ping(URL.fromString('https://youtube.com'), {
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        } else if (
+            await WebsiteMonitor.ping(URL.fromString('https://apple.com'), {
+                isHeadRequest: true,
+            })
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static async ping(
         url: URL,
         options: {
@@ -27,7 +64,7 @@ export default class WebsiteMonitor {
             isHeadRequest?: boolean | undefined;
             currentRetryCount?: number | undefined;
         }
-    ): Promise<ProbeWebsiteResponse> {
+    ): Promise<ProbeWebsiteResponse | null> {
         let requestType: HTTPMethod = HTTPMethod.GET;
 
         if (options.isHeadRequest) {
@@ -106,6 +143,13 @@ export default class WebsiteMonitor {
                     responseBody: undefined,
                     responseHeaders: undefined,
                 };
+            }
+
+            if (!(await WebsiteMonitor.isProbeOnline())) {
+                logger.error(
+                    `Website Monitor - Probe is not online. Cannot ping ${requestType} ${url.toString()} - ERROR: ${err}`
+                );
+                return null;
             }
 
             logger.error(
