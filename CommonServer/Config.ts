@@ -204,3 +204,6 @@ export const AnalyticsKey: string = process.env['ANALYTICS_KEY'] || '';
 export const AnalyticsHost: string = process.env['ANALYTICS_HOST'] || '';
 
 export const DashboardUrl: URL = new URL(HttpProtocol, Domain, DashboardRoute);
+
+export const DisableAutomaticIncidentCreation: boolean =
+    process.env['DISABLE_AUTOMATIC_INCIDENT_CREATION'] === 'true';

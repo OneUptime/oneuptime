@@ -11,6 +11,7 @@ import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import { DisableAutomaticIncidentCreation } from 'CommonServer/Config';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -23,6 +24,12 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+            if (DisableAutomaticIncidentCreation) {
+                return Response.sendJsonObjectResponse(req, res, {
+                    message: 'Automatic incident creation is disabled.',
+                });
+            }
+
             const probeResponse: ProbeMonitorResponse =
                 JSONFunctions.deserialize(
                     req.body['probeMonitorResponse']

@@ -90,6 +90,8 @@ x-common-server-variables: &common-server-variables
 
     IS_SERVER: true
 
+    DISABLE_AUTOMATIC_INCIDENT_CREATION: ${DISABLE_AUTOMATIC_INCIDENT_CREATION}
+
 
 services:
 
