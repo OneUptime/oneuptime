@@ -67,6 +67,15 @@ router.get(
                                 ]),
                         },
                     },
+                    select: {
+                        probeId: true,
+                        monitorId: true,
+                        monitor: {
+                            monitorSteps: true,
+                            monitorType: true,
+                            monitoringInterval: true,
+                        },
+                    },
                     skip: 0,
                     limit: LIMIT_MAX,
                     props: {
