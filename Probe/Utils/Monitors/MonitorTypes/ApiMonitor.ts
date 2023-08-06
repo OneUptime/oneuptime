@@ -78,8 +78,7 @@ export default class ApiMonitor {
 
             return apiResponse;
         } catch (err) {
-
-            if(!options){
+            if (!options) {
                 options = {};
             }
 

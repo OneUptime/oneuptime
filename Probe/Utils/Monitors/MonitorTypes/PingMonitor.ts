@@ -21,8 +21,7 @@ export interface PingOptions {
 export default class PingMonitor {
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
-        pingOptions?: PingOptions,
-
+        pingOptions?: PingOptions
     ): Promise<PingResponse> {
         let hostAddress: string = '';
         if (host instanceof Hostname) {
@@ -59,11 +58,8 @@ export default class PingMonitor {
             logger.info(err);
 
             if (!pingOptions) {
-                pingOptions = {
-                };
-
+                pingOptions = {};
             }
-
 
             if (!pingOptions.currentRetryCount) {
                 pingOptions.currentRetryCount = 0;
