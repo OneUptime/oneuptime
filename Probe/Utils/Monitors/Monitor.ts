@@ -22,8 +22,8 @@ import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 export default class MonitorUtil {
     public static async probeMonitor(
         monitor: Monitor
-    ): Promise<Array<ProbeMonitorResponse>> {
-        const results: Array<ProbeMonitorResponse> = [];
+    ): Promise<Array<ProbeMonitorResponse | null>> {
+        const results: Array<ProbeMonitorResponse | null> = [];
 
         if (
             !monitor.monitorSteps ||
@@ -39,25 +39,28 @@ export default class MonitorUtil {
                 continue;
             }
 
-            const result: ProbeMonitorResponse = await this.probeMonitorStep(
+            const result: ProbeMonitorResponse | null = await this.probeMonitorStep(
                 monitorStep,
                 monitor
             );
 
-            // report this back to Probe API.
+            if (result) {
 
-            await API.fetch<JSONObject>(
-                HTTPMethod.POST,
-                URL.fromString(PROBE_API_URL.toString()).addRoute(
-                    '/probe/response/ingest'
-                ),
-                {
-                    ...ProbeAPIRequest.getDefaultRequestBody(),
-                    probeMonitorResponse: result as any,
-                },
-                {},
-                {}
-            );
+                // report this back to Probe API.
+
+                await API.fetch<JSONObject>(
+                    HTTPMethod.POST,
+                    URL.fromString(PROBE_API_URL.toString()).addRoute(
+                        '/probe/response/ingest'
+                    ),
+                    {
+                        ...ProbeAPIRequest.getDefaultRequestBody(),
+                        probeMonitorResponse: result as any,
+                    },
+                    {},
+                    {}
+                );
+            }
 
             results.push(result);
         }
@@ -109,7 +112,7 @@ export default class MonitorUtil {
     public static async probeMonitorStep(
         monitorStep: MonitorStep,
         monitor: Monitor
-    ): Promise<ProbeMonitorResponse> {
+    ): Promise<ProbeMonitorResponse | null> {
         const result: ProbeMonitorResponse = {
             monitorStepId: monitorStep.id,
             monitorId: monitor.id!,
@@ -124,12 +127,16 @@ export default class MonitorUtil {
             monitor.monitorType === MonitorType.Ping ||
             monitor.monitorType === MonitorType.IP
         ) {
-            const response: PingResponse = await PingMonitor.ping(
+            const response: PingResponse | null = await PingMonitor.ping(
                 monitorStep.data?.monitorDestination,
                 {
                     retry: 5,
                 }
             );
+
+            if (!response) {
+                return null;
+            }
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
