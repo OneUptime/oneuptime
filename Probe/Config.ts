@@ -24,3 +24,12 @@ if (!process.env['PROBE_KEY']) {
 }
 
 export const PROBE_KEY: string = process.env['PROBE_KEY'];
+
+let probeMonitoringWorkers: string | number =
+    process.env['PROBE_MONITORING_WORKERS'] || 1;
+
+if (typeof probeMonitoringWorkers === 'string') {
+    probeMonitoringWorkers = parseInt(probeMonitoringWorkers);
+}
+
+export const PROBE_MONITORING_WORKERS: number = probeMonitoringWorkers;

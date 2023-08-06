@@ -20,6 +20,7 @@ import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import ObjectID from 'Common/Types/ObjectID';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -212,6 +213,9 @@ router.post(
                                     SubscriptionStatus.Trialing,
                                 ]),
                         },
+                    },
+                    sort: {
+                        nextPingAt: SortOrder.Ascending,
                     },
                     skip: 0,
                     limit: limit,

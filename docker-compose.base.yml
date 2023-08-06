@@ -297,6 +297,7 @@ services:
             PORT: ${PROBE_PORT}
             PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
+            PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
             PROBE_API_URL: http://${PROBE_API_HOSTNAME}
         depends_on:
@@ -313,6 +314,7 @@ services:
             PORT: ${PROBE_PORT}
             PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
+            PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
             PROBE_API_URL: http://${PROBE_API_HOSTNAME}
         depends_on:

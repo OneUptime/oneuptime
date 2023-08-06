@@ -4,7 +4,8 @@ import App from 'CommonServer/Utils/StartServer';
 import Register from './Services/Register';
 
 import './Jobs/Alive';
-import './Jobs/Monitor/FetchList';
+import FetchListAndProbe from './Jobs/Monitor/FetchList';
+import { PROBE_MONITORING_WORKERS } from './Config';
 
 const APP_NAME: string = 'probe';
 
@@ -15,6 +16,13 @@ const init: Function = async (): Promise<void> => {
 
         // Register this probe.
         await Register.registerProbe();
+
+        let workers: number = 0;
+
+        while (workers < PROBE_MONITORING_WORKERS) {
+            await new FetchListAndProbe().run();
+            workers++;
+        }
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

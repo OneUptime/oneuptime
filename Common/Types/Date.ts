@@ -86,6 +86,11 @@ export default class OneUptimeDate {
         return moment(date).add(minutes, 'minutes').toDate();
     }
 
+    public static addRemoveSeconds(date: Date, seconds: number): Date {
+        date = this.fromString(date);
+        return moment(date).add(seconds, 'seconds').toDate();
+    }
+
     public static getSecondsInDays(days: PositiveNumber | number): number {
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
