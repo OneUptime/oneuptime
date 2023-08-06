@@ -30,6 +30,7 @@ export default class ApiMonitor {
             requestType?: HTTPMethod | undefined;
             isHeadRequest?: boolean | undefined;
             retry?: number | undefined;
+            currentRetryCount?: number | undefined;
         }
     ): Promise<APIResponse> {
         let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
@@ -77,12 +78,17 @@ export default class ApiMonitor {
 
             return apiResponse;
         } catch (err) {
-            if (!options.retry) {
-                options.retry = 0; // default value
+
+            if(!options){
+                options = {};
             }
 
-            if (options.retry < 5) {
-                options.retry++;
+            if (!options.currentRetryCount) {
+                options.currentRetryCount = 0; // default value
+            }
+
+            if (options.currentRetryCount < (options.retry || 5)) {
+                options.currentRetryCount++;
                 return await this.ping(url, options);
             }
 

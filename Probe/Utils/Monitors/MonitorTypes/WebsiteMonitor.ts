@@ -25,6 +25,7 @@ export default class WebsiteMonitor {
         options: {
             retry?: number | undefined;
             isHeadRequest?: boolean | undefined;
+            currentRetryCount?: number | undefined;
         }
     ): Promise<ProbeWebsiteResponse> {
         let requestType: HTTPMethod = HTTPMethod.GET;
@@ -71,12 +72,12 @@ export default class WebsiteMonitor {
                 options = {};
             }
 
-            if (!options.retry) {
-                options.retry = 0; // default value
+            if (!options.currentRetryCount) {
+                options.currentRetryCount = 0; // default value
             }
 
-            if (options.retry < 5) {
-                options.retry++;
+            if (options.currentRetryCount < (options.retry || 5)) {
+                options.currentRetryCount++;
                 return await this.ping(url, options);
             }
 

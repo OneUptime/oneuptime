@@ -125,7 +125,9 @@ export default class MonitorUtil {
             monitor.monitorType === MonitorType.IP
         ) {
             const response: PingResponse = await PingMonitor.ping(
-                monitorStep.data?.monitorDestination
+                monitorStep.data?.monitorDestination, {
+                retry: 5
+            }
             );
 
             result.isOnline = response.isOnline;
@@ -137,6 +139,7 @@ export default class MonitorUtil {
                 monitorStep.data?.monitorDestination as URL,
                 {
                     isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
+                    retry: 5
                 }
             );
 
@@ -166,6 +169,7 @@ export default class MonitorUtil {
                     isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
                     requestType:
                         monitorStep.data?.requestType || HTTPMethod.GET,
+                    retry: 5
                 }
             );
 

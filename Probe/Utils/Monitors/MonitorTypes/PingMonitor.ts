@@ -14,13 +14,15 @@ export interface PingResponse {
 
 export interface PingOptions {
     timeout?: PositiveNumber;
+    retry?: number | undefined;
+    currentRetryCount?: number | undefined;
 }
 
 export default class PingMonitor {
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
         pingOptions?: PingOptions,
-        retry?: number | undefined
+
     ): Promise<PingResponse> {
         let hostAddress: string = '';
         if (host instanceof Hostname) {
@@ -56,13 +58,20 @@ export default class PingMonitor {
             logger.info('Pinging host ' + hostAddress + ' error: ');
             logger.info(err);
 
-            if (!retry) {
-                retry = 0; // default value
+            if (!pingOptions) {
+                pingOptions = {
+                };
+
             }
 
-            if (retry < 5) {
-                retry++;
-                return await this.ping(host, pingOptions, retry);
+
+            if (!pingOptions.currentRetryCount) {
+                pingOptions.currentRetryCount = 0;
+            }
+
+            if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+                pingOptions.currentRetryCount++;
+                return await this.ping(host, pingOptions);
             }
 
             return {
