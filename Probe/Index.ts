@@ -20,7 +20,10 @@ const init: Function = async (): Promise<void> => {
         let workers: number = 0;
 
         while (workers < PROBE_MONITORING_WORKERS) {
-            await new FetchListAndProbe().run();
+            new FetchListAndProbe().run().catch((err: any) => {
+                logger.error('FetchListAndProbe Failed:');
+                logger.error(err);
+            });
             workers++;
         }
     } catch (err) {
