@@ -1289,48 +1289,53 @@ export default class StatusPageAPI extends BaseAPI<
                 },
             });
 
-        const futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
-                query: {
-                    currentScheduledMaintenanceState: {
-                        isScheduledState: true,
-                    } as any,
-                    statusPages: [statusPageId] as any,
-                    projectId: statusPage.projectId!,
-                },
-                select: {
-                    createdAt: true,
-                    title: true,
-                    description: true,
-                    _id: true,
-                    endsAt: true,
-                    startsAt: true,
-                    currentScheduledMaintenanceState: {
-                        name: true,
-                        color: true,
-                        isScheduledState: true,
-                        isResolvedState: true,
-                        isOngoingState: true,
-                    },
-                    monitors: {
-                        _id: true,
-                    },
-                },
-                sort: {
-                    createdAt: SortOrder.Ascending,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: {
-                    isRoot: true,
-                },
-            });
+        let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
 
-        futureScheduledMaintenanceEvents.forEach(
-            (event: ScheduledMaintenance) => {
-                scheduledMaintenanceEvents.push(event);
-            }
-        );
+        // If there is no scheduledMaintenanceId, then fetch all future scheduled events.
+        if (!scheduledMaintenanceId) {
+            futureScheduledMaintenanceEvents =
+                await ScheduledMaintenanceService.findBy({
+                    query: {
+                        currentScheduledMaintenanceState: {
+                            isScheduledState: true,
+                        } as any,
+                        statusPages: [statusPageId] as any,
+                        projectId: statusPage.projectId!,
+                    },
+                    select: {
+                        createdAt: true,
+                        title: true,
+                        description: true,
+                        _id: true,
+                        endsAt: true,
+                        startsAt: true,
+                        currentScheduledMaintenanceState: {
+                            name: true,
+                            color: true,
+                            isScheduledState: true,
+                            isResolvedState: true,
+                            isOngoingState: true,
+                        },
+                        monitors: {
+                            _id: true,
+                        },
+                    },
+                    sort: {
+                        createdAt: SortOrder.Ascending,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+            futureScheduledMaintenanceEvents.forEach(
+                (event: ScheduledMaintenance) => {
+                    scheduledMaintenanceEvents.push(event);
+                }
+            );
+        }
 
         const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
             scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
@@ -1648,8 +1653,11 @@ export default class StatusPageAPI extends BaseAPI<
                 },
             });
 
-            const activeIncidents: Array<Incident> =
-                await IncidentService.findBy({
+            let activeIncidents: Array<Incident> = [];
+
+            // If there is no particular incident id to fetch then fetch active incidents.
+            if (!incidentId) {
+                activeIncidents = await IncidentService.findBy({
                     query: {
                         monitors: monitorsOnStatusPage as any,
                         currentIncidentState: {
@@ -1684,6 +1692,7 @@ export default class StatusPageAPI extends BaseAPI<
                         isRoot: true,
                     },
                 });
+            }
 
             incidents = [...activeIncidents, ...incidents];
 
