@@ -14,21 +14,34 @@ const init: Function = async (): Promise<void> => {
         // init the app
         await App(APP_NAME);
 
-        // Register this probe.
-        await Register.registerProbe();
+        try {
+            // Register this probe.
+            await Register.registerProbe();
+        } catch (err) {
+            logger.error('Register probe failed');
+            logger.error(err);
+        }
 
-        let workers: number = 0;
+        try {
+            let workers: number = 0;
 
-        while (workers < PROBE_MONITORING_WORKERS) {
-            logger.info(`Starting worker ${workers}`);
-            workers++;
+            while (workers < PROBE_MONITORING_WORKERS) {
+                workers++;
 
-            new FetchListAndProbe('Worker ' + workers)
-                .run()
-                .catch((err: any) => {
-                    logger.error(`Worker ${workers} failed: `);
-                    logger.error(err);
-                });
+                const currentWorker: number = workers;
+
+                logger.info(`Starting worker ${currentWorker}`);
+
+                new FetchListAndProbe('Worker ' + currentWorker)
+                    .run()
+                    .catch((err: any) => {
+                        logger.error(`Worker ${currentWorker} failed: `);
+                        logger.error(err);
+                    });
+            }
+        } catch (err) {
+            logger.error('Starting workers failed');
+            logger.error(err);
         }
     } catch (err) {
         logger.error('App Init Failed:');
