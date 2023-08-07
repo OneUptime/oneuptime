@@ -403,7 +403,6 @@ services:
         restart: always
         networks:
           - oneuptime
-        image: nginx:1.25.1-alpine
         environment:
             <<: *common-variables
         ports:
