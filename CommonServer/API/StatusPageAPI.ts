@@ -12,7 +12,7 @@ import {
 } from '../Utils/Express';
 import BaseAPI from './BaseAPI';
 import Response from '../Utils/Response';
-import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
+import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageFooterLinkService from '../Services/StatusPageFooterLinkService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -403,8 +403,8 @@ export default class StatusPageAPI extends BaseAPI<
                             req
                         ))
                     ) {
-                        throw new NotAuthorizedException(
-                            'You are not authorized to access this status page'
+                        throw new NotAuthenticatedException(
+                            'You are not authenticated to access this status page'
                         );
                     }
 
@@ -937,8 +937,8 @@ export default class StatusPageAPI extends BaseAPI<
                             req
                         ))
                     ) {
-                        throw new NotAuthorizedException(
-                            'You are not authorized to access this status page'
+                        throw new NotAuthenticatedException(
+                            'You are not authenticated to access this status page'
                         );
                     }
 
@@ -1187,8 +1187,8 @@ export default class StatusPageAPI extends BaseAPI<
         req: ExpressRequest
     ): Promise<JSONObject> {
         if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
-            throw new NotAuthorizedException(
-                'You are not authorized to access this status page'
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
             );
         }
 
@@ -1435,8 +1435,8 @@ export default class StatusPageAPI extends BaseAPI<
         req: ExpressRequest
     ): Promise<JSONObject> {
         if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
-            throw new NotAuthorizedException(
-                'You are not authorized to access this status page'
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
             );
         }
 
@@ -1545,8 +1545,8 @@ export default class StatusPageAPI extends BaseAPI<
         req: ExpressRequest
     ): Promise<JSONObject> {
         if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
-            throw new NotAuthorizedException(
-                'You are not authorized to access this status page'
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
             );
         }
 
