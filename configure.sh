@@ -25,9 +25,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     fi
 fi
 
-# If linux
+
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+  local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
   if [[ ${DISTRIB} = "ubuntu"* ]]; then
     echo "Grabbing latest apt caches"
     sudo apt-get update
@@ -42,7 +42,7 @@ fi
 echo "Installing OneUptime 🟢"
 if [[ ! $(which git) ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+      local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
       if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
         sudo apt install -y git
       elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
@@ -53,6 +53,7 @@ if [[ ! $(which git) ]]; then
         brew install git
     fi
 fi
+
 
 if [[ $IS_DOCKER == "true" ]]
 then
@@ -99,10 +100,9 @@ if [[ ! $(which node) && ! $(node --version) ]]; then
     fi
 fi
 
-
-if [[ ! $(which git) ]]; then
+if [[ ! $(which npm) ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+      local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
       if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
         echo "Setting up NPM"
         sudo apt-get install -y npm
@@ -110,7 +110,8 @@ if [[ ! $(which git) ]]; then
         echo "Setting up NPM"
         sudo dnf install -y npm
       fi
-
+    fi
+fi
 
 if [[ ! $(which docker) && ! $(docker --version) ]]; then
   echo "Setting up Docker"
