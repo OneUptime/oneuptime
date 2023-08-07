@@ -68,7 +68,11 @@ router.get(
                                 ]),
                         },
                     },
+                    sort: {
+                        nextPingAt: SortOrder.Ascending,
+                    },
                     select: {
+                        nextPingAt: true,
                         probeId: true,
                         monitorId: true,
                         monitor: {
