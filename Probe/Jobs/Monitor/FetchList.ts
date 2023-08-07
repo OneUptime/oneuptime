@@ -35,16 +35,16 @@ export default class FetchListAndProbe {
 
             // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
 
-            const fiveSecondsAdded: Date = OneUptimeDate.addRemoveSeconds(
+            const twoSecondsAdded: Date = OneUptimeDate.addRemoveSeconds(
                 runTime,
-                5
+                2
             );
 
-            if (OneUptimeDate.isInTheFuture(fiveSecondsAdded)) {
+            if (OneUptimeDate.isInTheFuture(twoSecondsAdded)) {
                 logger.info(
-                    `Worker ${this.workerName} is waiting for 5 seconds`
+                    `Worker ${this.workerName} is waiting for 2 seconds`
                 );
-                await Sleep.sleep(5000);
+                await Sleep.sleep(2000);
             }
         }
     }
