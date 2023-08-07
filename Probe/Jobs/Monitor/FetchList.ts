@@ -14,12 +14,24 @@ import OneUptimeDate from 'Common/Types/Date';
 import Sleep from 'Common/Types/Sleep';
 
 export default class FetchListAndProbe {
+    private workerName: string = '';
+
+    public constructor(workerName: string) {
+        this.workerName = workerName;
+    }
+
     public async run(): Promise<void> {
+        logger.info(`Running worker ${this.workerName}`);
+
         const runTIme: Date = OneUptimeDate.getCurrentDate();
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
+            logger.info(`Probing monitors ${this.workerName}`);
+
             await this.fetchListAndProbe();
+
+            logger.info(`Probing monitors ${this.workerName} complete`);
 
             // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
 
@@ -29,6 +41,9 @@ export default class FetchListAndProbe {
             );
 
             if (OneUptimeDate.isInTheFuture(fiveSecondsAdded)) {
+                logger.info(
+                    `Worker ${this.workerName} is waiting for 5 seconds`
+                );
                 await Sleep.sleep(5000);
             }
         }

@@ -3,6 +3,7 @@ import Headers from './API/Headers';
 import URL from './API/URL';
 import HTML from './Html';
 import HTTPMethod from './API/HTTPMethod';
+import Dictionary from './Dictionary';
 
 export interface WebsiteResponse {
     url: URL;
@@ -45,7 +46,7 @@ export default class WebsiteRequest {
         return {
             url: url,
             requestHeaders: options.headers || {},
-            responseHeaders: response.headers,
+            responseHeaders: response.headers as Dictionary<string>,
             responseStatusCode: response.status,
             responseBody: new HTML(response.data),
             isOnline: true,

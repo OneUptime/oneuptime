@@ -257,7 +257,7 @@ export default class API {
             const response: HTTPResponse<T> = new HTTPResponse<T>(
                 result.status,
                 result.data,
-                result.headers
+                result.headers as Dictionary<string>
             );
 
             return response;
@@ -280,8 +280,8 @@ export default class API {
         if (error.response) {
             return new HTTPErrorResponse(
                 error.response.status,
-                error.response.data,
-                error.response.headers
+                error.response.data as JSONObject | JSONArray,
+                error.response.headers as Dictionary<string>
             );
         }
 
