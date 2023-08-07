@@ -26,7 +26,7 @@ const init: Function = async (): Promise<void> => {
             new FetchListAndProbe('Worker ' + workers)
                 .run()
                 .catch((err: any) => {
-                    logger.error('FetchListAndProbe Failed:');
+                    logger.error(`Worker ${workers} failed: `);
                     logger.error(err);
                 });
         }
