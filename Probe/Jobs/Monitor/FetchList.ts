@@ -23,10 +23,10 @@ export default class FetchListAndProbe {
     public async run(): Promise<void> {
         logger.info(`Running worker ${this.workerName}`);
 
-        const runTIme: Date = OneUptimeDate.getCurrentDate();
-
         // eslint-disable-next-line no-constant-condition
         while (true) {
+            const runTime: Date = OneUptimeDate.getCurrentDate();
+
             logger.info(`Probing monitors ${this.workerName}`);
 
             await this.fetchListAndProbe();
@@ -36,7 +36,7 @@ export default class FetchListAndProbe {
             // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
 
             const fiveSecondsAdded: Date = OneUptimeDate.addRemoveSeconds(
-                runTIme,
+                runTime,
                 5
             );
 

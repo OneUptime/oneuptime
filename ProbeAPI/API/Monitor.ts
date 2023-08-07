@@ -220,6 +220,7 @@ router.post(
                     skip: 0,
                     limit: limit,
                     select: {
+                        nextPingAt: true,
                         probeId: true,
                         monitorId: true,
                         monitor: {
