@@ -27,7 +27,7 @@ fi
 
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+  DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
   if [[ ${DISTRIB} = "ubuntu"* ]]; then
     echo "Grabbing latest apt caches"
     sudo apt-get update
@@ -42,7 +42,7 @@ fi
 echo "Installing OneUptime 🟢"
 if [[ ! $(which git) ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+      DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
       if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
         sudo apt install -y git
       elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
@@ -102,7 +102,7 @@ fi
 
 if [[ ! $(which npm) ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+      DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
       if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
         echo "Setting up NPM"
         sudo apt-get install -y npm
