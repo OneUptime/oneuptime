@@ -26,22 +26,33 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 # If linux
-if [[ "$OSTYPE" != "darwin"* ]]; then
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+  if [[ ${DISTRIB} = "ubuntu"* ]]; then
+    echo "Grabbing latest apt caches"
+    sudo apt-get update
+  elif [[ ${DISTRIB} = "debian"* ]]; then
     echo "Grabbing latest apt caches"
     sudo apt update
+  fi
 fi
+
 
 # clone oneuptime
 echo "Installing OneUptime 🟢"
 if [[ ! $(which git) ]]; then
-    if [[ "$OSTYPE" != "darwin"* ]]; then
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+      local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+      if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
         sudo apt install -y git
+      elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
+        sudo dnf install git -y
+      fi
     fi
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install git
     fi
 fi
-
 
 if [[ $IS_DOCKER == "true" ]]
 then
@@ -89,12 +100,17 @@ if [[ ! $(which node) && ! $(node --version) ]]; then
 fi
 
 
-if [[ ! $(which npm) && ! $(npm --version) ]]; then
-    if [[ "$OSTYPE" != "darwin"* ]]; then
+if [[ ! $(which git) ]]; then
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+      local DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+      if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
         echo "Setting up NPM"
         sudo apt-get install -y npm
-    fi
-fi
+      elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
+        echo "Setting up NPM"
+        sudo dnf install -y npm
+      fi
+
 
 if [[ ! $(which docker) && ! $(docker --version) ]]; then
   echo "Setting up Docker"
