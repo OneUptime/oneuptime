@@ -30,13 +30,13 @@ All under one platform.
 
 OneUptime Cloud is the easiest and fastest way to monitor your website uptime and performance. You can sign up for free to [OneUptime Cloud](https://oneuptime.com) and enjoy the full benefits of OneUptime without any installation or maintenance hassle. 
 
-By using OneUptime Cloud, you also support the development of OneUptime open source project.
+By using OneUptime Cloud, you also support the development of OneUptime open source project, which is a powerful and flexible tool for website monitoring. You can find more information about OneUptime open source project on [GitHub](##Philosophy). The code of OneUptime is completely open source, which means you can access, modify, and distribute it freely. You can also contribute to the project by reporting issues, suggesting features, or submitting pull requests.
 
 If you need advanced features, such as API Access, Advances Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
 
-### Deploy OneUptime with Docker Compose
+### Deploy OneUptime completely free with Docker Compose
 
-If you prefer to host OneUptime on your own server, you can use Docker Compose to deploy a single-server instance of OneUptime on Debian, Ubuntu, or RHEL.
+If you prefer to host OneUptime on your own server, you can use Docker Compose to deploy a single-server instance of OneUptime on Debian, Ubuntu, or RHEL. This option gives you more control and customization over your instance, but it also requires more technical skills and resources to deploy and maintain it.
 
 #### Choose Your System Requirements
 Depending on your usage and budget, you can choose from different system requirements for your server. For optimal performance, we suggest using OneUptime with:
