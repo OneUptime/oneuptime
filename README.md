@@ -34,7 +34,7 @@ The fastest and most reliable way to get started with OneUptime is signing up fo
 
 ### Open-source hobby single-server deploy with Docker Compose.
 
-Deploy a single-server instance in one line on Debian / Ubuntu with Docker (we only support Debian / Ubuntu and RHEL derivarts with docker installed as of today). We recommend OneUptime on 16 GB / 8 Core Ubuntu Server. However you can run an instance on a much smaller server.
+Deploy a single-server instance with docker compose on Debian / Ubuntu / RHEL with Docker (we only support Debian / Ubuntu and RHEL derivatives with docker installed as of today). We recommend OneUptime on 16 GB / 8 Core Ubuntu Server. However you can run an instance on a much smaller server.
 
 Please make sure you have: 
 - Docker and Docker Compose installed.
