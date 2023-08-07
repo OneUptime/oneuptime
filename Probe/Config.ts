@@ -33,3 +33,12 @@ if (typeof probeMonitoringWorkers === 'string') {
 }
 
 export const PROBE_MONITORING_WORKERS: number = probeMonitoringWorkers;
+
+let monitorFetchLimit: string | number =
+    process.env['PROBE_MONITOR_FETCH_LIMIT'] || 1;
+
+if (typeof monitorFetchLimit === 'string') {
+    monitorFetchLimit = parseInt(monitorFetchLimit);
+}
+
+export const PROBE_MONITOR_FETCH_LIMIT: number = monitorFetchLimit;

@@ -300,6 +300,7 @@ services:
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
             PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+            PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
         depends_on:
             - probe-api
         links:
@@ -317,6 +318,7 @@ services:
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
             PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+            PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
         depends_on:
             - probe-api
         links:

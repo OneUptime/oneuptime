@@ -6,6 +6,7 @@ import Register from './Services/Register';
 import './Jobs/Alive';
 import FetchListAndProbe from './Jobs/Monitor/FetchList';
 import { PROBE_MONITORING_WORKERS } from './Config';
+import Sleep from 'Common/Types/Sleep';
 
 const APP_NAME: string = 'probe';
 
@@ -38,6 +39,8 @@ const init: Function = async (): Promise<void> => {
                         logger.error(`Worker ${currentWorker} failed: `);
                         logger.error(err);
                     });
+
+                await Sleep.sleep(1000);
             }
         } catch (err) {
             logger.error('Starting workers failed');

@@ -1,5 +1,5 @@
 import API from 'Common/Utils/API';
-import { PROBE_API_URL } from '../../Config';
+import { PROBE_API_URL, PROBE_MONITOR_FETCH_LIMIT } from '../../Config';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -61,7 +61,10 @@ export default class FetchListAndProbe {
                 await API.fetch<JSONArray>(
                     HTTPMethod.POST,
                     monitorListUrl,
-                    ProbeAPIRequest.getDefaultRequestBody(),
+                    {
+                        ...ProbeAPIRequest.getDefaultRequestBody(),
+                        limit: PROBE_MONITOR_FETCH_LIMIT || 100,
+                    },
                     {},
                     {}
                 );
