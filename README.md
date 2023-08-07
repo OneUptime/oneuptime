@@ -8,36 +8,64 @@
   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oneuptime/app"/>
 </p>
 
-**OneUptime is the complete open-source observability platform.**
+**OneUptime: The Complete Open-Source Observability Platform**
 
-OneUptime monitors your website, dashboards, API's, and more and alerts your team when downtime happens. We also give you a Status Page which keeps your customers looped in and improves transparency.
+OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors.
 
-OneUptime does:
+OneUptime replaces multiple tools with one integrated platform:
 
--   Uptime Monitoring, replaces tools like Pingdom
--   Status Page, replaces tools like StatusPage.io
--   Incident Management, replaces tools like Incident.io
--   On-call rotation and alerts, replaces tools like PagerDuty
--   Tests, replaces tools like Postman (Coming soon)
--   Security, replaces tools like Snyk (Coming soon)
--   Logs Management, replaces tools like Loggly (Coming soon)
--   Performance Monitoring, replaces tools like NewRelic (Coming soon)
--   Error Tracking, replaces tools like Sentry (Coming soon)
+-   **Uptime Monitoring**: Monitor the availability and response time of your online services from multiple locations around the world. Get notified via email, SMS, Slack, or other channels when something goes wrong. Replace tools like Pingdom.
+-   **Status Page**: Communicate with your customers and stakeholders during downtime or maintenance. Create a custom-branded status page that shows the current status and history of your services. Replace tools like StatusPage.io.
+-   **Incident Management**: Manage incidents from start to finish with a collaborative workflow. Create incident reports, assign tasks, update stakeholders, and document resolutions. Replace tools like Incident.io.
+-   **On-call Rotation and Alerts**: Schedule on-call shifts for your team and define escalation policies. Ensure that the right person is notified at the right time when an incident occurs. Replace tools like PagerDuty.
+-   **Tests** (Coming soon): Automate testing of your online services with scripts or scenarios. Verify the functionality and performance of your APIs, web pages, or workflows. Replace tools like Postman.
+-   **Security** (Coming soon): Protect your online services from cyberattacks and vulnerabilities. Scan your code and dependencies for security issues and get recommendations for fixing them. Replace tools like Snyk.
+-   **Logs Management** (Coming soon): Collect, store, and analyze logs from your online services. Search, filter, and visualize log data to gain insights and troubleshoot issues. Replace tools like Loggly.
+-   **Performance Monitoring** (Coming soon): Measure and optimize the performance of your online services. Track key metrics such as response time, throughput, error rate, and user satisfaction. Replace tools like NewRelic.
+-   **Error Tracking** (Coming soon): Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
 
 All under one platform.
 
-## Get started for free
+## Get Started for Free with OneUptime Cloud
 
-### OneUptime Cloud
+OneUptime Cloud is the easiest and fastest way to monitor your website uptime and performance. You can sign up for free to [OneUptime Cloud](https://oneuptime.com) and enjoy the full benefits of OneUptime without any installation or maintenance hassle. 
 
-The fastest and most reliable way to get started with OneUptime is signing up for free to [OneUptime Cloud](https://oneuptime.com). By using the hosted cloud service, you also support by funding OneUptime open source development. 
+By using OneUptime Cloud, you also support the development of OneUptime open source project, which is a powerful and flexible tool for website monitoring. You can find more information about OneUptime open source project on [GitHub](##Philosophy). The code of OneUptime is completely open source, which means you can access, modify, and distribute it freely. You can also contribute to the project by reporting issues, suggesting features, or submitting pull requests.
 
-### Open-source hobby single-server deploy with Docker Compose.
+If you need advanced features, such as API Access, Advances Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
 
-Deploy a single-server instance with docker compose on Debian / Ubuntu / RHEL with Docker (we only support Debian / Ubuntu and RHEL derivatives with docker installed as of today). We recommend OneUptime on 16 GB / 8 Core Ubuntu Server. However you can run an instance on a much smaller server.
+### Deploy OneUptime completely free with Docker Compose
 
-Please make sure you have: 
-- Docker and Docker Compose installed.
+If you prefer to host OneUptime on your own server, you can use Docker Compose to deploy a single-server instance of OneUptime on Debian, Ubuntu, or RHEL. This option gives you more control and customization over your instance, but it also requires more technical skills and resources to deploy and maintain it.
+
+#### Choose Your System Requirements
+Depending on your usage and budget, you can choose from different system requirements for your server. For optimal performance, we suggest using OneUptime with:
+
+- **Recommended System Requirements**
+  - 16GB RAM
+  - 8 Core
+  - 400GB SSD
+  - Ubuntu 22.04
+  - Docker and Docker Compose installed
+- **Homelab Requirements**
+  - If you want to run OneUptime for personal or experimental use in a home environment, you can use the homelab requirements:
+    - 12GB RAM
+    - 4 Core
+    - 100GB SSD
+    - Docker and Docker Compose installed
+- **Minimal Requirements**
+  - If you don't have the recommended system requirements, you can still use the minimal requirements:
+    - 8GB RAM
+    - 2 Core
+    - 100GB SSD
+    - Docker and Docker Compose installed
+  - However, please note that using the minimal requirements may affect the performance and stability of your instance. You may experience slower loading times, higher CPU usage, or unexpected errors.
+
+#### Prerequisites for Single-Server Deployment
+Before you start the deployment process, please make sure you have:
+
+- A server running Debian, Ubuntu, or RHEL derivative
+- Docker and Docker Compose installed on your server
 
 To install OneUptime: 
 
