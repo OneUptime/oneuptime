@@ -2,6 +2,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import URL from 'Common/Types/API/URL';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
+import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import logger from 'CommonServer/Utils/Logger';
 import ping from 'ping';
@@ -16,6 +17,7 @@ export interface PingOptions {
     timeout?: PositiveNumber;
     retry?: number | undefined;
     currentRetryCount?: number | undefined;
+    monitorId?: ObjectID | undefined;
 }
 
 export default class PingMonitor {
@@ -49,7 +51,9 @@ export default class PingMonitor {
             hostAddress = host.toString();
         }
 
-        logger.info('Pinging host: ' + hostAddress);
+        logger.info(
+            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}`
+        );
 
         try {
             const res: ping.PingResponse = await ping.promise.probe(
@@ -61,7 +65,9 @@ export default class PingMonitor {
                 }
             );
 
-            logger.info('Pinging host ' + hostAddress + ' success: ');
+            logger.info(
+                `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} success: `
+            );
             logger.info(res);
 
             return {
@@ -71,7 +77,9 @@ export default class PingMonitor {
                     : undefined,
             };
         } catch (err) {
-            logger.info('Pinging host ' + hostAddress + ' error: ');
+            logger.info(
+                `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} error: `
+            );
             logger.info(err);
 
             if (!pingOptions) {
@@ -91,7 +99,7 @@ export default class PingMonitor {
 
             if (!(await PingMonitor.isProbeOnline())) {
                 logger.error(
-                    `PingMonitor Monitor - Probe is not online. Cannot ping ${host.toString()} - ERROR: ${err}`
+                    `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                 );
                 return null;
             }

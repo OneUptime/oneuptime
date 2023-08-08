@@ -7,6 +7,7 @@ import HTML from 'Common/Types/Html';
 import { AxiosError } from 'axios';
 import logger from 'CommonServer/Utils/Logger';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ProbeWebsiteResponse {
     url: URL;
@@ -63,6 +64,7 @@ export default class WebsiteMonitor {
             retry?: number | undefined;
             isHeadRequest?: boolean | undefined;
             currentRetryCount?: number | undefined;
+            monitorId?: ObjectID | undefined;
         }
     ): Promise<ProbeWebsiteResponse | null> {
         let requestType: HTTPMethod = HTTPMethod.GET;
@@ -73,7 +75,7 @@ export default class WebsiteMonitor {
 
         try {
             logger.info(
-                `Website Monitor - Pinging ${requestType} ${url.toString()}`
+                `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()}`
             );
 
             const startTime: [number, number] = process.hrtime();
@@ -98,7 +100,7 @@ export default class WebsiteMonitor {
             };
 
             logger.info(
-                `Website Monitor - Pinging ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
+                `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
                     probeWebsiteResponse
                 )}`
             );
@@ -147,13 +149,13 @@ export default class WebsiteMonitor {
 
             if (!(await WebsiteMonitor.isProbeOnline())) {
                 logger.error(
-                    `Website Monitor - Probe is not online. Cannot ping ${requestType} ${url.toString()} - ERROR: ${err}`
+                    `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                 );
                 return null;
             }
 
             logger.error(
-                `Website Monitor - Pinging ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
+                `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
                     probeWebisteResponse
                 )}`
             );

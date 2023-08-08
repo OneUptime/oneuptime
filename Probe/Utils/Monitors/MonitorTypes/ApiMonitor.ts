@@ -8,6 +8,7 @@ import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import logger from 'CommonServer/Utils/Logger';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface APIResponse {
     url: URL;
@@ -73,6 +74,7 @@ export default class ApiMonitor {
             isHeadRequest?: boolean | undefined;
             retry?: number | undefined;
             currentRetryCount?: number | undefined;
+            monitorId?: ObjectID | undefined;
         }
     ): Promise<APIResponse | null> {
         let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
@@ -83,7 +85,7 @@ export default class ApiMonitor {
 
         try {
             logger.info(
-                `API Monitor - Pinging ${requestType} ${url.toString()}`
+                `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()}`
             );
 
             const startTime: [number, number] = process.hrtime();
@@ -113,7 +115,7 @@ export default class ApiMonitor {
             };
 
             logger.info(
-                `API Monitor - Pinging ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
+                `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
                     apiResponse
                 )}`
             );
@@ -135,7 +137,7 @@ export default class ApiMonitor {
 
             if (!(await ApiMonitor.isProbeOnline())) {
                 logger.error(
-                    `API Monitor - Probe is not online. Cannot ping ${requestType} ${url.toString()} - ERROR: ${err}`
+                    `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                 );
                 return null;
             }
@@ -153,7 +155,7 @@ export default class ApiMonitor {
             };
 
             logger.error(
-                `API Monitor - Pinging ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
+                `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
                     apiResponse
                 )}`
             );

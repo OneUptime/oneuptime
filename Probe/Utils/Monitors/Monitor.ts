@@ -128,6 +128,7 @@ export default class MonitorUtil {
                 monitorStep.data?.monitorDestination,
                 {
                     retry: 5,
+                    monitorId: monitor.id!,
                 }
             );
 
@@ -145,6 +146,7 @@ export default class MonitorUtil {
                     monitorStep.data?.monitorDestination as URL,
                     {
                         isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
+                        monitorId: monitor.id!,
                         retry: 5,
                     }
                 );
@@ -176,6 +178,7 @@ export default class MonitorUtil {
                 {
                     requestHeaders: monitorStep.data?.requestHeaders || {},
                     requestBody: requestBody || undefined,
+                    monitorId: monitor.id!,
                     isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
                     requestType:
                         monitorStep.data?.requestType || HTTPMethod.GET,
