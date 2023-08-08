@@ -158,13 +158,17 @@ export class BillingService extends BaseService {
     }
 
     public async generateCouponCode(data: {
+        name: string;
         percentOff: number;
         durationInMonths: number;
+        maxRedemptions: number;
     }): Promise<string> {
         const coupon = await this.stripe.coupons.create({
+            name: data.name,
             percent_off: data.percentOff,
             duration: 'repeating',
             duration_in_months: data.durationInMonths,
+            max_redemptions: data.maxRedemptions,
         });
 
         return coupon.id;
