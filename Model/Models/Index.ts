@@ -113,6 +113,8 @@ import DataMigration from './DataMigration';
 import ShortLink from './ShortLink';
 import EmailLog from './EmailLog';
 
+import IncidentTemplate from './IncidentTemplate';
+
 export default [
     User,
     Probe,
@@ -209,4 +211,6 @@ export default [
     DataMigration,
 
     ShortLink,
+
+    IncidentTemplate,
 ];
