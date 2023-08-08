@@ -19,7 +19,6 @@ import Label from '../../Components/Label/Label';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Monitor from 'Model/Models/Monitor';
 
-
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -164,7 +163,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitors affected',
                         stepId: 'resources-affected',
-                        description: 'Select monitors affected by this incident.',
+                        description:
+                            'Select monitors affected by this incident.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Monitor,
@@ -250,7 +250,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
-    
+
                         title: 'Labels ',
                         stepId: 'labels',
                         description:
@@ -284,7 +284,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

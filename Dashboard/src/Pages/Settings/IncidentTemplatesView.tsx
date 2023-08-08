@@ -30,7 +30,6 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import OnCallDutyPoliciesView from '../../Components/OnCallPolicy/OnCallPolicies';
 import LabelsElement from '../../Components/Label/Labels';
 
-
 const TeamView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -61,19 +60,21 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'View Template',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW] as Route
+                        RouteMap[
+                            PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                        ] as Route
                     ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             {/* Incident View  */}
             <CardModelDetail
                 name="Incident Template Details"
                 cardProps={{
                     title: 'Incident Template Details',
-                    description: 'Here are more details for this incident template.',
+                    description:
+                        'Here are more details for this incident template.',
                     icon: IconProp.Template,
                 }}
                 isEditable={true}
@@ -174,7 +175,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitors affected',
                         stepId: 'resources-affected',
-                        description: 'Select monitors affected by this incident.',
+                        description:
+                            'Select monitors affected by this incident.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Monitor,
@@ -260,7 +262,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
-    
+
                         title: 'Labels ',
                         stepId: 'labels',
                         description:
@@ -309,7 +311,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Text,
                         },
 
-                        
                         {
                             field: {
                                 incidentSeverity: {
@@ -424,12 +425,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 );
                             },
                         },
-                       
                     ],
                     modelId: modelId,
                 }}
             />
-
 
             <ModelDelete
                 modelType={Team}

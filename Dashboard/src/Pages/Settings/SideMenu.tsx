@@ -106,7 +106,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     link={{
                         title: 'Incident Templates',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_INCIDENT_TEMPLATES] as Route
+                            RouteMap[
+                                PageMap.SETTINGS_INCIDENT_TEMPLATES
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Template}

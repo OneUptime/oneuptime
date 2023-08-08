@@ -220,7 +220,6 @@ export default class IncidentTemplate extends BaseModel {
     })
     public templateName?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
