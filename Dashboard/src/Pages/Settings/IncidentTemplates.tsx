@@ -271,9 +271,17 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            name: true,
+                            templateName: true,
                         },
                         title: 'Name',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            templateDescription: true,
+                        },
+                        title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
                     }

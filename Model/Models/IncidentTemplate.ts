@@ -77,8 +77,8 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
 })
 @TableMetadata({
     tableName: 'IncidentTemplate',
-    singularName: 'IncidentTemplate',
-    pluralName: 'IncidentTemplates',
+    singularName: 'Incident Template',
+    pluralName: 'Incident Templates',
     icon: IconProp.Alert,
     tableDescription: 'Manage incident templates for your project',
 })
