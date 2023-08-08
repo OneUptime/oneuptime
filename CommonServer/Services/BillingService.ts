@@ -15,6 +15,8 @@ import Email from 'Common/Types/Email';
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
+export type Coupon = Stripe.Coupon;
+
 export interface PaymentMethod {
     id: string;
     type: string;
@@ -163,7 +165,7 @@ export class BillingService extends BaseService {
         durationInMonths: number;
         maxRedemptions: number;
     }): Promise<string> {
-        const coupon = await this.stripe.coupons.create({
+        const coupon: Coupon = await this.stripe.coupons.create({
             name: data.name,
             percent_off: data.percentOff,
             duration: 'repeating',
