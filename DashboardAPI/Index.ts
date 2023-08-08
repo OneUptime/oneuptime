@@ -30,6 +30,11 @@ import IncidentOwnerTeamService, {
     Service as IncidentOwnerTeamServiceType,
 } from 'CommonServer/Services/IncidentOwnerTeamService';
 
+import IncidentTemplate from 'Model/Models/IncidentTemplate';
+import IncidentTemplateService, {
+    Service as IncidentTemplateServiceType,
+} from 'CommonServer/Services/IncidentTemplateService';
+
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
 import MonitorOwnerTeamService, {
     Service as MonitorOwnerTeamServiceType,
@@ -598,6 +603,14 @@ app.use(
     new BaseAPI<IncidentOwnerTeam, IncidentOwnerTeamServiceType>(
         IncidentOwnerTeam,
         IncidentOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<IncidentTemplate, IncidentTemplateServiceType>(
+        IncidentTemplate,
+        IncidentTemplateService
     ).getRouter()
 );
 

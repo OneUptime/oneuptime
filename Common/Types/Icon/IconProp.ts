@@ -102,6 +102,7 @@ enum IconProp {
     AdjustmentHorizontal = 'AdjustmentHorizontal',
     Minus = 'Minus',
     MinusSmall = 'MinusSmall',
+    Template = 'Template',
 }
 
 export default IconProp;

@@ -29,7 +29,6 @@ import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
-import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import Label from './Label';
 import IncidentSeverity from './IncidentSeverity';
 import { JSONObject } from 'Common/Types/JSON';
@@ -38,7 +37,6 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
-@MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -187,6 +185,75 @@ export default class IncidentTemplate extends BaseModel {
         length: ColumnLength.LongText,
     })
     public title?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectIncident,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Name',
+        description: 'Name of the Incident Template',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public templateName?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectIncident,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.LongText,
+        canReadOnRelationQuery: true,
+        title: 'Template Description',
+        description: 'Description of the Incident Template',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public templateDescription?: string = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -396,13 +463,13 @@ export default class IncidentTemplate extends BaseModel {
         { eager: false }
     )
     @JoinTable({
-        name: 'IncidentMonitor',
+        name: 'IncidentTemplateMonitor',
         inverseJoinColumn: {
             name: 'monitorId',
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'incidentId',
+            name: 'incidentTemplateId',
             referencedColumnName: '_id',
         },
     })
@@ -442,13 +509,13 @@ export default class IncidentTemplate extends BaseModel {
         { eager: false }
     )
     @JoinTable({
-        name: 'IncidentOnCallDutyPolicy',
+        name: 'IncidentTemplateOnCallDutyPolicy',
         inverseJoinColumn: {
-            name: 'monitorId',
+            name: 'onCallDutyPolicyId',
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'onCallDutyPolicyId',
+            name: 'incidentTemplateId',
             referencedColumnName: '_id',
         },
     })
@@ -489,13 +556,13 @@ export default class IncidentTemplate extends BaseModel {
         { eager: false }
     )
     @JoinTable({
-        name: 'IncidentLabel',
+        name: 'IncidentTemplateLabel',
         inverseJoinColumn: {
             name: 'labelId',
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'incidentId',
+            name: 'incidentTemplateId',
             referencedColumnName: '_id',
         },
     })
