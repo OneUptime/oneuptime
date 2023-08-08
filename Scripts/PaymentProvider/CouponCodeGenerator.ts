@@ -1,3 +1,6 @@
+// To run this script: 
+// export $(grep -v '^#' config.env | xargs) && ts-node ./Scripts/PaymentProvider/CouponCodeGenerator.ts > coupons.csv
+
 import BillingService from 'CommonServer/Services/BillingService';
 import Sleep from 'Common/Types/Sleep';
 
