@@ -157,6 +157,18 @@ export class BillingService extends BaseService {
         };
     }
 
+    public async generateCouponCode(data: {
+        percentOff: number, durationInMonths: number
+    }): Promise<string> {
+        const coupon = await this.stripe.coupons.create({
+            percent_off: data.percentOff,
+            duration: 'repeating',
+            duration_in_months: data.durationInMonths,
+        });
+
+        return coupon.id;
+    }
+
     public async subscribeToPlan(data: {
         projectId: ObjectID;
         customerId: string;
