@@ -118,7 +118,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             title: 'Description',
                         },
                     ],
-                    modelId: Navigation.getLastParamAsObjectID().toString(),
+                    modelId: Navigation.getLastParamAsObjectID(),
                 }}
             />
 

@@ -37,7 +37,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
 
-const App: () => React.JSX.Element = () => {
+const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());

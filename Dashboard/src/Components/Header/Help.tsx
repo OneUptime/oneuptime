@@ -6,7 +6,7 @@ import IconDropdownRow from 'CommonUI/src/Components/Header/IconDropdown/IconDro
 import IconProp from 'Common/Types/Icon/IconProp';
 import URL from 'Common/Types/API/URL';
 
-const Help: () => React.JSX.Element = (): ReactElement => {
+const Help: () => JSX.Element = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
     return (

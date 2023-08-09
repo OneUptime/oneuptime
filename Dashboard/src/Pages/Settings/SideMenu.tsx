@@ -8,7 +8,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
 
-const DashboardSideMenu: () => React.JSX.Element = (): ReactElement => {
+const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     return (
         <SideMenu>
             <SideMenuSection title="Basic">

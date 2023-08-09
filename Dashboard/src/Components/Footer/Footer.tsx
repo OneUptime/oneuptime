@@ -2,7 +2,7 @@ import React from 'react';
 import Footer from 'CommonUI/src/Components/Footer/Footer';
 import URL from 'Common/Types/API/URL';
 
-const DashboardFooter: () => React.JSX.Element = () => {
+const DashboardFooter: () => JSX.Element = () => {
     return (
         <Footer
             className="bg-white h-16 inset-x-0 bottom-0 px-8"

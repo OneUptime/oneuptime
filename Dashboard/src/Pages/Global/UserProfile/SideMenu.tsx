@@ -6,7 +6,7 @@ import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 
-const DashboardSideMenu: () => React.JSX.Element = (): ReactElement => {
+const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     return (
         <SideMenu>
             <SideMenuItem

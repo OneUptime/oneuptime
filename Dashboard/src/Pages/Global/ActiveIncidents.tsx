@@ -65,11 +65,13 @@ const Home: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={'No incident found.'}
                 singularName="Active Incident"
                 pluralName="Active Incidents"
-                onViewPage={(item: Incident) => {
-                    return new Route(
-                        `/dashboard/${
-                            item.projectId || item.project?._id || ''
-                        }/incidents/${item._id}`
+                onViewPage={(item: Incident): Promise<Route> => {
+                    return Promise.resolve(
+                        new Route(
+                            `/dashboard/${
+                                item.projectId || item.project?._id || ''
+                            }/incidents/${item._id}`
+                        )
                     );
                 }}
                 columns={[

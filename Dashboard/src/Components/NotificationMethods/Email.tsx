@@ -16,7 +16,7 @@ import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-const Email: () => React.JSX.Element = (): ReactElement => {
+const Email: () => JSX.Element = (): ReactElement => {
     const [showVerificationCodeModal, setShowVerificationCodeModal] =
         useState<boolean>(false);
 

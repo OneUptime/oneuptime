@@ -13,7 +13,7 @@ import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 
-const LoginPage: () => React.JSX.Element = () => {
+const LoginPage: () => JSX.Element = () => {
     const apiUrl: URL = LOGIN_API_URL;
 
     if (UserUtil.isLoggedIn()) {

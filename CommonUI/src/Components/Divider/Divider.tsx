@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 
-const Divider: () => React.JSX.Element = (): ReactElement => {
+const Divider: () => JSX.Element = (): ReactElement => {
     return (
         <div
             className="w-full border-t border-gray-100"

@@ -14,7 +14,7 @@ import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
 
-const RegisterPage: () => React.JSX.Element = () => {
+const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
 
     if (UserUtil.isLoggedIn()) {

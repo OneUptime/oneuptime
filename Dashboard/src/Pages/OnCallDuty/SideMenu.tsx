@@ -9,7 +9,7 @@ import PageMap from '../../Utils/PageMap';
 import Link from 'Common/Types/Link';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
-const DashboardSideMenu: () => React.JSX.Element = (): ReactElement => {
+const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     let subItemMenuLink: Link | undefined = undefined;
 
     if (

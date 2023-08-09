@@ -161,7 +161,7 @@ import UserSettingsNotificationLogs from './Pages/UserSettings/OnCallLogs';
 import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLogsTimeline';
 import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 
-const App: () => React.JSX.Element = () => {
+const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());

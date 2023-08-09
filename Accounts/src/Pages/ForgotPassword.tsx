@@ -8,7 +8,7 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import { FORGOT_PASSWORD_API_URL } from '../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
 
-const ForgotPassword: () => React.JSX.Element = () => {
+const ForgotPassword: () => JSX.Element = () => {
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);

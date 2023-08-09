@@ -10,7 +10,7 @@ import URL from 'Common/Types/API/URL';
 import { RESET_PASSWORD_API_URL } from '../Utils/ApiPaths';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
-const RegisterPage: () => React.JSX.Element = () => {
+const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = RESET_PASSWORD_API_URL;
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 

@@ -6,7 +6,7 @@ import ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface CardButtonSchema {
     title: string;
-    buttonStyle: ButtonStyleType;
+    buttonStyle?: ButtonStyleType | undefined;
     onClick: () => void;
     disabled?: boolean | undefined;
     icon: IconProp;

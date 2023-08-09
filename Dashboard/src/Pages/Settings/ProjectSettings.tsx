@@ -1,7 +1,6 @@
 import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';

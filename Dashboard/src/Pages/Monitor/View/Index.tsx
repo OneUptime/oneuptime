@@ -306,9 +306,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             />
 
             {/* Heartbeat URL */}
-            {monitorType === MonitorType.IncomingRequest && (
+            {monitorType === MonitorType.IncomingRequest ? (
                 <IncomingMonitorLink modelId={modelId} />
-            )}
+            ): <></>}
 
             <Card
                 title="Uptime Graph"

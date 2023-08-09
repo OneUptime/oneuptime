@@ -150,11 +150,11 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     monitorId: modelId.toString(),
                 }}
-                onBeforeCreate={(item: MonitorProbe): MonitorProbe => {
+                onBeforeCreate={(item: MonitorProbe): Promise<MonitorProbe> => {
                     item.monitorId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
 
-                    return item;
+                    return Promise.resolve(item);
                 }}
                 id="probes-table"
                 name="Monitor > Monitor Probes"

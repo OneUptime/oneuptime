@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Footer: () => React.JSX.Element = () => {
+const Footer: () => JSX.Element = () => {
     return (
         <div className="footer">
             <p>

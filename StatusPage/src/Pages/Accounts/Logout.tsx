@@ -6,7 +6,7 @@ import PageMap from '../../Utils/PageMap';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import StatusPageUtil from '../../Utils/StatusPage';
 
-const Logout: () => React.JSX.Element = () => {
+const Logout: () => JSX.Element = () => {
     useEffect(() => {
         if (StatusPageUtil.getStatusPageId()) {
             UserUtil.logout(StatusPageUtil.getStatusPageId()!);

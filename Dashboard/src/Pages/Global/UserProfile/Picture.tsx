@@ -46,7 +46,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Profile Picture',
                     description: 'Please update your profile picture here.',
-                    icon: IconProp.Image,
                 }}
                 isEditable={true}
                 editButtonText={'Update Profile Picture'}

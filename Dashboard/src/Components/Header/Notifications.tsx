@@ -4,7 +4,7 @@ import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifica
 import NotificationItem from 'CommonUI/src/Components/Header/Notifications/NotificationItem';
 import IconProp from 'Common/Types/Icon/IconProp';
 
-const DashboardHeader: () => React.JSX.Element = (): ReactElement => {
+const DashboardHeader: () => JSX.Element = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
     return (
