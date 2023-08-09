@@ -59,7 +59,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                 }}
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}
-                onBeforeDelete={(item: ScheduledMaintenanceState) => {
+                onBeforeDelete={(item: ScheduledMaintenanceState): Promise<ScheduledMaintenanceState> => {
                     if (item.isScheduledState) {
                         throw new BadDataException(
                             'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
@@ -78,7 +78,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         );
                     }
 
-                    return item;
+                    return Promise.resolve(item);
                 }}
                 selectMoreFields={{
                     color: true,

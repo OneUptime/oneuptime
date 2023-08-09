@@ -104,8 +104,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Enable Notifications',
                     description:
-                        'Enable Call and SMS notifications for this project.',
-                    icon: IconProp.Notification,
+                        'Enable Call and SMS notifications for this project.'
                 }}
                 isEditable={true}
                 editButtonText="Edit Notification Settings"

@@ -5,7 +5,7 @@ import React, { ReactElement } from 'react';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     list: Array<TBaseModel>;
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
-    descriptionField: string;
+    descriptionField?: string | undefined;
     selectedItems: Array<TBaseModel>;
     onClick: (item: TBaseModel) => void;
     titleField: string;

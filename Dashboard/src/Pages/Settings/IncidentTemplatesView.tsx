@@ -80,8 +80,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Incident Template Details',
                     description:
-                        'Here are more details for this incident template.',
-                    icon: IconProp.Template,
+                        'Here are more details for this incident template.'
                 }}
                 isEditable={true}
                 formSteps={[

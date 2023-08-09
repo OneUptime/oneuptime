@@ -41,10 +41,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             modelType={Incident}
             id="incidents-table"
             isDeleteable={false}
-            onCreateSuccess={() => {
+            onCreateSuccess={(incident: Incident): Promise<Incident> => {
                 GlobalEvents.dispatchEvent(
                     EventName.ACTIVE_INCIDENTS_COUNT_REFRESH
                 );
+
+                return Promise.resolve(incident);
             }}
             query={props.query}
             isEditable={false}

@@ -11,7 +11,6 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/ModelAPI/Select';
 import Input from '../Input/Input';
 import StaticModelList from '../ModelList/StaticModelList';
-import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import API from '../../Utils/API/API';
 import URL from 'Common/Types/API/URL';
 import { JSONArray } from 'Common/Types/JSON';
@@ -169,7 +168,7 @@ const ModelList: <TBaseModel extends BaseModel>(
                 )}
 
                 {!error && !isLoading && (
-                    <StaticModelList<WorkflowVariable>
+                    <StaticModelList<TBaseModel>
                         list={searchedList}
                         headerField={props.headerField}
                         descriptionField={props.descriptionField}
