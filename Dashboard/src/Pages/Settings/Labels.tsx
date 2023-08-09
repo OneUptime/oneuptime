@@ -12,7 +12,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
-import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const Labels: FunctionComponent<PageComponentProps> = (
@@ -54,7 +53,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Label,
                     title: 'Labels',
                     description:
                         'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',

@@ -1,7 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -44,7 +43,6 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 isEditable={false}
                 isCreateable={false}
                 cardProps={{
-                    icon: IconProp.Logs,
                     title: 'Policy Execution Timeline',
                     description:
                         'You can view the timeline of the execution of the policy here. You can also view the status of the notification sent out to the users.',

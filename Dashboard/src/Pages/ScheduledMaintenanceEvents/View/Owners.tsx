@@ -11,7 +11,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -90,7 +89,6 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Team,
                     title: 'Owners - Teams',
                     description:
                         'Here is list of teams that own this scheduled maintenance event. They will be alerted when this scheduled maintenance event is created or updated.',
@@ -167,7 +165,6 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Team,
                     title: 'Owners - User',
                     description:
                         'Here is list of users that own this scheduled maintenance event. They will be alerted when this scheduled maintenance event is created or updated.',

@@ -118,7 +118,6 @@ const Call: FunctionComponent = (): ReactElement => {
                 isEditable={false}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Call,
                     title: 'Phone Numbers for Call Notifications',
                     description:
                         'Manage Phone Numbers that will receive call notifications for this project.',

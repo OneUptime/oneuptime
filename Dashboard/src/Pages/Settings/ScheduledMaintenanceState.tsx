@@ -10,7 +10,6 @@ import ModelTable, {
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -54,7 +53,6 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Clock,
                     title: 'Scheduled Maintenance State',
                     description:
                         'Scheduled Maintenance events have multiple states like - scheduled, ongoing and completed. You can more states help you manage Scheduled Maintenance events here.',

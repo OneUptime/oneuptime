@@ -8,7 +8,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import StatusPage from 'Model/Models/StatusPage';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
@@ -48,7 +47,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                 name="Status Pages"
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.CheckCircle,
                     title: 'Status Pages',
                     description:
                         'Here is a list of status page for this project.',

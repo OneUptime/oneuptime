@@ -8,7 +8,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
@@ -55,7 +54,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.Call,
                     title: 'On-Call Duty Policies',
                     description:
                         'Here is a list of on-call-duty policies for this project.',

@@ -101,7 +101,6 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.BarsArrowDown,
                     title: 'Escalation Rules',
                     description:
                         'Escalation rules are used to determine who to contact and when to contact them when an incident is triggered.',

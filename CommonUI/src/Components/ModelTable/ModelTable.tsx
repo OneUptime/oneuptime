@@ -131,7 +131,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheEnd?: boolean;
         shouldAddItemInTheBeginning?: boolean;
     };
-    onViewComplete: (item: TBaseModel) => void;
+    onViewComplete?: ((item: TBaseModel) => void) | undefined;
     name: string;
 }
 

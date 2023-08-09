@@ -416,7 +416,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Team,
                     title: 'Owners - Teams',
                     description:
                         'These are the list of teams that will be added to the incident by default when its created.',
@@ -493,7 +492,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Team,
                     title: 'Owners - User',
                     description:
                         'These are the list of users that will be added to the incident by default when its created.',

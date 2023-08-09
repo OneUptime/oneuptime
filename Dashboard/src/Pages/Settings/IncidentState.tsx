@@ -10,7 +10,6 @@ import ModelTable, {
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import IncidentState from 'Model/Models/IncidentState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -54,7 +53,6 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Disc,
                     title: 'Incident State',
                     description:
                         'Incidents have multiple states like - created, acknowledged and resolved. You can more states help you manage incidents here.',

@@ -12,7 +12,6 @@ import ModelTable, {
     ShowTableAs,
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
@@ -93,7 +92,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.User,
                     title: 'Public Notes',
                     description:
                         'Here are public notes for this scheduled maintenance. This will show up on the status page.',

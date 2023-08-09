@@ -15,7 +15,6 @@ import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -78,7 +77,6 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 }}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.Alert,
                     title: 'Incidents',
                     description:
                         'Here is a list of incidents for this monitor.',

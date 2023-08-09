@@ -8,7 +8,6 @@ import DashboardSideMenu from '../SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
@@ -61,7 +60,6 @@ const CustomFieldsPageBase: <TBaseModel extends BaseModel>(
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.TableCells,
                     title: props.title,
                     description:
                         'Custom fields help you add new fields to your resources in OneUptime.',

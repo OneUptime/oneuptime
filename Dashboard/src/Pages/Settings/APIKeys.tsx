@@ -9,7 +9,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ApiKey from 'Model/Models/ApiKey';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const APIKeys: FunctionComponent<PageComponentProps> = (
@@ -53,7 +52,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.Terminal,
                     title: 'API Keys',
                     description:
                         'Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.',

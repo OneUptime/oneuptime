@@ -10,7 +10,6 @@ import ModelTable, {
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -53,7 +52,6 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Error,
                     title: 'Incident Severity',
                     description:
                         'Alerts and incidents will be categorised according to their severity level using the following classifications: ',

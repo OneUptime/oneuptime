@@ -10,7 +10,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from 'Model/Models/StatusPage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -93,7 +92,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.SMS,
                     title: 'Announcements',
                     description:
                         'Here are announcements for this status page. This will show up on the status page.',

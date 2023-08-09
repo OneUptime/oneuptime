@@ -9,7 +9,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../Utils/Navigation';
 const Teams: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -48,7 +47,6 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.User,
                     title: 'Teams',
                     description:
                         'Here is a list of all the teams in this project.',

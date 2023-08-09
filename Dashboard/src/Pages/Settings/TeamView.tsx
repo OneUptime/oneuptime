@@ -147,7 +147,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.User,
                     title: 'Team Members',
                     description:
                         'See a list of members or invite them to this team. ',
@@ -242,7 +241,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Lock,
                     title: 'Team Permissions',
                     description:
                         'Add different permisisons to this team to make it more granular.',

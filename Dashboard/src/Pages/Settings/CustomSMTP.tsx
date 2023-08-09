@@ -97,7 +97,6 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Email,
                     title: 'Custom SMTP Configs',
                     description:
                         'If you need OneUptime to send emails through your SMTP Server, please enter the server details here.',

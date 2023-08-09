@@ -168,7 +168,6 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={false}
                 cardProps={{
-                    icon: IconProp.Lock,
                     title: 'API Key Permissions',
                     description:
                         'Add different permisisons to API keys to make it more granular.',

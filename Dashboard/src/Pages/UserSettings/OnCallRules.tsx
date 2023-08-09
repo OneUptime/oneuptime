@@ -20,7 +20,6 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import User from 'CommonUI/src/Utils/User';
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
-import IconProp from 'Common/Types/Icon/IconProp';
 import UserCall from 'Model/Models/UserCall';
 import UserEmail from 'Model/Models/UserEmail';
 import UserSMS from 'Model/Models/UserSMS';
@@ -136,7 +135,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 isEditable={false}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.AdjustmentVertical,
                     title: options.title,
                     description: options.description,
                 }}

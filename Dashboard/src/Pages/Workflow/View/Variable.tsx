@@ -8,7 +8,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
@@ -66,7 +65,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                 name="Workflows"
                 isViewable={false}
                 cardProps={{
-                    icon: IconProp.Variable,
                     title: 'Workflow Variables',
                     description:
                         'Here is a list of workflow secrets and variables for this specific workflow.',

@@ -118,7 +118,6 @@ const Email: FunctionComponent = (): ReactElement => {
                 isEditable={false}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Email,
                     title: 'Emails for Notifications',
                     description:
                         'Manage emails that will receive notifications for this project.',

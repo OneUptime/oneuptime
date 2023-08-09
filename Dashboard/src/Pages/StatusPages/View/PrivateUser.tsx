@@ -9,7 +9,6 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
@@ -83,7 +82,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.User,
                     title: 'Private Users',
                     description:
                         'Here are a list of private users for this status page.',

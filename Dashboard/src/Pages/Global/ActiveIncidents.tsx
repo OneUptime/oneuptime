@@ -5,7 +5,6 @@ import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Incident from 'Model/Models/Incident';
@@ -59,7 +58,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                 isCreateable={false}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.Alert,
                     title: 'Active Incidents',
                     description:
                         'Here is a list of active incidents for all of the projects you are a part of.',

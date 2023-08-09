@@ -140,7 +140,6 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.List,
                     title: 'Status Timeline',
                     description:
                         'Here is the status timeline for this incident',

@@ -58,7 +58,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                 isCreateable={false}
                 isViewable={false}
                 cardProps={{
-                    icon: IconProp.User,
                     title: 'Pending Invitations',
                     description:
                         'Here is a list of projects and teams you have been invited to.',

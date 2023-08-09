@@ -9,7 +9,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import DashboardNavigation from '../../Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
@@ -68,7 +67,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 isEditable={false}
                 isCreateable={false}
                 cardProps={{
-                    icon: IconProp.Logs,
                     title: 'Notification Logs',
                     description:
                         'Here are all the notification logs. This will help you to debug any notification issues that you may face.',

@@ -12,7 +12,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -90,7 +89,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Team,
                     title: 'Owners - Teams',
                     description:
                         'Here is list of teams that own this monitor. They will be alerted when this monitor is created or updated.',
@@ -165,7 +163,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Team,
                     title: 'Owners - User',
                     description:
                         'Here is list of users that own this monitor. They will be alerted when this monitor is created or updated.',

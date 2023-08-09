@@ -10,7 +10,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import NotNull from 'Common/Types/Database/NotNull';
@@ -93,7 +92,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Email,
                     title: 'Email Subscribers',
                     description:
                         'Here are the list of subscribers who have subscribed to the status page.',

@@ -9,7 +9,6 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import IconProp from 'Common/Types/Icon/IconProp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
@@ -87,7 +86,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.List,
                     title: 'Status Timeline',
                     description:
                         'Here is the status timeline for this Scheduled Maintenance',

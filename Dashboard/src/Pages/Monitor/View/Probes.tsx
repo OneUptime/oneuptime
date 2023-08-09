@@ -162,7 +162,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Signal,
                     title: 'Probes',
                     description:
                         'List of probes that help you monitor this resource.',

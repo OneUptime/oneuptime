@@ -77,7 +77,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
                 isEditable={false}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Globe,
                     title: 'Domains',
                     description:
                         'Please list the domains you own here. This will help you to connect them to Status Page.',

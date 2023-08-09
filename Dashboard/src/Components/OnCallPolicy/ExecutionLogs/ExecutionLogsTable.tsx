@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
 import DashboardNavigation from '../../../Utils/Navigation';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -190,7 +189,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 isCreateable={false}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.Logs,
                     title: 'On-Call Policy Logs',
                     description:
                         'Here are all the notification logs. This will help you to debug any notification issues that your team may face.',

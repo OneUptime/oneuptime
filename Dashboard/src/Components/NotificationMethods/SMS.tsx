@@ -118,7 +118,6 @@ const SMS: FunctionComponent = (): ReactElement => {
                 isEditable={false}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.SMS,
                     title: 'Phone Numbers for SMS Notifications',
                     description:
                         'Manage Phone Numbers that will receive SMS notifications for this project.',

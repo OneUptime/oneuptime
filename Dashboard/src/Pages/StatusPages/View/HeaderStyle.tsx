@@ -150,7 +150,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Link,
                     title: 'Header Links',
                     description: 'Header Links for your status page',
                 }}

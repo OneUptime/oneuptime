@@ -18,7 +18,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Monitor from 'Model/Models/Monitor';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
@@ -116,7 +115,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.AltGlobe,
                     title: `${
                         statusPageGroupName
                             ? statusPageGroupName + ' - '

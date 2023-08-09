@@ -10,7 +10,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import SortOrder from 'Common/Types/Database/SortOrder';
@@ -88,7 +87,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Folder,
                     title: 'Resource Groups',
                     description:
                         'Here are different groups for your status page resources.',
