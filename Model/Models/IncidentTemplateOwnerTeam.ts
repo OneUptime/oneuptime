@@ -208,7 +208,7 @@ export default class IncidentTemplateOwnerTeam extends AccessControlModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'incidentId',
+        manyToOneRelationColumn: 'incidentTemplateId',
         type: TableColumnType.Entity,
         modelType: IncidentTemplate,
         title: 'IncidentTemplate',
@@ -226,8 +226,8 @@ export default class IncidentTemplateOwnerTeam extends AccessControlModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'incidentId' })
-    public incident?: IncidentTemplate = undefined;
+    @JoinColumn({ name: 'incidentTemplateId' })
+    public incidentTemplate?: IncidentTemplate = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -257,7 +257,7 @@ export default class IncidentTemplateOwnerTeam extends AccessControlModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public incidentId?: ObjectID = undefined;
+    public incidentTemplateId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
