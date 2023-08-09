@@ -35,6 +35,16 @@ import IncidentTemplateService, {
     Service as IncidentTemplateServiceType,
 } from 'CommonServer/Services/IncidentTemplateService';
 
+import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
+import IncidentTemplateOwnerTeamService, {
+    Service as IncidentTemplateOwnerTeamServiceType,
+} from 'CommonServer/Services/IncidentTemplateOwnerTeamService';
+
+import IncidentTemplateOwnerUser from 'Model/Models/IncidentTemplateOwnerUser';
+import IncidentTemplateOwnerUserService, {
+    Service as IncidentTemplateOwnerUserServiceType,
+} from 'CommonServer/Services/IncidentTemplateOwnerUserService';
+
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
 import MonitorOwnerTeamService, {
     Service as MonitorOwnerTeamServiceType,
@@ -612,6 +622,22 @@ app.use(
         IncidentTemplate,
         IncidentTemplateService
     ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        IncidentTemplateOwnerTeam,
+        IncidentTemplateOwnerTeamServiceType
+    >(IncidentTemplateOwnerTeam, IncidentTemplateOwnerTeamService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        IncidentTemplateOwnerUser,
+        IncidentTemplateOwnerUserServiceType
+    >(IncidentTemplateOwnerUser, IncidentTemplateOwnerUserService).getRouter()
 );
 
 app.use(

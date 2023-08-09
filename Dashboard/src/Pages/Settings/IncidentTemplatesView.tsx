@@ -34,6 +34,7 @@ import TeamElement from '../../Components/Team/Team';
 import ProjectUser from '../../Utils/ProjectUser';
 import UserElement from '../../Components/User/User';
 import User from 'Model/Models/User';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -99,10 +100,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     {
                         title: 'On-Call',
                         id: 'on-call',
-                    },
-                    {
-                        title: 'Owners',
-                        id: 'owners',
                     },
                     {
                         title: 'Labels',
@@ -188,7 +185,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                        required: true,
+                        required: false,
                         placeholder: 'Monitors affected',
                     },
                     {
@@ -400,7 +397,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             <ModelTable<IncidentTemplateOwnerTeam>
                 modelType={IncidentTemplateOwnerTeam}
                 id="table-incident-owner-team"
-                name="Incident > Owner Team"
+                name="Incident Template > Owner Team"
                 singularName="Team"
                 isDeleteable={true}
                 createVerb={'Add'}
@@ -422,10 +419,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Team,
                     title: 'Owners - Teams',
                     description:
-                        'Here is list of teams that own this incident. They will be alerted when this incident is created or updated.',
+                        'These are the list of teams that will be added to the incident by default when its created.',
                 }}
                 noItemsMessage={
-                    'No teams associated with this incident so far.'
+                    'No teams associated with this incident template so far.'
                 }
                 formFields={[
                     {
@@ -499,10 +496,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Team,
                     title: 'Owners - User',
                     description:
-                        'Here is list of users that own this incident. They will be alerted when this incident is created or updated.',
+                        'These are the list of users that will be added to the incident by default when its created.',
                 }}
                 noItemsMessage={
-                    'No users associated with this incident so far.'
+                    'No users associated with this incident template so far.'
                 }
                 formFields={[
                     {
