@@ -352,8 +352,6 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     }
                 }
             }
-
-            
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }

@@ -26,6 +26,14 @@ import MonitorsElement from '../../Components/Monitor/Monitors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import OnCallDutyPoliciesView from '../../Components/OnCallPolicy/OnCallPolicies';
 import LabelsElement from '../../Components/Label/Labels';
+import DashboardNavigation from '../../Utils/Navigation';
+import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
+import IncidentTemplateOwnerUser from 'Model/Models/IncidentTemplateOwnerUser';
+import Team from 'Model/Models/Team';
+import TeamElement from '../../Components/Team/Team';
+import ProjectUser from '../../Utils/ProjectUser';
+import UserElement from '../../Components/User/User';
+import User from 'Model/Models/User';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -389,9 +397,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
-<ModelTable<IncidentOwnerTeam>
-                modelType={IncidentOwnerTeam}
+            <ModelTable<IncidentTemplateOwnerTeam>
+                modelType={IncidentTemplateOwnerTeam}
                 id="table-incident-owner-team"
                 name="Incident > Owner Team"
                 singularName="Team"
@@ -405,8 +412,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
-                    item: IncidentOwnerTeam
-                ): Promise<IncidentOwnerTeam> => {
+                    item: IncidentTemplateOwnerTeam
+                ): Promise<IncidentTemplateOwnerTeam> => {
                     item.incidentId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
@@ -467,8 +474,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-            <ModelTable<IncidentOwnerUser>
-                modelType={IncidentOwnerUser}
+            <ModelTable<IncidentTemplateOwnerUser>
+                modelType={IncidentTemplateOwnerUser}
                 id="table-incident-owner-team"
                 name="Incident > Owner Team"
                 isDeleteable={true}
@@ -482,9 +489,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
-                    item: IncidentOwnerUser
-                ): Promise<IncidentOwnerUser> => {
-                    item.incidentId = modelId;
+                    item: IncidentTemplateOwnerUser
+                ): Promise<IncidentTemplateOwnerUser> => {
+                    item.incidentTemplateId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
                 }}

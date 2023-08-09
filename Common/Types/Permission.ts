@@ -92,14 +92,10 @@ enum Permission {
     CanEditIncidentOwnerUser = 'CanEditIncidentOwnerUser',
     CanReadIncidentOwnerUser = 'CanReadIncidentOwnerUser',
 
-
     CanCreateIncidentTemplate = 'CanCreateIncidentTemplate',
     CanDeleteIncidentTemplate = 'CanDeleteIncidentTemplate',
     CanEditIncidentTemplate = 'CanEditIncidentTemplate',
     CanReadIncidentTemplate = 'CanReadIncidentTemplate',
-
-
-
 
     CanCreateIncidentTemplateOwnerTeam = 'CanCreateIncidentTemplateOwnerTeam',
     CanDeleteIncidentTemplateOwnerTeam = 'CanDeleteIncidentTemplateOwnerTeam',
@@ -110,7 +106,6 @@ enum Permission {
     CanDeleteIncidentTemplateOwnerUser = 'CanDeleteIncidentTemplateOwnerUser',
     CanEditIncidentTemplateOwnerUser = 'CanEditIncidentTemplateOwnerUser',
     CanReadIncidentTemplateOwnerUser = 'CanReadIncidentTemplateOwnerUser',
-
 
     CanCreateScheduledMaintenanceOwnerTeam = 'CanCreateScheduledMaintenanceOwnerTeam',
     CanDeleteScheduledMaintenanceOwnerTeam = 'CanDeleteScheduledMaintenanceOwnerTeam',
@@ -2076,8 +2071,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateIncidentTemplate,
                 title: 'Can Create Incident Template',
@@ -2110,7 +2103,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateIncidentOwnerUser,
@@ -2178,10 +2170,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
-            
             {
                 permission: Permission.CanCreateIncidentTemplateOwnerTeam,
                 title: 'Can Create IncidentTemplate Team Owner',
@@ -2280,11 +2268,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
-
-
-
 
             {
                 permission: Permission.CanCreateStatusPageOwnerUser,
