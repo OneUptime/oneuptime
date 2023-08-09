@@ -5,15 +5,12 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import Team from 'Model/Models/Team';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import DashboardNavigation from '../../Utils/Navigation';
 import IncidentTemplate from 'Model/Models/IncidentTemplate';
-import ProjectUser from '../../Utils/ProjectUser';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import Label from 'Model/Models/Label';
@@ -222,44 +219,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            ownerTeams: true,
-                        },
-                        forceShow: true,
-                        title: 'Owner - Teams',
-                        stepId: 'owners',
-                        description:
-                            'Select which teams own this incident. They will be notified when the incident is created or updated.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        dropdownModal: {
-                            type: Team,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: false,
-                        placeholder: 'Select Teams',
-                        overrideFieldKey: 'ownerTeams',
-                    },
-                    {
-                        field: {
-                            ownerUsers: true,
-                        },
-                        forceShow: true,
-                        title: 'Owner - Users',
-                        stepId: 'owners',
-                        description:
-                            'Select which users own this incident. They will be notified when the incident is created or updated.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        fetchDropdownOptions: async () => {
-                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                                DashboardNavigation.getProjectId()!
-                            );
-                        },
-                        required: false,
-                        placeholder: 'Select Users',
-                        overrideFieldKey: 'ownerUsers',
-                    },
-                    {
-                        field: {
                             labels: true,
                         },
 
@@ -430,8 +389,165 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
+
+<ModelTable<IncidentOwnerTeam>
+                modelType={IncidentOwnerTeam}
+                id="table-incident-owner-team"
+                name="Incident > Owner Team"
+                singularName="Team"
+                isDeleteable={true}
+                createVerb={'Add'}
+                isCreateable={true}
+                isViewable={false}
+                showViewIdButton={true}
+                query={{
+                    incidentId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                onBeforeCreate={(
+                    item: IncidentOwnerTeam
+                ): Promise<IncidentOwnerTeam> => {
+                    item.incidentId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.Team,
+                    title: 'Owners - Teams',
+                    description:
+                        'Here is list of teams that own this incident. They will be alerted when this incident is created or updated.',
+                }}
+                noItemsMessage={
+                    'No teams associated with this incident so far.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            team: true,
+                        },
+                        title: 'Team',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Select Team',
+                        dropdownModal: {
+                            type: Team,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                    },
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                columns={[
+                    {
+                        field: {
+                            team: {
+                                name: true,
+                            },
+                        },
+                        title: 'Team',
+                        type: FieldType.Entity,
+                        isFilterable: true,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (!item['team']) {
+                                throw new BadDataException('Team not found');
+                            }
+
+                            return <TeamElement team={item['team'] as Team} />;
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner from',
+                        type: FieldType.DateTime,
+                    },
+                ]}
+            />
+
+            <ModelTable<IncidentOwnerUser>
+                modelType={IncidentOwnerUser}
+                id="table-incident-owner-team"
+                name="Incident > Owner Team"
+                isDeleteable={true}
+                singularName="User"
+                isCreateable={true}
+                isViewable={false}
+                showViewIdButton={true}
+                createVerb={'Add'}
+                query={{
+                    incidentId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                onBeforeCreate={(
+                    item: IncidentOwnerUser
+                ): Promise<IncidentOwnerUser> => {
+                    item.incidentId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.Team,
+                    title: 'Owners - User',
+                    description:
+                        'Here is list of users that own this incident. They will be alerted when this incident is created or updated.',
+                }}
+                noItemsMessage={
+                    'No users associated with this incident so far.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            user: true,
+                        },
+                        title: 'User',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Select User',
+                        fetchDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                    },
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                columns={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                                email: true,
+                                profilePictureId: true,
+                            },
+                        },
+                        title: 'User',
+                        type: FieldType.Entity,
+                        isFilterable: true,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (!item['user']) {
+                                throw new BadDataException('User not found');
+                            }
+
+                            return <UserElement user={item['user'] as User} />;
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner from',
+                        type: FieldType.DateTime,
+                    },
+                ]}
+            />
+
             <ModelDelete
-                modelType={Team}
+                modelType={IncidentTemplate}
                 modelId={Navigation.getLastParamAsObjectID()}
                 onDeleteSuccess={() => {
                     Navigation.navigate(

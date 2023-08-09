@@ -353,10 +353,12 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 }
             }
 
-            setIsFetchingDropdownOptions(false);
+            
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
+
+        setIsFetchingDropdownOptions(false);
 
         return fields;
     };

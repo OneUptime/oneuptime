@@ -43,25 +43,25 @@ import OnCallDutyPolicy from './OnCallDutyPolicy';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectIncident,
+        Permission.CanCreateIncidentTemplate,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectIncident,
+        Permission.CanReadIncidentTemplate,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectIncident,
+        Permission.CanDeleteIncidentTemplate,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectIncident,
+        Permission.CanEditIncidentTemplate,
     ],
 })
 @CrudApiEndpoint(new Route('/incident-templates'))
@@ -88,13 +88,13 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -125,13 +125,13 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -156,19 +156,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @Index()
@@ -191,19 +191,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -225,19 +225,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -259,19 +259,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -293,13 +293,13 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -323,13 +323,13 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -360,13 +360,13 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -433,19 +433,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -479,19 +479,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -525,19 +525,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -572,19 +572,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({
@@ -613,19 +613,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @Index()
@@ -647,13 +647,13 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -683,19 +683,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @Index()
@@ -719,7 +719,7 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [],
     })
@@ -740,19 +740,19 @@ export default class IncidentTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectIncident,
+            Permission.CanCreateIncidentTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadIncidentTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+            Permission.CanEditIncidentTemplate,
         ],
     })
     @TableColumn({

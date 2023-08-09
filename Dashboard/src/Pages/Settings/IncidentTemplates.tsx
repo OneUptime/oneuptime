@@ -15,7 +15,7 @@ import IncidentTemplate from 'Model/Models/IncidentTemplate';
 import ProjectUser from '../../Utils/ProjectUser';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import Label from '../../Components/Label/Label';
+import Label from 'Model/Models/Label';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Monitor from 'Model/Models/Monitor';
 
@@ -111,7 +111,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                             templateDescription: true,
                         },
                         title: 'Template Description',
-                        fieldType: FormFieldSchemaType.Text,
+                        fieldType: FormFieldSchemaType.LongText,
                         stepId: 'template-info',
                         required: true,
                         placeholder: 'Template Description',
@@ -171,7 +171,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                        required: true,
+                        required: false,
                         placeholder: 'Monitors affected',
                     },
                     {

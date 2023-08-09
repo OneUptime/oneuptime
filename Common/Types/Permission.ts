@@ -92,6 +92,26 @@ enum Permission {
     CanEditIncidentOwnerUser = 'CanEditIncidentOwnerUser',
     CanReadIncidentOwnerUser = 'CanReadIncidentOwnerUser',
 
+
+    CanCreateIncidentTemplate = 'CanCreateIncidentTemplate',
+    CanDeleteIncidentTemplate = 'CanDeleteIncidentTemplate',
+    CanEditIncidentTemplate = 'CanEditIncidentTemplate',
+    CanReadIncidentTemplate = 'CanReadIncidentTemplate',
+
+
+
+
+    CanCreateIncidentTemplateOwnerTeam = 'CanCreateIncidentTemplateOwnerTeam',
+    CanDeleteIncidentTemplateOwnerTeam = 'CanDeleteIncidentTemplateOwnerTeam',
+    CanEditIncidentTemplateOwnerTeam = 'CanEditIncidentTemplateOwnerTeam',
+    CanReadIncidentTemplateOwnerTeam = 'CanReadIncidentTemplateOwnerTeam',
+
+    CanCreateIncidentTemplateOwnerUser = 'CanCreateIncidentTemplateOwner',
+    CanDeleteIncidentTemplateOwnerUser = 'CanDeleteIncidentTemplateOwnerUser',
+    CanEditIncidentTemplateOwnerUser = 'CanEditIncidentTemplateOwnerUser',
+    CanReadIncidentTemplateOwnerUser = 'CanReadIncidentTemplateOwnerUser',
+
+
     CanCreateScheduledMaintenanceOwnerTeam = 'CanCreateScheduledMaintenanceOwnerTeam',
     CanDeleteScheduledMaintenanceOwnerTeam = 'CanDeleteScheduledMaintenanceOwnerTeam',
     CanEditScheduledMaintenanceOwnerTeam = 'CanEditScheduledMaintenanceOwnerTeam',
@@ -2056,6 +2076,42 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
+
+
+            {
+                permission: Permission.CanCreateIncidentTemplate,
+                title: 'Can Create Incident Template',
+                description:
+                    'This permission can create Incident Template this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentTemplate,
+                title: 'Can Delete Incident Template',
+                description:
+                    'This permission can delete Incident Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentTemplate,
+                title: 'Can Edit Incident Template',
+                description:
+                    'This permission can edit Incident Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentTemplate,
+                title: 'Can Read Incident Template',
+                description:
+                    'This permission can read Incident Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
             {
                 permission: Permission.CanCreateIncidentOwnerUser,
                 title: 'Can Create Incident User Owner',
@@ -2121,6 +2177,114 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+
+
+            
+            {
+                permission: Permission.CanCreateIncidentTemplateOwnerTeam,
+                title: 'Can Create IncidentTemplate Team Owner',
+                description:
+                    'This permission can create IncidentTemplate Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentTemplateOwnerTeam,
+                title: 'Can Delete IncidentTemplate Team Owner',
+                description:
+                    'This permission can delete IncidentTemplate Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentTemplateOwnerTeam,
+                title: 'Can Edit IncidentTemplate Team Owner',
+                description:
+                    'This permission can edit IncidentTemplate Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentTemplateOwnerTeam,
+                title: 'Can Read IncidentTemplate Team Owner',
+                description:
+                    'This permission can read IncidentTemplate Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateIncidentTemplateOwnerUser,
+                title: 'Can Create IncidentTemplate User Owner',
+                description:
+                    'This permission can create IncidentTemplate User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentTemplateOwnerUser,
+                title: 'Can Delete IncidentTemplate User Owner',
+                description:
+                    'This permission can delete IncidentTemplate User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentTemplateOwnerUser,
+                title: 'Can Edit IncidentTemplate User Owner',
+                description:
+                    'This permission can edit IncidentTemplate User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentTemplateOwnerUser,
+                title: 'Can Read IncidentTemplate User Owner',
+                description:
+                    'This permission can read IncidentTemplate User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateStatusPageOwnerTeam,
+                title: 'Can Create Status Page Team Owner',
+                description:
+                    'This permission can create Status Page Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageOwnerTeam,
+                title: 'Can Delete Status Page Team Owner',
+                description:
+                    'This permission can delete Status Page Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageOwnerTeam,
+                title: 'Can Edit Status Page Team Owner',
+                description:
+                    'This permission can edit Status Page Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageOwnerTeam,
+                title: 'Can Read Status Page Team Owner',
+                description:
+                    'This permission can read Status Page Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+
+
 
             {
                 permission: Permission.CanCreateStatusPageOwnerUser,
