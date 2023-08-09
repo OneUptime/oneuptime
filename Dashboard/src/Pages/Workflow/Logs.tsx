@@ -80,7 +80,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         logs: true,
                     }}
                     cardProps={{
-                        icon: IconProp.Logs,
+                      
                         title: 'Workflow Logs',
                         description:
                             'List of logs in the last 30 days for all your workflows',

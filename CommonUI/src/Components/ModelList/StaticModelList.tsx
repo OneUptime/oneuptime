@@ -11,7 +11,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     titleField: string;
 }
 
-const StaticModelList: Function = <TBaseModel extends BaseModel>(
+const StaticModelList: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     return (

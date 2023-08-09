@@ -28,7 +28,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     selectMoreFields?: Select<TBaseModel>;
 }
 
-const ModelDetail: Function = <TBaseModel extends BaseModel>(
+const ModelDetail: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [fields, setFields] = useState<Array<Field<TBaseModel>>>([]);

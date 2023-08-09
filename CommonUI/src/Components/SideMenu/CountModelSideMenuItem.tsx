@@ -1,5 +1,5 @@
 import Link from 'Common/Types/Link';
-import React, { useEffect, useState } from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
@@ -19,9 +19,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCountFetchInit?: (() => void) | undefined;
 }
 
-const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
+const CountModelSideMenuItem: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
-) => {
+): ReactElement =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);

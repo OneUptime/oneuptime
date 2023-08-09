@@ -81,7 +81,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     isDeleteable={true}
                     isCreateable={true}
                     cardProps={{
-                        icon: IconProp.Globe,
+                      
                         title: 'Custom Domains',
                         description: `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
                     }}

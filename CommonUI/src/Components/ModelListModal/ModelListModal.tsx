@@ -21,7 +21,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
 }
 
-const ModelListModal: Function = <TBaseModel extends BaseModel>(
+const ModelListModal: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);

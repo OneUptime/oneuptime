@@ -19,7 +19,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     className?: string | undefined;
 }
 
-const HeaderModelAlert: Function = <TBaseModel extends BaseModel>(
+const HeaderModelAlert: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);

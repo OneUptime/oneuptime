@@ -110,7 +110,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     isEditable={true}
                     isCreateable={true}
                     cardProps={{
-                        icon: IconProp.Lock,
+                      
                         title: 'Single Sign On (SSO)',
                         description:
                             'Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.',

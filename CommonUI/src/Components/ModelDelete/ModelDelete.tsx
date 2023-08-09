@@ -14,7 +14,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onDeleteSuccess: () => void;
 }
 
-const ModelDelete: Function = <TBaseModel extends BaseModel>(
+const ModelDelete: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const model: TBaseModel = new props.modelType();

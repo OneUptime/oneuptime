@@ -171,7 +171,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                     ]}
                     isViewable={false}
                     cardProps={{
-                        icon: IconProp.Logs,
+                      
                         title: 'Call Logs',
                         description:
                             'Logs of all the Call sent by this project in the last 30 days.',

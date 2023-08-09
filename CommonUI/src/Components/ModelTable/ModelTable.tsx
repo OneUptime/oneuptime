@@ -140,7 +140,7 @@ enum ModalType {
     Edit,
 }
 
-const ModelTable: Function = <TBaseModel extends BaseModel>(
+const ModelTable: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     let showTableAs: ShowTableAs | undefined = props.showTableAs;

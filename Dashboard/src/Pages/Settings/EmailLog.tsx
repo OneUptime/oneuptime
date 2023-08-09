@@ -180,7 +180,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                     ]}
                     isViewable={false}
                     cardProps={{
-                        icon: IconProp.Logs,
+                      
                         title: 'Email Logs',
                         description:
                             'Logs of all the emails sent by this project in the last 30 days.',

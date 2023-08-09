@@ -44,7 +44,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     initialValues?: FormValues<TBaseModel> | undefined;
 }
 
-const BasicModelForm: Function = <TBaseModel extends BaseModel>(
+const BasicModelForm: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [formFields, setFormFields] = useState<Fields<TBaseModel>>([]);

@@ -32,7 +32,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer?: ReactElement | undefined;
 }
 
-const ModelFormModal: Function = <TBaseModel extends BaseModel>(
+const ModelFormModal: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);

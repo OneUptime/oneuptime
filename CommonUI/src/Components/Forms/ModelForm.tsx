@@ -92,7 +92,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     doNotFetchExistingModel?: boolean | undefined;
 }
 
-const ModelForm: Function = <TBaseModel extends BaseModel>(
+const ModelForm: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [fields, setFields] = useState<Fields<TBaseModel>>([]);

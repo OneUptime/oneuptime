@@ -95,7 +95,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     isCreateable={false}
                     isViewable={false}
                     cardProps={{
-                        icon: IconProp.File,
+                      
                         title: 'Invoices',
                         description:
                             'Here is a list of invoices for this project.',

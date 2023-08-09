@@ -81,7 +81,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     isViewable={true}
                     showViewIdButton={true}
                     cardProps={{
-                        icon: IconProp.CheckCircle,
+                      
                         title: 'Workflows',
                         description:
                             'Here is a list of workflows for this project.',

@@ -169,7 +169,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     ]}
                     isViewable={false}
                     cardProps={{
-                        icon: IconProp.Logs,
+                      
                         title: 'SMS Logs',
                         description:
                             'Logs of all the SMS sent by this project in the last 30 days.',

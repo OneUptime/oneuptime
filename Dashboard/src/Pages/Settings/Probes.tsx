@@ -64,7 +64,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     isEditable={false}
                     isCreateable={false}
                     cardProps={{
-                        icon: IconProp.Signal,
+                      
                         title: 'Global Probes',
                         description:
                             'Global Probes help you monitor external resources from different locations around the world.',
@@ -155,7 +155,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     isEditable={true}
                     isCreateable={true}
                     cardProps={{
-                        icon: IconProp.Signal,
+                      
                         title: 'Custom Probes',
                         description:
                             'Custom Probes help you monitor internal resources that is behind your firewall.',
