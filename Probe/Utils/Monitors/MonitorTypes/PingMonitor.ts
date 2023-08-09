@@ -107,7 +107,7 @@ export default class PingMonitor {
                     ? new PositiveNumber(Math.ceil(res.time as any))
                     : undefined,
             };
-        } catch (err) {
+        } catch (err: unknown) {
             logger.info(
                 `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} error: `
             );
@@ -124,6 +124,17 @@ export default class PingMonitor {
             if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
                 pingOptions.currentRetryCount++;
                 return await this.ping(host, pingOptions);
+            }
+
+            // check if timeout exceeded and if yes, return null
+            if (
+                (err as any).toString().includes('timeout') &&
+                (err as any).toString().includes('exceeded')
+            ) {
+                logger.info(
+                    `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
+                );
+                return null;
             }
 
             // check if the probe is online.

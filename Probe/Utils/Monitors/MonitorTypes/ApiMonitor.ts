@@ -137,7 +137,7 @@ export default class ApiMonitor {
             );
 
             return apiResponse;
-        } catch (err) {
+        } catch (err: unknown) {
             if (!options) {
                 options = {};
             }
@@ -149,6 +149,17 @@ export default class ApiMonitor {
             if (options.currentRetryCount < (options.retry || 5)) {
                 options.currentRetryCount++;
                 return await this.ping(url, options);
+            }
+
+            // check if timeout exceeded and if yes, return null
+            if (
+                (err as any).toString().includes('timeout') &&
+                (err as any).toString().includes('exceeded')
+            ) {
+                logger.info(
+                    `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
+                );
+                return null;
             }
 
             if (!options.isOnlineCheckRequest) {
