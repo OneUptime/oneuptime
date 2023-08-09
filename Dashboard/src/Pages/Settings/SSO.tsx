@@ -9,7 +9,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ProjectSSO from 'Model/Models/ProjectSso';
@@ -296,7 +295,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     editButtonText={'Edit Settings'}
                     cardProps={{
                         title: 'SSO Settings',
-                        description: 'Configure settings for SSO.'
+                        description: 'Configure settings for SSO.',
                     }}
                     isEditable={true}
                     formFields={[

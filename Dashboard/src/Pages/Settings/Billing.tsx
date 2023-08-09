@@ -303,7 +303,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                         },
                     ],
-                    modelId: DashboardNavigation.getProjectId()
+                    modelId: DashboardNavigation.getProjectId(),
                 }}
             />
 

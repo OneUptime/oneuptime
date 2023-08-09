@@ -10,20 +10,31 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import DashboardNavigation from '../../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import BaseModel from 'Common/Models/BaseModel';
 import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
+import MonitorCustomField from 'Model/Models/MonitorCustomField';
+import StatusPageCustomField from 'Model/Models/StatusPageCustomField';
+import IncidentCustomField from 'Model/Models/IncidentCustomField';
+import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCustomField';
+import OnCallDutyPolicyCustomField from 'Model/Models/OnCallDutyPolicyCustomField';
 
-export interface ComponentProps<TBaseModel extends BaseModel>
+export type CustomFieldsBaseModels =
+    | MonitorCustomField
+    | StatusPageCustomField
+    | IncidentCustomField
+    | ScheduledMaintenanceCustomField
+    | OnCallDutyPolicyCustomField;
+
+export interface ComponentProps<CustomFieldsBaseModels>
     extends PageComponentProps {
     title: string;
     currentRoute: Route;
-    modelType: { new (): TBaseModel };
+    modelType: { new (): CustomFieldsBaseModels };
 }
 
-const CustomFieldsPageBase: <TBaseModel extends BaseModel>(
-    props: ComponentProps<TBaseModel>
-) => ReactElement = <TBaseModel extends BaseModel>(
-    props: ComponentProps<TBaseModel>
+const CustomFieldsPageBase: (
+    props: ComponentProps<CustomFieldsBaseModels>
+) => ReactElement = (
+    props: ComponentProps<CustomFieldsBaseModels>
 ): ReactElement => {
     return (
         <Page
@@ -48,10 +59,10 @@ const CustomFieldsPageBase: <TBaseModel extends BaseModel>(
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<TBaseModel>
+            <ModelTable<CustomFieldsBaseModels>
                 modelType={props.modelType}
                 query={{
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                 }}
                 showViewIdButton={true}
                 id="custom-fields-table"

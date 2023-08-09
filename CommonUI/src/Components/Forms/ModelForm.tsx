@@ -1,8 +1,4 @@
-import React, {
-    MutableRefObject,
-    ReactElement,
-    useState,
-} from 'react';
+import React, { MutableRefObject, ReactElement, useState } from 'react';
 import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
