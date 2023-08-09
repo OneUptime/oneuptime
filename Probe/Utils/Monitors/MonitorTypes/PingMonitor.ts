@@ -18,20 +18,51 @@ export interface PingOptions {
     retry?: number | undefined;
     currentRetryCount?: number | undefined;
     monitorId?: ObjectID | undefined;
+    isOnlineCheckRequest?: boolean | undefined;
 }
 
 export default class PingMonitor {
     // burn domain names into the code to see if this probe is online.
     public static async isProbeOnline(): Promise<boolean> {
-        if (await PingMonitor.ping(new Hostname('google.com'))) {
+        if (
+            (
+                await PingMonitor.ping(new Hostname('google.com'), {
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
+        ) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname('facebook.com'))) {
+        } else if (
+            (
+                await PingMonitor.ping(new Hostname('facebook.com'), {
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
+        ) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname('microsoft.com'))) {
+        } else if (
+            (
+                await PingMonitor.ping(new Hostname('microsoft.com'), {
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
+        ) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname('youtube.com'))) {
+        } else if (
+            (
+                await PingMonitor.ping(new Hostname('youtube.com'), {
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
+        ) {
             return true;
-        } else if (await PingMonitor.ping(new Hostname('apple.com'))) {
+        } else if (
+            (
+                await PingMonitor.ping(new Hostname('apple.com'), {
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
+        ) {
             return true;
         }
 
@@ -96,12 +127,13 @@ export default class PingMonitor {
             }
 
             // check if the probe is online.
-
-            if (!(await PingMonitor.isProbeOnline())) {
-                logger.error(
-                    `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
-                );
-                return null;
+            if (!pingOptions.isOnlineCheckRequest) {
+                if (!(await PingMonitor.isProbeOnline())) {
+                    logger.error(
+                        `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
+                    );
+                    return null;
+                }
             }
 
             return {

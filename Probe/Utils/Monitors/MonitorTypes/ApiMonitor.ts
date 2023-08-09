@@ -26,38 +26,53 @@ export default class ApiMonitor {
     // burn domain names into the code to see if this probe is online.
     public static async isProbeOnline(): Promise<boolean> {
         if (
-            await ApiMonitor.ping(URL.fromString('https://google.com'), {
-                requestType: HTTPMethod.GET,
-                isHeadRequest: true,
-            })
+            (
+                await ApiMonitor.ping(URL.fromString('https://google.com'), {
+                    requestType: HTTPMethod.GET,
+                    isHeadRequest: true,
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await ApiMonitor.ping(URL.fromString('https://facebook.com'), {
-                requestType: HTTPMethod.GET,
-                isHeadRequest: true,
-            })
+            (
+                await ApiMonitor.ping(URL.fromString('https://facebook.com'), {
+                    requestType: HTTPMethod.GET,
+                    isHeadRequest: true,
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await ApiMonitor.ping(URL.fromString('https://microsoft.com'), {
-                requestType: HTTPMethod.GET,
-                isHeadRequest: true,
-            })
+            (
+                await ApiMonitor.ping(URL.fromString('https://microsoft.com'), {
+                    requestType: HTTPMethod.GET,
+                    isHeadRequest: true,
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await ApiMonitor.ping(URL.fromString('https://youtube.com'), {
-                requestType: HTTPMethod.GET,
-                isHeadRequest: true,
-            })
+            (
+                await ApiMonitor.ping(URL.fromString('https://youtube.com'), {
+                    requestType: HTTPMethod.GET,
+                    isHeadRequest: true,
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await ApiMonitor.ping(URL.fromString('https://apple.com'), {
-                requestType: HTTPMethod.GET,
-                isHeadRequest: true,
-            })
+            (
+                await ApiMonitor.ping(URL.fromString('https://apple.com'), {
+                    requestType: HTTPMethod.GET,
+                    isHeadRequest: true,
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
         ) {
             return true;
         }
@@ -75,6 +90,7 @@ export default class ApiMonitor {
             retry?: number | undefined;
             currentRetryCount?: number | undefined;
             monitorId?: ObjectID | undefined;
+            isOnlineCheckRequest?: boolean | undefined;
         }
     ): Promise<APIResponse | null> {
         let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
@@ -135,11 +151,13 @@ export default class ApiMonitor {
                 return await this.ping(url, options);
             }
 
-            if (!(await ApiMonitor.isProbeOnline())) {
-                logger.error(
-                    `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
-                );
-                return null;
+            if (!options.isOnlineCheckRequest) {
+                if (!(await ApiMonitor.isProbeOnline())) {
+                    logger.error(
+                        `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
+                    );
+                    return null;
+                }
             }
 
             const apiResponse: APIResponse = {

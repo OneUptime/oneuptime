@@ -24,33 +24,60 @@ export default class WebsiteMonitor {
     // burn domain names into the code to see if this probe is online.
     public static async isProbeOnline(): Promise<boolean> {
         if (
-            await WebsiteMonitor.ping(URL.fromString('https://google.com'), {
-                isHeadRequest: true,
-            })
+            (
+                await WebsiteMonitor.ping(
+                    URL.fromString('https://google.com'),
+                    {
+                        isHeadRequest: true,
+                        isOnlineCheckRequest: true,
+                    }
+                )
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await WebsiteMonitor.ping(URL.fromString('https://facebook.com'), {
-                isHeadRequest: true,
-            })
+            (
+                await WebsiteMonitor.ping(
+                    URL.fromString('https://facebook.com'),
+                    {
+                        isHeadRequest: true,
+                        isOnlineCheckRequest: true,
+                    }
+                )
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await WebsiteMonitor.ping(URL.fromString('https://microsoft.com'), {
-                isHeadRequest: true,
-            })
+            (
+                await WebsiteMonitor.ping(
+                    URL.fromString('https://microsoft.com'),
+                    {
+                        isHeadRequest: true,
+                        isOnlineCheckRequest: true,
+                    }
+                )
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await WebsiteMonitor.ping(URL.fromString('https://youtube.com'), {
-                isHeadRequest: true,
-            })
+            (
+                await WebsiteMonitor.ping(
+                    URL.fromString('https://youtube.com'),
+                    {
+                        isHeadRequest: true,
+                        isOnlineCheckRequest: true,
+                    }
+                )
+            )?.isOnline
         ) {
             return true;
         } else if (
-            await WebsiteMonitor.ping(URL.fromString('https://apple.com'), {
-                isHeadRequest: true,
-            })
+            (
+                await WebsiteMonitor.ping(URL.fromString('https://apple.com'), {
+                    isHeadRequest: true,
+                    isOnlineCheckRequest: true,
+                })
+            )?.isOnline
         ) {
             return true;
         }
@@ -65,6 +92,7 @@ export default class WebsiteMonitor {
             isHeadRequest?: boolean | undefined;
             currentRetryCount?: number | undefined;
             monitorId?: ObjectID | undefined;
+            isOnlineCheckRequest?: boolean | undefined;
         }
     ): Promise<ProbeWebsiteResponse | null> {
         let requestType: HTTPMethod = HTTPMethod.GET;
@@ -120,11 +148,11 @@ export default class WebsiteMonitor {
                 return await this.ping(url, options);
             }
 
-            let probeWebisteResponse: ProbeWebsiteResponse | undefined =
+            let probeWebsiteResponse: ProbeWebsiteResponse | undefined =
                 undefined;
 
             if (err instanceof AxiosError) {
-                probeWebisteResponse = {
+                probeWebsiteResponse = {
                     url: url,
                     isOnline: Boolean(err.response),
                     requestHeaders: {},
@@ -135,7 +163,7 @@ export default class WebsiteMonitor {
                     responseHeaders: (err.response?.headers as Headers) || {},
                 };
             } else {
-                probeWebisteResponse = {
+                probeWebsiteResponse = {
                     url: url,
                     isOnline: false,
                     requestHeaders: {},
@@ -147,20 +175,22 @@ export default class WebsiteMonitor {
                 };
             }
 
-            if (!(await WebsiteMonitor.isProbeOnline())) {
-                logger.error(
-                    `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
-                );
-                return null;
+            if (!options.isOnlineCheckRequest) {
+                if (!(await WebsiteMonitor.isProbeOnline())) {
+                    logger.error(
+                        `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
+                    );
+                    return null;
+                }
             }
 
             logger.error(
                 `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
-                    probeWebisteResponse
+                    probeWebsiteResponse
                 )}`
             );
 
-            return probeWebisteResponse;
+            return probeWebsiteResponse;
         }
     }
 }
