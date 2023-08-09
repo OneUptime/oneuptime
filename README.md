@@ -44,22 +44,16 @@ Depending on your usage and budget, you can choose from different system require
 - **Recommended System Requirements**
   - 16GB RAM
   - 8 Core
-  - 400GB SSD
+  - 400 GB Disk
   - Ubuntu 22.04
   - Docker and Docker Compose installed
-- **Homelab Requirements**
-  - If you want to run OneUptime for personal or experimental use in a home environment, you can use the homelab requirements:
-    - 12GB RAM
+- **Homelab / Minimal Requirements**
+  - If you want to run OneUptime for personal or experimental use in a home environment (Some of our users even have it installed on RaspberyPi), you can use the homelab requirements:
+    - 8 GB RAM
     - 4 Core
-    - 100GB SSD
+    - 20 GB Disk
     - Docker and Docker Compose installed
-- **Minimal Requirements**
-  - If you don't have the recommended system requirements, you can still use the minimal requirements:
-    - 8GB RAM
-    - 2 Core
-    - 100GB SSD
-    - Docker and Docker Compose installed
-  - However, please note that using the minimal requirements may affect the performance and stability of your instance. You may experience slower loading times, higher CPU usage, or unexpected errors.
+
 
 #### Prerequisites for Single-Server Deployment
 Before you start the deployment process, please make sure you have:
