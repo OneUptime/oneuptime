@@ -69,7 +69,9 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     orderField: 'priority',
                 }}
                 showTableAs={ShowTableAs.OrderedStatesList}
-                onBeforeDelete={(item: MonitorStatus) => {
+                onBeforeDelete={(
+                    item: MonitorStatus
+                ): Promise<MonitorStatus> => {
                     if (item.isOperationalState) {
                         throw new BadDataException(
                             'This monitor status cannot be deleted because its the operational state of monitors. Operational status or Offline Status cannot be deleted.'
@@ -82,7 +84,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         );
                     }
 
-                    return item;
+                    return Promise.resolve(item);
                 }}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 onBeforeCreate={(

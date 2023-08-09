@@ -24,7 +24,7 @@ export default interface Columns<TEntity extends BaseModel> {
     colSpan?: number | undefined;
     disableSort?: boolean;
     type: FieldType;
-    isFilterable: boolean;
+    isFilterable?: boolean | undefined;
     filterEntityType?: { new (): TEntity } | undefined;
     filterQuery?: Query<TEntity> | undefined;
     tooltipText?: ((item: TEntity) => string) | undefined;

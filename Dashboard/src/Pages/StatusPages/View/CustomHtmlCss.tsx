@@ -63,7 +63,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Header HTML',
                     description:
                         'You can include header HTML to your status page.',
-                    icon: IconProp.Code,
                 }}
                 isEditable={true}
                 formFields={[
@@ -103,7 +102,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Footer HTML',
                     description:
                         'You can include footer HTML to your status page.',
-                    icon: IconProp.Code,
                 }}
                 isEditable={true}
                 formFields={[
@@ -143,7 +141,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Custom CSS',
                     description:
                         'You can include custom CSS classes to your status page.',
-                    icon: IconProp.Code,
                 }}
                 isEditable={true}
                 formFields={[

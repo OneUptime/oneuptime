@@ -9,7 +9,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow from 'Model/Models/Workflow';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -66,7 +65,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Workflow Details',
                     description: 'Here are more details for this workflow.',
-                    icon: IconProp.Workflow,
                 }}
                 isEditable={true}
                 formSteps={[

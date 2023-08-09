@@ -68,7 +68,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     model: UserNotificationRule,
                     miscDataProps: JSONObject
-                ): UserNotificationRule => {
+                ): Promise<UserNotificationRule> => {
                     model.projectId = DashboardNavigation.getProjectId()!;
                     model.userId = User.getUserId();
                     model.ruleType = options.ruleType;
@@ -122,7 +122,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         }
                     }
 
-                    return model;
+                    return Promise.resolve(model);
                 }}
                 sortOrder={SortOrder.Ascending}
                 sortBy="notifyAfterMinutes"

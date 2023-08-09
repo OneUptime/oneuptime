@@ -61,7 +61,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Title and Description',
                     description: 'This will also be used for SEO.',
-                    icon: IconProp.Text,
                 }}
                 editButtonText={'Edit'}
                 isEditable={true}
@@ -116,7 +115,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Favicon',
                     description: 'Favicon will be used for SEO.',
-                    icon: IconProp.Image,
                 }}
                 isEditable={true}
                 editButtonText={'Edit Favicon'}

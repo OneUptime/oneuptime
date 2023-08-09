@@ -9,7 +9,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -66,7 +65,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Custom SMTP',
                     description:
                         'Custom SMTP settings for this status page. This will be used to send emails to subscribers.',
-                    icon: IconProp.Email,
                 }}
                 editButtonText={'Edit SMTP'}
                 isEditable={true}

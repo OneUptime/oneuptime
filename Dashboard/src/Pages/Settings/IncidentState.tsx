@@ -59,7 +59,9 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 }}
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}
-                onBeforeDelete={(item: IncidentState) => {
+                onBeforeDelete={(
+                    item: IncidentState
+                ): Promise<IncidentState> => {
                     if (item.isCreatedState) {
                         throw new BadDataException(
                             'This incident cannot be deleted because its the created incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
@@ -78,7 +80,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         );
                     }
 
-                    return item;
+                    return Promise.resolve(item);
                 }}
                 selectMoreFields={{
                     color: true,

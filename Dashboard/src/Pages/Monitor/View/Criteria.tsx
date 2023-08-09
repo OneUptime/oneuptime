@@ -113,7 +113,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     title: 'Monitoring Criteria',
                     description:
                         'Here is the criteria we use to monitor this resource.',
-                    icon: IconProp.Criteria,
                 }}
                 createEditModalWidth={ModalWidth.Large}
                 isEditable={true}
