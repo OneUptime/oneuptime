@@ -14,12 +14,15 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onCreateSuccess(onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
-         // add owners.
+    protected override async onCreateSuccess(
+        onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
+        // add owners.
 
-         if (
-            createdItem.projectId && 
-            createdItem.id && 
+        if (
+            createdItem.projectId &&
+            createdItem.id &&
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps['ownerTeams'] ||
                 onCreate.createBy.miscDataProps['ownerUsers'])
@@ -54,7 +57,8 @@ export class Service extends DatabaseService<Model> {
                 teamId = new ObjectID(teamId.toString());
             }
 
-            const teamOwner: IncidentTemplateOwnerTeam = new IncidentTemplateOwnerTeam();
+            const teamOwner: IncidentTemplateOwnerTeam =
+                new IncidentTemplateOwnerTeam();
             teamOwner.incidentTemplateId = incidentTemplateId;
             teamOwner.projectId = projectId;
             teamOwner.teamId = teamId;
@@ -70,7 +74,8 @@ export class Service extends DatabaseService<Model> {
             if (typeof userId === Typeof.String) {
                 userId = new ObjectID(userId.toString());
             }
-            const teamOwner: IncidentTemplateOwnerUser = new IncidentTemplateOwnerUser();
+            const teamOwner: IncidentTemplateOwnerUser =
+                new IncidentTemplateOwnerUser();
             teamOwner.incidentTemplateId = incidentTemplateId;
             teamOwner.projectId = projectId;
             teamOwner.userId = userId;
