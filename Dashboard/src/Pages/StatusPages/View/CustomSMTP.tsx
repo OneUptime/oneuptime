@@ -98,7 +98,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Custom SMTP Config',
-                            type: FieldType.Entity,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 if (item['smtpConfig']) {
                                     return (

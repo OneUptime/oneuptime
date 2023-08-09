@@ -34,6 +34,7 @@ import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -207,6 +208,11 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         description: 'Which probe do you want to use?',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownOptions: probes.map((probe: Probe) => {
+
+                            if(!probe.name || !probe._id) {
+                                throw new BadDataException(`Probe name or id is missing`)
+                            }
+
                             return {
                                 label: probe.name,
                                 value: probe._id,

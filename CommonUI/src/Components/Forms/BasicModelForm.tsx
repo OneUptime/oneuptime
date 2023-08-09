@@ -33,7 +33,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     description?: undefined | string;
     showAsColumns?: undefined | number;
     disableAutofocus?: undefined | boolean;
-    footer: ReactElement;
+    footer?: ReactElement | undefined;
     isLoading?: undefined | boolean;
     onCancel?: undefined | (() => void);
     cancelButtonText?: undefined | string;

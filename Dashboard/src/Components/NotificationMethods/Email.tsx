@@ -46,10 +46,10 @@ const Email: () => JSX.Element = (): ReactElement => {
                     userId: User.getUserId().toString(),
                 }}
                 refreshToggle={refreshToggle}
-                onBeforeCreate={(model: UserEmail): UserEmail => {
+                onBeforeCreate={(model: UserEmail): Promise<UserEmail> => {
                     model.projectId = DashboardNavigation.getProjectId()!;
                     model.userId = User.getUserId();
-                    return model;
+                    return Promise.resolve(model);
                 }}
                 createVerb={'Add'}
                 actionButtons={[

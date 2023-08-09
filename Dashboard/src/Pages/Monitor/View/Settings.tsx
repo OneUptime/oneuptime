@@ -106,8 +106,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Monitor Settings',
                     description:
-                        'Here are some advanced settings for this monitor.',
-                    icon: IconProp.Settings,
+                        'Here are some advanced settings for this monitor.'
                 }}
                 onSaveSuccess={() => {
                     setAlertRefreshToggle(!alertRefreshToggle);

@@ -100,9 +100,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         RouteMap[PageMap.PROJECT_INVITATIONS]!
                                     );
                                 }}
-                                style={{
-                                    marginRight: '10px',
-                                }}
                             />
 
                             <HeaderModelAlert<Incident>

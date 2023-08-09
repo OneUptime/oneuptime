@@ -36,8 +36,7 @@ const Home: FunctionComponent<PageComponentProps> = (
             <CardModelDetail
                 cardProps={{
                     title: 'Basic Info',
-                    description: 'Here are some of your details.',
-                    icon: IconProp.User,
+                    description: 'Here are some of your details.'
                 }}
                 name="User Profile > Basic Info"
                 isEditable={true}

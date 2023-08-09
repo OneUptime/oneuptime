@@ -63,7 +63,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     description?: undefined | string;
     showAsColumns?: undefined | number;
     disableAutofocus?: undefined | boolean;
-    footer: ReactElement;
+    footer?: ReactElement | undefined;
     onCancel?: undefined | (() => void);
     name: string;
     onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
@@ -121,7 +121,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return select;
     };
 
-    const getRelationSelect: Function = (): Select<TBaseModel> => {
+    const getRelationSelect: () => Select<TBaseModel> = (): Select<TBaseModel> => {
         const relationSelect: Select<TBaseModel> = {};
 
         for (const field of props.fields) {
@@ -144,7 +144,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return relationSelect;
     };
 
-    const hasPermissionOnField: Function = (fieldName: string): boolean => {
+    const hasPermissionOnField: (fieldName: string) => boolean = (fieldName: string): boolean => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -187,7 +187,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return false;
     };
 
-    const setFormFields: Function = async (): Promise<void> => {
+    const setFormFields:  () => Promise<void> = async (): Promise<void> => {
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {

@@ -125,8 +125,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Monitoring Interval',
                     description:
-                        'Here is how often we will check your monitor status.',
-                    icon: IconProp.Clock,
+                        'Here is how often we will check your monitor status.'
                 }}
                 isEditable={true}
                 formFields={[

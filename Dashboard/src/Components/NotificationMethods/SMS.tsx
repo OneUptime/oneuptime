@@ -46,10 +46,10 @@ const SMS: () => JSX.Element = (): ReactElement => {
                     userId: User.getUserId().toString(),
                 }}
                 refreshToggle={refreshToggle}
-                onBeforeCreate={(model: UserSMS): UserSMS => {
+                onBeforeCreate={(model: UserSMS): Promise<UserSMS> => {
                     model.projectId = DashboardNavigation.getProjectId()!;
                     model.userId = User.getUserId();
-                    return model;
+                    return Promise.resolve(model);
                 }}
                 createVerb={'Add'}
                 actionButtons={[

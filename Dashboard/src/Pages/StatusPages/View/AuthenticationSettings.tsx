@@ -63,8 +63,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Authentication Settings',
                     description:
-                        'Authentication settings for this status page.',
-                    icon: IconProp.Settings,
+                        'Authentication settings for this status page.'
                 }}
                 editButtonText="Edit Settings"
                 isEditable={true}

@@ -46,10 +46,10 @@ const Call: () => JSX.Element = (): ReactElement => {
                     userId: User.getUserId().toString(),
                 }}
                 refreshToggle={refreshToggle}
-                onBeforeCreate={(model: UserCall): UserCall => {
+                onBeforeCreate={(model: UserCall): Promise<UserCall> => {
                     model.projectId = DashboardNavigation.getProjectId()!;
                     model.userId = User.getUserId();
-                    return model;
+                    return Promise.resolve(model);
                 }}
                 createVerb={'Add'}
                 actionButtons={[
