@@ -190,7 +190,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         stepId: 'escalation',
                         title: 'Escalate after (in minutes)',
                         fieldType: FormFieldSchemaType.Number,
-                        placeholder: 30,
+                        placeholder: '30',
                         required: true,
                         description:
                             'The amount of time to wait before escalating to the next escalation rule.',

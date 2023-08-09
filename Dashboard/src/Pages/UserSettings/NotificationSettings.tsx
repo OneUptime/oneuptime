@@ -32,10 +32,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 }}
                 onBeforeCreate={(
                     model: UserNotificationSetting
-                ): UserNotificationSetting => {
+                ): Promise<UserNotificationSetting> => {
                     model.projectId = DashboardNavigation.getProjectId()!;
                     model.userId = User.getUserId();
-                    return model;
+                    return Promise.resolve(model);
                 }}
                 createVerb={'Add'}
                 id="notification-settings"

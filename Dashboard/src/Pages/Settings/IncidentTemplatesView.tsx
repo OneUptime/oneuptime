@@ -8,7 +8,6 @@ import DashboardSideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import IncidentTemplate from 'Model/Models/IncidentTemplate';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
@@ -80,7 +79,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Incident Template Details',
                     description:
-                        'Here are more details for this incident template.'
+                        'Here are more details for this incident template.',
                 }}
                 isEditable={true}
                 formSteps={[
