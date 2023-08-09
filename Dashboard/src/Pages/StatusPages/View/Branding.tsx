@@ -155,8 +155,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Overview Page',
                     description:
-                        'Essential branding elements for overview page.',
-                    icon: IconProp.Text,
+                        'Essential branding elements for overview page.'
                 }}
                 isEditable={true}
                 editButtonText={'Edit Branding'}

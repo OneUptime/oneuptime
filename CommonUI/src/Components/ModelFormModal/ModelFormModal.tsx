@@ -13,7 +13,7 @@ import FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
-    description: string;
+    description?: string | undefined;
     name: string;
     modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;

@@ -179,8 +179,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Custom JavaScript',
                     description:
-                        'You can include custom JavaScript classes to your status page.',
-                    icon: IconProp.Code,
+                        'You can include custom JavaScript classes to your status page.'
                 }}
                 isEditable={true}
                 formFields={[

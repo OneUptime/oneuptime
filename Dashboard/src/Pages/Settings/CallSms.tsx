@@ -64,7 +64,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Current Balance',
                         description:
                             'Here is your current call and SMS balance for this project.',
-                        icon: IconProp.Billing,
                         buttons: [
                             {
                                 title: 'Recharge Balance',
@@ -93,7 +92,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 placeholder: '0 USD',
                             },
                         ],
-                        modelId: DashboardNavigation.getProjectId()?.toString(),
+                        modelId: DashboardNavigation.getProjectId()!,
                     }}
                 />
             ) : (
@@ -157,7 +156,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 'Enable SMS notifications for this project. This will be used for alerting users by SMS.',
                         },
                     ],
-                    modelId: DashboardNavigation.getProjectId()?.toString(),
+                    modelId: DashboardNavigation.getProjectId()!,
                 }}
             />
 
@@ -321,7 +320,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 placeholder: '0 USD',
                             },
                         ],
-                        modelId: DashboardNavigation.getProjectId()?.toString(),
+                        modelId: DashboardNavigation.getProjectId()!,
                     }}
                 />
             ) : (

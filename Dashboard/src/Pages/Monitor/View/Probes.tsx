@@ -208,9 +208,10 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         description: 'Which probe do you want to use?',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownOptions: probes.map((probe: Probe) => {
-
-                            if(!probe.name || !probe._id) {
-                                throw new BadDataException(`Probe name or id is missing`)
+                            if (!probe.name || !probe._id) {
+                                throw new BadDataException(
+                                    `Probe name or id is missing`
+                                );
                             }
 
                             return {

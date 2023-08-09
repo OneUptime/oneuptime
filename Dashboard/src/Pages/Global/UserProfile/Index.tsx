@@ -6,7 +6,6 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 import User from 'Model/Models/User';
 import UserUtil from 'CommonUI/src/Utils/User';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import SideMenu from './SideMenu';
@@ -36,7 +35,7 @@ const Home: FunctionComponent<PageComponentProps> = (
             <CardModelDetail
                 cardProps={{
                     title: 'Basic Info',
-                    description: 'Here are some of your details.'
+                    description: 'Here are some of your details.',
                 }}
                 name="User Profile > Basic Info"
                 isEditable={true}

@@ -74,8 +74,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 name="Incident Details"
                 cardProps={{
                     title: 'Incident Details',
-                    description: 'Here are more details for this incident.',
-                    icon: IconProp.AltGlobe,
+                    description: 'Here are more details for this incident.'
                 }}
                 isEditable={true}
                 formSteps={[

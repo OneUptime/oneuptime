@@ -249,7 +249,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             permission: true,
                         },
-                        onChange: async (_value: any, form: any): Promise<void> => {
+                        onChange: async (
+                            _value: any,
+                            form: any
+                        ): Promise<void> => {
                             await form.setFieldValue('labels', [], true);
                         },
                         title: 'Permission',

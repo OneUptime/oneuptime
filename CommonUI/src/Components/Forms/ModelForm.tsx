@@ -1,7 +1,6 @@
 import React, {
     MutableRefObject,
     ReactElement,
-    useEffect,
     useState,
 } from 'react';
 import { FormikErrors, FormikProps, FormikValues } from 'formik';
@@ -121,30 +120,35 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return select;
     };
 
-    const getRelationSelect: () => Select<TBaseModel> = (): Select<TBaseModel> => {
-        const relationSelect: Select<TBaseModel> = {};
+    const getRelationSelect: () => Select<TBaseModel> =
+        (): Select<TBaseModel> => {
+            const relationSelect: Select<TBaseModel> = {};
 
-        for (const field of props.fields) {
-            const key: string | null = field.field
-                ? (Object.keys(field.field)[0] as string)
-                : null;
+            for (const field of props.fields) {
+                const key: string | null = field.field
+                    ? (Object.keys(field.field)[0] as string)
+                    : null;
 
-            if (key && model.isFileColumn(key)) {
-                (relationSelect as JSONObject)[key] = {
-                    file: true,
-                    _id: true,
-                    type: true,
-                    name: true,
-                };
-            } else if (key && model.isEntityColumn(key)) {
-                (relationSelect as JSONObject)[key] = (field.field as any)[key];
+                if (key && model.isFileColumn(key)) {
+                    (relationSelect as JSONObject)[key] = {
+                        file: true,
+                        _id: true,
+                        type: true,
+                        name: true,
+                    };
+                } else if (key && model.isEntityColumn(key)) {
+                    (relationSelect as JSONObject)[key] = (field.field as any)[
+                        key
+                    ];
+                }
             }
-        }
 
-        return relationSelect;
-    };
+            return relationSelect;
+        };
 
-    const hasPermissionOnField: (fieldName: string) => boolean = (fieldName: string): boolean => {
+    const hasPermissionOnField: (fieldName: string) => boolean = (
+        fieldName: string
+    ): boolean => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -187,7 +191,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return false;
     };
 
-    const setFormFields:  () => Promise<void> = async (): Promise<void> => {
+    const setFormFields: () => Promise<void> = async (): Promise<void> => {
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
@@ -230,14 +234,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
         setFields(fieldsToSet);
     };
 
-    useEffect(() => {
+    useAsyncEffect(async () => {
         // set fields.
-        setFormFields();
+        await setFormFields();
     }, []);
 
-    useEffect(() => {
+    useAsyncEffect(async () => {
         // set fields.
-        setFormFields();
+        await setFormFields();
     }, [props.fields]);
 
     const fetchItem: Function = async (): Promise<void> => {

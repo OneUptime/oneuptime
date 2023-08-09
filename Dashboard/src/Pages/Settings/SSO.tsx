@@ -296,8 +296,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     editButtonText={'Edit Settings'}
                     cardProps={{
                         title: 'SSO Settings',
-                        description: 'Configure settings for SSO.',
-                        icon: IconProp.Lock,
+                        description: 'Configure settings for SSO.'
                     }}
                     isEditable={true}
                     formFields={[
@@ -325,7 +324,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                     'Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.',
                             },
                         ],
-                        modelId: DashboardNavigation.getProjectId()?.toString(),
+                        modelId: DashboardNavigation.getProjectId()!,
                     }}
                 />
 

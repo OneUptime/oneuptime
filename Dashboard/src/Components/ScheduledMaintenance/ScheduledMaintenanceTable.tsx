@@ -1,5 +1,4 @@
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import React, { FunctionComponent, ReactElement } from 'react';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
@@ -45,7 +44,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             isCreateable={true}
             isViewable={true}
             cardProps={{
-                icon: IconProp.Clock,
                 title: props.title || 'Scheduled Maintenance Events',
                 description:
                     props.description ||
