@@ -17,7 +17,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelNameField: string;
 }
 
-const ModelPage: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
+const ModelPage: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);

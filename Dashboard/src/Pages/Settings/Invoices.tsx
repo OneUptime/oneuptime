@@ -95,7 +95,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                     isCreateable={false}
                     isViewable={false}
                     cardProps={{
-                      
                         title: 'Invoices',
                         description:
                             'Here is a list of invoices for this project.',

@@ -21,7 +21,9 @@ export interface ComponentProps<TBaseModel extends BaseModel>
     modelType: { new (): TBaseModel };
 }
 
-const CustomFieldsPageBase: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
+const CustomFieldsPageBase: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     return (

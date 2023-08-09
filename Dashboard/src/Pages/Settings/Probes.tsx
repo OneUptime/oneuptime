@@ -10,7 +10,6 @@ import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
-import IconProp from 'Common/Types/Icon/IconProp';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -64,7 +63,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     isEditable={false}
                     isCreateable={false}
                     cardProps={{
-                      
                         title: 'Global Probes',
                         description:
                             'Global Probes help you monitor external resources from different locations around the world.',
@@ -155,7 +153,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     isEditable={true}
                     isCreateable={true}
                     cardProps={{
-                      
                         title: 'Custom Probes',
                         description:
                             'Custom Probes help you monitor internal resources that is behind your firewall.',

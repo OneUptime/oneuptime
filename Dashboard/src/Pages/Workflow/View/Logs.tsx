@@ -100,7 +100,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     ]}
                     isViewable={false}
                     cardProps={{
-                      
                         title: 'Workflow Logs',
                         description:
                             'List of logs in the last 30 days for this workflow',

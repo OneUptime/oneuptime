@@ -169,7 +169,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     ]}
                     isViewable={false}
                     cardProps={{
-                      
                         title: 'SMS Logs',
                         description:
                             'Logs of all the SMS sent by this project in the last 30 days.',

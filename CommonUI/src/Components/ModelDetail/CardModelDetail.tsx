@@ -33,7 +33,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     createEditModalWidth?: ModalWidth | undefined;
 }
 
-const CardModelDetail: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
+const CardModelDetail: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);

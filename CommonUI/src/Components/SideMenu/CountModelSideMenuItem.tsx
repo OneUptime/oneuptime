@@ -19,9 +19,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCountFetchInit?: (() => void) | undefined;
 }
 
-const CountModelSideMenuItem: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
+const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
-): ReactElement =>{
+) => ReactElement = <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);

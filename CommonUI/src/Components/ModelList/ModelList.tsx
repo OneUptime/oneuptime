@@ -33,7 +33,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onSelectChange: (list: Array<TBaseModel>) => void;
 }
 
-const ModelList: <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => ReactElement = <TBaseModel extends BaseModel>(
+const ModelList: <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);

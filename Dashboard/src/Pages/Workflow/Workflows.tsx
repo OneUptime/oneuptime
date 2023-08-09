@@ -8,7 +8,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Workflow from 'Model/Models/Workflow';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import WorkflowSideMenu from './SideMenu';
 import Label from 'Model/Models/Label';
@@ -81,7 +80,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     isViewable={true}
                     showViewIdButton={true}
                     cardProps={{
-                      
                         title: 'Workflows',
                         description:
                             'Here is a list of workflows for this project.',
