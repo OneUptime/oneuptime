@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
@@ -8,7 +8,7 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import { FORGOT_PASSWORD_API_URL } from '../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
 
-const ForgotPassword: FunctionComponent = () => {
+const ForgotPassword: () => React.JSX.Element = () => {
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);

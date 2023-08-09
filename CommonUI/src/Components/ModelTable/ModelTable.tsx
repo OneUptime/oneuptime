@@ -84,7 +84,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     selectMoreFields?: Select<TBaseModel>;
     initialItemsOnPage?: number;
     isDeleteable: boolean;
-    isEditable: boolean;
+    isEditable?: boolean | undefined;
     isCreateable: boolean;
     disablePagination?: undefined | boolean;
     formFields?: undefined | Fields<TBaseModel>;

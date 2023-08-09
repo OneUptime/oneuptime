@@ -1,6 +1,6 @@
-import React, { FunctionComponent } from 'react';
+import React from 'react';
 
-const LoginPage: FunctionComponent = () => {
+const LoginPage: () => React.JSX.Element = () => {
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">

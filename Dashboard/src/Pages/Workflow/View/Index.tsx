@@ -165,7 +165,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Labels',
-                            type: FieldType.Text,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <LabelsElement

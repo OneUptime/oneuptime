@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -14,7 +14,7 @@ import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
 
-const RegisterPage: FunctionComponent = () => {
+const RegisterPage: () => React.JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
 
     if (UserUtil.isLoggedIn()) {

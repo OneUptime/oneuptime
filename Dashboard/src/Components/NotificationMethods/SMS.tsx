@@ -1,12 +1,7 @@
 import UserSMS from 'Model/Models/UserSMS';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import IconProp from 'Common/Types/Icon/IconProp';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import DashboardNavigation from '../../Utils/Navigation';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import User from 'CommonUI/src/Utils/User';
@@ -21,7 +16,7 @@ import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-const SMS: FunctionComponent = (): ReactElement => {
+const SMS: () => React.JSX.Element = (): ReactElement => {
     const [showVerificationCodeModal, setShowVerificationCodeModal] =
         useState<boolean>(false);
 

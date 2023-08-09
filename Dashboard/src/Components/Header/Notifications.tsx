@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifications';
 import NotificationItem from 'CommonUI/src/Components/Header/Notifications/NotificationItem';
 import IconProp from 'Common/Types/Icon/IconProp';
 
-const DashboardHeader: FunctionComponent = (): ReactElement => {
+const DashboardHeader: () => React.JSX.Element = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
     return (

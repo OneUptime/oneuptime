@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
 import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
@@ -6,7 +6,7 @@ import IconDropdownRow from 'CommonUI/src/Components/Header/IconDropdown/IconDro
 import IconProp from 'Common/Types/Icon/IconProp';
 import URL from 'Common/Types/API/URL';
 
-const Help: FunctionComponent = (): ReactElement => {
+const Help: () => React.JSX.Element = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
     return (

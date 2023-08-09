@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -161,7 +161,7 @@ import UserSettingsNotificationLogs from './Pages/UserSettings/OnCallLogs';
 import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLogsTimeline';
 import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 
-const App: FunctionComponent = () => {
+const App: () => React.JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());

@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 
-const Divider: FunctionComponent = (): ReactElement => {
+const Divider: () => React.JSX.Element = (): ReactElement => {
     return (
         <div
             className="w-full border-t border-gray-100"

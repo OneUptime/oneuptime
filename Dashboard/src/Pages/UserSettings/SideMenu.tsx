@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
@@ -9,7 +9,7 @@ import PageMap from '../../Utils/PageMap';
 import Link from 'Common/Types/Link';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
-const DashboardSideMenu: FunctionComponent = (): ReactElement => {
+const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     let subItemMenuLink: Link | undefined = undefined;
 
     if (

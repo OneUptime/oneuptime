@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import UserUtil from '../../Utils/User';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -6,7 +6,7 @@ import PageMap from '../../Utils/PageMap';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import StatusPageUtil from '../../Utils/StatusPage';
 
-const Logout: FunctionComponent = () => {
+const Logout: () => React.JSX.Element = () => {
     useEffect(() => {
         if (StatusPageUtil.getStatusPageId()) {
             UserUtil.logout(StatusPageUtil.getStatusPageId()!);

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -37,7 +37,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
 
-const App: FunctionComponent = () => {
+const App: () => React.JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());

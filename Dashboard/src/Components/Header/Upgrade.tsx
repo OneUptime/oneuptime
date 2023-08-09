@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import Project from 'Model/Models/Project';
@@ -12,7 +12,7 @@ import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import DashboardNavigation from '../../Utils/Navigation';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
-const Upgrade: FunctionComponent = (): ReactElement => {
+const Upgrade: () => React.JSX.Element = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);

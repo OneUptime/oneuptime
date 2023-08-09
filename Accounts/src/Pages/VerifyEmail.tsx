@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Route from 'Common/Types/API/Route';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -12,7 +12,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import URL from 'Common/Types/API/URL';
 import API from 'CommonUI/src/Utils/API/API';
 
-const VerifyEmail: FunctionComponent = () => {
+const VerifyEmail: () => React.JSX.Element = () => {
     const apiUrl: URL = VERIFY_EMAIL_API_URL;
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { useState } from 'react';
 import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -13,7 +13,7 @@ import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 
-const LoginPage: FunctionComponent = () => {
+const LoginPage: () => React.JSX.Element = () => {
     const apiUrl: URL = LOGIN_API_URL;
 
     if (UserUtil.isLoggedIn()) {
