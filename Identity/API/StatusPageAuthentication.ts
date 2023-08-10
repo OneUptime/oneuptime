@@ -340,13 +340,17 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendJsonObjectResponse(req, res, {
-                    token: token,
-                    user: JSONFunctions.toJSON(
-                        alreadySavedUser,
-                        StatusPagePrivateUser
-                    ),
-                });
+                return Response.sendEntityResponse(
+                    req,
+                    res,
+                    alreadySavedUser,
+                    StatusPagePrivateUser,
+                    {
+                        miscData: {
+                            token,
+                        },
+                    }
+                );
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'
