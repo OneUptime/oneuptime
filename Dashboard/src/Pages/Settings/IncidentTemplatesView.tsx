@@ -372,7 +372,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Labels',
-                            type: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <LabelsElement
@@ -403,13 +403,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 showViewIdButton={true}
                 query={{
-                    incidentId: modelId,
+                    incidentTemplateId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
                     item: IncidentTemplateOwnerTeam
                 ): Promise<IncidentTemplateOwnerTeam> => {
-                    item.incidentId = modelId;
+                    item.incidentTemplateId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
                 }}
@@ -479,7 +479,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 showViewIdButton={true}
                 createVerb={'Add'}
                 query={{
-                    incidentId: modelId,
+                    incidentTemplateId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(

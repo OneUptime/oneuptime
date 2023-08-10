@@ -207,7 +207,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Monitor Status',
                     },
                     {
-                        field: {
+                        overrideField: {
                             ownerTeams: true,
                         },
                         forceShow: true,
@@ -226,7 +226,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         overrideFieldKey: 'ownerTeams',
                     },
                     {
-                        field: {
+                        overrideField: {
                             ownerUsers: true,
                         },
                         forceShow: true,

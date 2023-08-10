@@ -332,7 +332,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         setShowRechargeBalanceModal(false);
                     }}
                     isLoading={isRechargeBalanceLoading}
-                    name="Recharge Balance"
+                    
                     submitButtonText={'Recharge'}
                     onSubmit={async (item: JSONObject) => {
                         setIsRechargeBalanceLoading(true);
@@ -366,6 +366,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         }
                     }}
                     formProps={{
+                        name: "Recharge Balance",
                         error: rechargeBalanceError || '',
                         fields: [
                             {

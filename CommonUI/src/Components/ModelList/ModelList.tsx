@@ -24,7 +24,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
     selectMultiple?: boolean | undefined;
-    overrideFetchApiUrl: URL | undefined;
+    overrideFetchApiUrl?: URL | undefined;
     select: Select<TBaseModel>;
     fetchRequestOptions?: RequestOptions | undefined;
     noItemsMessage: string;

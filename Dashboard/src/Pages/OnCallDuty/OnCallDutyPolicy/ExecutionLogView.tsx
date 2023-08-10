@@ -14,10 +14,15 @@ import ExecutionLogTimelineTable from '../../../Components/OnCallPolicy/Executio
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const onCallDutyPolicyId: string | null = Navigation.getParamByName(
+    const onCallDutyPolicyIdString: string | null = Navigation.getParamByName(
         RouteParams.ModelID,
         RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!
     );
+
+    if (!onCallDutyPolicyIdString) throw new Error('No on call duty policy id found');
+
+    const onCallDutyPolicyId: ObjectID = new ObjectID(onCallDutyPolicyIdString);
+
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
@@ -52,7 +57,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                         ] as Route,
                         { modelId }
                     ),
@@ -61,10 +66,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Timeline',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
                         ] as Route,
                         {
-                            modelId: new ObjectID(onCallDutyPolicyId as string),
+                            modelId: onCallDutyPolicyId,
                             subModelId: modelId,
                         }
                     ),
@@ -72,7 +77,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={
                 <SideMenu
-                    modelId={new ObjectID(onCallDutyPolicyId as string)}
+                    modelId={onCallDutyPolicyId}
                 />
             }
         >

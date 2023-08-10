@@ -277,7 +277,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Labels',
-                            type: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <LabelsElement

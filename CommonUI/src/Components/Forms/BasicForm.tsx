@@ -46,21 +46,23 @@ export interface BaseComponentProps<T extends Object> {
     description?: undefined | string;
     showAsColumns?: undefined | number;
     isLoading?: undefined | boolean;
+    id?: string | undefined;
+    name?: string | undefined;
     onCancel?: undefined | (() => void) | null;
     cancelButtonText?: undefined | string | null;
     maxPrimaryButtonWidth?: undefined | boolean;
     disableAutofocus?: undefined | boolean;
     hideSubmitButton?: undefined | boolean;
+    error?: string | undefined;
     onFormStepChange?: undefined | ((stepId: string) => void);
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
 }
 
-export interface ComponentProps<T extends Object>  extends BaseComponentProps<T>{
-    id: string;
-    name: string;
+export interface ComponentProps<T extends Object>
+    extends BaseComponentProps<T> {
+    
     onSubmit: (values: FormValues<T>) => void;
-    error: string | null;
     footer: ReactElement;
 }
 
@@ -77,8 +79,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
 
-        const refCurrentValue: MutableRefObject<FormValues<T>> = useRef(
-            props.initialValues
+        const refCurrentValue: React.MutableRefObject<FormValues<T>> = useRef(
+            props.initialValues || {}
         );
 
         const [currentFormStepId, setCurrentFormStepId] = useState<
@@ -127,7 +129,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         }, [currentFormStepId]);
 
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
-            props.initialValues
+            props.initialValues || {}
         );
 
         const [errors, setErrors] = useState<Dictionary<string>>({});
@@ -194,7 +196,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         const getFieldName: Function = (field: Field<T>): string => {
             const fieldName: string = field.overrideFieldKey
                 ? field.overrideFieldKey
-                : (Object.keys(field.field)[0] as string);
+                : (Object.keys(field.field || {})[0] as string);
 
             return fieldName;
         };
@@ -217,7 +219,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setTouched({ ...touched, ...touchedObj });
         };
 
-        const setFieldValue: Function = (
+        const setFieldValue: (
+            fieldName: string,
+            value: JSONValue
+        ) => void = (
             fieldName: string,
             value: JSONValue
         ): void => {
@@ -235,7 +240,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             }
         };
 
-        const submitForm: Function = (): void => {
+        const submitForm: () => void  = (): void => {
             // check for any boolean values and if they don't exist in values - mark them as false.
 
             setAllTouched();

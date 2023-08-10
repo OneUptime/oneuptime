@@ -1322,13 +1322,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
                               }`
                             : `Save Changes`
                     }
-                    onSuccess={async (item: TBaseModel) => {
+                    onSuccess={async (item: TBaseModel): Promise<void> => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
                         fetchItems();
                         if (props.onCreateSuccess) {
                             await props.onCreateSuccess(item);
                         }
+
+                        return Promise.resolve();
                     }}
                     onBeforeCreate={async (
                         item: TBaseModel,

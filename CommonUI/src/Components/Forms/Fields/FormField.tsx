@@ -37,7 +37,7 @@ export interface ComponentProps<T extends Object> {
     submitForm: () => void | undefined;
 }
 
-const FormField:  <T extends Object>(
+const FormField: <T extends Object>(
     props: ComponentProps<T>
 ) => ReactElement = <T extends Object>(
     props: ComponentProps<T>

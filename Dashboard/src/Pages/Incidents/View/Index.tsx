@@ -322,7 +322,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Labels',
-                            type: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <LabelsElement
@@ -398,8 +398,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Incident Description',
                     description:
-                        'Description of this incident. This is visible on Status Page and is in markdown format.',
-                    icon: IconProp.AltGlobe,
+                        'Description of this incident. This is visible on Status Page and is in markdown format.'
                 }}
                 editButtonText="Edit Incident Description"
                 isEditable={true}

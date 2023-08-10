@@ -146,7 +146,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                             'The description of the escalation rule. This is used to describe the rule.',
                     },
                     {
-                        field: {
+                        overrideField: {
                             teams: true,
                         },
                         forceShow: true,
@@ -165,7 +165,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         overrideFieldKey: 'teams',
                     },
                     {
-                        field: {
+                        overrideField: {
                             users: true,
                         },
                         forceShow: true,
@@ -281,8 +281,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Repeat Policy',
                     description:
-                        'Repeat policies are used to determine how often an on-call policy should be repeated.',
-                    icon: IconProp.Call,
+                        'Repeat policies are used to determine how often an on-call policy should be repeated.'
                 }}
                 isEditable={true}
                 formFields={[
@@ -308,7 +307,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         required: false,
                         description:
                             'The number of times to repeat the on-call policy if no one acknowledges the incident.',
-                        placeholder: 3,
+                        placeholder: "3",
                     },
                 ]}
                 modelDetailProps={{

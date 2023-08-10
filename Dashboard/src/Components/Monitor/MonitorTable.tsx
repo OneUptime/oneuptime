@@ -174,7 +174,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     placeholder: 'Select Monitoring Interval',
                 },
                 {
-                    field: {
+                    overrideField: {
                         ownerTeams: true,
                     },
                     forceShow: true,
@@ -248,7 +248,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitor Type',
                     type: FieldType.Text,
                     isFilterable: true,
-                    filterDropdownField:
+                    filterDropdownOptions:
                         MonitorTypeUtil.monitorTypesAsDropdownOptions(),
                 },
                 {

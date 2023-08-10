@@ -211,7 +211,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-            {showViewLogsModal && (
+            {showViewLogsModal ? (
                 <Modal
                     title={'Why did the status change?'}
                     description="Here is more information about why the status changed for this monitor."
@@ -229,9 +229,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         })}
                     </div>
                 </Modal>
-            )}
+            ): <></>}
 
-            {showRootCause && (
+            {showRootCause ? (
                 <ConfirmModal
                     title={'Root Cause'}
                     description={rootCause}
@@ -242,7 +242,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                     submitButtonText={'Close'}
                     submitButtonType={ButtonStyleType.NORMAL}
                 />
-            )}
+            ): <></>}
         </ModelPage>
     );
 };

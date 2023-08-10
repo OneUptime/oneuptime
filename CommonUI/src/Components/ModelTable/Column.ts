@@ -23,6 +23,7 @@ export default interface Columns<TEntity extends BaseModel> {
     contentClassName?: string | undefined;
     colSpan?: number | undefined;
     disableSort?: boolean;
+    description? : string | undefined;
     type: FieldType;
     isFilterable?: boolean | undefined;
     filterEntityType?: { new (): TEntity } | undefined;

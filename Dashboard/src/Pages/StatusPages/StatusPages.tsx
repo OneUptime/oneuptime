@@ -92,7 +92,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Description',
                     },
                     {
-                        field: {
+                        overrideField: {
                             ownerTeams: true,
                         },
                         forceShow: true,

@@ -48,12 +48,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
                 return Promise.resolve(incident);
             }}
-            query={props.query}
+            query={props.query || {}}
             isEditable={false}
             isCreateable={true}
             isViewable={true}
             cardProps={{
-                icon: IconProp.Alert,
                 title: props.title || 'Incidents',
                 description:
                     props.description ||
@@ -172,7 +171,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     placeholder: 'Monitor Status',
                 },
                 {
-                    field: {
+                    overrideField: {
                         ownerTeams: true,
                     },
                     forceShow: true,
@@ -191,7 +190,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     overrideFieldKey: 'ownerTeams',
                 },
                 {
-                    field: {
+                    overrideField: {
                         ownerUsers: true,
                     },
                     forceShow: true,
