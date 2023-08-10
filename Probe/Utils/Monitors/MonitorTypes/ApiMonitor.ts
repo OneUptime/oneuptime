@@ -20,6 +20,7 @@ export interface APIResponse {
     responseBody: string;
     responseHeaders: Headers;
     isOnline: boolean;
+    failureCause: string;
 }
 
 export default class ApiMonitor {
@@ -128,6 +129,7 @@ export default class ApiMonitor {
                 responseBody: JSON.stringify(result.data || {}),
                 responseHeaders: result.headers,
                 requestBody: options.requestBody || {},
+                failureCause: '',
             };
 
             logger.info(
@@ -181,6 +183,7 @@ export default class ApiMonitor {
                 statusCode: 0,
                 responseBody: '',
                 responseHeaders: {},
+                failureCause: (err as any).toString(),
             };
 
             logger.error(

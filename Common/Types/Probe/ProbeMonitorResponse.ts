@@ -11,4 +11,5 @@ export default interface ProbeMonitorResponse {
     monitorStepId: ObjectID;
     monitorId: ObjectID;
     probeId: ObjectID;
+    failureCause: string;
 }

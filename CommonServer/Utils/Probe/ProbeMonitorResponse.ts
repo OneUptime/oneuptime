@@ -288,7 +288,7 @@ export default class ProbeMonitorResponseService {
                 JSON.stringify(dataToProcess)
             );
             monitorStatusTimeline.rootCause =
-                'No monitoring criteria met. Change to default status.';
+                'No monitoring criteria met. Change to default status. ';
             await MonitorStatusTimelineService.create({
                 data: monitorStatusTimeline,
                 props: {
@@ -611,7 +611,11 @@ export default class ProbeMonitorResponseService {
             if (rootCause) {
                 input.probeApiIngestResponse.criteriaMetId =
                     criteriaInstance.data?.id;
-                input.probeApiIngestResponse.rootCause = rootCause;
+                input.probeApiIngestResponse.rootCause =
+                    rootCause +
+                    ' ' +
+                    ((input.dataToProcess as ProbeMonitorResponse)
+                        .failureCause || '');
                 break;
             }
         }

@@ -11,6 +11,7 @@ import ping from 'ping';
 export interface PingResponse {
     isOnline: boolean;
     responseTimeInMS?: PositiveNumber | undefined;
+    failureCause: string;
 }
 
 export interface PingOptions {
@@ -106,6 +107,7 @@ export default class PingMonitor {
                 responseTimeInMS: res.time
                     ? new PositiveNumber(Math.ceil(res.time as any))
                     : undefined,
+                failureCause: '',
             };
         } catch (err: unknown) {
             logger.info(
@@ -149,6 +151,7 @@ export default class PingMonitor {
 
             return {
                 isOnline: false,
+                failureCause: (err as any).toString(),
             };
         }
     }

@@ -114,6 +114,7 @@ export default class MonitorUtil {
             monitorStepId: monitorStep.id,
             monitorId: monitor.id!,
             probeId: ProbeUtil.getProbeId(),
+            failureCause: '',
         };
 
         if (!monitorStep.data || !monitorStep.data?.monitorDestination) {
@@ -138,6 +139,7 @@ export default class MonitorUtil {
 
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+            result.failureCause = response.failureCause;
         }
 
         if (monitor.monitorType === MonitorType.Website) {
@@ -160,6 +162,7 @@ export default class MonitorUtil {
             result.responseBody = response.responseBody?.toString();
             result.responseHeaders = response.responseHeaders;
             result.responseCode = response.statusCode;
+            result.failureCause = response.failureCause;
         }
 
         if (monitor.monitorType === MonitorType.API) {
@@ -195,6 +198,7 @@ export default class MonitorUtil {
             result.responseBody = response.responseBody;
             result.responseHeaders = response.responseHeaders;
             result.responseCode = response.statusCode;
+            result.failureCause = response.failureCause;
         }
 
         return result;

@@ -18,6 +18,7 @@ export interface ProbeWebsiteResponse {
     responseBody: HTML | undefined;
     responseHeaders: Headers | undefined;
     isOnline: boolean;
+    failureCause: string;
 }
 
 export default class WebsiteMonitor {
@@ -125,6 +126,7 @@ export default class WebsiteMonitor {
                 statusCode: result.responseStatusCode,
                 responseBody: result.responseBody,
                 responseHeaders: result.responseHeaders,
+                failureCause: '',
             };
 
             logger.info(
@@ -161,6 +163,7 @@ export default class WebsiteMonitor {
                     statusCode: err.response?.status,
                     responseBody: err.response?.data,
                     responseHeaders: (err.response?.headers as Headers) || {},
+                    failureCause: err.message || err.toString(),
                 };
             } else {
                 probeWebsiteResponse = {
@@ -172,6 +175,7 @@ export default class WebsiteMonitor {
                     statusCode: undefined,
                     responseBody: undefined,
                     responseHeaders: undefined,
+                    failureCause: (err as Error).toString(),
                 };
             }
 
