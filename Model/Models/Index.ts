@@ -114,6 +114,8 @@ import ShortLink from './ShortLink';
 import EmailLog from './EmailLog';
 
 import IncidentTemplate from './IncidentTemplate';
+import IncidentTemplateOwnerTeam from './IncidentTemplateOwnerTeam';
+import IncidentTemplateOwnerUser from './IncidentTemplateOwnerUser';
 
 export default [
     User,
@@ -213,4 +215,6 @@ export default [
     ShortLink,
 
     IncidentTemplate,
+    IncidentTemplateOwnerTeam,
+    IncidentTemplateOwnerUser,
 ];
