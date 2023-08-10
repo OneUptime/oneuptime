@@ -26,8 +26,8 @@ export interface FieldBase {
     getElement?:
         | ((
               item: JSONObject,
-              miscProps?: JSONObject,
-              callback?: Function
+              onBeforeFetchData?: JSONObject,
+              fetchItems?: Function
           ) => ReactElement)
         | undefined;
     sideLink?: DetailSideLink | undefined;

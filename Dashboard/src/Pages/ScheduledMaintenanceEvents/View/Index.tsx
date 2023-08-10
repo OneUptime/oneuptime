@@ -7,7 +7,6 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -377,10 +376,10 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <ChangeScheduledMaintenanceState
                                         scheduledMaintenanceId={modelId}
-                                        scheduledMaintenanceTimeline={
+                                        scheduledMaintenanceTimeline={ onBeforeFetchData ? 
                                             onBeforeFetchData[
                                                 'data'
-                                            ] as Array<BaseModel>
+                                            ] as Array<BaseModel> : []
                                         }
                                         stateType={StateType.Ongoing}
                                         onActionComplete={() => {
@@ -395,20 +394,20 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Element,
                             getElement: (
                                 _item: JSONObject,
-                                onBeforeFetchData: JSONObject,
-                                fetchItems: Function
+                                onBeforeFetchData: JSONObject | undefined,
+                                fetchItems: Function | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeScheduledMaintenanceState
                                         scheduledMaintenanceId={modelId}
-                                        scheduledMaintenanceTimeline={
+                                        scheduledMaintenanceTimeline={ onBeforeFetchData ? 
                                             onBeforeFetchData[
                                                 'data'
-                                            ] as Array<BaseModel>
+                                            ] as Array<BaseModel> : []
                                         }
                                         stateType={StateType.Completed}
                                         onActionComplete={() => {
-                                            fetchItems();
+                                            fetchItems && fetchItems();
                                         }}
                                     />
                                 );
@@ -424,8 +423,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Event Description',
                     description:
-                        'Description for this event. This is visible on Status Page and is in markdown format.',
-                    icon: IconProp.AltGlobe,
+                        'Description for this event. This is visible on Status Page and is in markdown format.'
                 }}
                 editButtonText="Edit Event Description"
                 isEditable={true}
