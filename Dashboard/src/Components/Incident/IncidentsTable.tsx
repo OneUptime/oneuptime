@@ -1,5 +1,4 @@
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Incident from 'Model/Models/Incident';

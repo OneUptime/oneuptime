@@ -162,7 +162,6 @@ const Email: () => JSX.Element = (): ReactElement => {
                         setShowVerificationCodeModal(false);
                     }}
                     isLoading={isLoading}
-                    name="Verify Email"
                     submitButtonText={'Verify'}
                     onSubmit={async (item: JSONObject) => {
                         setIsLoading(true);
@@ -195,6 +194,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                         }
                     }}
                     formProps={{
+                        name: 'Verify Email',
                         error: error || '',
                         fields: [
                             {

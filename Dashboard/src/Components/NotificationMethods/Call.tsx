@@ -194,7 +194,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                         }
                     }}
                     formProps={{
-                        name: "Verify Phone Number",
+                        name: 'Verify Phone Number',
                         error: error || '',
                         fields: [
                             {

@@ -253,6 +253,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         props.onProjectModalClose();
                     }}
                     formProps={{
+                        name: 'Create New Project',
                         steps: BILLING_ENABLED
                             ? [
                                   {
@@ -268,7 +269,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         saveRequestOptions: {
                             isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request
                         },
-                        modelType:Project ,
+                        modelType: Project,
                         id: 'create-project-from',
                         fields: [...fields],
                         formType: FormType.Create,

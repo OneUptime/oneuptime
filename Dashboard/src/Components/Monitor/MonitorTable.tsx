@@ -50,7 +50,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             isEditable={false}
             isCreateable={true}
             isViewable={true}
-            query={props.query}
+            query={props.query || {}}
             createEditModalWidth={ModalWidth.Large}
             formSteps={[
                 {
@@ -193,7 +193,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     overrideFieldKey: 'ownerTeams',
                 },
                 {
-                    field: {
+                    overrideField: {
                         ownerUsers: true,
                     },
                     forceShow: true,

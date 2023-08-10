@@ -178,7 +178,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     placeholder: 'Select Status Pages',
                 },
                 {
-                    field: {
+                    overrideField: {
                         ownerTeams: true,
                     },
                     forceShow: true,
@@ -197,7 +197,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     overrideFieldKey: 'ownerTeams',
                 },
                 {
-                    field: {
+                    overrideField: {
                         ownerUsers: true,
                     },
                     forceShow: true,

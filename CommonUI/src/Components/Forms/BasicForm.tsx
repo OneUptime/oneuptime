@@ -61,7 +61,6 @@ export interface BaseComponentProps<T extends Object> {
 
 export interface ComponentProps<T extends Object>
     extends BaseComponentProps<T> {
-    
     onSubmit: (values: FormValues<T>) => void;
     footer: ReactElement;
 }
@@ -219,10 +218,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setTouched({ ...touched, ...touchedObj });
         };
 
-        const setFieldValue: (
-            fieldName: string,
-            value: JSONValue
-        ) => void = (
+        const setFieldValue: (fieldName: string, value: JSONValue) => void = (
             fieldName: string,
             value: JSONValue
         ): void => {
@@ -240,7 +236,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             }
         };
 
-        const submitForm: () => void  = (): void => {
+        const submitForm: () => void = (): void => {
             // check for any boolean values and if they don't exist in values - mark them as false.
 
             setAllTouched();

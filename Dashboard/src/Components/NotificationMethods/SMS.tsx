@@ -162,7 +162,6 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         setShowVerificationCodeModal(false);
                     }}
                     isLoading={isLoading}
-                    name="Verify Phone Number"
                     submitButtonText={'Verify'}
                     onSubmit={async (item: JSONObject) => {
                         setIsLoading(true);
@@ -195,6 +194,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         }
                     }}
                     formProps={{
+                        name: 'Verify Phone Number',
                         error: error || '',
                         fields: [
                             {

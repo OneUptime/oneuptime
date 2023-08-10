@@ -229,7 +229,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         })}
                     </div>
                 </Modal>
-            ): <></>}
+            ) : (
+                <></>
+            )}
 
             {showRootCause ? (
                 <ConfirmModal
@@ -242,7 +244,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                     submitButtonText={'Close'}
                     submitButtonType={ButtonStyleType.NORMAL}
                 />
-            ): <></>}
+            ) : (
+                <></>
+            )}
         </ModelPage>
     );
 };

@@ -16,7 +16,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     description?: string | undefined;
     name?: string | undefined;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
@@ -26,8 +26,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
     onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+        | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
+        | undefined;
     footer?: ReactElement | undefined;
 }
 
@@ -36,86 +36,82 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-        const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
+    const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
 
-        const [submitButtonText, setSubmitButtonText] = useState<string>(
-            props.submitButtonText || 'Save'
-        );
+    const [submitButtonText, setSubmitButtonText] = useState<string>(
+        props.submitButtonText || 'Save'
+    );
 
-        const [error, setError] = useState<string>('');
+    const [error, setError] = useState<string>('');
 
-        const formRef: any = useRef<any>(null);
+    const formRef: any = useRef<any>(null);
 
-        let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
+    let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
 
-        if (props.formProps.steps && props.formProps.steps.length > 0) {
-            modalWidth = props.modalWidth || ModalWidth.Medium;
-        }
+    if (props.formProps.steps && props.formProps.steps.length > 0) {
+        modalWidth = props.modalWidth || ModalWidth.Medium;
+    }
 
-        return (
-            <Modal
-                {...props}
-                submitButtonText={submitButtonText}
-                modalWidth={modalWidth}
-                submitButtonType={ButtonType.Submit}
-                isLoading={isFormLoading}
-                description={props.description}
-                disableSubmitButton={isFormLoading}
-                onSubmit={() => {
-                    formRef.current.submitForm();
-                }}
-                error={error}
-            >
-                {!error ? (
-                    <>
-                        <ModelForm<TBaseModel>
-                            {...props.formProps}
-                            name={props.name}
-                            modelType={props.modelType}
-                            onIsLastFormStep={(isLastFormStep: boolean) => {
-                                if (isLastFormStep) {
-                                    setSubmitButtonText(
-                                        props.submitButtonText || 'Save'
-                                    );
-                                } else {
-                                    setSubmitButtonText('Next');
-                                }
-                            }}
-                            modelIdToEdit={props.modelIdToEdit}
-                            hideSubmitButton={true}
-                            formRef={formRef}
-                            onLoadingChange={(isFormLoading: boolean) => {
-                                setIsFormLoading(isFormLoading);
-                            }}
-                            initialValues={props.initialValues}
-                            onSuccess={(
-                                data: TBaseModel
-                            ) => {
+    return (
+        <Modal
+            {...props}
+            submitButtonText={submitButtonText}
+            modalWidth={modalWidth}
+            submitButtonType={ButtonType.Submit}
+            isLoading={isFormLoading}
+            description={props.description}
+            disableSubmitButton={isFormLoading}
+            onSubmit={() => {
+                formRef.current.submitForm();
+            }}
+            error={error}
+        >
+            {!error ? (
+                <>
+                    <ModelForm<TBaseModel>
+                        {...props.formProps}
+                        name={props.name}
+                        modelType={props.modelType}
+                        onIsLastFormStep={(isLastFormStep: boolean) => {
+                            if (isLastFormStep) {
+                                setSubmitButtonText(
+                                    props.submitButtonText || 'Save'
+                                );
+                            } else {
+                                setSubmitButtonText('Next');
+                            }
+                        }}
+                        modelIdToEdit={props.modelIdToEdit}
+                        hideSubmitButton={true}
+                        formRef={formRef}
+                        onLoadingChange={(isFormLoading: boolean) => {
+                            setIsFormLoading(isFormLoading);
+                        }}
+                        initialValues={props.initialValues}
+                        onSuccess={(data: TBaseModel) => {
+                            props.onSuccess &&
+                                props.onSuccess(
+                                    JSONFunctions.fromJSONObject(
+                                        data as TBaseModel,
+                                        props.modelType
+                                    )
+                                );
+                        }}
+                        onError={(error: string) => {
+                            setError(error);
+                        }}
+                        onBeforeCreate={props.onBeforeCreate}
+                    />
 
-                                props.onSuccess &&
-                                    props.onSuccess(
-                                        JSONFunctions.fromJSONObject(
-                                            data as TBaseModel,
-                                            props.modelType
-                                        )
-                                    );
+                    {props.footer}
+                </>
+            ) : (
+                <></>
+            )}
 
-                            }}
-                            onError={(error: string) => {
-                                setError(error);
-                            }}
-                            onBeforeCreate={props.onBeforeCreate}
-                        />
-
-                        {props.footer}
-                    </>
-                ) : (
-                    <></>
-                )}
-
-                {error ? <Alert title={error} type={AlertType.DANGER} /> : <></>}
-            </Modal>
-        );
-    };
+            {error ? <Alert title={error} type={AlertType.DANGER} /> : <></>}
+        </Modal>
+    );
+};
 
 export default ModelFormModal;

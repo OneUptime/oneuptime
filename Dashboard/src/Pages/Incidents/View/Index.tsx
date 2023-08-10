@@ -7,7 +7,6 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -398,7 +397,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Incident Description',
                     description:
-                        'Description of this incident. This is visible on Status Page and is in markdown format.'
+                        'Description of this incident. This is visible on Status Page and is in markdown format.',
                 }}
                 editButtonText="Edit Incident Description"
                 isEditable={true}
@@ -437,7 +436,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     title: 'Root Cause',
                     description:
                         'Why did this incident happen? Here is the root cause of this incident.',
-                    icon: IconProp.TransparentCube,
                 }}
                 isEditable={false}
                 modelDetailProps={{

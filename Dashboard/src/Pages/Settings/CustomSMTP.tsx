@@ -258,8 +258,8 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 <BasicFormModal
                     title={`Send Test Email`}
                     description={`Send a test email to verify your SMTP config.`}
-                    error={error}
                     formProps={{
+                        error: error,
                         fields: [
                             {
                                 field: {

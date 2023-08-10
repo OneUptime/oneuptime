@@ -111,7 +111,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         overrideFieldKey: 'ownerTeams',
                     },
                     {
-                        field: {
+                        overrideField: {
                             ownerUsers: true,
                         },
                         forceShow: true,

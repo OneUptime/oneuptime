@@ -12,6 +12,10 @@ import SideMenu from './SideMenu';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 
+class UserWithConfirmPassword extends User {
+    public confirmPassword: string = '';
+}
+
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -50,8 +54,8 @@ const Home: FunctionComponent<PageComponentProps> = (
                 }
             >
                 {!hasPasswordChanged ? (
-                    <ModelForm<User>
-                        modelType={User}
+                    <ModelForm<UserWithConfirmPassword>
+                        modelType={UserWithConfirmPassword}
                         name="Change Password Form"
                         onSuccess={() => {
                             setHasPasswordChanged(true);

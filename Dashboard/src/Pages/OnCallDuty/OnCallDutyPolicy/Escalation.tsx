@@ -14,7 +14,6 @@ import ModelTable, {
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Team from 'Model/Models/Team';
@@ -281,7 +280,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Repeat Policy',
                     description:
-                        'Repeat policies are used to determine how often an on-call policy should be repeated.'
+                        'Repeat policies are used to determine how often an on-call policy should be repeated.',
                 }}
                 isEditable={true}
                 formFields={[
@@ -307,7 +306,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         required: false,
                         description:
                             'The number of times to repeat the on-call policy if no one acknowledges the incident.',
-                        placeholder: "3",
+                        placeholder: '3',
                     },
                 ]}
                 modelDetailProps={{

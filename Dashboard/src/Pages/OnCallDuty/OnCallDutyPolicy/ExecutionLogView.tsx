@@ -19,7 +19,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
         RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!
     );
 
-    if (!onCallDutyPolicyIdString) throw new Error('No on call duty policy id found');
+    if (!onCallDutyPolicyIdString) {
+        throw new Error('No on call duty policy id found');
+    }
 
     const onCallDutyPolicyId: ObjectID = new ObjectID(onCallDutyPolicyIdString);
 
@@ -57,7 +59,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Logs',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                         ] as Route,
                         { modelId }
                     ),
@@ -66,7 +68,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     title: 'Timeline',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
                         ] as Route,
                         {
                             modelId: onCallDutyPolicyId,
@@ -75,11 +77,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
-            sideMenu={
-                <SideMenu
-                    modelId={onCallDutyPolicyId}
-                />
-            }
+            sideMenu={<SideMenu modelId={onCallDutyPolicyId} />}
         >
             <ExecutionLogTimelineTable onCallPolicyExecutionLogId={modelId} />
         </ModelPage>

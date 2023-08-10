@@ -73,9 +73,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCancel?: undefined | (() => void);
     name: string;
     onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
-    onSuccess?:
-        | undefined
-        | ((data: TBaseModel) => void);
+    onSuccess?: undefined | ((data: TBaseModel) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -249,9 +247,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
                         };
                     }
 
-                    fieldsToSet.push({...field, field: {
-                        [key]: true
-                    }});
+                    fieldsToSet.push({
+                        ...field,
+                        field: {
+                            [key]: true,
+                        },
+                    });
                 }
             }
         }
@@ -542,7 +543,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
             );
 
             if (props.onSuccess) {
-                props.onSuccess(JSONFunctions.fromJSONObject(result.data as JSONObject, props.modelType));
+                props.onSuccess(
+                    JSONFunctions.fromJSONObject(
+                        result.data as JSONObject,
+                        props.modelType
+                    )
+                );
             }
         } catch (err) {
             setError(API.getFriendlyMessage(err));
