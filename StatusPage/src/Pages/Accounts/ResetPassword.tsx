@@ -102,20 +102,17 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                             modelType={StatusPagePrivateUser}
                             id="register-form"
                             name="Status Page > Reset Password"
-                            onBeforeCreate={(item: StatusPagePrivateUser) => {
+                            onBeforeCreate={(item: StatusPagePrivateUser): Promise<StatusPagePrivateUser> => {
                                 item.resetPasswordToken =
                                     Navigation.getLastParam()
                                         ?.toString()
                                         .replace('/', '')
                                         .toString() || '';
-                                return item;
+                                return Promise.resolve(item);
                             }}
                             showAsColumns={1}
                             maxPrimaryButtonWidth={true}
-                            initialValues={{
-                                password: '',
-                                confirmPassword: '',
-                            }}
+                            
                             fields={[
                                 {
                                     field: {

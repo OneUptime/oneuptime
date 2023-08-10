@@ -161,8 +161,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                         apiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Login'}
-                        onSuccess={(value: JSONObject) => {
-                            LoginUtil.login(value);
+                        onSuccess={(value: StatusPagePrivateUser, miscData: JSONObject | undefined) => {
+                            LoginUtil.login({
+                                user: value,
+                                token: miscData ? miscData['token'] : undefined,
+                            });
 
                             if (
                                 Navigation.getQueryStringByName('redirectUrl')
@@ -184,7 +187,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 );
                             }
                         }}
-                        onBeforeCreate={(item: StatusPagePrivateUser) => {
+                        onBeforeCreate={(item: StatusPagePrivateUser): Promise<StatusPagePrivateUser> => {
                             if (!StatusPageUtil.getStatusPageId()) {
                                 throw new BadDataException(
                                     'Status Page ID not found'
@@ -193,7 +196,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 
                             item.statusPageId =
                                 StatusPageUtil.getStatusPageId()!;
-                            return item;
+                            return Promise.resolve(item);
                         }}
                         maxPrimaryButtonWidth={true}
                         footer={

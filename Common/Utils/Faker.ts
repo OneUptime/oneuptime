@@ -9,7 +9,7 @@ export default class Faker {
     }
 
     public static generateCompanyName(): string {
-        return faker.company.companyName();
+        return faker.company.name();
     }
 
     public static random16Numbers(): string {
@@ -25,6 +25,6 @@ export default class Faker {
     }
 
     public static generatePhone(): Phone {
-        return new Phone(faker.phone.phoneNumberFormat());
+        return new Phone(faker.phone.number());
     }
 }
