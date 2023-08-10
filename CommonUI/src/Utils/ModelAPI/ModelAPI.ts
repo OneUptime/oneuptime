@@ -20,6 +20,12 @@ import Project from 'Model/Models/Project';
 import User from '../User';
 import Navigation from '../Navigation';
 
+export class ModelAPIHttpResponse<
+    TBaseModel extends BaseModel
+> extends HTTPResponse<TBaseModel> {
+    miscData?: JSONObject | undefined;
+}
+
 export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
     data: Array<TBaseModel>;
     count: number;
@@ -112,9 +118,7 @@ export default class ModelAPI {
         formType: FormType,
         miscDataProps?: JSONObject,
         requestOptions?: RequestOptions | undefined
-    ): Promise<
-        HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
-    > {
+    ): Promise<ModelAPIHttpResponse<TBaseModel>> {
         let apiUrl: URL | null = requestOptions?.overrideRequestUrl || null;
 
         if (!apiUrl) {
@@ -135,37 +139,34 @@ export default class ModelAPI {
             apiUrl = apiUrl.addRoute(`/${model._id}`);
         }
 
-        const result: HTTPResponse<
-            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        > = await API.fetch<
-            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        >(
-            httpMethod,
-            apiUrl,
-            {
-                data: JSONFunctions.serialize(
-                    JSONFunctions.toJSON(model, modelType)
-                ),
-                miscDataProps: miscDataProps || {},
-            },
-            {
-                ...this.getCommonHeaders(requestOptions),
-                ...(requestOptions?.requestHeaders || {}),
-            }
-        );
+        const result: HTTPErrorResponse | ModelAPIHttpResponse<TBaseModel> =
+            await API.fetch<TBaseModel>(
+                httpMethod,
+                apiUrl,
+                {
+                    data: JSONFunctions.serialize(
+                        JSONFunctions.toJSON(model, modelType)
+                    ),
+                    miscDataProps: miscDataProps || {},
+                },
+                {
+                    ...this.getCommonHeaders(requestOptions),
+                    ...(requestOptions?.requestHeaders || {}),
+                }
+            );
 
-        if (result.isSuccess()) {
-            if (result.data && Array.isArray(result.data)) {
-                result.data = JSONFunctions.fromJSONArray(
-                    result.data as JSONArray,
-                    modelType
-                );
-            } else {
-                result.data = JSONFunctions.fromJSONObject(
-                    result.data as JSONObject,
-                    modelType
-                );
+        if (result.isSuccess() && result instanceof ModelAPIHttpResponse) {
+            if ((result.data as any)['_miscData']) {
+                result.miscData = (result.data as any)[
+                    '_miscData'
+                ] as JSONObject;
+                delete (result.data as any)['_miscData'];
             }
+
+            result.data = JSONFunctions.fromJSONObject(
+                result.data,
+                modelType
+            );
 
             return result;
         }

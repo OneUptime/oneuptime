@@ -4,11 +4,11 @@ import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import ModelAPI, {
     ListResult,
+    ModelAPIHttpResponse,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
@@ -440,9 +440,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             props.onLoadingChange(true);
         }
 
-        let result: HTTPResponse<
-            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        >;
+        let result: ModelAPIHttpResponse<TBaseModel>;
 
         try {
             // strip data.
@@ -542,18 +540,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
             );
 
-            let miscData: JSONObject | undefined = undefined;
-
-            if (result.data && (result.data as JSONObject)['miscData']) {
-                miscData = (result.data as JSONObject)[
-                    'miscData'
-                ] as JSONObject;
-            }
+            let miscData: JSONObject | undefined = result.miscData;
 
             if (props.onSuccess) {
                 props.onSuccess(
                     JSONFunctions.fromJSONObject(
-                        result.data as JSONObject,
+                        result.data,
                         props.modelType
                     ),
                     miscData

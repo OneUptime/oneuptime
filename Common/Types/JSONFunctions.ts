@@ -102,9 +102,13 @@ export default class JSONFunctions {
     }
 
     private static _fromJSON<T extends BaseModel>(
-        json: JSONObject,
+        json: JSONObject | T,
         type: { new (): T }
     ): T {
+        if (json instanceof BaseModel) {
+            return json;
+        }
+
         json = JSONFunctions.deserialize(json);
         const baseModel: T = new type();
 
@@ -180,7 +184,7 @@ export default class JSONFunctions {
     }
 
     public static fromJSONArray<T extends BaseModel>(
-        json: Array<JSONObject>,
+        json: Array<JSONObject | T>,
         type: { new (): T }
     ): Array<T> {
         const arr: Array<T> = [];
