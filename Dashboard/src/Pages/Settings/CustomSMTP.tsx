@@ -326,7 +326,12 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
             {showSuccessModal ? (
                 <ConfirmModal
                     title={`Email Sent`}
-                    error={error}
+                    error={
+                        error ===
+                        'Error connecting to server. Please try again in few minutes.'
+                            ? 'Request timed out. Please check your SMTP credentials and make sure they are correct.'
+                            : error
+                    }
                     description={`Email sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.`}
                     submitButtonType={ButtonStyleType.NORMAL}
                     submitButtonText={'Close'}

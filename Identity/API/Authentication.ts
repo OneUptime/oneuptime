@@ -521,11 +521,17 @@ router.post(
                         OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                     );
 
-                    return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-                        miscData: {
-                            token,
-                        },
-                    });
+                    return Response.sendEntityResponse(
+                        req,
+                        res,
+                        alreadySavedUser,
+                        User,
+                        {
+                            miscData: {
+                                token,
+                            },
+                        }
+                    );
                 }
             }
             return Response.sendErrorResponse(

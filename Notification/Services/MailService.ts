@@ -176,7 +176,12 @@ export default class MailService {
         return subjectHandlebars(vars).toString();
     }
 
-    private static createMailer(emailServer: EmailServer): Transporter {
+    private static createMailer(
+        emailServer: EmailServer,
+        options: {
+            timeout?: number | undefined;
+        }
+    ): Transporter {
         const privateMailer: Transporter = nodemailer.createTransport({
             host: emailServer.host.toString(),
             port: emailServer.port.toNumber(),
@@ -185,6 +190,7 @@ export default class MailService {
                 user: emailServer.username,
                 pass: emailServer.password,
             },
+            connectionTimeout: options.timeout || undefined,
         });
 
         return privateMailer;
@@ -195,9 +201,12 @@ export default class MailService {
         options: {
             emailServer: EmailServer;
             projectId?: ObjectID | undefined;
+            timeout?: number | undefined;
         }
     ): Promise<void> {
-        const mailer: Transporter = this.createMailer(options.emailServer);
+        const mailer: Transporter = this.createMailer(options.emailServer, {
+            timeout: options.timeout,
+        });
         await mailer.sendMail({
             from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
             to: mail.toEmail.toString(),
@@ -213,6 +222,7 @@ export default class MailService {
                   projectId?: ObjectID | undefined;
                   emailServer?: EmailServer | undefined;
                   userOnCallLogTimelineId?: ObjectID | undefined;
+                  timeout?: number | undefined;
               }
             | undefined
     ): Promise<void> {
@@ -294,6 +304,7 @@ export default class MailService {
             await this.transportMail(mail, {
                 emailServer: options.emailServer,
                 projectId: options.projectId,
+                timeout: options.timeout,
             });
 
             if (emailLog) {

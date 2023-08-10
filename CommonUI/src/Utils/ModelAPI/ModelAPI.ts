@@ -23,7 +23,7 @@ import Navigation from '../Navigation';
 export class ModelAPIHttpResponse<
     TBaseModel extends BaseModel
 > extends HTTPResponse<TBaseModel> {
-    miscData?: JSONObject | undefined;
+    public miscData?: JSONObject | undefined;
 }
 
 export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
@@ -156,7 +156,8 @@ export default class ModelAPI {
             );
 
         if (apiResult.isSuccess() && apiResult instanceof HTTPResponse) {
-            const result: ModelAPIHttpResponse<TBaseModel> = apiResult as ModelAPIHttpResponse<TBaseModel>;
+            const result: ModelAPIHttpResponse<TBaseModel> =
+                apiResult as ModelAPIHttpResponse<TBaseModel>;
 
             if ((result.data as any)['_miscData']) {
                 result.miscData = (result.data as any)[

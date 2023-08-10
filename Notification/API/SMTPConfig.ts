@@ -85,6 +85,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
         await MailService.send(mail, {
             emailServer: mailServer,
             projectId: config.projectId!,
+            timeout: 4000,
         });
     } catch (err) {
         logger.error(err);
