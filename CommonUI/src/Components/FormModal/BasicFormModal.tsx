@@ -18,7 +18,9 @@ export interface ComponentProps<T extends Object> {
     description?: string | undefined;
 }
 
-const BasicFormModal: Function = <T extends Object>(
+const BasicFormModal: <T extends Object>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(

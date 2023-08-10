@@ -122,9 +122,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         RouteMap[PageMap.ACTIVE_INCIDENTS]!
                                     );
                                 }}
-                                style={{
-                                    marginRight: '10px',
-                                }}
+                              
                             />
 
                             {props.selectedProject?.trialEndsAt &&

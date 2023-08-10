@@ -244,7 +244,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         props.onProjectModalClose();
                     }}
                     submitButtonText="Create Project"
-                    onSuccess={(project: Project) => {
+                    onSuccess={(project: Project | null) => {
                         setSelectedProject(project);
                         if (project && props.onProjectSelected) {
                             props.onProjectSelected(project);

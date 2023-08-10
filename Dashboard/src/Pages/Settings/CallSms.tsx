@@ -166,7 +166,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Auto Recharge',
                         description:
                             'Enable Auto Recharge for call and SMS balance. This will make sure you always have enough balance for sending SMS or making calls.',
-                        icon: IconProp.Billing,
                     }}
                     isEditable={true}
                     editButtonText="Edit Auto Recharge"
