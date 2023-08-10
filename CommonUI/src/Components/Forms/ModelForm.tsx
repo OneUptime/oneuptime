@@ -71,7 +71,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     disableAutofocus?: undefined | boolean;
     footer?: ReactElement | undefined;
     onCancel?: undefined | (() => void);
-    name: string;
+    name?: string | undefined;
     onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
     onSuccess?: undefined | ((data: TBaseModel) => void);
     cancelButtonText?: undefined | string;
@@ -251,7 +251,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                         ...field,
                         field: {
                             [key]: true,
-                        },
+                        } as SelectFormFields<TBaseModel>,
                     });
                 }
             }
@@ -430,8 +430,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return result;
     };
 
-    const onSubmit: (values: JSONObject) => Promise<void> = async (
-        values: JSONObject
+    const onSubmit: (values: FormValues<JSONObject>) => Promise<void> = async (
+        values: FormValues<JSONObject>
     ): Promise<void> => {
         // Ping an API here.
         setError('');
@@ -604,7 +604,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 error={error}
                 hideSubmitButton={props.hideSubmitButton}
                 formRef={props.formRef}
-                initialValues={itemToEdit || props.initialValues}
+                initialValues={(itemToEdit || props.initialValues) as FormValues<TBaseModel> | undefined}
             ></BasicModelForm>
         </div>
     );

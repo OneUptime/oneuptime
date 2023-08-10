@@ -223,7 +223,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
                                     <input
                                         tabIndex={props.tabIndex}
-                                        {...getInputProps()}
+                                        {...getInputProps() as any}
                                         id="file-upload"
                                         name="file-upload"
                                         type="file"

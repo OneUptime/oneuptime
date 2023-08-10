@@ -126,7 +126,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                         item={(model as any)['customFields'] || {}}
                         fields={schemaList.map((schemaItem: BaseModel) => {
                             return {
-                                key: [(schemaItem as any).name],
+                                key: (schemaItem as any).name,
                                 title: (schemaItem as any).name,
                                 description: (schemaItem as any).description,
                                 fieldType: (schemaItem as any).type,

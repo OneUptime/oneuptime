@@ -34,7 +34,7 @@ export interface ComponentProps<T extends Object> {
     setFieldTouched: (fieldName: string, value: boolean) => void;
     setFieldValue: (fieldName: string, value: JSONValue) => void;
     disableAutofocus?: boolean;
-    submitForm: () => void | undefined;
+    submitForm?: (() => void) | undefined;
 }
 
 const FormField: <T extends Object>(
@@ -97,7 +97,7 @@ const FormField: <T extends Object>(
             ? getFieldType(props.field.fieldType)
             : 'text';
 
-        if (Object.keys(props.field.field).length === 0) {
+        if (Object.keys(props.field.field || {}).length === 0) {
             throw new BadDataException('Object cannot be without Field');
         }
 
@@ -512,7 +512,7 @@ const FormField: <T extends Object>(
                                 props.setFieldValue(props.fieldName, value);
                             }}
                             onEnterPress={() => {
-                                props.submitForm();
+                                props.submitForm && props.submitForm();
                             }}
                             onBlur={() => {
                                 props.setFieldTouched(props.fieldName, true);

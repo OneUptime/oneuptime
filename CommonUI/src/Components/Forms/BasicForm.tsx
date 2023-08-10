@@ -136,14 +136,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         const [formFields, setFormFields] = useState<Fields<T>>([]);
 
-        const setFieldTouched: Function = (
+        const setFieldTouched: (
+            fieldName: string,
+            value: boolean
+        ) => void = (
             fieldName: string,
             value: boolean
         ): void => {
             setTouched({ ...touched, [fieldName]: value });
         };
 
-        const validate: Function = (
+        const validate: (
+            values: FormValues<T>
+        ) => Dictionary<string> = (
             values: FormValues<T>
         ): Dictionary<string> => {
             const totalValidationErrors: Dictionary<string> =
@@ -337,7 +342,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 return;
             }
 
-            const values: FormValues<T> = { ...props.initialValues };
+            const values: FormValues<T> = { ...props.initialValues } as  FormValues<T>;
             for (const field of formFields) {
                 const fieldName: string = field.name!;
 
@@ -475,7 +480,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                                 )}
                                                             >
                                                                 {
-                                                                    <FormField
+                                                                    <FormField<T>
                                                                         field={
                                                                             field
                                                                         }
@@ -514,7 +519,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                                         setFieldTouched={
                                                                             setFieldTouched
                                                                         }
-                                                                        submitform={
+                                                                        submitForm={
                                                                             submitForm
                                                                         }
                                                                         disableAutofocus={

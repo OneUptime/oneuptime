@@ -25,7 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
-    name: string;
+    name?: string | undefined;
     steps?: undefined | Array<FormStep<TBaseModel>>;
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormStepChange?: undefined | ((stepId: string) => void);
@@ -61,27 +61,27 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
         const fields: Fields<TBaseModel> = [];
         // Prep
         for (const field of props.fields) {
-            if (Object.keys(field.field).length > 0) {
+            if (Object.keys(field.field || {}).length > 0) {
                 if (
                     props.model.getDisplayColumnTitleAs(
-                        Object.keys(field.field)[0] as string
+                        Object.keys(field.field|| {})[0] as string
                     ) &&
                     !field.title
                 ) {
                     field.title = props.model.getDisplayColumnTitleAs(
-                        Object.keys(field.field)[0] as string
+                        Object.keys(field.field|| {})[0] as string
                     ) as string;
                 }
 
                 if (
                     props.model.getDisplayColumnDescriptionAs(
-                        Object.keys(field.field)[0] as string
+                        Object.keys(field.field|| {})[0] as string
                     ) &&
                     !field.description
                 ) {
                     field.description =
                         props.model.getDisplayColumnDescriptionAs(
-                            Object.keys(field.field)[0] as string
+                            Object.keys(field.field|| {})[0] as string
                         ) as string;
                 }
             }

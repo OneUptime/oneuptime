@@ -11,6 +11,7 @@ import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Field from './Field';
+import DetailField from '../Detail/Field';
 import Detail from '../Detail/Detail';
 import API from '../../Utils/API/API';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -35,7 +36,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const [fields, setFields] = useState<Array<Field<TBaseModel>>>([]);
+    const [fields, setFields] = useState<Array<DetailField>>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
@@ -97,7 +98,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns() || {};
 
-        const fieldsToSet: Array<Field<TBaseModel>> = [];
+        const fieldsToSet: Array<DetailField> = [];
 
         for (const field of props.fields) {
             const keys: Array<string> = Object.keys(
@@ -118,9 +119,10 @@ const ModelDetail: <TBaseModel extends BaseModel>(
                         fieldPermissions
                     )
                 ) {
-                    field.key = key;
+
                     fieldsToSet.push({
                         ...field,
+                        key: key,
                         getElement: field.getElement
                             ? (item: JSONObject): ReactElement => {
                                   return field.getElement!(
@@ -135,6 +137,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
             } else {
                 fieldsToSet.push({
                     ...field,
+                    key: '',
                     getElement: field.getElement
                         ? (item: JSONObject): ReactElement => {
                               return field.getElement!(
