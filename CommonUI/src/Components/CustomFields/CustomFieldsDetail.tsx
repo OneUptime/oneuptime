@@ -1,9 +1,4 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ObjectID from 'Common/Types/ObjectID';
 import BaseModel from 'Common/Models/BaseModel';
 import Card from '../Card/Card';
@@ -17,6 +12,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API/API';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps {
     title: string;
@@ -93,8 +89,8 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         }
     };
 
-    useEffect(() => {
-        onLoad().catch();
+    useAsyncEffect(async () => {
+        await onLoad();
     }, []);
 
     return (

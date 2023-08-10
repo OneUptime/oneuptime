@@ -282,7 +282,7 @@ const App: () => JSX.Element = () => {
     };
 
     useAsyncEffect(async () => {
-        fetchProjects();
+        await fetchProjects();
     }, []);
 
     const commonPageProps: PageComponentProps = {
@@ -1553,10 +1553,10 @@ const App: () => JSX.Element = () => {
                     }
                     element={
                         <SettingsDangerZone
-                            onProjectDeleted={() => {
+                            onProjectDeleted={async () => {
                                 setSelectedProject(null);
                                 setProjects([]);
-                                fetchProjects();
+                                await fetchProjects();
                                 Navigation.navigate(RouteMap[PageMap.INIT]!);
                             }}
                             {...commonPageProps}

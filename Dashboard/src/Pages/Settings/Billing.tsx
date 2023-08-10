@@ -320,9 +320,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         {
                             title: 'Add Payment Method',
                             icon: IconProp.Add,
-                            onClick: () => {
-                                fetchSetupIntent();
+                            onClick: async () => {
                                 setShowPaymentMethodModal(true);
+                                await fetchSetupIntent();
                             },
                             buttonStyle: ButtonStyleType.NORMAL,
                         },

@@ -29,8 +29,6 @@ export interface ComponentProps {
 const Detail: (props: ComponentProps) => ReactElement = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const getMarkdownViewer: Function = (text: string): ReactElement | null => {
         if (!text) {
             return null;
@@ -90,7 +88,6 @@ const Detail: (props: ComponentProps) => ReactElement = (
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {
-
         const fieldKey: string = field.key;
 
         if (!props.item) {
@@ -258,10 +255,10 @@ const Detail: (props: ComponentProps) => ReactElement = (
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                            width:
-                                100 / props.showDetailsInNumberOfColumns +
-                                '%',
-                        }
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
                         : { width: '100%' }
                 }
             >
@@ -285,14 +282,13 @@ const Detail: (props: ComponentProps) => ReactElement = (
                 </div>
             </div>
         );
-
     };
-
 
     return (
         <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1
-                } w-full`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+                props.showDetailsInNumberOfColumns || 1
+            } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&
@@ -301,7 +297,6 @@ const Detail: (props: ComponentProps) => ReactElement = (
                 })}
         </div>
     );
-
 };
 
 export default Detail;

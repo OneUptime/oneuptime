@@ -1,10 +1,11 @@
 import Link from 'Common/Types/Link';
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import ObjectID from 'Common/Types/ObjectID';
 import BaseModel from 'Common/Models/BaseModel';
 import Page from './Page';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: string | undefined;
@@ -66,9 +67,9 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
     const [title, setTitle] = useState<string | undefined>(props.title);
 
-    useEffect(() => {
+    useAsyncEffect(async () => {
         // fetch the model
-        fetchItem();
+        await fetchItem();
     }, []);
 
     return (

@@ -1,11 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -38,6 +33,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import { WORKFLOW_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
+import { useAsyncEffect } from 'use-async-effect';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -257,8 +253,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
         );
     };
 
-    useEffect(() => {
-        loadGraph().catch();
+    useAsyncEffect(async () => {
+        await loadGraph();
     }, []);
 
     return (

@@ -1,11 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -35,6 +30,7 @@ import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import useAsyncEffect from 'use-async-effect';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -113,9 +109,9 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
         undefined
     );
 
-    useEffect(() => {
+    useAsyncEffect(() => {
         // fetch the model
-        fetchItem();
+        await fetchItem();
     }, []);
 
     const getPageContent: Function = (): ReactElement => {

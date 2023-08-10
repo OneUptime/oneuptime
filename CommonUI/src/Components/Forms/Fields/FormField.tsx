@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect } from 'react';
+import React, { ReactElement } from 'react';
 
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from '../Types/FormFieldSchemaType';
@@ -22,6 +22,7 @@ import FieldLabelElement from '../Fields/FieldLabel';
 import FormValues from '../Types/FormValues';
 import { JSONValue } from 'Common/Types/JSON';
 import ComponentLoader from '../../ComponentLoader/ComponentLoader';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -47,22 +48,23 @@ const FormField: <T extends Object>(
     >(props.field.dropdownOptions || []);
     const [isFieldLoading, setIsFieldLoading] = React.useState<boolean>(false);
 
-    const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
-        if (!props.field.fetchDropdownOptions) {
-            return;
-        }
+    const fetchDropdownOptions: () => Promise<void> =
+        async (): Promise<void> => {
+            if (!props.field.fetchDropdownOptions) {
+                return;
+            }
 
-        setIsFieldLoading(true);
+            setIsFieldLoading(true);
 
-        const options: Array<DropdownOption> =
-            await props.field.fetchDropdownOptions();
+            const options: Array<DropdownOption> =
+                await props.field.fetchDropdownOptions();
 
-        setDropdownOptions(options);
-        setIsFieldLoading(false);
-    };
+            setDropdownOptions(options);
+            setIsFieldLoading(false);
+        };
 
-    useEffect(() => {
-        fetchDropdownOptions().catch();
+    useAsyncEffect(async () => {
+        await fetchDropdownOptions();
     }, [props.field]);
 
     const getFieldType: Function = (fieldType: FormFieldSchemaType): string => {

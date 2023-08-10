@@ -1,9 +1,4 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import API from '../../Utils/API/API';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
@@ -13,6 +8,7 @@ import URL from 'Common/Types/API/URL';
 import { DOMAIN, HOME_URL, HTTP_PROTOCOL } from '../../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps {
     documentationLink: Route;
@@ -56,8 +52,8 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
         }
     };
 
-    useEffect(() => {
-        loadDocs();
+    useAsyncEffect(async () => {
+        await loadDocs();
     }, [props.documentationLink]);
 
     return (

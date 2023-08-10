@@ -19,6 +19,7 @@ import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps extends CustomElementProps {
     error?: string | undefined;
@@ -49,119 +50,120 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setError(props.error);
     }, [props.error]);
 
-    const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
-        setIsLoading(true);
+    const fetchDropdownOptions: () => Promise<void> =
+        async (): Promise<void> => {
+            setIsLoading(true);
 
-        try {
-            const monitorStatusList: ListResult<MonitorStatus> =
-                await ModelAPI.getList(
-                    MonitorStatus,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        name: true,
-                        isOperationalState: true,
-                        isOfflineState: true,
-                    },
+            try {
+                const monitorStatusList: ListResult<MonitorStatus> =
+                    await ModelAPI.getList(
+                        MonitorStatus,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            name: true,
+                            isOperationalState: true,
+                            isOfflineState: true,
+                        },
 
-                    {}
-                );
+                        {}
+                    );
 
-            if (monitorStatusList.data) {
-                setMonitorStatusDropdownOptions(
-                    monitorStatusList.data.map((i: MonitorStatus) => {
-                        return {
-                            value: i._id!,
-                            label: i.name!,
-                        };
-                    })
-                );
+                if (monitorStatusList.data) {
+                    setMonitorStatusDropdownOptions(
+                        monitorStatusList.data.map((i: MonitorStatus) => {
+                            return {
+                                value: i._id!,
+                                label: i.name!,
+                            };
+                        })
+                    );
+                }
+
+                const incidentSeverityList: ListResult<IncidentSeverity> =
+                    await ModelAPI.getList(
+                        IncidentSeverity,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            name: true,
+                            order: true,
+                        },
+                        {
+                            order: SortOrder.Ascending,
+                        }
+                    );
+
+                const onCallPolicyList: ListResult<OnCallDutyPolicy> =
+                    await ModelAPI.getList(
+                        OnCallDutyPolicy,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            name: true,
+                        },
+                        {}
+                    );
+
+                if (incidentSeverityList.data) {
+                    setIncidentSeverityDropdownOptions(
+                        incidentSeverityList.data.map((i: IncidentSeverity) => {
+                            return {
+                                value: i._id!,
+                                label: i.name!,
+                            };
+                        })
+                    );
+                }
+
+                if (onCallPolicyList.data) {
+                    setOnCallPolicyDropdownOptions(
+                        onCallPolicyList.data.map((i: OnCallDutyPolicy) => {
+                            return {
+                                value: i._id!,
+                                label: i.name!,
+                            };
+                        })
+                    );
+                }
+
+                // if there is no initial value then....
+
+                if (!monitorSteps) {
+                    setMonitorSteps(
+                        MonitorSteps.getDefaultMonitorSteps({
+                            monitorType: props.monitorType,
+                            defaultMonitorStatusId: monitorStatusList.data.find(
+                                (i: MonitorStatus) => {
+                                    return i.isOperationalState;
+                                }
+                            )!.id!,
+                            onlineMonitorStatusId: monitorStatusList.data.find(
+                                (i: MonitorStatus) => {
+                                    return i.isOperationalState;
+                                }
+                            )!.id!,
+                            offlineMonitorStatusId: monitorStatusList.data.find(
+                                (i: MonitorStatus) => {
+                                    return i.isOfflineState;
+                                }
+                            )!.id!,
+                            defaultIncidentSeverityId:
+                                incidentSeverityList.data[0]!.id!,
+                        })
+                    );
+                }
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
             }
 
-            const incidentSeverityList: ListResult<IncidentSeverity> =
-                await ModelAPI.getList(
-                    IncidentSeverity,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        name: true,
-                        order: true,
-                    },
-                    {
-                        order: SortOrder.Ascending,
-                    }
-                );
-
-            const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-                await ModelAPI.getList(
-                    OnCallDutyPolicy,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        name: true,
-                    },
-                    {}
-                );
-
-            if (incidentSeverityList.data) {
-                setIncidentSeverityDropdownOptions(
-                    incidentSeverityList.data.map((i: IncidentSeverity) => {
-                        return {
-                            value: i._id!,
-                            label: i.name!,
-                        };
-                    })
-                );
-            }
-
-            if (onCallPolicyList.data) {
-                setOnCallPolicyDropdownOptions(
-                    onCallPolicyList.data.map((i: OnCallDutyPolicy) => {
-                        return {
-                            value: i._id!,
-                            label: i.name!,
-                        };
-                    })
-                );
-            }
-
-            // if there is no initial value then....
-
-            if (!monitorSteps) {
-                setMonitorSteps(
-                    MonitorSteps.getDefaultMonitorSteps({
-                        monitorType: props.monitorType,
-                        defaultMonitorStatusId: monitorStatusList.data.find(
-                            (i: MonitorStatus) => {
-                                return i.isOperationalState;
-                            }
-                        )!.id!,
-                        onlineMonitorStatusId: monitorStatusList.data.find(
-                            (i: MonitorStatus) => {
-                                return i.isOperationalState;
-                            }
-                        )!.id!,
-                        offlineMonitorStatusId: monitorStatusList.data.find(
-                            (i: MonitorStatus) => {
-                                return i.isOfflineState;
-                            }
-                        )!.id!,
-                        defaultIncidentSeverityId:
-                            incidentSeverityList.data[0]!.id!,
-                    })
-                );
-            }
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
-
-        setIsLoading(false);
-    };
-    useEffect(() => {
-        fetchDropdownOptions().catch();
+            setIsLoading(false);
+        };
+    useAsyncEffect(async () => {
+        await fetchDropdownOptions();
     }, []);
 
     const [monitorSteps, setMonitorSteps] = React.useState<

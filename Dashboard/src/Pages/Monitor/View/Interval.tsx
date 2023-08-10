@@ -1,11 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -26,6 +21,7 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import useAsyncEffect from 'use-async-effect';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -68,9 +64,9 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         undefined
     );
 
-    useEffect(() => {
+    useAsyncEffect(async () => {
         // fetch the model
-        fetchItem();
+        await fetchItem();
     }, []);
 
     const getPageContent: Function = (): ReactElement => {

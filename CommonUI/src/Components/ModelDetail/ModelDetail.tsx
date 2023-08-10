@@ -16,6 +16,7 @@ import Detail from '../Detail/Detail';
 import API from '../../Utils/API/API';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import { useAsyncEffect } from 'use-async-effect';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -202,9 +203,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         props.onLoadingChange && props.onLoadingChange(false);
     };
 
-    useEffect(() => {
+    useAsyncEffect(async () => {
         if (props.modelId && props.modelType) {
-            fetchItem();
+            await fetchItem();
         }
     }, [props.modelId, props.refresher, props.modelType]);
 
@@ -237,8 +238,8 @@ const ModelDetail: <TBaseModel extends BaseModel>(
             >
                 {error} <br />{' '}
                 <span
-                    onClick={() => {
-                        fetchItem();
+                    onClick={async () => {
+                        await fetchItem();
                     }}
                     className="underline primary-on-hover"
                 >

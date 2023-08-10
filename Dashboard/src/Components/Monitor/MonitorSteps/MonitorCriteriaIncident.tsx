@@ -20,7 +20,6 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
         <div className="mt-4 bg-gray-50 rounded rounded-xl p-5">
             <Detail

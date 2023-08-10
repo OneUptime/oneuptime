@@ -1,5 +1,6 @@
 // This script merges config.env.tpl to config.env
 
+import logger from 'CommonServer/Utils/Logger';
 import fs from 'fs';
 
 const init: Function = (): void => {
@@ -50,4 +51,6 @@ const init: Function = (): void => {
     fs.writeFileSync('./config.env', linesToRender.join('\n'));
 };
 
-init();
+init().catch((err: Error) => {
+    logger.error(err);
+});

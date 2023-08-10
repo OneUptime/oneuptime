@@ -1,10 +1,5 @@
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import MonitorStepElement from './MonitorStep';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -22,6 +17,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import { Black } from 'Common/Types/BrandColors';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps extends CustomElementProps {
     monitorSteps: MonitorSteps;
@@ -49,77 +45,78 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         MonitorStatus | undefined
     >(undefined);
 
-    const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
-        setIsLoading(true);
+    const fetchDropdownOptions: () => Promise<void> =
+        async (): Promise<void> => {
+            setIsLoading(true);
 
-        try {
-            const monitorStatusList: ListResult<MonitorStatus> =
-                await ModelAPI.getList(
-                    MonitorStatus,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        name: true,
-                        color: true,
-                        isOperationalState: true,
-                    },
-                    {}
-                );
+            try {
+                const monitorStatusList: ListResult<MonitorStatus> =
+                    await ModelAPI.getList(
+                        MonitorStatus,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            name: true,
+                            color: true,
+                            isOperationalState: true,
+                        },
+                        {}
+                    );
 
-            if (monitorStatusList.data) {
-                setMonitorStatusOptions(monitorStatusList.data);
-                setDefaultMonitorStatus(
-                    monitorStatusList.data.find((status: MonitorStatus) => {
-                        return status?.isOperationalState;
-                    })
-                );
+                if (monitorStatusList.data) {
+                    setMonitorStatusOptions(monitorStatusList.data);
+                    setDefaultMonitorStatus(
+                        monitorStatusList.data.find((status: MonitorStatus) => {
+                            return status?.isOperationalState;
+                        })
+                    );
+                }
+
+                const incidentSeverityList: ListResult<IncidentSeverity> =
+                    await ModelAPI.getList(
+                        IncidentSeverity,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            name: true,
+                            color: true,
+                        },
+                        {}
+                    );
+
+                const onCallPolicyList: ListResult<OnCallDutyPolicy> =
+                    await ModelAPI.getList(
+                        OnCallDutyPolicy,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            name: true,
+                        },
+                        {}
+                    );
+
+                if (incidentSeverityList.data) {
+                    setIncidentSeverityOptions(
+                        incidentSeverityList.data as Array<IncidentSeverity>
+                    );
+                }
+
+                if (onCallPolicyList.data) {
+                    setOnCallPolicyOptions(
+                        onCallPolicyList.data as Array<OnCallDutyPolicy>
+                    );
+                }
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
             }
 
-            const incidentSeverityList: ListResult<IncidentSeverity> =
-                await ModelAPI.getList(
-                    IncidentSeverity,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        name: true,
-                        color: true,
-                    },
-                    {}
-                );
-
-            const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-                await ModelAPI.getList(
-                    OnCallDutyPolicy,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        name: true,
-                    },
-                    {}
-                );
-
-            if (incidentSeverityList.data) {
-                setIncidentSeverityOptions(
-                    incidentSeverityList.data as Array<IncidentSeverity>
-                );
-            }
-
-            if (onCallPolicyList.data) {
-                setOnCallPolicyOptions(
-                    onCallPolicyList.data as Array<OnCallDutyPolicy>
-                );
-            }
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
-
-        setIsLoading(false);
-    };
-    useEffect(() => {
-        fetchDropdownOptions().catch();
+            setIsLoading(false);
+        };
+    useAsyncEffect(async () => {
+        await fetchDropdownOptions();
     }, []);
 
     if (isLoading) {

@@ -114,4 +114,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
     }
 };
 
-init();
+init().catch((err: Error) => {
+    logger.error(err);
+});
