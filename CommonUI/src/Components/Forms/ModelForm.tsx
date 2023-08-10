@@ -79,9 +79,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?:
         | ((
-              item: TBaseModel | BaseModel,
+              item: TBaseModel,
               miscDataProps: JSONObject
-          ) => Promise<TBaseModel | BaseModel>)
+          ) => Promise<TBaseModel>)
         | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
@@ -191,7 +191,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
-            const keys: Array<string> = Object.keys(field.field);
+
+            const fieldObj = field.field || field.overrideField;
+
+            if(!fieldObj){
+                continue;
+            }
+
+            const keys: Array<string> = Object.keys(fieldObj);
 
             if (keys.length > 0) {
                 const key: string = keys[0] as string;
@@ -202,7 +209,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                     (field.forceShow || hasPermission) &&
                     fieldsToSet.filter((i: Field<TBaseModel>) => {
                         // check if field already exists. If it does, don't add it.
-                        const iKeys: Array<string> = Object.keys(i.field);
+                        const iKeys: Array<string> = Object.keys(fieldObj);
                         const iFieldKey: string = iKeys[0] as string;
                         return iFieldKey === key;
                     }).length === 0
@@ -398,7 +405,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return result;
     };
 
-    const onSubmit: Function = async (values: JSONObject): Promise<void> => {
+    const onSubmit: (values: JSONObject) => Promise<void> = async (values: JSONObject): Promise<void> => {
         // Ping an API here.
         setError('');
         setLoading(true);
@@ -484,10 +491,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
             }
 
-            let tBaseModel: BaseModel = JSONFunctions.fromJSON(
+            let tBaseModel: TBaseModel = JSONFunctions.fromJSON(
                 valuesToSend,
                 props.modelType
-            ) as BaseModel;
+            ) as TBaseModel;
 
             if (props.onBeforeCreate && props.formType === FormType.Create) {
                 tBaseModel = await props.onBeforeCreate(

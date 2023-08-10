@@ -34,7 +34,10 @@ export default interface Field<TEntity> {
     name?: string; // form field name, should be unique in thr form. If not provided, the field will be auto generated.
     title?: string;
     description?: string;
-    field: SelectFormFields<TEntity>;
+    field?: SelectFormFields<TEntity> | undefined;
+    overrideField?: { // This is used to override the field type in the form.
+        [field: string]: true
+    }  | undefined; 
     placeholder?: string;
     forceShow?: boolean; // show this field even if user does not have permissions to view.
     disabled?: boolean;

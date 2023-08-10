@@ -1357,7 +1357,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     }}
                     modelType={props.modelType}
                     formProps={{
-                        model: model,
+                        name: `create-${props.modelType.name}-from`,
+                        modelType: props.modelType,
                         id: `create-${props.modelType.name}-from`,
                         fields: props.formFields || [],
                         steps: props.formSteps || [],
@@ -1365,7 +1366,6 @@ const ModelTable: <TBaseModel extends BaseModel>(
                             modalType === ModalType.Create
                                 ? FormType.Create
                                 : FormType.Update,
-                        type: props.modelType,
                     }}
                     modelIdToEdit={
                         currentEditableItem

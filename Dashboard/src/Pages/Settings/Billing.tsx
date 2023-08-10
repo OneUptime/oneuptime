@@ -327,7 +327,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                             buttonStyle: ButtonStyleType.NORMAL,
                         },
                     ],
-                    icon: IconProp.Billing,
                     title: 'Payment Methods',
                     description:
                         'Here is a list of payment methods attached to this project.',

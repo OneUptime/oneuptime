@@ -4,7 +4,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
-    item: BaseModel;
+    item: JSONObject;
     modelType: { new (): BaseModel };
 }
 

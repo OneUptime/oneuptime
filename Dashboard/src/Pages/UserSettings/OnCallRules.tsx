@@ -32,6 +32,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -143,7 +144,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 }
                 formFields={[
                     {
-                        field: {
+                        overrideField: {
                             notificationMethod: true,
                         },
                         forceShow: true,
@@ -185,7 +186,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Method',
                         type: FieldType.Text,
-                        getElement: (item: BaseModel): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <NotificationMethodView
                                     item={item}
