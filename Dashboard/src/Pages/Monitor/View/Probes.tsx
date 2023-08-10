@@ -109,7 +109,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
         undefined
     );
 
-    useAsyncEffect(() => {
+    useAsyncEffect(async () => {
         // fetch the model
         await fetchItem();
     }, []);
