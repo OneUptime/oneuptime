@@ -139,7 +139,7 @@ export default class ModelAPI {
             apiUrl = apiUrl.addRoute(`/${model._id}`);
         }
 
-        const result: HTTPErrorResponse | ModelAPIHttpResponse<TBaseModel> =
+        const apiResult: HTTPErrorResponse | HTTPResponse<TBaseModel> =
             await API.fetch<TBaseModel>(
                 httpMethod,
                 apiUrl,
@@ -155,7 +155,9 @@ export default class ModelAPI {
                 }
             );
 
-        if (result.isSuccess() && result instanceof ModelAPIHttpResponse) {
+        if (apiResult.isSuccess() && apiResult instanceof HTTPResponse) {
+            const result: ModelAPIHttpResponse<TBaseModel> = apiResult as ModelAPIHttpResponse<TBaseModel>;
+
             if ((result.data as any)['_miscData']) {
                 result.miscData = (result.data as any)[
                     '_miscData'
@@ -163,17 +165,14 @@ export default class ModelAPI {
                 delete (result.data as any)['_miscData'];
             }
 
-            result.data = JSONFunctions.fromJSONObject(
-                result.data,
-                modelType
-            );
+            result.data = JSONFunctions.fromJSONObject(result.data, modelType);
 
             return result;
         }
 
-        this.checkStatusCode(result);
+        this.checkStatusCode(apiResult);
 
-        throw result;
+        throw apiResult;
     }
 
     public static async getList<TBaseModel extends BaseModel>(

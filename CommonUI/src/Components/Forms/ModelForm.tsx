@@ -540,14 +540,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
             );
 
-            let miscData: JSONObject | undefined = result.miscData;
+            const miscData: JSONObject | undefined = result.miscData;
 
             if (props.onSuccess) {
                 props.onSuccess(
-                    JSONFunctions.fromJSONObject(
-                        result.data,
-                        props.modelType
-                    ),
+                    JSONFunctions.fromJSONObject(result.data, props.modelType),
                     miscData
                 );
             }
