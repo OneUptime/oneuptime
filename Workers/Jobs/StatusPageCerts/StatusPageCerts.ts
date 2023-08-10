@@ -343,7 +343,7 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:WriteSelfSignedCertsToDisk',
-    EVERY_FIVE_MINUTE,
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIVE_MINUTE, runOnStartup: true },
     async () => {
         // Fetch all domains where certs are added to greenlock.
 
