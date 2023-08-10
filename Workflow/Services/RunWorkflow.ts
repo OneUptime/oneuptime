@@ -154,7 +154,7 @@ export default class RunWorkflow {
             ];
             const componentsExecuted: Array<string> = [];
 
-            const setDidErrorOut: Function = () => {
+            const setDidErrorOut: () => void = () => {
                 didWorkflowErrorOut = true;
             };
             // make variable map

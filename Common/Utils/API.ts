@@ -285,6 +285,6 @@ export default class API {
             );
         }
 
-        throw new APIException('No error response body');
+        throw new APIException('Endpoint is not available');
     }
 }

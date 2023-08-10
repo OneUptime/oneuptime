@@ -2,7 +2,14 @@ import JobDictionary from './JobDictionary';
 import Queue, { QueueName } from 'CommonServer/Infrastructure/Queue';
 import logger from 'CommonServer/Utils/Logger';
 
-const RunCron: Function = (
+const RunCron: (
+    jobName: string,
+    options: {
+        schedule: string;
+        runOnStartup: boolean;
+    },
+    runFunction: Function
+) => void = (
     jobName: string,
     options: {
         schedule: string;

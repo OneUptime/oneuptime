@@ -777,7 +777,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
         serializeToTableColumns();
     }, [data]);
 
-    const setActionSchema: Function = () => {
+    const setActionSchema: () => void = () => {
         const permissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
 
