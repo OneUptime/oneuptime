@@ -382,7 +382,6 @@ export default class JSONFunctions {
         return newVal;
     }
 
-
     public static anyObjectToJSONObject(val: any): JSONObject {
         return JSON.parse(JSON.stringify(val));
     }

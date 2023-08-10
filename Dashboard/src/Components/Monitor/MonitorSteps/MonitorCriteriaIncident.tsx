@@ -21,8 +21,9 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const incidentJsonObject: JSONObject = JSONFunctions.anyObjectToJSONObject(props.incident);
+    const incidentJsonObject: JSONObject = JSONFunctions.anyObjectToJSONObject(
+        props.incident
+    );
 
     return (
         <div className="mt-4 bg-gray-50 rounded rounded-xl p-5">

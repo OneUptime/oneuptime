@@ -115,7 +115,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             <div className="mt-5">
                 <Detail
                     id={'monitor-step'}
-                    item={JSONFunctions.anyObjectToJSONObject(props.monitorStep.data)}
+                    item={JSONFunctions.anyObjectToJSONObject(
+                        props.monitorStep.data
+                    )}
                     fields={requestDetailsFields}
                 />
             </div>
