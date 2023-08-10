@@ -18,7 +18,6 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
 import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
-import BaseModel from 'Common/Models/BaseModel';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
@@ -95,7 +94,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Method',
                         type: FieldType.Element,
-                        getElement: (item: BaseModel): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <NotificationMethodView
                                     item={item}

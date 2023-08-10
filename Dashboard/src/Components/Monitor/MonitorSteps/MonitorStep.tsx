@@ -15,6 +15,7 @@ import Field from 'CommonUI/src/Components/Detail/Field';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     monitorStatusOptions: Array<MonitorStatus>;
@@ -114,7 +115,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             <div className="mt-5">
                 <Detail
                     id={'monitor-step'}
-                    item={props.monitorStep.data}
+                    item={JSONFunctions.anyObjectToJSONObject(props.monitorStep.data)}
                     fields={requestDetailsFields}
                 />
             </div>

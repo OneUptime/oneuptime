@@ -73,7 +73,6 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Scheduled Maintenance Details',
                     description: 'Here are more details for this event.',
-                    icon: IconProp.Clock,
                 }}
                 formSteps={[
                     {
@@ -372,8 +371,8 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Element,
                             getElement: (
                                 _item: JSONObject,
-                                onBeforeFetchData: JSONObject,
-                                fetchItems: Function
+                                onBeforeFetchData: JSONObject | undefined,
+                                fetchItems: Function | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeScheduledMaintenanceState
@@ -385,7 +384,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         }
                                         stateType={StateType.Ongoing}
                                         onActionComplete={() => {
-                                            fetchItems();
+                                            fetchItems && fetchItems();
                                         }}
                                     />
                                 );

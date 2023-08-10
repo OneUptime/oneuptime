@@ -225,7 +225,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Current Status',
-                            type: FieldType.Text,
+                            fieldType: FieldType.Element,
                             getElement: (item: JSONObject): ReactElement => {
                                 if (!item['currentMonitorStatus']) {
                                     throw new BadDataException(

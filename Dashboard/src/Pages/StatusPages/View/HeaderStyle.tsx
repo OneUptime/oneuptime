@@ -9,7 +9,6 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -68,7 +67,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Logo, Cover and Favicon',
                     description: 'These will show up on your status page.',
-                    icon: IconProp.Image,
                 }}
                 isEditable={true}
                 editButtonText={'Edit Images'}

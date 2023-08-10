@@ -13,6 +13,8 @@ import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessC
 import Field from './Field';
 import Detail from '../Detail/Detail';
 import API from '../../Utils/API/API';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -244,10 +246,14 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         );
     }
 
+    if (!item) {
+        return <ErrorMessage error="Item not found" />;
+    }
+
     return (
         <Detail
             id={props.id}
-            item={item}
+            item={JSONFunctions.toJSONObject(item, props.modelType)}
             fields={fields}
             showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
         />

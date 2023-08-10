@@ -26,7 +26,9 @@ export interface ComponentProps {
     showDetailsInNumberOfColumns?: number | undefined;
 }
 
-const Detail: Function = (props: ComponentProps): ReactElement => {
+const Detail: (props: ComponentProps) => ReactElement = (
+    props: ComponentProps
+): ReactElement => {
     const getMarkdownViewer: Function = (text: string): ReactElement | null => {
         if (!text) {
             return null;

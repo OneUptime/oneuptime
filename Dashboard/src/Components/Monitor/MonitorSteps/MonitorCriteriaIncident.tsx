@@ -10,6 +10,7 @@ import Color from 'Common/Types/Color';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import OnCallDutyPoliciesView from '../../OnCallPolicy/OnCallPolicies';
 import ObjectID from 'Common/Types/ObjectID';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     incident: CriteriaIncident;
@@ -20,11 +21,14 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const incidentJsonObject: JSONObject = JSONFunctions.anyObjectToJSONObject(props.incident);
+
     return (
         <div className="mt-4 bg-gray-50 rounded rounded-xl p-5">
             <Detail
                 id={'monitor-criteria-instance'}
-                item={props.incident}
+                item={incidentJsonObject}
                 showDetailsInNumberOfColumns={1}
                 fields={[
                     {

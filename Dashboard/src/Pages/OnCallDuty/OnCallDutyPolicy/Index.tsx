@@ -7,7 +7,6 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
@@ -60,7 +59,6 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                     title: 'On-Call Policy Details',
                     description:
                         'Here are more details for this on-call policy.',
-                    icon: IconProp.Call,
                 }}
                 formSteps={[
                     {

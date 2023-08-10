@@ -12,14 +12,12 @@ import Card, {
 import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
 import BaseModel from 'Common/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
-
 import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 import { FormStep } from '../Forms/Types/FormStep';
 import { ModalWidth } from '../Modal/Modal';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
@@ -104,13 +102,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
                         setShowModal(false);
                     }}
                     submitButtonText={`Save Changes`}
-                    onSuccess={(
-                        item:
-                            | TBaseModel
-                            | JSONObjectOrArray
-                            | TBaseModel
-                            | Array<TBaseModel>
-                    ) => {
+                    onSuccess={(item: TBaseModel) => {
                         setShowModal(false);
                         setRefresher(!refresher);
                         if (props.onSaveSuccess) {
@@ -127,7 +119,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
                         modelType: props.modelDetailProps.modelType,
                         steps: props.formSteps || [],
                     }}
-                    modelIdToEdit={item?._id}
+                    modelIdToEdit={item?.id || undefined}
                 />
             ) : (
                 <></>
