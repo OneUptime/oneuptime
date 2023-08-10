@@ -39,4 +39,4 @@ const init: Function = (): void => {
     fs.writeFileSync('./config.env', linesInEnv.join('\n'));
 };
 
-await init();
+init();

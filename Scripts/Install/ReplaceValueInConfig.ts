@@ -50,4 +50,4 @@ const init: Function = (): void => {
     fs.writeFileSync('./config.env', linesToRender.join('\n'));
 };
 
-await init();
+init();
