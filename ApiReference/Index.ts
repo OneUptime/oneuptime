@@ -86,7 +86,7 @@ app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
     return PageNotFoundServiceHandler.executeResponse(req, res);
 });
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

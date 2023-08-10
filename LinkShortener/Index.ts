@@ -10,7 +10,7 @@ const app: ExpressApplication = Express.getExpressApp();
 
 app.use([`/${APP_NAME}/`, '/'], LinkShortenerAPI);
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // connect to the database.
         await PostgresAppInstance.connect(

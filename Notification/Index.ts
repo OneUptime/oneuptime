@@ -21,7 +21,7 @@ app.use([`/${APP_NAME}/sms`, '/sms'], SmsAPI);
 app.use([`/${APP_NAME}/call`, '/call'], CallAPI);
 app.use([`/${APP_NAME}/smtp-config`, '/smtp-config'], SMTPConfigAPI);
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

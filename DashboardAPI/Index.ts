@@ -956,7 +956,7 @@ app.use(
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

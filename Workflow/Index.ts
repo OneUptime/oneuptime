@@ -35,7 +35,7 @@ app.get(
     }
 );
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // connect to the database.
         await PostgresAppInstance.connect(

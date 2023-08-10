@@ -66,7 +66,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         setIsModalLoading(false);
     }, []);
 
-    const fetchSetupIntent: Function = async (): Promise<void> => {
+    const fetchSetupIntent: () => Promise<void> = async (): Promise<void> => {
         try {
             setIsModalLoading(true);
 

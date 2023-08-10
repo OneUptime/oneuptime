@@ -49,7 +49,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         MonitorStatus | undefined
     >(undefined);
 
-    const fetchDropdownOptions: Function = async (): Promise<void> => {
+    const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
         setIsLoading(true);
 
         try {

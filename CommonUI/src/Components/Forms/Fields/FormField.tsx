@@ -47,7 +47,7 @@ const FormField: <T extends Object>(
     >(props.field.dropdownOptions || []);
     const [isFieldLoading, setIsFieldLoading] = React.useState<boolean>(false);
 
-    const fetchDropdownOptions: Function = async (): Promise<void> => {
+    const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
         if (!props.field.fetchDropdownOptions) {
             return;
         }

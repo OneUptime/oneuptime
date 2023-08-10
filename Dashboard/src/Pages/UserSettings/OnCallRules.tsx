@@ -227,7 +227,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
         );
     };
 
-    const init: Function = async (): Promise<void> => {
+    const init: () => Promise<void> = async (): Promise<void> => {
         // Ping an API here.
         setError('');
         setIsLoading(true);

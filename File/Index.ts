@@ -23,7 +23,7 @@ app.use(
 // File Serve API.
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().router);
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

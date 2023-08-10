@@ -78,7 +78,7 @@ const app: ExpressApplication = Express.getExpressApp();
 //cert routes.
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, StatusPageCerts);
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

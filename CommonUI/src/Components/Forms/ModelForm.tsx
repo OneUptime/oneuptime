@@ -272,7 +272,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         await setFormFields();
     }, [props.fields]);
 
-    const fetchItem: Function = async (): Promise<void> => {
+    const fetchItem: () => Promise<void> = async (): Promise<void> => {
         if (!props.modelIdToEdit || props.formType !== FormType.Update) {
             throw new BadDataException('Model ID to update not found.');
         }

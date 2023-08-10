@@ -26,7 +26,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
     const [error, setError] = useState<string>('');
 
-    const fetchItem: Function = async (): Promise<void> => {
+    const fetchItem: () => Promise<void> = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 

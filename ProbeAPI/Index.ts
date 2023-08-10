@@ -21,7 +21,7 @@ app.use([`/${APP_NAME}`, '/'], MonitorAPI);
 app.use([`/${APP_NAME}`, '/'], ProbeAPI);
 app.use([`/${APP_NAME}`, '/'], IncomingRequestAPI);
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

@@ -251,7 +251,7 @@ const App: () => JSX.Element = () => {
         };
     }, []);
 
-    const fetchProjects: Function = async (): Promise<void> => {
+    const fetchProjects: () => Promise<void> = async (): Promise<void> => {
         setLoading(true);
 
         // get list of projects.

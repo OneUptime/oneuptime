@@ -60,7 +60,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
     const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
-    const loadGraph: Function = async (): Promise<void> => {
+    const loadGraph: () => Promise<void> = async (): Promise<void> => {
         try {
             setIsLoading(true);
             const workflow: WorkflowModel | null = await ModelAPI.getItem(

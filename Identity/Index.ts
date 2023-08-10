@@ -24,7 +24,7 @@ app.use(
     StatusPageAuthenticationAPI
 );
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

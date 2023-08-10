@@ -6,7 +6,7 @@ export const APP_NAME: string = 'dashboard';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME, undefined, true);

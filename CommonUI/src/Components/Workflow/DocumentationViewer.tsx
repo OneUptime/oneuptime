@@ -33,7 +33,7 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
         return text;
     };
 
-    const loadDocs: Function = async (): Promise<void> => {
+    const loadDocs: () => Promise<void> = async (): Promise<void> => {
         if (props.documentationLink) {
             try {
                 setIsLoading(true);

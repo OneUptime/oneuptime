@@ -48,7 +48,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
 
     const [probes, setProbes] = useState<Array<Probe>>([]);
 
-    const fetchItem: Function = async (): Promise<void> => {
+    const fetchItem: () => Promise<void> = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 

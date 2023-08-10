@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 
 const APP_NAME: string = 'probe';
 
-const init: Function = async (): Promise<void> => {
+const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
