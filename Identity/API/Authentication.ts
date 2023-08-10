@@ -163,9 +163,10 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendJsonObjectResponse(req, res, {
-                    token: token,
-                    user: JSONFunctions.toJSON(savedUser, User),
+                return Response.sendEntityResponse(req, res, savedUser, User, {
+                    miscData: {
+                        token,
+                    }
                 });
             }
 
@@ -520,9 +521,10 @@ router.post(
                         OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                     );
 
-                    return Response.sendJsonObjectResponse(req, res, {
-                        token: token,
-                        user: JSONFunctions.toJSON(alreadySavedUser, User),
+                    return Response.sendEntityResponse(req, res, user, User, {
+                        miscData: {
+                            token,
+                        }
                     });
                 }
             }

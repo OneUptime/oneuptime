@@ -30,20 +30,16 @@ export default class Response {
         const method: string = oneUptimeRequest.method;
         const url: URL = URL.fromString(oneUptimeRequest.url);
 
-        const header_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- POD NAME: ${
-            process.env['POD_NAME'] || 'NONE'
-        } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
-            requestEndedAt.getTime() -
-            (oneUptimeRequest.requestStartedAt as Date).getTime()
-        ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
+        const header_info: string = `Response ID: ${oneUptimeRequest.id
+            } -- POD NAME: ${process.env['POD_NAME'] || 'NONE'
+            } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
+                requestEndedAt.getTime() -
+                (oneUptimeRequest.requestStartedAt as Date).getTime()
+            ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
-        const body_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- RESPONSE BODY: ${
-            responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
-        }`;
+        const body_info: string = `Response ID: ${oneUptimeRequest.id
+            } -- RESPONSE BODY: ${responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+            }`;
 
         if (oneUptimeResponse.statusCode > 299) {
             logger.error(header_info + '\n ' + body_info);
@@ -166,7 +162,7 @@ export default class Response {
         res: ExpressResponse,
         list: Array<BaseModel>,
         count: PositiveNumber,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel }
     ): void {
         return this.sendJsonArrayResponse(
             req,
@@ -182,16 +178,28 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         item: BaseModel | null,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel },
+        options?: {
+            miscData?: JSONObject;
+        } | undefined
     ): void {
+
+        let response: JSONObject = {};
+
+        if (item) {
+            response = JSONFunctions.serialize(
+                JSONFunctions.toJSONObject(item, modelType)
+            );
+        }
+
+        if(options?.miscData) {
+            response["_miscData"] = options.miscData;
+        }
+
         return this.sendJsonObjectResponse(
             req,
             res,
-            item
-                ? JSONFunctions.serialize(
-                      JSONFunctions.toJSONObject(item, modelType)
-                  )
-                : {}
+            response
         );
     }
 

@@ -47,20 +47,16 @@ const RegisterPage: () => JSX.Element = () => {
                             modelType={User}
                             id="register-form"
                             name="Reset Password"
-                            onBeforeCreate={(item: User) => {
+                            onBeforeCreate={(item: User): Promise<User> => {
                                 item.resetPasswordToken =
                                     Navigation.getLastParam()
                                         ?.toString()
                                         .replace('/', '')
                                         .toString() || '';
-                                return item;
+                                return Promise.resolve(item);
                             }}
                             showAsColumns={1}
                             maxPrimaryButtonWidth={true}
-                            initialValues={{
-                                password: '',
-                                confirmPassword: '',
-                            }}
                             fields={[
                                 {
                                     field: {

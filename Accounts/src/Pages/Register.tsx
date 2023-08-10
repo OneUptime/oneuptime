@@ -123,20 +123,15 @@ const RegisterPage: () => JSX.Element = () => {
                         showAsColumns={2}
                         name="Register"
                         maxPrimaryButtonWidth={true}
-                        initialValues={{
-                            email: '',
-                            name: '',
-                            companyName: '',
-                            companyPhoneNumber: '',
-                            password: '',
-                            confirmPassword: '',
-                        }}
                         fields={formFields}
                         apiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Sign Up'}
-                        onSuccess={(value: JSONObject) => {
-                            LoginUtil.login(value);
+                        onSuccess={(value: User, miscData: JSONObject | undefined) => {
+                            LoginUtil.login({
+                                user: value,
+                                token: miscData ? miscData['token'] : undefined,
+                            });
                         }}
                     />
                 </div>

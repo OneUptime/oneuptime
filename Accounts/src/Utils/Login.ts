@@ -15,6 +15,7 @@ export default abstract class LoginUtil {
             value['user'] as JSONObject,
             User
         ) as User;
+
         const token: string = value['token'] as string;
 
         UserUtil.setAccessToken(token);
