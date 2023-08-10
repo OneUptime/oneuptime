@@ -37,7 +37,9 @@ export interface ComponentProps<T extends Object> {
     submitForm: () => void | undefined;
 }
 
-const FormField: Function = <T extends Object>(
+const FormField:  <T extends Object>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [dropdownOptions, setDropdownOptions] = React.useState<

@@ -17,8 +17,7 @@ import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 
 import IconProp from 'Common/Types/Icon/IconProp';
-import { FormType } from '../Forms/ModelForm';
-import Fields from '../Forms/Types/Fields';
+import { FormType, ModelField } from '../Forms/ModelForm';
 
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
@@ -87,7 +86,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isEditable?: boolean | undefined;
     isCreateable: boolean;
     disablePagination?: undefined | boolean;
-    formFields?: undefined | Fields<TBaseModel>;
+    formFields?: undefined | Array<ModelField<TBaseModel>>;
     formSteps?: undefined | Array<FormStep<TBaseModel>>;
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;

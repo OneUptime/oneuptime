@@ -56,7 +56,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 badgeType={BadgeType.DANGER}
             />
 
-            <SideMenuItem<Monitor>
+            <SideMenuItem<ScheduledMaintenance>
                 link={{
                     title: 'Ongoing Events',
                     to: RouteUtil.populateRouteParams(

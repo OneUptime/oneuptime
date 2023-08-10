@@ -122,7 +122,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         RouteMap[PageMap.ACTIVE_INCIDENTS]!
                                     );
                                 }}
-                              
                             />
 
                             {props.selectedProject?.trialEndsAt &&

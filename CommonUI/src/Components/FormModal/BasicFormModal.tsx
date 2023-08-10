@@ -2,7 +2,7 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
 import BasicForm, {
-    ComponentProps as BasicFormComponentProps,
+    BaseComponentProps as BasicFormComponentProps,
 } from '../Forms/BasicForm';
 import ButtonType from '../Button/ButtonTypes';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';

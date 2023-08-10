@@ -10,7 +10,9 @@ export interface ComponentProps<T> {
     formValues: FormValues<T>;
 }
 
-const Steps: Function = <T extends Object>(
+const Steps: <T extends Object>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const steps: Array<FormStep<T>> = props.steps.filter(

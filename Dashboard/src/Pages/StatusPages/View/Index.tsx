@@ -7,7 +7,6 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
@@ -61,7 +60,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                 name="Status Page > Status Page Details"
                 cardProps={{
                     title: 'Status Page Details',
-                    description: 'Here are more details for this status page.'
+                    description: 'Here are more details for this status page.',
                 }}
                 formSteps={[
                     {

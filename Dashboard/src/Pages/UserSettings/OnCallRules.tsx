@@ -32,7 +32,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

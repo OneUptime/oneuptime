@@ -7,12 +7,12 @@ import FieldType from '../../Types/FieldType';
 export default interface Column {
     title: string;
     description?: string | undefined;
-    disableSort?: boolean;
+    disableSort?: boolean | undefined;
     tooltipText?: ((item: JSONObject) => string) | undefined;
     type: FieldType;
     colSpan?: number | undefined;
     noValueMessage?: string | undefined;
-    isFilterable?: boolean;
+    isFilterable?: boolean | undefined;
     contentClassName?: string | undefined;
     alignItem?: AlignItem | undefined;
     filterDropdownOptions?: Array<DropdownOption> | undefined;

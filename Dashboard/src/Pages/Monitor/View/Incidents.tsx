@@ -85,11 +85,14 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                     monitors: [modelId.toString()],
                 }}
                 onViewPage={(item: Incident): Promise<Route> => {
-                    return Promise.resolve(new Route(
-                        `/dashboard/${
-                            DashboardNavigation.getProjectId()?.toString() || ''
-                        }/incidents/${item._id}`
-                    ));
+                    return Promise.resolve(
+                        new Route(
+                            `/dashboard/${
+                                DashboardNavigation.getProjectId()?.toString() ||
+                                ''
+                            }/incidents/${item._id}`
+                        )
+                    );
                 }}
                 noItemsMessage={'No incidents created for this monitor so far.'}
                 formFields={[

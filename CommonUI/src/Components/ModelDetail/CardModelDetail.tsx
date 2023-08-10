@@ -104,7 +104,13 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
                         setShowModal(false);
                     }}
                     submitButtonText={`Save Changes`}
-                    onSuccess={(item: TBaseModel | JSONObjectOrArray | TBaseModel | Array<TBaseModel>) => {
+                    onSuccess={(
+                        item:
+                            | TBaseModel
+                            | JSONObjectOrArray
+                            | TBaseModel
+                            | Array<TBaseModel>
+                    ) => {
                         setShowModal(false);
                         setRefresher(!refresher);
                         if (props.onSaveSuccess) {

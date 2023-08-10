@@ -34,12 +34,9 @@ export const DefaultValidateFunction: Function = (
     return {};
 };
 
-export interface ComponentProps<T extends Object> {
-    id: string;
-    name: string;
+export interface BaseComponentProps<T extends Object> {
     submitButtonStyleType?: ButtonStyleType | undefined;
-    initialValues: FormValues<T>;
-    onSubmit: (values: FormValues<T>) => void;
+    initialValues?: FormValues<T> | undefined;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     onChange?: undefined | ((values: FormValues<T>) => void);
     fields: Fields<T>;
@@ -48,17 +45,23 @@ export interface ComponentProps<T extends Object> {
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
-    footer: ReactElement;
     isLoading?: undefined | boolean;
     onCancel?: undefined | (() => void) | null;
     cancelButtonText?: undefined | string | null;
     maxPrimaryButtonWidth?: undefined | boolean;
-    error: string | null;
     disableAutofocus?: undefined | boolean;
     hideSubmitButton?: undefined | boolean;
     onFormStepChange?: undefined | ((stepId: string) => void);
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
+}
+
+export interface ComponentProps<T extends Object>  extends BaseComponentProps<T>{
+    id: string;
+    name: string;
+    onSubmit: (values: FormValues<T>) => void;
+    error: string | null;
+    footer: ReactElement;
 }
 
 const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
