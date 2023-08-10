@@ -119,7 +119,6 @@ const ModelDetail: <TBaseModel extends BaseModel>(
                         fieldPermissions
                     )
                 ) {
-
                     fieldsToSet.push({
                         ...field,
                         key: key,

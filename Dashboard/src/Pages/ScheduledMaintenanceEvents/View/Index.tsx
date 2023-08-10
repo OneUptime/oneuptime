@@ -376,10 +376,12 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <ChangeScheduledMaintenanceState
                                         scheduledMaintenanceId={modelId}
-                                        scheduledMaintenanceTimeline={ onBeforeFetchData ? 
-                                            onBeforeFetchData[
-                                                'data'
-                                            ] as Array<BaseModel> : []
+                                        scheduledMaintenanceTimeline={
+                                            onBeforeFetchData
+                                                ? (onBeforeFetchData[
+                                                      'data'
+                                                  ] as Array<BaseModel>)
+                                                : []
                                         }
                                         stateType={StateType.Ongoing}
                                         onActionComplete={() => {
@@ -400,10 +402,12 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <ChangeScheduledMaintenanceState
                                         scheduledMaintenanceId={modelId}
-                                        scheduledMaintenanceTimeline={ onBeforeFetchData ? 
-                                            onBeforeFetchData[
-                                                'data'
-                                            ] as Array<BaseModel> : []
+                                        scheduledMaintenanceTimeline={
+                                            onBeforeFetchData
+                                                ? (onBeforeFetchData[
+                                                      'data'
+                                                  ] as Array<BaseModel>)
+                                                : []
                                         }
                                         stateType={StateType.Completed}
                                         onActionComplete={() => {
@@ -423,7 +427,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Event Description',
                     description:
-                        'Description for this event. This is visible on Status Page and is in markdown format.'
+                        'Description for this event. This is visible on Status Page and is in markdown format.',
                 }}
                 editButtonText="Edit Event Description"
                 isEditable={true}

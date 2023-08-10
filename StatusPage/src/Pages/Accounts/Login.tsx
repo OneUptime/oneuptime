@@ -161,7 +161,10 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                         apiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Login'}
-                        onSuccess={(value: StatusPagePrivateUser, miscData: JSONObject | undefined) => {
+                        onSuccess={(
+                            value: StatusPagePrivateUser,
+                            miscData: JSONObject | undefined
+                        ) => {
                             LoginUtil.login({
                                 user: value,
                                 token: miscData ? miscData['token'] : undefined,
@@ -187,7 +190,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 );
                             }
                         }}
-                        onBeforeCreate={(item: StatusPagePrivateUser): Promise<StatusPagePrivateUser> => {
+                        onBeforeCreate={(
+                            item: StatusPagePrivateUser
+                        ): Promise<StatusPagePrivateUser> => {
                             if (!StatusPageUtil.getStatusPageId()) {
                                 throw new BadDataException(
                                     'Status Page ID not found'

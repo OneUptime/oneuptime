@@ -127,7 +127,10 @@ const RegisterPage: () => JSX.Element = () => {
                         apiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Sign Up'}
-                        onSuccess={(value: User, miscData: JSONObject | undefined) => {
+                        onSuccess={(
+                            value: User,
+                            miscData: JSONObject | undefined
+                        ) => {
                             LoginUtil.login({
                                 user: value,
                                 token: miscData ? miscData['token'] : undefined,

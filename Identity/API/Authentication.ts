@@ -166,7 +166,7 @@ router.post(
                 return Response.sendEntityResponse(req, res, savedUser, User, {
                     miscData: {
                         token,
-                    }
+                    },
                 });
             }
 
@@ -524,7 +524,7 @@ router.post(
                     return Response.sendEntityResponse(req, res, user, User, {
                         miscData: {
                             token,
-                        }
+                        },
                     });
                 }
             }

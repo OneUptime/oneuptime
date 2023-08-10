@@ -64,24 +64,24 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
             if (Object.keys(field.field || {}).length > 0) {
                 if (
                     props.model.getDisplayColumnTitleAs(
-                        Object.keys(field.field|| {})[0] as string
+                        Object.keys(field.field || {})[0] as string
                     ) &&
                     !field.title
                 ) {
                     field.title = props.model.getDisplayColumnTitleAs(
-                        Object.keys(field.field|| {})[0] as string
+                        Object.keys(field.field || {})[0] as string
                     ) as string;
                 }
 
                 if (
                     props.model.getDisplayColumnDescriptionAs(
-                        Object.keys(field.field|| {})[0] as string
+                        Object.keys(field.field || {})[0] as string
                     ) &&
                     !field.description
                 ) {
                     field.description =
                         props.model.getDisplayColumnDescriptionAs(
-                            Object.keys(field.field|| {})[0] as string
+                            Object.keys(field.field || {})[0] as string
                         ) as string;
                 }
             }

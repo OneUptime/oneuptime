@@ -121,7 +121,9 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                         item.statusPageId = id;
                                         return item;
                                     }}
-                                    onSuccess={(_value: StatusPagePrivateUser) => {
+                                    onSuccess={(
+                                        _value: StatusPagePrivateUser
+                                    ) => {
                                         setIsSuccess(true);
                                     }}
                                     maxPrimaryButtonWidth={true}

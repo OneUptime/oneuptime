@@ -155,6 +155,18 @@ export default class ModelAPI {
         );
 
         if (result.isSuccess()) {
+            if (result.data && Array.isArray(result.data)) {
+                result.data = JSONFunctions.fromJSONArray(
+                    result.data as JSONArray,
+                    modelType
+                );
+            } else {
+                result.data = JSONFunctions.fromJSONObject(
+                    result.data as JSONObject,
+                    modelType
+                );
+            }
+
             return result;
         }
 
