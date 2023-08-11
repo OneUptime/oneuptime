@@ -78,6 +78,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | undefined
         | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
+    showCreateForm?: undefined | boolean;
     columns: Columns<TBaseModel>;
     listDetailOptions?: undefined | ListDetailProps;
     selectMoreFields?: Select<TBaseModel>;
@@ -109,6 +110,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     pluralName?: string | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
     deleteButtonText?: string | undefined;
+    onCreateEditModalClose?: (() => void) | undefined;
     editButtonText?: string | undefined;
     viewButtonText?: string | undefined;
     refreshToggle?: boolean | undefined;
@@ -159,6 +161,13 @@ const ModelTable: <TBaseModel extends BaseModel>(
         Array<ActionButtonSchema>
     >([]);
 
+    useEffect(() => {
+        if (props.showCreateForm) {
+            setShowModal(true);
+            setModalType(ModalType.Create);
+        }
+    }, [props.showCreateForm]);
+
     const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
         useState<number | null>(null);
 
@@ -198,6 +207,12 @@ const ModelTable: <TBaseModel extends BaseModel>(
         useState(false);
 
     const [errorModalText, setErrorModalText] = useState<string>('');
+
+    useEffect(() => {
+        if (!showModel) {
+            props.onCreateEditModalClose && props.onCreateEditModalClose();
+        }
+    }, [showModel]);
 
     useEffect(() => {
         const detailFields: Array<Field> = [];

@@ -274,6 +274,27 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         }
                     }
 
+                    if (
+                        field.fieldType ===
+                        FormFieldSchemaType.MultiSelectDropdown
+                    ) {
+                        const fieldName: string = field.name!;
+
+                        if (
+                            (values as any)[fieldName] &&
+                            (values as any)[fieldName].length > 0 &&
+                            (values as any)[fieldName][0]['value']
+                        ) {
+                            (values as any)[fieldName] = (
+                                (values as any)[
+                                    fieldName
+                                ] as Array<DropdownOption>
+                            ).map((item: DropdownOption) => {
+                                return item.value;
+                            });
+                        }
+                    }
+
                     if (field.fieldType === FormFieldSchemaType.Dropdown) {
                         const fieldName: string = field.name!;
                         if (
