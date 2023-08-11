@@ -301,6 +301,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     }
 
                     if (
+                        field.fieldType === FormFieldSchemaType.Email ||
+                        field.fieldType === FormFieldSchemaType.URL
+                    ) {
+                        const fieldName: string = field.name!;
+                        if ((values as any)[fieldName]) {
+                            (values as any)[fieldName] = (
+                                (values as any)[fieldName] as string
+                            ).toLowerCase();
+                        }
+                    }
+
+                    if (
                         field.fieldType ===
                         FormFieldSchemaType.MultiSelectDropdown
                     ) {
