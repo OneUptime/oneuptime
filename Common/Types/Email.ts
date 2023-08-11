@@ -33,6 +33,11 @@ export default class Email extends DatabaseProperty {
         return this._email;
     }
     public set email(value: string) {
+        if (value && typeof value === 'string') {
+            value = value.trim();
+            value = value.toLowerCase();
+        }
+
         if (Email.isValid(value)) {
             this._email = value;
         } else {

@@ -714,28 +714,6 @@ export default class IncidentTemplate extends BaseModel {
     public changeMonitorStatusToId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadIncidentTemplate,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        type: TableColumnType.Boolean,
-        title: 'Are subscribers notified?',
-        description: 'Are subscribers notified about this incident?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        default: false,
-    })
-    public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
-
-    @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

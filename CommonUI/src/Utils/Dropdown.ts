@@ -1,3 +1,4 @@
+import BaseModel from 'Common/Models/BaseModel';
 import { DropdownOption } from '../Components/Dropdown/Dropdown';
 
 export default class DropdownUtil {
@@ -8,6 +9,21 @@ export default class DropdownUtil {
             return {
                 label: (obj as any)[key].toString(),
                 value: (obj as any)[key].toString(),
+            };
+        });
+    }
+
+    public static getDropdownOptionsFromEntityArray<
+        TBaseModel extends BaseModel
+    >(data: {
+        array: Array<TBaseModel>;
+        labelField: string;
+        valueField: string;
+    }): Array<DropdownOption> {
+        return data.array.map((item: TBaseModel) => {
+            return {
+                label: item.getColumnValue(data.labelField) as string,
+                value: item.getColumnValue(data.valueField) as string,
             };
         });
     }

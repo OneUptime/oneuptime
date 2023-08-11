@@ -27,6 +27,7 @@ import { FormStep } from './Types/FormStep';
 import Steps from './Steps/Steps';
 import FormField from './Fields/FormField';
 import Validation from './Validation';
+import useAsyncEffect from 'use-async-effect';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -71,6 +72,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         ref: Ref<any>
     ): ReactElement => {
         const isSubmitting: MutableRefObject<boolean> = useRef(false);
+
+        const [isLoading, setIsLoading] = useState<boolean | undefined>(
+            props.isLoading
+        );
+
+        const [isDropdownOptionsLoading, setIsDropdownOptionsLoading] =
+            useState<boolean>(false);
+
+        useEffect(() => {
+            setIsLoading(props.isLoading);
+        }, [props.isLoading]);
 
         const [submitButtonText, setSubmitButtonText] = useState<string>(
             props.submitButtonText || 'Submit'
@@ -181,15 +193,29 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             [currentValue, errors, touched, formFields]
         );
 
-        useEffect(() => {
-            setFormFields([
+        useAsyncEffect(async () => {
+            const fields: Fields<T> = [
                 ...props.fields.map((field: Field<T>) => {
                     return {
                         name: getFieldName(field),
                         ...field,
                     };
                 }),
-            ]);
+            ];
+
+            for (const item of fields) {
+                if (item.fetchDropdownOptions) {
+                    setIsDropdownOptionsLoading(true);
+                    // If a dropdown has fetch optiosn then we need to fetch them
+                    const options: Array<DropdownOption> =
+                        await item.fetchDropdownOptions();
+                    item.dropdownOptions = options;
+                }
+            }
+
+            setIsDropdownOptionsLoading(false);
+
+            setFormFields(fields);
         }, [props.fields]);
 
         const getFieldName: Function = (field: Field<T>): string => {
@@ -271,6 +297,39 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         const fieldName: string = field.name!;
                         if (!(values as any)[fieldName]) {
                             (values as any)[fieldName] = false;
+                        }
+                    }
+
+                    if (
+                        field.fieldType === FormFieldSchemaType.Email ||
+                        field.fieldType === FormFieldSchemaType.URL
+                    ) {
+                        const fieldName: string = field.name!;
+                        if ((values as any)[fieldName]) {
+                            (values as any)[fieldName] = (
+                                (values as any)[fieldName] as string
+                            ).toLowerCase();
+                        }
+                    }
+
+                    if (
+                        field.fieldType ===
+                        FormFieldSchemaType.MultiSelectDropdown
+                    ) {
+                        const fieldName: string = field.name!;
+
+                        if (
+                            (values as any)[fieldName] &&
+                            (values as any)[fieldName].length > 0 &&
+                            (values as any)[fieldName][0]['value']
+                        ) {
+                            (values as any)[fieldName] = (
+                                (values as any)[
+                                    fieldName
+                                ] as Array<DropdownOption>
+                            ).map((item: DropdownOption) => {
+                                return item.value;
+                            });
                         }
                     }
 
@@ -504,7 +563,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                                             false
                                                                         }
                                                                         isDisabled={
-                                                                            props.isLoading ||
+                                                                            isLoading ||
+                                                                            isDropdownOptionsLoading ||
                                                                             false
                                                                         }
                                                                         currentValues={
@@ -555,7 +615,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                 }}
                                                 id={`${props.id}-submit-button`}
                                                 isLoading={
-                                                    props.isLoading || false
+                                                    isLoading ||
+                                                    isDropdownOptionsLoading ||
+                                                    false
                                                 }
                                                 buttonStyle={
                                                     props.submitButtonStyleType ||
@@ -575,7 +637,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                 type={ButtonTypes.Button}
                                                 id={`${props.id}-cancel-button`}
                                                 disabled={
-                                                    props.isLoading || false
+                                                    isLoading ||
+                                                    isDropdownOptionsLoading ||
+                                                    false
                                                 }
                                                 buttonStyle={
                                                     ButtonStyleType.NORMAL
