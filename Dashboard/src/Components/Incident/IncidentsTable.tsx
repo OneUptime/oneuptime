@@ -617,7 +617,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                 field: {
                                     incidentTemplateId: true,
                                 },
-                                title: 'Incident Template',
+                                title: 'Select Incident Template',
                                 description:
                                     'Select an incident template to create an incident from.',
                                 fieldType: FormFieldSchemaType.Dropdown,
