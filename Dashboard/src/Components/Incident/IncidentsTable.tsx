@@ -152,32 +152,33 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         setShowIncidentTemplateModal(false);
     };
 
-    const fetchIncidentTemplates:  () => Promise<void> = async (): Promise<void> => {
-        setError('');
-        setIsLoading(true);
-        setInitialValuesForIncident({});
+    const fetchIncidentTemplates: () => Promise<void> =
+        async (): Promise<void> => {
+            setError('');
+            setIsLoading(true);
+            setInitialValuesForIncident({});
 
-        try {
-            const listResult: ListResult<IncidentTemplate> =
-                await ModelAPI.getList<IncidentTemplate>(
-                    IncidentTemplate,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
-                        templateName: true,
-                        _id: true,
-                    },
-                    {}
-                );
+            try {
+                const listResult: ListResult<IncidentTemplate> =
+                    await ModelAPI.getList<IncidentTemplate>(
+                        IncidentTemplate,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            templateName: true,
+                            _id: true,
+                        },
+                        {}
+                    );
 
-            setIncidentTemplates(listResult.data);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+                setIncidentTemplates(listResult.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
-    };
+            setIsLoading(false);
+        };
 
     return (
         <>
