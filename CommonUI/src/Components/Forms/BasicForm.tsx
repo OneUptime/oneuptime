@@ -300,10 +300,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         }
                     }
 
-                    if (
-                        field.fieldType === FormFieldSchemaType.Email ||
-                        field.fieldType === FormFieldSchemaType.URL
-                    ) {
+                    if (field.fieldType === FormFieldSchemaType.Email) {
                         const fieldName: string = field.name!;
                         if ((values as any)[fieldName]) {
                             (values as any)[fieldName] = (
