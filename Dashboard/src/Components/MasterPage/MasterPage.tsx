@@ -6,6 +6,9 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import SSOAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -31,6 +34,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
     }
 
+
+    let error: string = ''
+
+    if(props.error && SSOAuthorizationException.isException(props.error)) {
+        Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECT_SSO] as Route));
+    }else{
+        error = props.error;
+    }
+
     return (
         <MasterPage
             footer={<Footer />}
@@ -50,7 +62,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 />
             }
             isLoading={props.isLoading}
-            error={props.error}
+            error={error}
             className="flex flex-col h-screen justify-between"
         >
             {props.children}

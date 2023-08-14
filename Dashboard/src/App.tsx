@@ -160,6 +160,7 @@ import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
 import UserSettingsNotificationLogs from './Pages/UserSettings/OnCallLogs';
 import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLogsTimeline';
 import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
+import URL from 'Common/Types/API/URL';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -167,7 +168,11 @@ const App: () => JSX.Element = () => {
     Navigation.setParams(useParams());
 
     if (!User.isLoggedIn()) {
-        Navigation.navigate(ACCOUNTS_URL);
+        if(Navigation.getQueryStringByName("sso_token")){
+            Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()).addQueryParam("sso", "true"));
+        }else{
+            Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()));
+        }
     }
 
     const [isLoading, setLoading] = useState<boolean>(true);

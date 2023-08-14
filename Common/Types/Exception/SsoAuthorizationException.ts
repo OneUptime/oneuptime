@@ -1,11 +1,18 @@
 import Exception from './Exception';
 import ExceptionCode from './ExceptionCode';
 
-export default class NotAuthorizedException extends Exception {
+export default class SSOAuthorizationException extends Exception {
+
+    private static message: string = 'SSO Authorization Required'
+
     public constructor() {
         super(
             ExceptionCode.SsoAuthorizationException,
-            'SSO Authorization Required'
+            SSOAuthorizationException.message
         );
+    }
+
+    public static isException(errorMessage: string): boolean {
+        return errorMessage === SSOAuthorizationException.message;
     }
 }
