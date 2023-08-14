@@ -7,7 +7,7 @@ import ProjectSSO from 'Model/Models/ProjectSso';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import URL from 'Common/Types/API/URL';
-import { IDENTITY_URL } from 'CommonUI/src/Config';
+import { DASHBOARD_API_URL, IDENTITY_URL } from 'CommonUI/src/Config';
 import Route from 'Common/Types/API/Route';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
@@ -29,11 +29,14 @@ const SSO: FunctionComponent<PageComponentProps> = (
                             <div className="mt-6 -ml-6 -mr-6 border-t border-gray-200">
                                 <div className="ml-6 mr-6  pt-6">
                                     <ModelList<ProjectSSO>
-                                        query={{
-                                            projectId:
-                                                DashboardNavigation.getProjectId()?.toString(),
-                                            isEnabled: true,
-                                        }}
+                                        overrideFetchApiUrl={URL.fromString(
+                                            DASHBOARD_API_URL.toString()
+                                        )
+                                            .addRoute('/project-sso')
+                                            .addRoute(
+                                                `/${DashboardNavigation.getProjectId()}`
+                                            )
+                                            .addRoute('/sso-list')}
                                         modelType={ProjectSSO}
                                         titleField="name"
                                         descriptionField="description"

@@ -181,7 +181,11 @@ abstract class Navigation {
             window.location.href = to.toString();
         }
 
-        if (this.navigateHook && to instanceof Route) {
+        if (
+            this.navigateHook &&
+            to instanceof Route &&
+            !this.isOnThisPage(to)
+        ) {
             this.navigateHook(to.toString());
         }
 

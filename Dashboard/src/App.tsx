@@ -168,9 +168,14 @@ const App: () => JSX.Element = () => {
     Navigation.setParams(useParams());
 
     if (!User.isLoggedIn()) {
-        if(Navigation.getQueryStringByName("sso_token")){
-            Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()).addQueryParam("sso", "true"));
-        }else{
+        if (Navigation.getQueryStringByName('sso_token')) {
+            Navigation.navigate(
+                URL.fromString(ACCOUNTS_URL.toString()).addQueryParam(
+                    'sso',
+                    'true'
+                )
+            );
+        } else {
             Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()));
         }
     }

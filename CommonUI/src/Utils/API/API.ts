@@ -104,13 +104,13 @@ class BaseAPI extends API {
             cookies.remove('data', { path: '/' });
             User.clear();
 
-            if(Navigation.getQueryStringByName("sso_token")){
-                Navigation.navigate(new Route('/accounts/login').addRouteParam("sso", "true"));
-            }else{
+            if (Navigation.getQueryStringByName('sso_token')) {
+                Navigation.navigate(
+                    new Route('/accounts/login').addRouteParam('sso', 'true')
+                );
+            } else {
                 Navigation.navigate(new Route('/accounts/login'));
             }
-
-            
         }
 
         return error;

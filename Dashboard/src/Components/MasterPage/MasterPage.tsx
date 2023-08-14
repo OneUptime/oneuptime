@@ -34,12 +34,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
     }
 
+    let error: string = '';
 
-    let error: string = ''
-
-    if(props.error && SSOAuthorizationException.isException(props.error)) {
-        Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECT_SSO] as Route));
-    }else{
+    if (props.error && SSOAuthorizationException.isException(props.error)) {
+        Navigation.navigate(
+            RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PROJECT_SSO] as Route
+            )
+        );
+    } else {
         error = props.error;
     }
 

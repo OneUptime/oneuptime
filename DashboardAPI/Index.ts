@@ -90,10 +90,7 @@ import WorkflowLogService, {
     Service as WorkflowLogServiceType,
 } from 'CommonServer/Services/WorkflowLogService';
 
-import ProjectSSO from 'Model/Models/ProjectSso';
-import ProjectSSOService, {
-    Service as ProjectSSOServiceType,
-} from 'CommonServer/Services/ProjectSsoService';
+import ProjectSsoAPI from 'CommonServer/API/ProjectSSO';
 
 import SmsLog from 'Model/Models/SmsLog';
 import SmsLogService, {
@@ -752,14 +749,6 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<ProjectSSO, ProjectSSOServiceType>(
-        ProjectSSO,
-        ProjectSSOService
-    ).getRouter()
-);
-
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter()
 );
 
@@ -796,6 +785,8 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new UserNotificationLogTimelineAPI().getRouter()

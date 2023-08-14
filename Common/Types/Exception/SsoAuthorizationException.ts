@@ -2,8 +2,7 @@ import Exception from './Exception';
 import ExceptionCode from './ExceptionCode';
 
 export default class SSOAuthorizationException extends Exception {
-
-    private static message: string = 'SSO Authorization Required'
+    private static message: string = 'SSO Authorization Required';
 
     public constructor() {
         super(

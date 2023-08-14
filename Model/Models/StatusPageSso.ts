@@ -21,12 +21,10 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
-import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import StatusPage from './StatusPage';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
 @EnableDocumentation()
-@MultiTenentQueryAllowed(true)
 @TableBillingAccessControl({
     create: PlanSelect.Scale,
     read: PlanSelect.Scale,

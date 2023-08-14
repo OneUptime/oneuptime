@@ -12,6 +12,7 @@ import LoginUtil from '../Utils/Login';
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 
 const LoginPage: () => JSX.Element = () => {
     const apiUrl: URL = LOGIN_API_URL;
@@ -20,11 +21,15 @@ const LoginPage: () => JSX.Element = () => {
         Navigation.navigate(DASHBOARD_URL);
     }
 
+    const showSsoMessage: boolean = Boolean(
+        Navigation.getQueryStringByName('sso')
+    );
+
     const [showSsoTip, setShowSSOTip] = useState<boolean>(false);
 
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="">
                 <img
                     className="mx-auto h-12 w-auto"
                     src={OneUptimeLogo}
@@ -38,6 +43,16 @@ const LoginPage: () => JSX.Element = () => {
                     stay online all the time.
                 </p>
             </div>
+
+            {showSsoMessage && (
+                <div className="sm:mx-auto sm:w-full sm:max-w-md mt-8">
+                    {' '}
+                    <Alert
+                        type={AlertType.DANGER}
+                        title="You must be logged into OneUptime account to use single sign-on (SSO) for your project. Logging in to OneUptime account and single sign on (SSO) for your project are two separate steps. Please use the form below to log in to your OneUptime account before you use SSO."
+                    />{' '}
+                </div>
+            )}
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">

@@ -30,9 +30,7 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import Team from './Team';
-import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
-@MultiTenentQueryAllowed(true)
 @TableBillingAccessControl({
     create: PlanSelect.Scale,
     read: PlanSelect.Scale,
@@ -88,6 +86,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
+            Permission.Public,
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
             Permission.UnAuthorizedSsoUser,
@@ -127,6 +126,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
+            Permission.Public,
             Permission.UnAuthorizedSsoUser,
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
@@ -160,6 +160,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
+            Permission.Public,
             Permission.UnAuthorizedSsoUser,
             Permission.CanReadProjectSSO,
             Permission.ProjectUser,
@@ -196,6 +197,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
+            Permission.Public,
             Permission.UnAuthorizedSsoUser,
             Permission.CanReadProjectSSO,
         ],
@@ -286,6 +288,7 @@ export default class ProjectSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanReadProjectSSO,
+            Permission.Public,
             Permission.ProjectUser,
             Permission.UnAuthorizedSsoUser,
         ],
