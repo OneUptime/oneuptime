@@ -15,7 +15,17 @@ import Port from 'Common/Types/Port';
 import { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
 import { IsDevelopment } from 'CommonServer/Config';
-import { SendGridApiKey } from '../Config';
+import {
+    InternalSmtpEmail,
+    InternalSmtpFromName,
+    InternalSmtpHost,
+    InternalSmtpPassword,
+    InternalSmtpPort,
+    InternalSmtpSecure,
+    InternalSmtpUsername,
+    SendGridApiKey,
+    ShouldUseInternalSmtp,
+} from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 import ObjectID from 'Common/Types/ObjectID';
 import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
@@ -101,6 +111,19 @@ export default class MailService {
             secure:
                 obj['SMTP_IS_SECURE'] === 'true' ||
                 obj['SMTP_IS_SECURE'] === true,
+        };
+    }
+
+    public static getInternalEmailServer(): EmailServer {
+        return {
+            id: undefined,
+            username: InternalSmtpUsername,
+            password: InternalSmtpPassword,
+            host: InternalSmtpHost,
+            port: InternalSmtpPort,
+            fromEmail: InternalSmtpEmail,
+            fromName: InternalSmtpFromName,
+            secure: InternalSmtpSecure,
         };
     }
 
@@ -253,7 +276,11 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
         try {
-            if ((!options || !options.emailServer) && SendGridApiKey) {
+            if (
+                (!options || !options.emailServer) &&
+                SendGridApiKey &&
+                !ShouldUseInternalSmtp
+            ) {
                 SendgridMail.setApiKey(SendGridApiKey);
 
                 const msg: MailDataRequired = {
@@ -290,11 +317,19 @@ export default class MailService {
                 return;
             }
 
-            if (!options || !options.emailServer) {
+            if (!options || !options.emailServer || !ShouldUseInternalSmtp) {
                 if (!options) {
                     options = {};
                 }
                 options.emailServer = this.getGlobalSmtpSettings();
+            }
+
+            if (ShouldUseInternalSmtp) {
+                if (!options) {
+                    options = {};
+                }
+
+                options.emailServer = this.getInternalEmailServer();
             }
 
             if (options.emailServer && emailLog) {
