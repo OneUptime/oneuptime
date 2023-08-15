@@ -85,3 +85,6 @@ Backups/*.sql
 Backups/*.tar
 
 .env
+
+Haraka/dkim/keys/private_base64.txt
+Haraka/dkim/keys/public_base64.txt
