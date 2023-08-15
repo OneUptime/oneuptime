@@ -26,13 +26,13 @@ RUN apk upgrade --update && \
 
 RUN haraka -i /harakaapp
 
-COPY ./config/plugins /harakaapp/config/plugins
-COPY ./config/smtp.ini /harakaapp/config/smtp.ini
-COPY ./config/tls.ini /harakaapp/config/tls.ini
-COPY ./config/auth_flat_file.ini /harakaapp/config/auth_flat_file.ini
-COPY ./config/dkim_sign.ini /harakaapp/config/dkim_sign.ini
+COPY ./Haraka/config/plugins /harakaapp/config/plugins
+COPY ./Haraka/config/smtp.ini /harakaapp/config/smtp.ini
+COPY ./Haraka/config/tls.ini /harakaapp/config/tls.ini
+COPY ./Haraka/config/auth_flat_file.ini /harakaapp/config/auth_flat_file.ini
+COPY ./Haraka/config/dkim_sign.ini /harakaapp/config/dkim_sign.ini
 
-COPY ./init.sh /init.sh
+COPY ./Haraka/init.sh /init.sh
 RUN chmod 755 /init.sh
 
 EXPOSE 2525
