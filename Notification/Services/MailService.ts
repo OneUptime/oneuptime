@@ -317,14 +317,14 @@ export default class MailService {
                 return;
             }
 
-            if (!options || !options.emailServer || !ShouldUseInternalSmtp) {
+            if ((!options || !options.emailServer) && !ShouldUseInternalSmtp) {
                 if (!options) {
                     options = {};
                 }
                 options.emailServer = this.getGlobalSmtpSettings();
             }
 
-            if (ShouldUseInternalSmtp) {
+            if (ShouldUseInternalSmtp && (!options || !options.emailServer)) {
                 if (!options) {
                     options = {};
                 }
@@ -332,8 +332,12 @@ export default class MailService {
                 options.emailServer = this.getInternalEmailServer();
             }
 
-            if (options.emailServer && emailLog) {
+            if (options && options.emailServer && emailLog) {
                 emailLog.fromEmail = options.emailServer.fromEmail;
+            }
+
+            if (!options || !options.emailServer) {
+                throw new BadDataException('Email server not found');
             }
 
             await this.transportMail(mail, {
