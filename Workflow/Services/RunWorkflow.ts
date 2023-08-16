@@ -352,21 +352,21 @@ export default class RunWorkflow {
 
             if (typeof value !== 'string') {
                 value = JSON.stringify(value);
+            } else {
+                value = value
+                    .split('\t')
+                    .join('\\t')
+                    .split('\n')
+                    .join('\\n')
+                    .split('\r')
+                    .join('\\r')
+                    .split('\b')
+                    .join('\\b')
+                    .split('\f')
+                    .join('\\f')
+                    .split('"')
+                    .join('\\"');
             }
-
-            value = value
-                .split('\t')
-                .join('\\t')
-                .split('\n')
-                .join('\\n')
-                .split('\r')
-                .join('\\r')
-                .split('\b')
-                .join('\\b')
-                .split('\f')
-                .join('\\f')
-                .split('"')
-                .join('\\"');
 
             return value;
         };
