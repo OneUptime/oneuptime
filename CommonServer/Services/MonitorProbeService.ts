@@ -3,6 +3,7 @@ import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorProbe from 'Model/Models/MonitorProbe';
+import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<MonitorProbe> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -35,6 +36,14 @@ export class Service extends DatabaseService<MonitorProbe> {
                     'Probe is already added to this monitor.'
                 );
             }
+        }
+
+        if(!createBy.data.nextPingAt){
+            createBy.data.nextPingAt = OneUptimeDate.getCurrentDate();
+        }
+
+        if(!createBy.data.lastPingAt){
+            createBy.data.lastPingAt = OneUptimeDate.getCurrentDate();
         }
 
         return { createBy, carryForward: null };
