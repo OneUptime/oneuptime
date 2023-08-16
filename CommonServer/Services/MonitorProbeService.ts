@@ -38,11 +38,11 @@ export class Service extends DatabaseService<MonitorProbe> {
             }
         }
 
-        if(!createBy.data.nextPingAt){
+        if (!createBy.data.nextPingAt) {
             createBy.data.nextPingAt = OneUptimeDate.getCurrentDate();
         }
 
-        if(!createBy.data.lastPingAt){
+        if (!createBy.data.lastPingAt) {
             createBy.data.lastPingAt = OneUptimeDate.getCurrentDate();
         }
 

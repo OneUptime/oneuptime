@@ -1,3 +1,4 @@
+import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
 import DataMigrationBase from './DataMigrationBase';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
@@ -13,6 +14,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new MigrateDefaultUserNotificationSetting(),
     new MigrateToMeteredSubscription(),
     new UpdateActiveMonitorCountToBillingProvider(),
+    new AddMonitoringDatesToMonitor(),
 ];
 
 export default DataMigrations;
