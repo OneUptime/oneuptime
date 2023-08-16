@@ -740,6 +740,15 @@ export class PermissionHelper {
             },
 
             {
+                permission: Permission.CanReadEmailLog,
+                title: 'Can Read Email Log',
+                description:
+                    'This permission can read email logs of the project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
                 permission: Permission.CanCreateProjectMonitorStatus,
                 title: 'Can Create Monitor Status',
                 description:
