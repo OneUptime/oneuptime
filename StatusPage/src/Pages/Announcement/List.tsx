@@ -189,6 +189,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             {announcements.length === 0 ? (
                 <EmptyState
+                    id="announcements-empty-state"
                     title={'No Announcements'}
                     description={'No announcements posted so far on this page.'}
                     icon={IconProp.Announcement}

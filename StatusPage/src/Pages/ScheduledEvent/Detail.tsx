@@ -347,6 +347,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
             {!scheduledMaintenanceEvent ? (
                 <EmptyState
+                    id="scheduled-event-empty-state"
                     title={'No Scheduled Event'}
                     description={
                         'No scheduled event found for this status page.'

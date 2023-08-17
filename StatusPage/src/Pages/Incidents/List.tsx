@@ -205,6 +205,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
             {incidents.length === 0 ? (
                 <EmptyState
+                    id={'incidents-empty-state'}
                     title={'No Incident'}
                     description={'No incidents posted on this status page.'}
                     icon={IconProp.Alert}

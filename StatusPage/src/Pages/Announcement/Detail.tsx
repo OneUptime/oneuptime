@@ -208,6 +208,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             {announcement ? <EventItem {...parsedData} /> : <></>}
             {!announcement ? (
                 <EmptyState
+                    id="announcement-empty-state"
                     title={'No Announcement'}
                     description={'Announcement not found on this status page.'}
                     icon={IconProp.Announcement}

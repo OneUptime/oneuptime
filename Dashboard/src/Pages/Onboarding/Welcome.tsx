@@ -16,6 +16,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
     return (
         <Page title={''} breadcrumbLinks={[]}>
             <EmptyState
+                id="empty-state-no-projects"
                 icon={IconProp.AddFolder}
                 title={'No projects'}
                 description={

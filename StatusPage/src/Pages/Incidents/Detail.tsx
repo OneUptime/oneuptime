@@ -334,6 +334,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
             {incident ? <EventItem {...parsedData} /> : <></>}
             {!incident ? (
                 <EmptyState
+                    id="incident-empty-state"
                     title={'No Incident'}
                     description={'Incident not found on this status page.'}
                     icon={IconProp.Alert}

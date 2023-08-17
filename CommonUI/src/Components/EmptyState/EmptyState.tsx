@@ -7,6 +7,7 @@ export interface ComponentProps {
     description: string | ReactElement;
     icon: IconProp | undefined;
     footer?: ReactElement | undefined;
+    id: string;
 }
 
 const EmptyState: FunctionComponent<ComponentProps> = (
@@ -14,7 +15,7 @@ const EmptyState: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className="flex mt-52 mb-52">
+            <div id={props.id} className="flex mt-52 mb-52">
                 <div className="m-auto text-center">
                     {props.icon && (
                         <Icon

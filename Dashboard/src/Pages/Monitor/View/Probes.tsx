@@ -126,6 +126,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
         if (monitorType === MonitorType.Manual) {
             return (
                 <EmptyState
+                    id="monitoring-probes-empty-state"
                     icon={IconProp.Signal}
                     title={'No Monitoring Probes for Manual Monitors'}
                     description={

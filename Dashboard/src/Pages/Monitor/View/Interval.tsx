@@ -81,6 +81,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         if (monitorType === MonitorType.Manual) {
             return (
                 <EmptyState
+                    id="empty-state-monitoring-interval"
                     icon={IconProp.Clock}
                     title={'No Monitoring Interval for Manual Monitors'}
                     description={
@@ -98,6 +99,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         if (monitorType === MonitorType.IncomingRequest) {
             return (
                 <EmptyState
+                    id="empty-state-monitoring-interval"
                     icon={IconProp.Clock}
                     title={
                         'No Monitoring Interval for Incoming Request / Heartbeat Monitors'

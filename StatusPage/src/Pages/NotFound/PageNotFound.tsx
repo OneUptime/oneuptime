@@ -10,6 +10,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     return (
         <Page>
             <EmptyState
+                id="empty-state-page-not-found"
                 title={'Page not found.'}
                 description={'Page you are looking for does not exist.'}
                 icon={IconProp.AltGlobe}

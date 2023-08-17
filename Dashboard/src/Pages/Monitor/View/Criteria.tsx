@@ -88,6 +88,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         if (monitorType === MonitorType.Manual) {
             return (
                 <EmptyState
+                    id="monitoring-criteria-empty-state"
                     icon={IconProp.Criteria}
                     title={'No Criteria for Manual Monitors'}
                     description={

@@ -543,7 +543,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 <div>
                     {/* Overview Page Description */}
                     {statusPage && statusPage.overviewPageDescription && (
-                        <div className="bg-white p-5 my-5 rounded-xl shadow">
+                        <div
+                            id="status-page-description"
+                            className="bg-white p-5 my-5 rounded-xl shadow"
+                        >
                             <MarkdownViewer
                                 text={statusPage.overviewPageDescription}
                             />
@@ -551,66 +554,73 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     )}
 
                     {/* Load Active Announcement */}
-                    {activeAnnouncements.map(
-                        (announcement: StatusPageAnnouncement, i: number) => {
-                            return (
-                                <EventItem
-                                    isDetailItem={false}
-                                    key={i}
-                                    {...getAnnouncementEventItem(
-                                        announcement,
-                                        StatusPageUtil.isPreviewPage(),
-                                        true
-                                    )}
-                                />
-                            );
-                        }
-                    )}
+                    <div id="announcements-list">
+                        {activeAnnouncements.map(
+                            (
+                                announcement: StatusPageAnnouncement,
+                                i: number
+                            ) => {
+                                return (
+                                    <EventItem
+                                        isDetailItem={false}
+                                        key={i}
+                                        {...getAnnouncementEventItem(
+                                            announcement,
+                                            StatusPageUtil.isPreviewPage(),
+                                            true
+                                        )}
+                                    />
+                                );
+                            }
+                        )}
+                    </div>
 
                     {/* Load Active Incident */}
-
-                    {getActiveIncidents().map(
-                        (incidentGroup: IncidentGroup, i: number) => {
-                            return (
-                                <EventItem
-                                    isDetailItem={false}
-                                    key={i}
-                                    {...getIncidentEventItem(
-                                        incidentGroup.incident,
-                                        incidentGroup.publicNotes,
-                                        incidentGroup.incidentStateTimelines,
-                                        incidentGroup.incidentResources,
-                                        StatusPageUtil.isPreviewPage(),
-                                        true
-                                    )}
-                                />
-                            );
-                        }
-                    )}
+                    <div id="incidents-list">
+                        {getActiveIncidents().map(
+                            (incidentGroup: IncidentGroup, i: number) => {
+                                return (
+                                    <EventItem
+                                        isDetailItem={false}
+                                        key={i}
+                                        {...getIncidentEventItem(
+                                            incidentGroup.incident,
+                                            incidentGroup.publicNotes,
+                                            incidentGroup.incidentStateTimelines,
+                                            incidentGroup.incidentResources,
+                                            StatusPageUtil.isPreviewPage(),
+                                            true
+                                        )}
+                                    />
+                                );
+                            }
+                        )}
+                    </div>
 
                     {/* Load Active ScheduledEvent */}
-
-                    {getOngoingScheduledEvents().map(
-                        (
-                            scheduledEventGroup: ScheduledMaintenanceGroup,
-                            i: number
-                        ) => {
-                            return (
-                                <EventItem
-                                    key={i}
-                                    isDetailItem={false}
-                                    {...getScheduledEventEventItem(
-                                        scheduledEventGroup.scheduledMaintenance,
-                                        scheduledEventGroup.publicNotes,
-                                        scheduledEventGroup.scheduledMaintenanceStateTimelines,
-                                        scheduledEventGroup.scheduledEventResources,
-                                        StatusPageUtil.isPreviewPage(),
-                                        true
-                                    )}
-                                />
-                            );
-                        }
-                    )}
+                    <div id="scheduled-events-list">
+                        {getOngoingScheduledEvents().map(
+                            (
+                                scheduledEventGroup: ScheduledMaintenanceGroup,
+                                i: number
+                            ) => {
+                                return (
+                                    <EventItem
+                                        key={i}
+                                        isDetailItem={false}
+                                        {...getScheduledEventEventItem(
+                                            scheduledEventGroup.scheduledMaintenance,
+                                            scheduledEventGroup.publicNotes,
+                                            scheduledEventGroup.scheduledMaintenanceStateTimelines,
+                                            scheduledEventGroup.scheduledEventResources,
+                                            StatusPageUtil.isPreviewPage(),
+                                            true
+                                        )}
+                                    />
+                                );
+                            }
+                        )}
+                    </div>
 
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
@@ -628,6 +638,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 textClassName="text-white text-lg"
+                                id="overview-alert"
                             />
                         )}
                     </div>
@@ -704,6 +715,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         !isLoading &&
                         !error && (
                             <EmptyState
+                                id="overview-empty-state"
                                 icon={IconProp.CheckCircle}
                                 title={'Everything looks great'}
                                 description="Everything is great. Nothig posted on this status page so far."

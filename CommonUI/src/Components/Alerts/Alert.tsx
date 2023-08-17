@@ -26,6 +26,7 @@ export interface ComponentProps {
     textClassName?: string | undefined;
     className?: string | undefined;
     color?: Color | undefined;
+    id?: string | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -56,6 +57,7 @@ const Alert: FunctionComponent<ComponentProps> = (
 
     return (
         <div
+            id={props.id}
             className={`rounded-md ${bgClassName}-50 p-4`}
             data-testid={props.dataTestId}
             onClick={() => {

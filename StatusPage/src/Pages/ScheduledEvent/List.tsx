@@ -219,6 +219,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             {scheduledMaintenanceEvents.length === 0 ? (
                 <EmptyState
+                    id="scheduled-events-empty-state"
                     title={'No Scheduled Events'}
                     description={
                         'No scheduled events posted for this status page.'
