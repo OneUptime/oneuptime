@@ -105,14 +105,25 @@ export default class ApiMonitor {
                 `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()}`
             );
 
-            const startTime: [number, number] = process.hrtime();
-            const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            let startTime: [number, number] = process.hrtime();
+            let result: HTTPResponse<JSONObject> | HTTPErrorResponse =
                 await API.fetch(
                     requestType,
                     url,
                     options.requestBody || undefined,
                     options.requestHeaders || undefined
                 );
+
+            if (result.statusCode === 404 && requestType === HTTPMethod.HEAD) {
+                startTime = process.hrtime();
+                result = await API.fetch(
+                    HTTPMethod.GET,
+                    url,
+                    options.requestBody || undefined,
+                    options.requestHeaders || undefined
+                );
+            }
+
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000

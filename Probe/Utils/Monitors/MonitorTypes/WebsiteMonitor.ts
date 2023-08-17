@@ -107,10 +107,20 @@ export default class WebsiteMonitor {
                 `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()}`
             );
 
-            const startTime: [number, number] = process.hrtime();
-            const result: WebsiteResponse = await WebsiteRequest.fetch(url, {
+            let startTime: [number, number] = process.hrtime();
+            let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
                 isHeadRequest: options.isHeadRequest,
             });
+
+            if (
+                result.responseStatusCode === 404 &&
+                requestType === HTTPMethod.HEAD
+            ) {
+                startTime = process.hrtime();
+                result = await WebsiteRequest.fetch(url, {
+                    isHeadRequest: false,
+                });
+            }
 
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
