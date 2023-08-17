@@ -113,7 +113,8 @@ export default class WebsiteMonitor {
             });
 
             if (
-                result.responseStatusCode === 404 &&
+                (result.responseStatusCode === 404 ||
+                    result.responseStatusCode === 403) &&
                 requestType === HTTPMethod.HEAD
             ) {
                 startTime = process.hrtime();

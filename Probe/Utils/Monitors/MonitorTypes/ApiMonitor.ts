@@ -114,7 +114,10 @@ export default class ApiMonitor {
                     options.requestHeaders || undefined
                 );
 
-            if (result.statusCode === 404 && requestType === HTTPMethod.HEAD) {
+            if (
+                (result.statusCode === 404 || result.statusCode === 403) &&
+                requestType === HTTPMethod.HEAD
+            ) {
                 startTime = process.hrtime();
                 result = await API.fetch(
                     HTTPMethod.GET,

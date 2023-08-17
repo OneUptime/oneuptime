@@ -8,6 +8,7 @@ describe('EmptyState', () => {
     test('renders correctly with all props', () => {
         render(
             <EmptyState
+                id="empty-state"
                 title="Empty State Title"
                 description="This is an empty state description"
                 icon={IconProp.User}
@@ -29,6 +30,7 @@ describe('EmptyState', () => {
     test('renders without an icon', () => {
         render(
             <EmptyState
+                id="empty-state"
                 icon={undefined}
                 title="Title"
                 description="Description"
