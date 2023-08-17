@@ -13,7 +13,7 @@ import { BILLING_ENABLED, DASHBOARD_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
-import { Dictionary } from 'lodash';
+import Dictionary from 'Common/Types/Dictionary';
 
 const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
