@@ -51,7 +51,7 @@
 </style>
 
 <script>
-    window.onload = function () {
+    document.addEventListener('DOMContentLoaded', function() {
        //check if utm_source is present in the URL and save it to localstorage. 
 
         var urlParams = new URLSearchParams(window.location.search);
@@ -70,7 +70,7 @@
             localStorage.setItem('utmContent', utm_content);
             localStorage.setItem('utmUrl', utm_url);
         }
-    };
+    });
 </script>
 
 <meta charset="utf-8" />
