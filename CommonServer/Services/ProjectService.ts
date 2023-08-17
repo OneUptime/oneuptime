@@ -139,6 +139,12 @@ export class Service extends DatabaseService<Model> {
                 email: true,
                 companyPhoneNumber: true,
                 companyName: true,
+                utmCampaign: true,
+                utmSource: true,
+                utmMedium: true,
+                utmTerm: true,
+                utmContent: true,
+                utmUrl: true,
             },
             props: {
                 isRoot: true,
@@ -153,6 +159,12 @@ export class Service extends DatabaseService<Model> {
         data.data.createdOwnerEmail = user.email!;
         data.data.createdOwnerPhone = user.companyPhoneNumber!;
         data.data.createdOwnerCompanyName = user.companyName!;
+        data.data.utmCampaign = user.utmCampaign!;
+        data.data.utmSource = user.utmSource!;
+        data.data.utmMedium = user.utmMedium!;
+        data.data.utmTerm = user.utmTerm!;
+        data.data.utmContent = user.utmContent!;
+        data.data.utmUrl = user.utmUrl!;
 
         return Promise.resolve({ createBy: data, carryForward: null });
     }

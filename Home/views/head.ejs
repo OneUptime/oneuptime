@@ -50,6 +50,29 @@
     }
 </style>
 
+<script>
+    window.onload = function () {
+       //check if utm_source is present in the URL and save it to localstorage. 
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var utm_source = urlParams.get('utm_source');
+        var utm_medium = urlParams.get('utm_medium');
+        var utm_campaign = urlParams.get('utm_campaign');
+        var utm_term = urlParams.get('utm_term');
+        var utm_content = urlParams.get('utm_content');
+        var utm_url = window.location.href;
+
+        if(utm_source != null){
+            localStorage.setItem('utmSource', utm_source);
+            localStorage.setItem('utmMedium', utm_medium);
+            localStorage.setItem('utmCampaign', utm_campaign);
+            localStorage.setItem('utmTerm', utm_term);
+            localStorage.setItem('utmContent', utm_content);
+            localStorage.setItem('utmUrl', utm_url);
+        }
+    };
+</script>
+
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="shortcut icon" href="/img/favicons/favicon.ico">

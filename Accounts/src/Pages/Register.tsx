@@ -13,6 +13,7 @@ import { BILLING_ENABLED, DASHBOARD_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
+import { Dictionary } from 'lodash';
 
 const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
@@ -125,6 +126,25 @@ const RegisterPage: () => JSX.Element = () => {
                         maxPrimaryButtonWidth={true}
                         fields={formFields}
                         apiUrl={apiUrl}
+                        onBeforeCreate={(item: User): Promise<User> => {
+                            const utmParams: Dictionary<string> =
+                                UserUtil.getUtmParams();
+
+                            if (
+                                utmParams &&
+                                Object.keys(utmParams).length > 0
+                            ) {
+                                item.utmSource = utmParams['utmSource'] || '';
+                                item.utmMedium = utmParams['utmMedium'] || '';
+                                item.utmCampaign =
+                                    utmParams['utmCampaign'] || '';
+                                item.utmTerm = utmParams['utmTerm'] || '';
+                                item.utmContent = utmParams['utmContent'] || '';
+                                item.utmUrl = utmParams['utmUrl'] || '';
+                            }
+
+                            return Promise.resolve(item);
+                        }}
                         formType={FormType.Create}
                         submitButtonText={'Sign Up'}
                         onSuccess={(

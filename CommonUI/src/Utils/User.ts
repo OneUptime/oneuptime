@@ -125,4 +125,22 @@ export default class User {
     public static logout(): void {
         LocalStorage.clear();
     }
+
+    public static getUtmParams(): Dictionary<string> {
+        const localStorageItems: Dictionary<string> =
+            LocalStorage.getAllItems();
+        const result: Dictionary<string> = {};
+
+        for (const key in localStorageItems) {
+            if (!localStorageItems[key]) {
+                continue;
+            }
+
+            if (key.startsWith('utm')) {
+                result[key] = localStorageItems[key] as string;
+            }
+        }
+
+        return result;
+    }
 }

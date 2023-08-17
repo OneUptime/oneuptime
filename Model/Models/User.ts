@@ -572,6 +572,90 @@ class User extends UserModel {
     public alertPhoneVerificationCode?: string = undefined;
 
     @ColumnAccessControl({
+        create: [Permission.Public],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public utmSource?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.Public],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public utmMedium?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.Public],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public utmCampaign?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.Public],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public utmTerm?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.Public],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public utmContent?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.Public],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public utmUrl?: string = undefined;
+
+    @ColumnAccessControl({
         create: [],
         read: [],
 
