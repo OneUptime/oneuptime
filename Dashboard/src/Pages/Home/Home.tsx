@@ -9,6 +9,7 @@ import Project from 'Model/Models/Project';
 import DashboardSideMenu from './SideMenu';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../Utils/Navigation';
+import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 
 export interface ComponentProps extends PageComponentProps {
     isLoadingProjects: boolean;
@@ -21,6 +22,10 @@ const Home: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         if (!props.isLoadingProjects && props.projects.length === 0) {
             Navigation.navigate(RouteMap[PageMap.WELCOME] as Route);
+        } else {
+            UiAnalytics.capture('dashboard/home', {
+                projectId: DashboardNavigation.getProjectId()?.toString(),
+            });
         }
     }, [props.projects]);
 
