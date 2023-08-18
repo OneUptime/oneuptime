@@ -43,6 +43,7 @@ const App: () => JSX.Element = () => {
     Navigation.setParams(useParams());
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
+    const [enableSubscribers, setEnableSubscribers] = useState<boolean>(true);
     const [statusPageName, setStatusPageName] = useState<string>('');
     const [statusPageLogoFileId, setStatusPageLogoFileId] =
         useState<string>('');
@@ -70,6 +71,7 @@ const App: () => JSX.Element = () => {
     return (
         <MasterPage
             isPreview={isPreview}
+            enableSubscribers={enableSubscribers}
             isPrivateStatusPage={isPrivateStatusPage}
             onLoadComplete={(masterpage: JSONObject) => {
                 document.title =
@@ -108,6 +110,14 @@ const App: () => JSX.Element = () => {
                         masterpage || {},
                         'statusPage.isPublicStatusPage'
                     ) as boolean;
+
+                const enableSubscribers: boolean =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.enableSubscribers'
+                    ) as boolean;
+
+                setEnableSubscribers(enableSubscribers);
 
                 StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
                 setIsPrivateStatusPage(isPrivateStatusPage);

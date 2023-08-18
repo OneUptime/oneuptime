@@ -10,6 +10,7 @@ export interface ComponentProps {
     show: boolean;
     isPreview: boolean;
     isPrivateStatusPage: boolean;
+    enableSubscribers: boolean;
 }
 
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
@@ -67,16 +68,22 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 )}
             ></NavBarItem>
 
-            <NavBarItem
-                id="subscribe-nav-bar-item"
-                title="Subscribe"
-                icon={IconProp.Email}
-                route={RouteUtil.populateRouteParams(
-                    props.isPreview
-                        ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
-                        : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route)
-                )}
-            ></NavBarItem>
+            {props.enableSubscribers ? (
+                <NavBarItem
+                    id="subscribe-nav-bar-item"
+                    title="Subscribe"
+                    icon={IconProp.Email}
+                    route={RouteUtil.populateRouteParams(
+                        props.isPreview
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                              ] as Route)
+                            : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route)
+                    )}
+                ></NavBarItem>
+            ) : (
+                <></>
+            )}
 
             {props.isPrivateStatusPage ? (
                 <NavBarItem
