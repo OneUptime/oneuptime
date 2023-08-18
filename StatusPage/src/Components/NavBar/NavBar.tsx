@@ -22,6 +22,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return (
         <NavBar className="bg-white lg:flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5">
             <NavBarItem
+                id="overview-nav-bar-item"
                 title="Overview"
                 icon={IconProp.CheckCircle}
                 route={RouteUtil.populateRouteParams(
@@ -32,6 +33,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
+                id='incidents-nav-bar-item'
                 title="Incidents"
                 icon={IconProp.Alert}
                 route={RouteUtil.populateRouteParams(
@@ -42,6 +44,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
+                id='announcements-nav-bar-item'
                 title="Announcements"
                 icon={IconProp.Announcement}
                 route={RouteUtil.populateRouteParams(
@@ -52,6 +55,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
+                id='scheduled-events-nav-bar-item'
                 title="Scheduled Events"
                 icon={IconProp.Clock}
                 route={RouteUtil.populateRouteParams(
@@ -64,6 +68,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
+                id='subscribe-nav-bar-item'
                 title="Subscribe"
                 icon={IconProp.Email}
                 route={RouteUtil.populateRouteParams(
@@ -75,6 +80,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             {props.isPrivateStatusPage ? (
                 <NavBarItem
+                    id='logout-nav-bar-item'
                     title="Logout"
                     icon={IconProp.Logout}
                     route={RouteUtil.populateRouteParams(

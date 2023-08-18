@@ -16,6 +16,7 @@ export interface ComponentProps {
     onMouseOver?: (() => void) | undefined;
     onClick?: (() => void) | undefined;
     onMouseLeave?: (() => void) | undefined;
+    id?: string | undefined;
 }
 
 const NavBarItem: FunctionComponent<ComponentProps> = (
@@ -45,6 +46,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
     return (
         <>
             <Link
+                id={props.id}
                 className={classNames}
                 to={props.route ? props.route : null}
                 onMouseOver={props.onMouseOver}
