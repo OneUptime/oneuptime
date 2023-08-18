@@ -185,7 +185,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Username',
                         stepId: 'authentication',
                         fieldType: FormFieldSchemaType.Text,
-                        required: true,
+                        required: false,
                         placeholder: 'emailuser',
                     },
                     {
@@ -195,7 +195,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Password',
                         stepId: 'authentication',
                         fieldType: FormFieldSchemaType.EncryptedText,
-                        required: true,
+                        required: false,
                         placeholder: 'Password',
                     },
                     {

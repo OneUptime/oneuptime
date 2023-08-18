@@ -28,13 +28,13 @@ export class MailService extends BaseService {
 
         if (options && options.mailServer) {
             body['SMTP_ID'] = options.mailServer.id?.toString();
-            body['SMTP_USERNAME'] = options.mailServer.username;
+            body['SMTP_USERNAME'] = options.mailServer.username || undefined;
             body['SMTP_EMAIL'] = options.mailServer.fromEmail.toString();
             body['SMTP_FROM_NAME'] = options.mailServer.fromName;
             body['SMTP_IS_SECURE'] = options.mailServer.secure;
             body['SMTP_PORT'] = options.mailServer.port.toNumber();
             body['SMTP_HOST'] = options.mailServer.host.toString();
-            body['SMTP_PASSWORD'] = options.mailServer.password;
+            body['SMTP_PASSWORD'] = options.mailServer.password || undefined;
         }
 
         if (options?.userOnCallLogTimelineId) {

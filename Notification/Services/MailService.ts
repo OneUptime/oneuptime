@@ -102,8 +102,8 @@ export default class MailService {
                 obj && obj['SMTP_ID']
                     ? new ObjectID(obj['SMTP_ID'].toString())
                     : undefined,
-            username: obj['SMTP_USERNAME']?.toString()!,
-            password: obj['SMTP_PASSWORD']?.toString()!,
+            username: obj['SMTP_USERNAME']?.toString()! || undefined,
+            password: obj['SMTP_PASSWORD']?.toString()! || undefined,
             host: new Hostname(obj['SMTP_HOST']?.toString()!),
             port: new Port(obj['SMTP_PORT']?.toString()!),
             fromEmail: new Email(obj['SMTP_EMAIL']?.toString()!),
@@ -209,10 +209,13 @@ export default class MailService {
             host: emailServer.host.toString(),
             port: emailServer.port.toNumber(),
             secure: emailServer.secure,
-            auth: {
-                user: emailServer.username,
-                pass: emailServer.password,
-            },
+            auth:
+                emailServer.username && emailServer.password
+                    ? {
+                          user: emailServer.username,
+                          pass: emailServer.password,
+                      }
+                    : undefined,
             connectionTimeout: options.timeout || undefined,
         });
 
