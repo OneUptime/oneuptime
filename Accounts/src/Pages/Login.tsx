@@ -13,6 +13,7 @@ import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
+import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 
 const LoginPage: () => JSX.Element = () => {
     const apiUrl: URL = LOGIN_API_URL;
@@ -33,7 +34,7 @@ const LoginPage: () => JSX.Element = () => {
                 <img
                     className="mx-auto h-12 w-auto"
                     src={OneUptimeLogo}
-                    alt="Your Company"
+                    alt="OneUptime"
                 />
                 <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
                     Sign in to your account
@@ -93,6 +94,11 @@ const LoginPage: () => JSX.Element = () => {
                             value: User,
                             miscData: JSONObject | undefined
                         ) => {
+                            if (value && value.email) {
+                                UiAnalytics.userAuth(value.email);
+                                UiAnalytics.capture('accounts/login');
+                            }
+
                             LoginUtil.login({
                                 user: value,
                                 token: miscData ? miscData['token'] : undefined,

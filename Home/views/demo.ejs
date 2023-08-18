@@ -4,38 +4,78 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | One Complete Observability platform. </title>
-    <meta name="description"
-        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-        <%- include('head') -%>
+  <title>OneUptime | One Complete Observability platform. </title>
+  <meta name="description"
+    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <%- include('head') -%>
 
 </head>
 
 <body>
   <%- include('nav') -%>
     <div class="bg-white">
-        <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
-          <div class="sm:align-center sm:flex sm:flex-col">
-            <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Request Demo</h1>
-            <p class="mt-5 text-xl text-gray-500 sm:text-center">Our team is happy to give you a personalized demo. Pick any time slot that works for you.</p>
-           
-          </div>
-         
-
-
-          <!-- Calendly inline widget begin -->
-<div class="calendly-inline-widget" data-url="https://calendly.com/simon-larsen/demo" style="min-width:320px;height:700px;"></div>
-<script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
-<!-- Calendly inline widget end -->
-
+      <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
+        <div class="sm:align-center sm:flex sm:flex-col">
+          <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Request Demo</h1>
+          <p class="mt-5 text-xl text-gray-500 sm:text-center">Our team is happy to give you a personalized demo. Pick
+            any time slot that works for you.</p>
 
         </div>
-      </div>
 
-      <%- include('logo-roll') -%>
-     
+
+        <div style="margin-top: 50px;">
+          <!-- Cal inline embed code begins -->
+          <div style="width:100%;height:100%;overflow:scroll" id="my-cal-inline"></div>
+          <script type="text/javascript">
+            (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+            Cal("init", { origin: "https://cal.com" });
+
+            Cal("inline", {
+              elementOrSelector: "#my-cal-inline",
+              calLink: "oneuptimehq/demo",
+              layout: "month_view"
+            });
+
+            Cal("ui", { "styles": { "branding": { "brandColor": "#6366f1" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+
+            Cal("on", {
+              action: "bookingSuccessful",
+              callback: (e) => {
+                // `data` is properties for the event.
+                // `type` is the name of the action(You can also call it type of the action.) This would be same as "ANY_ACTION_NAME" except when ANY_ACTION_NAME="*" which listens to all the events.
+                // `namespace` tells you the Cal namespace for which the event is fired/
+                const { data, type, namespace } = e.detail;
+
+                if (posthog) {
+                  posthog.capture('home/demo-booked', {
+                    'page': {
+                      'path': window.location.pathname,
+                      'referrer': document.referrer,
+                      'search': window.location.search,
+                      'url': window.location.href,
+                      'title': document.title,
+                    },
+                    'data': data,
+                    'type': type,
+                    'namespace': namespace
+                  });
+                }
+              }
+            })
+
+          </script>
+          <!-- Cal inline embed code ends -->
+        </div>
+
+
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
       <%- include('features-table') -%>
-      <%- include('cta') -%>
-  <%- include('footer') -%>
+        <%- include('cta') -%>
+          <%- include('footer') -%>
 </body>
+
 </html>

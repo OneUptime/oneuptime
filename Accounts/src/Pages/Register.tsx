@@ -14,6 +14,7 @@ import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
 import Dictionary from 'Common/Types/Dictionary';
+import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 
 const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
@@ -102,7 +103,7 @@ const RegisterPage: () => JSX.Element = () => {
                 <img
                     className="mx-auto h-12 w-auto"
                     src={OneUptimeLogo}
-                    alt="Your Company"
+                    alt="OneUptime"
                 />
                 <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
                     Create your OneUptime account
@@ -141,6 +142,8 @@ const RegisterPage: () => JSX.Element = () => {
                                 item.utmTerm = utmParams['utmTerm'] || '';
                                 item.utmContent = utmParams['utmContent'] || '';
                                 item.utmUrl = utmParams['utmUrl'] || '';
+
+                                UiAnalytics.capture('utm_event', utmParams);
                             }
 
                             return Promise.resolve(item);
@@ -151,6 +154,11 @@ const RegisterPage: () => JSX.Element = () => {
                             value: User,
                             miscData: JSONObject | undefined
                         ) => {
+                            if (value && value.email) {
+                                UiAnalytics.userAuth(value.email);
+                                UiAnalytics.capture('accounts/register');
+                            }
+
                             LoginUtil.login({
                                 user: value,
                                 token: miscData ? miscData['token'] : undefined,
