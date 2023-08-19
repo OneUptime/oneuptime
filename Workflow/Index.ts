@@ -15,6 +15,7 @@ import RunWorkflow from './Services/RunWorkflow';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import WorkflowAPI from './API/Workflow';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 const APP_NAME: string = 'workflow';
 
@@ -49,6 +50,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
 
         // Job process.
         QueueWorker.getWorker(

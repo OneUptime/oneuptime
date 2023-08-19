@@ -8,6 +8,7 @@ import SsoAPI from './API/SSO';
 import StatusPageSsoAPI from './API/StatusPageSSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
 import Redis from 'CommonServer/Infrastructure/Redis';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -35,6 +36,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

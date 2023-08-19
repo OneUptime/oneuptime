@@ -70,6 +70,7 @@ import './Jobs/UserOnCallLog/ExecutePendingExecutions';
 import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
 
 import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 const APP_NAME: string = 'workers';
 
@@ -89,6 +90,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
 
         await RunDatabaseMigrations();
 

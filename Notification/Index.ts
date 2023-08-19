@@ -12,6 +12,7 @@ import logger from 'CommonServer/Utils/Logger';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 // import handlebars loader.
 import './Utils/Handlebars';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 const APP_NAME: string = 'notification';
 const app: ExpressApplication = Express.getExpressApp();
@@ -33,6 +34,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

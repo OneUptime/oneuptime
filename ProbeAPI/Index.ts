@@ -8,6 +8,7 @@ import RegisterAPI from './API/Register';
 import MonitorAPI from './API/Monitor';
 import ProbeAPI from './API/Probe';
 import IncomingRequestAPI from './API/IncomingRequest';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 import Redis from 'CommonServer/Infrastructure/Redis';
 
@@ -32,6 +33,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

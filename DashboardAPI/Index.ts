@@ -5,6 +5,7 @@ import logger from 'CommonServer/Utils/Logger';
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 import User from 'Model/Models/User';
 import UserService, {
@@ -958,6 +959,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
+
+        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
