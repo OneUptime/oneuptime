@@ -13,7 +13,7 @@ export default class Slug {
         }
 
         let slug: string = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
-        slug = `${slug}-${Faker.randomNumbers(7)}`;
+        slug = `${slug}-${Faker.randomNumbers(10)}`;
         slug = slug.toLowerCase();
 
         return slug;
