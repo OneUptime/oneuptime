@@ -35,12 +35,16 @@ export default class ClickhouseDatabase {
         let retry: number = 0;
 
         try {
+
             const connectToDatabase: Function =
                 async (): Promise<ClickhouseClient> => {
                     try {
                         const clickhouseClient: ClickhouseClient =
                             createClient(dataSourceOptions);
                         this.dataSource = clickhouseClient;
+
+                        logger.info(`Clickhouse Database Connected: ${dataSourceOptions.host?.toString()}`);
+
                         return clickhouseClient;
                     } catch (err) {
                         if (retry < 3) {

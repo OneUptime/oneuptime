@@ -963,6 +963,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
         await ClickhouseAppInstance.connect(
             ClickhouseAppInstance.getDatasourceOptions()
         );
+        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
