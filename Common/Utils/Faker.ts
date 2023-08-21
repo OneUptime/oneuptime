@@ -16,7 +16,7 @@ export default class Faker {
         const count: number = 16;
         const randomNumbers: Array<number> = [];
         for (let i: number = 0; i < count; i++) {
-            randomNumbers.push(Math.floor(Math.random() * 100)); // You can adjust the range as needed
+            randomNumbers.push(Math.floor(Math.random() * 10)); // You can adjust the range as needed
         }
         return randomNumbers.join('');
     }
