@@ -224,4 +224,3 @@ export const ClickhousePassword: string =
 
 export const ClickhouseDatabase: string =
     process.env['CLICKHOUSE_DATABASE'] || 'oneuptime';
-    

@@ -1,3 +1,1 @@
-export default class AnalyticsDatabaseService {
-    
-}
+export default class AnalyticsDatabaseService {}

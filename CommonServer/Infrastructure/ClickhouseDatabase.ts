@@ -1,11 +1,14 @@
 import logger from '../Utils/Logger';
-import { dataSourceOptions, testDataSourceOptions } from './ClickhouseConfig';
+import {
+    dataSourceOptions,
+    testDataSourceOptions,
+    ClickHouseClientConfigOptions,
+} from './ClickhouseConfig';
 import Sleep from 'Common/Types/Sleep';
 import { ClickHouseClient, createClient } from '@clickhouse/client';
 import Stream from 'stream';
-import { ClickHouseClientConfigOptions } from './ClickhouseConfig';
 
-export type ClickhouseClient = ClickHouseClient<Stream.Readable>; 
+export type ClickhouseClient = ClickHouseClient<Stream.Readable>;
 
 export default class ClickhouseDatabase {
     private dataSource!: ClickhouseClient | null;
@@ -35,7 +38,8 @@ export default class ClickhouseDatabase {
             const connectToDatabase: Function =
                 async (): Promise<ClickhouseClient> => {
                     try {
-                        const clickhouseClient: ClickhouseClient = createClient(dataSourceOptions);
+                        const clickhouseClient: ClickhouseClient =
+                            createClient(dataSourceOptions);
                         this.dataSource = clickhouseClient;
                         return clickhouseClient;
                     } catch (err) {
@@ -70,4 +74,5 @@ export default class ClickhouseDatabase {
     }
 }
 
-export const ClickhouseAppInstance: ClickhouseDatabase = new ClickhouseDatabase();
+export const ClickhouseAppInstance: ClickhouseDatabase =
+    new ClickhouseDatabase();

@@ -14,8 +14,8 @@ export const dataSourceOptions: ClickHouseClientConfigOptions = {
     username: ClickhouseUsername,
     password: ClickhousePassword,
     database: ClickhouseDatabase,
-    application: 'oneuptime'
+    application: 'oneuptime',
 };
 
-
-export const testDataSourceOptions: ClickHouseClientConfigOptions = dataSourceOptions
+export const testDataSourceOptions: ClickHouseClientConfigOptions =
+    dataSourceOptions;

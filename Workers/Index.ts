@@ -91,7 +91,9 @@ const init: () => Promise<void> = async (): Promise<void> => {
         // connect redis
         await Redis.connect();
 
-        await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
+        await ClickhouseAppInstance.connect(
+            ClickhouseAppInstance.getDatasourceOptions()
+        );
 
         await RunDatabaseMigrations();
 
