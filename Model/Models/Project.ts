@@ -8,7 +8,7 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';

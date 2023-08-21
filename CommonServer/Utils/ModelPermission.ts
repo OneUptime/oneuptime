@@ -20,7 +20,7 @@ import {
 import RelationSelect from '../Types/Database/RelationSelect';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import LessThan from 'Common/Types/Database/LessThan';
 import IsNull from 'Common/Types/Database/IsNull';

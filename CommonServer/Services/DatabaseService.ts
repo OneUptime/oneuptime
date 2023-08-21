@@ -33,7 +33,7 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 import Typeof from 'Common/Types/Typeof';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
