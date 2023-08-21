@@ -1,5 +1,7 @@
 import TableColumnType from '../Types/BaseDatabase/TableColumnType';
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
+import BadDataException from '../Types/Exception/BadDataException';
+import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
 
 export default class AnalyticsDataModel {
     private _tableColumns: Array<AnalyticsTableColumn> = [];
@@ -18,13 +20,41 @@ export default class AnalyticsDataModel {
         this._tableName = v;
     }
 
+    
+    private _tableEngine : AnalyticsTableEngine = AnalyticsTableEngine.MergeTree;
+    public get tableEngine() : AnalyticsTableEngine {
+        return this._tableEngine;
+    }
+    public set tableEngine(v : AnalyticsTableEngine) {
+        this._tableEngine = v;
+    }
+
+    
+    private _primaryKeys : Array<string> = [];
+    public get primaryKeys() : Array<string> {
+        return this._primaryKeys;
+    }
+    public set primaryKeys(v : Array<string>) {
+        this._primaryKeys = v;
+    }
+    
+
     public constructor(data: {
         tableName: string;
+        tableEngine?: AnalyticsTableEngine | undefined;
         tableColumns: Array<AnalyticsTableColumn>;
+        primaryKeys: Array<string>; // this should be the subset of tableColumns
     }) {
+
+        let columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
+
         this.tableName = data.tableName;
 
-        this.tableColumns.push(
+        if(data.tableEngine){
+            this.tableEngine = data.tableEngine;    
+        }
+
+        columns.push(
             new AnalyticsTableColumn({
                 key: '_id',
                 title: 'ID',
@@ -34,7 +64,7 @@ export default class AnalyticsDataModel {
             })
         );
 
-        this.tableColumns.push(
+        columns.push(
             new AnalyticsTableColumn({
                 key: 'createdAt',
                 title: 'Created',
@@ -44,7 +74,7 @@ export default class AnalyticsDataModel {
             })
         );
 
-        this.tableColumns.push(
+        columns.push(
             new AnalyticsTableColumn({
                 key: 'updatedAt',
                 title: 'Updated',
@@ -54,18 +84,22 @@ export default class AnalyticsDataModel {
             })
         );
 
-        this.tableColumns = this.tableColumns.concat(data.tableColumns);
-    }
+        if(!data.primaryKeys || data.primaryKeys.length === 0){
+            throw new BadDataException("Primary keys are required");
+        }
 
-    public toTableCreateStatement(): string {
-        return `CREATE TABLE IF NOT EXISTS ${this.tableName}
-        (
-            user_id UInt32,
-            message String,
-            timestamp DateTime,
-            metric Float32
-        )
-        ENGINE = MergeTree()
-        PRIMARY KEY (user_id, timestamp)`;
+        // check if primary keys are subset of tableColumns
+
+        console.log(columns);
+
+        data.primaryKeys.forEach((primaryKey) => {
+            if(!columns.find((column) => column.key === primaryKey)){
+                throw new BadDataException("Primary key "+primaryKey+" is not part of tableColumns");
+            }
+        });
+
+        this.primaryKeys = data.primaryKeys;
+        this.tableColumns = columns;
+        
     }
 }

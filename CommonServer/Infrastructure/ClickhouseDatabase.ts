@@ -7,6 +7,7 @@ import {
 import Sleep from 'Common/Types/Sleep';
 import { ClickHouseClient, createClient } from '@clickhouse/client';
 import Stream from 'stream';
+import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 
 export type ClickhouseClient = ClickHouseClient<Stream.Readable>;
 
@@ -42,6 +43,12 @@ export default class ClickhouseDatabase {
                         const clickhouseClient: ClickhouseClient =
                             createClient(dataSourceOptions);
                         this.dataSource = clickhouseClient;
+
+                        const result = await clickhouseClient.ping();
+
+                        if(result.success === false){
+                            throw new DatabaseNotConnectedException("Clickhouse Database is not connected")
+                        }
 
                         logger.info(`Clickhouse Database Connected: ${dataSourceOptions.host?.toString()}`);
 
