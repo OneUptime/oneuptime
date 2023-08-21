@@ -5,15 +5,14 @@ import Phone from '../Types/Phone';
 
 export default class Faker {
     public static generateName(): string {
-        return faker.person.fullName();
+        return faker.string.alphanumeric(10);
     }
 
     public static generateCompanyName(): string {
         return faker.company.name();
     }
 
-    public static random16Numbers(): string {
-        const count: number = 16;
+    public static randomNumbers(count: number): string {
         const randomNumbers: Array<number> = [];
         for (let i: number = 0; i < count; i++) {
             randomNumbers.push(Math.floor(Math.random() * 10)); // You can adjust the range as needed
