@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -22,10 +22,96 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import Incident from 'Model/Models/Incident';
+import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import API from 'CommonUI/src/Utils/API/API';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+
+
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+    const [incidentNoteTemplates, setIncidentNoteTemplates] = useState<
+        Array<IncidentNoteTemplate>
+    >([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [showIncidentNoteTemplateModal, setShowIncidentNoteTemplateModal] =
+        useState<boolean>(false);
+    const [initialValuesForIncident, setInitialValuesForIncident] =
+        useState<JSONObject>({});
+
+
+    const fetchIncidentNoteTemplate: (id: ObjectID) => Promise<void> = async (
+        id: ObjectID
+    ): Promise<void> => {
+        setError('');
+        setIsLoading(true);
+
+        try {
+            //fetch incident template
+
+            const incidentNoteTemplate: IncidentNoteTemplate | null =
+                await ModelAPI.getItem<IncidentNoteTemplate>(IncidentNoteTemplate, id, {
+                    note: true,
+
+                });
+
+
+
+            if (incidentNoteTemplate) {
+                const initialValue: JSONObject = {
+                    ...JSONFunctions.toJSONObject(
+                        incidentNoteTemplate,
+                        IncidentNoteTemplate
+                    ),
+
+                };
+
+                setInitialValuesForIncident(initialValue);
+            }
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+        setShowIncidentNoteTemplateModal(false);
+    };
+
+    const fetchIncidentNoteTemplates: () => Promise<void> =
+        async (): Promise<void> => {
+            setError('');
+            setIsLoading(true);
+            setInitialValuesForIncident({});
+
+            try {
+                const listResult: ListResult<IncidentNoteTemplate> =
+                    await ModelAPI.getList<IncidentNoteTemplate>(
+                        IncidentNoteTemplate,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            templateName: true,
+                            _id: true,
+                        },
+                        {}
+                    );
+
+                setIncidentNoteTemplates(listResult.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
+
+            setIsLoading(false);
+        };
 
     return (
         <ModelPage
@@ -70,6 +156,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 id="table-incident-internal-note"
                 name="Monitor > Public Note"
                 isDeleteable={true}
+                showCreateForm={
+                    Object.keys(initialValuesForIncident).length > 0
+                }
+                createInitialValues={initialValuesForIncident}
                 isCreateable={true}
                 showViewIdButton={true}
                 isEditable={true}
@@ -91,6 +181,17 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 }}
                 cardProps={{
                     title: 'Public Notes',
+                    buttons: [
+                        {
+                            title: 'Create from Template',
+                            icon: IconProp.Template,
+                            buttonStyle: ButtonStyleType.OUTLINE,
+                            onClick: async (): Promise<void> => {
+                                setShowIncidentNoteTemplateModal(true);
+                                await fetchIncidentNoteTemplates();
+                            },
+                        },
+                    ],
                     description:
                         'Here are public notes for this incident. This will show up on the status page.',
                 }}
@@ -170,6 +271,76 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
+
+
+
+            {incidentNoteTemplates.length === 0 &&
+                showIncidentNoteTemplateModal &&
+                !isLoading ? (
+                <ConfirmModal
+                    title={`No Incident Note Templates`}
+                    description={`No incident templates have been created yet. You can create these in Project Settings > Incident Note Templates.`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        return setShowIncidentNoteTemplateModal(false);
+                    }}
+                />
+            ) : <></>}
+
+            {error ? (
+                <ConfirmModal
+                    title={`Error`}
+                    description={`${error}`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        return setError('');
+                    }}
+                />
+            ) : <></>}
+
+            {showIncidentNoteTemplateModal && incidentNoteTemplates.length > 0 ? (
+                <BasicFormModal<JSONObject>
+                    title="Create Note from Template"
+                    isLoading={isLoading}
+                    submitButtonText="Create from Template"
+                    onClose={() => {
+                        setShowIncidentNoteTemplateModal(false);
+                        setIsLoading(false);
+                    }}
+                    onSubmit={async (data: JSONObject) => {
+                        await fetchIncidentNoteTemplate(
+                            data['incidentNoteTemplateId'] as ObjectID
+                        );
+                    }}
+                    formProps={{
+                        initialValues: {},
+                        fields: [
+                            {
+                                field: {
+                                    incidentNoteTemplateId: true,
+                                },
+                                title: 'Select Note Template',
+                                description:
+                                    'Select a template to create a note from.',
+                                fieldType: FormFieldSchemaType.Dropdown,
+                                dropdownOptions:
+                                    DropdownUtil.getDropdownOptionsFromEntityArray(
+                                        {
+                                            array: incidentNoteTemplates,
+                                            labelField: 'templateName',
+                                            valueField: '_id',
+                                        }
+                                    ),
+                                required: true,
+                                placeholder: 'Select Template',
+                            },
+                        ],
+                    }}
+                />
+            ) : (
+                <> </>
+            )}
+
         </ModelPage>
     );
 };

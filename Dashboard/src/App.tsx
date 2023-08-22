@@ -106,6 +106,8 @@ import OnCallDutyPolicyCustomFields from './Pages/Settings/OnCallDutyPolicyCusto
 import ScheduledMaintenanceCustomFields from './Pages/Settings/ScheduledMaintenanceCusomFields';
 import IncidentTemplates from './Pages/Settings/IncidentTemplates';
 import IncidentTemplatesView from './Pages/Settings/IncidentTemplatesView';
+import IncidentNoteTemplates from './Pages/Settings/IncidentNoteTemplates';
+import IncidentNoteTemplateView from './Pages/Settings/IncidentNoteTemplateView';
 
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
 import ProjectInvitations from './Pages/Global/ProjectInvitations';
@@ -1511,6 +1513,43 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <IncidentNoteTemplates
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <IncidentNoteTemplateView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />

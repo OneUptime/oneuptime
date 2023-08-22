@@ -97,6 +97,11 @@ enum Permission {
     CanEditIncidentTemplate = 'CanEditIncidentTemplate',
     CanReadIncidentTemplate = 'CanReadIncidentTemplate',
 
+    CanCreateIncidentNoteTemplate = 'CanCreateIncidentNoteTemplate',
+    CanDeleteIncidentNoteTemplate = 'CanDeleteIncidentNoteTemplate',
+    CanEditIncidentNoteTemplate = 'CanEditIncidentNoteTemplate',
+    CanReadIncidentNoteTemplate = 'CanReadIncidentNoteTemplate',
+
     CanCreateIncidentTemplateOwnerTeam = 'CanCreateIncidentTemplateOwnerTeam',
     CanDeleteIncidentTemplateOwnerTeam = 'CanDeleteIncidentTemplateOwnerTeam',
     CanEditIncidentTemplateOwnerTeam = 'CanEditIncidentTemplateOwnerTeam',
@@ -2076,6 +2081,39 @@ export class PermissionHelper {
                 title: 'Can Read Incident Team Owner',
                 description:
                     'This permission can read Incident Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateIncidentNoteTemplate,
+                title: 'Can Create Incident Note Template',
+                description:
+                    'This permission can create Incident Note Template this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentNoteTemplate,
+                title: 'Can Delete Incident Note Template',
+                description:
+                    'This permission can delete Incident Note Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentNoteTemplate,
+                title: 'Can Edit Incident Note Template',
+                description:
+                    'This permission can edit Incident Note Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentNoteTemplate,
+                title: 'Can Read Incident Note Template',
+                description:
+                    'This permission can read Incident Note Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

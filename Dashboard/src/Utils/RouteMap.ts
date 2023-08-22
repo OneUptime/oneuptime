@@ -16,6 +16,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.INIT_PROJECT]: new Route(`/dashboard/${RouteParams.ProjectID}`),
 
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+
     [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
     ),
@@ -411,6 +412,14 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incident-templates/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/incident-note-templates`
+    ),
+
+    [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/incident-note-templates/${RouteParams.ModelID}`
     ),
 
     [PageMap.SETTINGS_BILLING]: new Route(

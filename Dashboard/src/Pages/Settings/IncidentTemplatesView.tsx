@@ -248,7 +248,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             field: {
                                 _id: true,
                             },
-                            title: 'Incident ID',
+                            title: 'Incident Template ID',
                             fieldType: FieldType.ObjectID,
                         },
                         {
