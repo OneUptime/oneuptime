@@ -166,7 +166,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                        required: true,
+                        required: false,
                         placeholder: 'Incident Severity',
                     },
                     {
@@ -284,9 +284,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Entity,
                             getElement: (item: JSONObject): ReactElement => {
                                 if (!item['incidentSeverity']) {
-                                    throw new BadDataException(
-                                        'Incident Severity not found'
-                                    );
+                                    return <p>No incident severity.</p>;
                                 }
 
                                 return (

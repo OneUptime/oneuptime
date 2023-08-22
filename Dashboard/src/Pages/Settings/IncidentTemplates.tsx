@@ -152,7 +152,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                        required: true,
+                        required: false,
                         placeholder: 'Incident Severity',
                     },
                     {
