@@ -39,9 +39,44 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             | DropdownValue
             | DropdownOption
             | Array<DropdownOption>
+            | Array<DropdownValue>
     ): DropdownOption | Array<DropdownOption> => {
-        if (Array.isArray(value)) {
-            return value;
+        if (
+            Array.isArray(value) &&
+            value.length > 0 &&
+            Object.keys(value[0]!).includes('value')
+        ) {
+            return value as Array<DropdownOption>;
+        }
+
+        if (
+            Array.isArray(value) &&
+            value.length > 0 &&
+            typeof value[0] === 'string'
+        ) {
+            const options: Array<DropdownOption> = [];
+
+            for (const item of value as Array<DropdownValue>) {
+                if (
+                    (!Array.isArray(item) && typeof item === 'string') ||
+                    typeof item === 'number'
+                ) {
+                    const option:
+                        | DropdownOption
+                        | undefined
+                        | Array<DropdownOption> = props.options.find(
+                        (option: DropdownOption) => {
+                            return option.value === item;
+                        }
+                    ) as DropdownOption | Array<DropdownOption>;
+
+                    if (option) {
+                        options.push(option as DropdownOption);
+                    }
+                }
+            }
+
+            return options;
         }
 
         if (
@@ -52,6 +87,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 return option.value === value;
             }) as DropdownOption | Array<DropdownOption>;
         }
+
         return value as DropdownOption | Array<DropdownOption>;
     };
 
