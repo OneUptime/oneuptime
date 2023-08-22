@@ -37,10 +37,26 @@ export default class WebsiteRequest {
         }
 
         // use axios to fetch an HTML page
-        const response: AxiosResponse = await axios(
-            url.toString(),
-            axiosOptions
-        );
+        let response: AxiosResponse | null = null;
+
+        try {
+            response = await axios(
+                url.toString(),
+                axiosOptions
+            );
+        } catch (err: unknown) {
+            if (err && Object.keys(err).includes('code') && (err as any)['code'] === 'HPE_INVALID_CONSTANT' ) {
+                response = await axios(
+                    url.toString(),
+                    {
+                        ...axiosOptions,
+                        method: HTTPMethod.GET,
+                    }
+                );
+            } else {
+                throw err;
+            }
+        }
 
         // return the response
         return {
