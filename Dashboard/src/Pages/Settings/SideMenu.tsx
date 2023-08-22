@@ -157,6 +157,18 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
+                        title: 'Note Templates',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.Pencil}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[

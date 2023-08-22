@@ -121,6 +121,7 @@ import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
 
 import Log from './Log';
 import IncidentNoteTemplate from './IncidentNoteTemplate';
+import ScheduledMaintenanceNoteTemplate from './ScheduledMaintenanceNoteTemplate';
 
 export default [
     User,
@@ -224,6 +225,8 @@ export default [
     IncidentTemplateOwnerUser,
 
     IncidentNoteTemplate,
+
+    ScheduledMaintenanceNoteTemplate,
 ];
 
 export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];

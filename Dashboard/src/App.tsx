@@ -109,6 +109,9 @@ import IncidentTemplatesView from './Pages/Settings/IncidentTemplatesView';
 import IncidentNoteTemplates from './Pages/Settings/IncidentNoteTemplates';
 import IncidentNoteTemplateView from './Pages/Settings/IncidentNoteTemplateView';
 
+import ScheduledMaintenanceNoteTemplates from './Pages/Settings/ScheduledMaintenanceNoteTemplates';
+import ScheduledMaintenanceNoteTemplateView from './Pages/Settings/ScheduledMaintenanceNoteTemplateView';
+
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
 import ProjectInvitations from './Pages/Global/ProjectInvitations';
 
@@ -1550,6 +1553,46 @@ const App: () => JSX.Element = () => {
                                 RouteMap[
                                     PageMap
                                         .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap
+                                .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ScheduledMaintenanceNoteTemplates
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap
+                                .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ScheduledMaintenanceNoteTemplateView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />

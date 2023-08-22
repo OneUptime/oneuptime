@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -22,10 +22,99 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import API from 'CommonUI/src/Utils/API/API';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
+
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+    const [
+        scheduledMaintenanceNoteTemplates,
+        setScheduledMaintenanceNoteTemplates,
+    ] = useState<Array<ScheduledMaintenanceNoteTemplate>>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [
+        showScheduledMaintenanceNoteTemplateModal,
+        setShowScheduledMaintenanceNoteTemplateModal,
+    ] = useState<boolean>(false);
+    const [
+        initialValuesForScheduledMaintenance,
+        setInitialValuesForScheduledMaintenance,
+    ] = useState<JSONObject>({});
+
+    const fetchScheduledMaintenanceNoteTemplate: (
+        id: ObjectID
+    ) => Promise<void> = async (id: ObjectID): Promise<void> => {
+        setError('');
+        setIsLoading(true);
+
+        try {
+            //fetch scheduledMaintenance template
+
+            const scheduledMaintenanceNoteTemplate: ScheduledMaintenanceNoteTemplate | null =
+                await ModelAPI.getItem<ScheduledMaintenanceNoteTemplate>(
+                    ScheduledMaintenanceNoteTemplate,
+                    id,
+                    {
+                        note: true,
+                    }
+                );
+
+            if (scheduledMaintenanceNoteTemplate) {
+                const initialValue: JSONObject = {
+                    ...JSONFunctions.toJSONObject(
+                        scheduledMaintenanceNoteTemplate,
+                        ScheduledMaintenanceNoteTemplate
+                    ),
+                };
+
+                setInitialValuesForScheduledMaintenance(initialValue);
+            }
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+        setShowScheduledMaintenanceNoteTemplateModal(false);
+    };
+
+    const fetchScheduledMaintenanceNoteTemplates: () => Promise<void> =
+        async (): Promise<void> => {
+            setError('');
+            setIsLoading(true);
+            setInitialValuesForScheduledMaintenance({});
+
+            try {
+                const listResult: ListResult<ScheduledMaintenanceNoteTemplate> =
+                    await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>(
+                        ScheduledMaintenanceNoteTemplate,
+                        {},
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            templateName: true,
+                            _id: true,
+                        },
+                        {}
+                    );
+
+                setScheduledMaintenanceNoteTemplates(listResult.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
+
+            setIsLoading(false);
+        };
 
     return (
         <ModelPage
@@ -76,6 +165,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isEditable={true}
                 showViewIdButton={true}
+                showCreateForm={
+                    Object.keys(initialValuesForScheduledMaintenance).length > 0
+                }
+                createInitialValues={initialValuesForScheduledMaintenance}
                 isViewable={false}
                 query={{
                     scheduledMaintenanceId: modelId,
@@ -93,6 +186,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 }}
                 cardProps={{
                     title: 'Public Notes',
+                    buttons: [
+                        {
+                            title: 'Create from Template',
+                            icon: IconProp.Template,
+                            buttonStyle: ButtonStyleType.OUTLINE,
+                            onClick: async (): Promise<void> => {
+                                setShowScheduledMaintenanceNoteTemplateModal(
+                                    true
+                                );
+                                await fetchScheduledMaintenanceNoteTemplates();
+                            },
+                        },
+                    ],
                     description:
                         'Here are public notes for this scheduled maintenance. This will show up on the status page.',
                 }}
@@ -172,6 +278,82 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
+
+            {scheduledMaintenanceNoteTemplates.length === 0 &&
+            showScheduledMaintenanceNoteTemplateModal &&
+            !isLoading ? (
+                <ConfirmModal
+                    title={`No ScheduledMaintenance Note Templates`}
+                    description={`No scheduled maintenance note templates have been created yet. You can create these in Project Settings > Scheduled Maintenance > Note Templates.`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        return setShowScheduledMaintenanceNoteTemplateModal(
+                            false
+                        );
+                    }}
+                />
+            ) : (
+                <></>
+            )}
+
+            {error ? (
+                <ConfirmModal
+                    title={`Error`}
+                    description={`${error}`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        return setError('');
+                    }}
+                />
+            ) : (
+                <></>
+            )}
+
+            {showScheduledMaintenanceNoteTemplateModal &&
+            scheduledMaintenanceNoteTemplates.length > 0 ? (
+                <BasicFormModal<JSONObject>
+                    title="Create Note from Template"
+                    isLoading={isLoading}
+                    submitButtonText="Create from Template"
+                    onClose={() => {
+                        setShowScheduledMaintenanceNoteTemplateModal(false);
+                        setIsLoading(false);
+                    }}
+                    onSubmit={async (data: JSONObject) => {
+                        await fetchScheduledMaintenanceNoteTemplate(
+                            data[
+                                'scheduledMaintenanceNoteTemplateId'
+                            ] as ObjectID
+                        );
+                    }}
+                    formProps={{
+                        initialValues: {},
+                        fields: [
+                            {
+                                field: {
+                                    scheduledMaintenanceNoteTemplateId: true,
+                                },
+                                title: 'Select Note Template',
+                                description:
+                                    'Select a template to create a note from.',
+                                fieldType: FormFieldSchemaType.Dropdown,
+                                dropdownOptions:
+                                    DropdownUtil.getDropdownOptionsFromEntityArray(
+                                        {
+                                            array: scheduledMaintenanceNoteTemplates,
+                                            labelField: 'templateName',
+                                            valueField: '_id',
+                                        }
+                                    ),
+                                required: true,
+                                placeholder: 'Select Template',
+                            },
+                        ],
+                    }}
+                />
+            ) : (
+                <> </>
+            )}
         </ModelPage>
     );
 };

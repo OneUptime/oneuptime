@@ -102,6 +102,11 @@ enum Permission {
     CanEditIncidentNoteTemplate = 'CanEditIncidentNoteTemplate',
     CanReadIncidentNoteTemplate = 'CanReadIncidentNoteTemplate',
 
+    CanCreateScheduledMaintenanceNoteTemplate = 'CanCreateScheduledMaintenanceNoteTemplate',
+    CanDeleteScheduledMaintenanceNoteTemplate = 'CanDeleteScheduledMaintenanceNoteTemplate',
+    CanEditScheduledMaintenanceNoteTemplate = 'CanEditScheduledMaintenanceNoteTemplate',
+    CanReadScheduledMaintenanceNoteTemplate = 'CanReadScheduledMaintenanceNoteTemplate',
+
     CanCreateIncidentTemplateOwnerTeam = 'CanCreateIncidentTemplateOwnerTeam',
     CanDeleteIncidentTemplateOwnerTeam = 'CanDeleteIncidentTemplateOwnerTeam',
     CanEditIncidentTemplateOwnerTeam = 'CanEditIncidentTemplateOwnerTeam',
@@ -2114,6 +2119,41 @@ export class PermissionHelper {
                 title: 'Can Read Incident Note Template',
                 description:
                     'This permission can read Incident Note Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission:
+                    Permission.CanCreateScheduledMaintenanceNoteTemplate,
+                title: 'Can Create Scheduled Maintenance Note Template',
+                description:
+                    'This permission can create Scheduled Maintenance Note Template this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission:
+                    Permission.CanDeleteScheduledMaintenanceNoteTemplate,
+                title: 'Can Delete Scheduled Maintenance Note Template',
+                description:
+                    'This permission can delete Scheduled Maintenance Note Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceNoteTemplate,
+                title: 'Can Edit Scheduled Maintenance Note Template',
+                description:
+                    'This permission can edit Scheduled Maintenance Note Template of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceNoteTemplate,
+                title: 'Can Read Scheduled Maintenance Note Template',
+                description:
+                    'This permission can read Scheduled Maintenance Note Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
