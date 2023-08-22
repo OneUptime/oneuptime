@@ -5,7 +5,7 @@ import Email from 'Common/Types/Email';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';

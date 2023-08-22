@@ -16,7 +16,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableColumn from 'Common/Types/Database/TableColumn';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';

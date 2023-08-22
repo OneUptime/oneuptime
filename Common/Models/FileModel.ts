@@ -4,7 +4,7 @@ import ColumnLength from '../Types/Database/ColumnLength';
 import ColumnType from '../Types/Database/ColumnType';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import TableColumn from '../Types/Database/TableColumn';
-import TableColumnType from '../Types/Database/TableColumnType';
+import TableColumnType from '../Types/BaseDatabase/TableColumnType';
 import MimeType from '../Types/File/MimeType';
 import ObjectID from '../Types/ObjectID';
 import Permission from '../Types/Permission';

@@ -1,4 +1,4 @@
-import TableColumnType from './TableColumnType';
+import TableColumnType from '../BaseDatabase/TableColumnType';
 
 enum ColumnLength {
     Version = 30,

@@ -5,19 +5,23 @@ import Phone from '../Types/Phone';
 
 export default class Faker {
     public static generateName(): string {
-        return faker.name.firstName();
+        return faker.string.alphanumeric(10);
     }
 
     public static generateCompanyName(): string {
-        return faker.company.companyName();
+        return faker.company.name();
     }
 
-    public static random16Numbers(): string {
-        return faker.random.numeric(16);
+    public static randomNumbers(count: number): string {
+        const randomNumbers: Array<number> = [];
+        for (let i: number = 0; i < count; i++) {
+            randomNumbers.push(Math.floor(Math.random() * 10)); // You can adjust the range as needed
+        }
+        return randomNumbers.join('');
     }
 
     public static generateUserFullName(): Name {
-        return new Name(faker.name.firstName() + ' ' + faker.name.lastName());
+        return new Name(faker.person.fullName());
     }
 
     public static generateEmail(): Email {
@@ -25,6 +29,6 @@ export default class Faker {
     }
 
     public static generatePhone(): Phone {
-        return new Phone(faker.phone.phoneNumberFormat());
+        return new Phone(faker.phone.number('+1##########'));
     }
 }

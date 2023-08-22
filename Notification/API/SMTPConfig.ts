@@ -93,7 +93,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
             req,
             res,
             new BadDataException(
-                'Cannot send email. Please check your SMTP config.'
+                'Cannot send email. Please check your SMTP config. If you are using Google or Gmail, please dont since it does not support machine access to their mail servers. If you are still having issues, please uncheck SSL/TLS toggle and try again. We recommend using SendGrid or Mailgun or any large volume mail provider for SMTP.'
             )
         );
     }

@@ -110,6 +110,9 @@ import UserNotificationSettingService from './UserNotificationSettingService';
 import UserOnCallLogService from './UserOnCallLogService';
 import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
 import BaseService from './BaseService';
+// import LogService from './LogService';
+import AnalyticsDatabaseService from './AnalyticsDatabaseService';
+import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
 
 const services: Array<BaseService> = [
     // Import all services in current folder here.
@@ -215,6 +218,12 @@ const services: Array<BaseService> = [
     WorkflowLogService,
     WorkflowService,
     WorkflowVariablesService,
+];
+
+export const AnalyticsServices: Array<
+    AnalyticsDatabaseService<AnalyticsBaseModel>
+> = [
+    // LogService
 ];
 
 export default services;

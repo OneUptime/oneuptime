@@ -4,7 +4,7 @@ import OneUptimeDate from './Date';
 import BaseModel from '../Models/BaseModel';
 import { JSONArray, JSONObject, JSONValue, ObjectType } from './JSON';
 import { TableColumnMetadata } from '../Types/Database/TableColumn';
-import TableColumnType from '../Types/Database/TableColumnType';
+import TableColumnType from './BaseDatabase/TableColumnType';
 import SerializableObject from './SerializableObject';
 import SerializableObjectDictionary from './SerializableObjectDictionary';
 import JSON5 from 'json5';

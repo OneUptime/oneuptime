@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
 import Dictionary from '../Dictionary';
 import { ReflectionMetadataType } from '../Reflection';
-import TableColumnType from './TableColumnType';
+import TableColumnType from '../BaseDatabase/TableColumnType';
 
 const tableColumn: Symbol = Symbol('TableColumn');
 

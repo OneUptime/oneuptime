@@ -70,6 +70,8 @@ import './Jobs/UserOnCallLog/ExecutePendingExecutions';
 import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
 
 import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
+import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
 
 const APP_NAME: string = 'workers';
 
@@ -90,7 +92,14 @@ const init: () => Promise<void> = async (): Promise<void> => {
         // connect redis
         await Redis.connect();
 
+        await ClickhouseAppInstance.connect(
+            ClickhouseAppInstance.getDatasourceOptions()
+        );
+
         await RunDatabaseMigrations();
+
+        // create tables in analytics database
+        await AnalyticsTableManagement.createTables();
 
         // Job process.
         QueueWorker.getWorker(

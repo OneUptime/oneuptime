@@ -49,7 +49,7 @@ export const testDataSourceOptions: DataSourceOptions = {
     port: DatabasePort.toNumber(),
     username: DatabaseUsername,
     password: DatabasePassword,
-    database: DatabaseName + Faker.random16Numbers(),
+    database: DatabaseName + Faker.randomNumbers(16),
     entities: Entities,
     synchronize:
         Env === AppEnvironment.Test || Env === AppEnvironment.Development,

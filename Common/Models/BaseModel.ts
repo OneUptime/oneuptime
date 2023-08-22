@@ -21,7 +21,7 @@ import Email from '../Types/Email';
 import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
-import TableColumnType from '../Types/Database/TableColumnType';
+import TableColumnType from '../Types/BaseDatabase/TableColumnType';
 import Permission, {
     instanceOfUserTenantAccessPermission,
     PermissionHelper,

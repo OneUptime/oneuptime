@@ -207,3 +207,20 @@ export const DashboardUrl: URL = new URL(HttpProtocol, Domain, DashboardRoute);
 
 export const DisableAutomaticIncidentCreation: boolean =
     process.env['DISABLE_AUTOMATIC_INCIDENT_CREATION'] === 'true';
+
+export const ClickhouseHost: Hostname = Hostname.fromString(
+    process.env['CLICKHOUSE_HOST'] || 'clickhouse'
+);
+
+export const ClickhousePort: Port = new Port(
+    process.env['CLICKHOUSE_PORT'] || '8123'
+);
+
+export const ClickhouseUsername: string =
+    process.env['CLICKHOUSE_USER'] || 'default';
+
+export const ClickhousePassword: string =
+    process.env['CLICKHOUSE_PASSWORD'] || 'password';
+
+export const ClickhouseDatabase: string =
+    process.env['CLICKHOUSE_DATABASE'] || 'oneuptime';

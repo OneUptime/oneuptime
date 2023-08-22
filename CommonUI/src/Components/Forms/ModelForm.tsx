@@ -26,7 +26,7 @@ import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessC
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import FileModel from 'Common/Models/FileModel';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { ButtonStyleType } from '../Button/Button';

@@ -1,6 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ColumnLength from 'Common/Types/Database/ColumnLength';

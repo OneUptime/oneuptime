@@ -10,7 +10,7 @@ import User from './User';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import Permission from 'Common/Types/Permission';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
