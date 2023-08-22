@@ -422,6 +422,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/incident-note-templates/${RouteParams.ModelID}`
     ),
 
+    [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/scheduled-maintenance-note-templates`
+    ),
+
+    [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/scheduled-maintenance-note-templates/${RouteParams.ModelID}`
+    ),
+
     [PageMap.SETTINGS_BILLING]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/billing`
     ),
