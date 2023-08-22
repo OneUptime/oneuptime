@@ -275,7 +275,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             !isLoading ? (
                 <ConfirmModal
                     title={`No Incident Note Templates`}
-                    description={`No incident templates have been created yet. You can create these in Project Settings > Incident Note Templates.`}
+                    description={`No incident note templates have been created yet. You can create these in Project Settings > Incident > Note Templates.`}
                     submitButtonText={'Close'}
                     onSubmit={() => {
                         return setShowIncidentNoteTemplateModal(false);

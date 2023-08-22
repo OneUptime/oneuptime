@@ -55,23 +55,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         >
             {/* Incident View  */}
             <CardModelDetail
-                name="Incident Note Template Details"
+                name="Basic Details"
                 cardProps={{
-                    title: 'Incident Note Template Details',
+                    title: 'Basic Details',
                     description:
                         'Here are more details for this incident template.',
                 }}
                 isEditable={true}
-                formSteps={[
-                    {
-                        title: 'Template Info',
-                        id: 'template-info',
-                    },
-                    {
-                        title: 'Note Details',
-                        id: 'note-details',
-                    },
-                ]}
+                editButtonText="Edit Details"
                 formFields={[
                     {
                         field: {
@@ -79,7 +70,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Template Name',
                         fieldType: FormFieldSchemaType.Text,
-                        stepId: 'template-info',
                         required: true,
                         placeholder: 'Template Name',
                         validation: {
@@ -92,21 +82,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Template Description',
                         fieldType: FormFieldSchemaType.Text,
-                        stepId: 'template-info',
                         required: true,
                         placeholder: 'Template Description',
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                    {
-                        field: {
-                            note: true,
-                        },
-                        title: 'Note',
-                        fieldType: FormFieldSchemaType.Markdown,
-                        stepId: 'note-details',
-                        required: true,
                         validation: {
                             minLength: 2,
                         },
@@ -145,6 +122,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
 
             <CardModelDetail
                 name="Note Template"
+                editButtonText="Edit Note Template"
                 cardProps={{
                     title: 'Note Template',
                     description: 'Here is the note template.',
@@ -157,7 +135,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Note',
                         fieldType: FormFieldSchemaType.Markdown,
-                        stepId: 'note-details',
                         required: true,
                         validation: {
                             minLength: 2,

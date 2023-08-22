@@ -156,7 +156,8 @@ export default class IncidentNoteTemplate extends BaseModel {
     @TableColumn({
         type: TableColumnType.Markdown,
         title: 'Note',
-        description: 'Notes in markdown',
+        description:
+            'Note template for public or private notes. This is in markdown.',
     })
     @Column({
         type: ColumnType.Markdown,

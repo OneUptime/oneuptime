@@ -50,7 +50,7 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
-                    title: 'Puiblic or Private Note Templates for Incidents',
+                    title: 'Public or Private Note Templates for Incidents',
                     description:
                         'Here is a list of all the public and private note templates for incidents.',
                 }}
@@ -100,7 +100,7 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        title: 'Title',
+                        title: 'Public or Private note template.',
                         fieldType: FormFieldSchemaType.Markdown,
                         stepId: 'note-details',
                         required: true,

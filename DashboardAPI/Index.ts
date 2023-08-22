@@ -36,6 +36,11 @@ import IncidentTemplateService, {
     Service as IncidentTemplateServiceType,
 } from 'CommonServer/Services/IncidentTemplateService';
 
+import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
+import IncidentNoteTemplateService, {
+    Service as IncidentNoteTemplateServiceType,
+} from 'CommonServer/Services/IncidentNoteTemplateService';
+
 import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
 import IncidentTemplateOwnerTeamService, {
     Service as IncidentTemplateOwnerTeamServiceType,
@@ -619,6 +624,14 @@ app.use(
     new BaseAPI<IncidentTemplate, IncidentTemplateServiceType>(
         IncidentTemplate,
         IncidentTemplateService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
+        IncidentNoteTemplate,
+        IncidentNoteTemplateService
     ).getRouter()
 );
 
