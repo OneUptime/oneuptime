@@ -38,7 +38,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
                                     {props.footer.title}
                                 </span>
                             </span>
-                            <span className="mt-1 block text-sm text-gray-500">
+                            <span className="mt-1 block text-sm text-gray-500 text-left">
                                 {props.footer.description}
                             </span>
                         </Link>

@@ -631,13 +631,13 @@ export default class IncidentTemplate extends BaseModel {
     @Index()
     @TableColumn({
         type: TableColumnType.ObjectID,
-        required: true,
+        required: false,
         title: 'Incident Severity ID',
         description: 'Incident Severity ID',
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public incidentSeverityId?: ObjectID = undefined;
