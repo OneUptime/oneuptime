@@ -110,7 +110,7 @@ import UserNotificationSettingService from './UserNotificationSettingService';
 import UserOnCallLogService from './UserOnCallLogService';
 import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
 import BaseService from './BaseService';
-import LogService from './LogService';
+// import LogService from './LogService';
 import AnalyticsDatabaseService from './AnalyticsDatabaseService';
 import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
 
@@ -222,6 +222,8 @@ const services: Array<BaseService> = [
 
 export const AnalyticsServices: Array<
     AnalyticsDatabaseService<AnalyticsBaseModel>
-> = [LogService];
+> = [
+    // LogService
+];
 
 export default services;
