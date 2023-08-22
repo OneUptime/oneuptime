@@ -27,6 +27,9 @@ services:
             service: redis
 
     clickhouse:
+        ports: 
+            - '9034:9000'
+            - '8189:8123'
         extends:
             file: ./docker-compose.base.yml
             service: clickhouse

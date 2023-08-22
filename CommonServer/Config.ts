@@ -217,7 +217,7 @@ export const ClickhousePort: Port = new Port(
 );
 
 export const ClickhouseUsername: string =
-    process.env['CLICKHOUSE_USERNAME'] || 'default';
+    process.env['CLICKHOUSE_USER'] || 'default';
 
 export const ClickhousePassword: string =
     process.env['CLICKHOUSE_PASSWORD'] || 'password';

@@ -36,7 +36,6 @@ export default class ClickhouseDatabase {
         let retry: number = 0;
 
         try {
-
             const connectToDatabase: Function =
                 async (): Promise<ClickhouseClient> => {
                     try {
@@ -46,11 +45,15 @@ export default class ClickhouseDatabase {
 
                         const result = await clickhouseClient.ping();
 
-                        if(result.success === false){
-                            throw new DatabaseNotConnectedException("Clickhouse Database is not connected")
+                        if (result.success === false) {
+                            throw new DatabaseNotConnectedException(
+                                'Clickhouse Database is not connected'
+                            );
                         }
 
-                        logger.info(`Clickhouse Database Connected: ${dataSourceOptions.host?.toString()}`);
+                        logger.info(
+                            `Clickhouse Database Connected: ${dataSourceOptions.host?.toString()}`
+                        );
 
                         return clickhouseClient;
                     } catch (err) {

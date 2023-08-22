@@ -1,7 +1,7 @@
-import AnalyticsBaseModel from "Common/Models/AnalyticsBaseModel";
-import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import TableColumnType from "Common/Types/BaseDatabase/TableColumnType";
-import AnalyticsTableEngine from "Common/Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
+import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
+import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
+import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 
 export default class Log extends AnalyticsBaseModel {
     public constructor() {
@@ -31,9 +31,7 @@ export default class Log extends AnalyticsBaseModel {
                     type: TableColumnType.VeryLongText,
                 }),
             ],
-            primaryKeys: [
-                'projectId', 'logContainerId', 'createdAt'
-            ]
-        })
+            primaryKeys: ['projectId', 'logContainerId', 'createdAt'],
+        });
     }
 }

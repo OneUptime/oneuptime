@@ -220,8 +220,8 @@ const services: Array<BaseService> = [
     WorkflowVariablesService,
 ];
 
-export const AnalyticsServices: Array<AnalyticsDatabaseService<AnalyticsBaseModel>> = [
-    LogService
-]
+export const AnalyticsServices: Array<
+    AnalyticsDatabaseService<AnalyticsBaseModel>
+> = [LogService];
 
 export default services;

@@ -223,7 +223,4 @@ export default [
     IncidentTemplateOwnerUser,
 ];
 
-
-export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [
-    Log
-]; 
+export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];

@@ -20,24 +20,21 @@ export default class AnalyticsDataModel {
         this._tableName = v;
     }
 
-    
-    private _tableEngine : AnalyticsTableEngine = AnalyticsTableEngine.MergeTree;
-    public get tableEngine() : AnalyticsTableEngine {
+    private _tableEngine: AnalyticsTableEngine = AnalyticsTableEngine.MergeTree;
+    public get tableEngine(): AnalyticsTableEngine {
         return this._tableEngine;
     }
-    public set tableEngine(v : AnalyticsTableEngine) {
+    public set tableEngine(v: AnalyticsTableEngine) {
         this._tableEngine = v;
     }
 
-    
-    private _primaryKeys : Array<string> = [];
-    public get primaryKeys() : Array<string> {
+    private _primaryKeys: Array<string> = [];
+    public get primaryKeys(): Array<string> {
         return this._primaryKeys;
     }
-    public set primaryKeys(v : Array<string>) {
+    public set primaryKeys(v: Array<string>) {
         this._primaryKeys = v;
     }
-    
 
     public constructor(data: {
         tableName: string;
@@ -45,13 +42,12 @@ export default class AnalyticsDataModel {
         tableColumns: Array<AnalyticsTableColumn>;
         primaryKeys: Array<string>; // this should be the subset of tableColumns
     }) {
-
-        let columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
+        const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
         this.tableName = data.tableName;
 
-        if(data.tableEngine){
-            this.tableEngine = data.tableEngine;    
+        if (data.tableEngine) {
+            this.tableEngine = data.tableEngine;
         }
 
         columns.push(
@@ -84,8 +80,8 @@ export default class AnalyticsDataModel {
             })
         );
 
-        if(!data.primaryKeys || data.primaryKeys.length === 0){
-            throw new BadDataException("Primary keys are required");
+        if (!data.primaryKeys || data.primaryKeys.length === 0) {
+            throw new BadDataException('Primary keys are required');
         }
 
         // check if primary keys are subset of tableColumns
@@ -93,13 +89,18 @@ export default class AnalyticsDataModel {
         console.log(columns);
 
         data.primaryKeys.forEach((primaryKey) => {
-            if(!columns.find((column) => column.key === primaryKey)){
-                throw new BadDataException("Primary key "+primaryKey+" is not part of tableColumns");
+            if (
+                !columns.find((column) => {
+                    return column.key === primaryKey;
+                })
+            ) {
+                throw new BadDataException(
+                    'Primary key ' + primaryKey + ' is not part of tableColumns'
+                );
             }
         });
 
         this.primaryKeys = data.primaryKeys;
         this.tableColumns = columns;
-        
     }
 }

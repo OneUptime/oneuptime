@@ -97,7 +97,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
         );
 
         await RunDatabaseMigrations();
-        
+
         // create tables in analytics database
         await AnalyticsTableManagement.createTables();
 

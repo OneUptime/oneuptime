@@ -1,5 +1,5 @@
 enum AnalyticsTableEngine {
-    MergeTree = 'MergeTree'
+    MergeTree = 'MergeTree',
 }
 
 export default AnalyticsTableEngine;
