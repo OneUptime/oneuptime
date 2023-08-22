@@ -32,7 +32,6 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -48,7 +47,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
     const [initialValuesForIncident, setInitialValuesForIncident] =
         useState<JSONObject>({});
 
-
     const fetchIncidentNoteTemplate: (id: ObjectID) => Promise<void> = async (
         id: ObjectID
     ): Promise<void> => {
@@ -59,12 +57,13 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             //fetch incident template
 
             const incidentNoteTemplate: IncidentNoteTemplate | null =
-                await ModelAPI.getItem<IncidentNoteTemplate>(IncidentNoteTemplate, id, {
-                    note: true,
-
-                });
-
-
+                await ModelAPI.getItem<IncidentNoteTemplate>(
+                    IncidentNoteTemplate,
+                    id,
+                    {
+                        note: true,
+                    }
+                );
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
@@ -72,7 +71,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         incidentNoteTemplate,
                         IncidentNoteTemplate
                     ),
-
                 };
 
                 setInitialValuesForIncident(initialValue);
@@ -272,11 +270,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-
-
             {incidentNoteTemplates.length === 0 &&
-                showIncidentNoteTemplateModal &&
-                !isLoading ? (
+            showIncidentNoteTemplateModal &&
+            !isLoading ? (
                 <ConfirmModal
                     title={`No Incident Note Templates`}
                     description={`No incident templates have been created yet. You can create these in Project Settings > Incident Note Templates.`}
@@ -285,7 +281,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         return setShowIncidentNoteTemplateModal(false);
                     }}
                 />
-            ) : <></>}
+            ) : (
+                <></>
+            )}
 
             {error ? (
                 <ConfirmModal
@@ -296,9 +294,12 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         return setError('');
                     }}
                 />
-            ) : <></>}
+            ) : (
+                <></>
+            )}
 
-            {showIncidentNoteTemplateModal && incidentNoteTemplates.length > 0 ? (
+            {showIncidentNoteTemplateModal &&
+            incidentNoteTemplates.length > 0 ? (
                 <BasicFormModal<JSONObject>
                     title="Create Note from Template"
                     isLoading={isLoading}
@@ -340,7 +341,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             ) : (
                 <> </>
             )}
-
         </ModelPage>
     );
 };
