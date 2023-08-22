@@ -86,11 +86,9 @@ export default class AnalyticsDataModel {
 
         // check if primary keys are subset of tableColumns
 
-        console.log(columns);
-
-        data.primaryKeys.forEach((primaryKey) => {
+        data.primaryKeys.forEach((primaryKey: string) => {
             if (
-                !columns.find((column) => {
+                !columns.find((column: AnalyticsTableColumn) => {
                     return column.key === primaryKey;
                 })
             ) {

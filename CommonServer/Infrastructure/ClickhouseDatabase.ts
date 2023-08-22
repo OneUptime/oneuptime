@@ -5,7 +5,7 @@ import {
     ClickHouseClientConfigOptions,
 } from './ClickhouseConfig';
 import Sleep from 'Common/Types/Sleep';
-import { ClickHouseClient, createClient } from '@clickhouse/client';
+import { ClickHouseClient, PingResult, createClient } from '@clickhouse/client';
 import Stream from 'stream';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 
@@ -43,7 +43,8 @@ export default class ClickhouseDatabase {
                             createClient(dataSourceOptions);
                         this.dataSource = clickhouseClient;
 
-                        const result = await clickhouseClient.ping();
+                        const result: PingResult =
+                            await clickhouseClient.ping();
 
                         if (result.success === false) {
                             throw new DatabaseNotConnectedException(

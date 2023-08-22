@@ -7,6 +7,7 @@ import BaseService from './BaseService';
 import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import logger from '../Utils/Logger';
+import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 // import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
 
 export default class AnalyticsDatabaseService<
@@ -45,7 +46,7 @@ export default class AnalyticsDatabaseService<
         ENGINE = ${this.model.tableEngine}
         PRIMARY KEY (
             ${this.model.primaryKeys
-                .map(key => {
+                .map((key: string) => {
                     return key;
                 })
                 .join(', ')}
@@ -170,7 +171,7 @@ export default class AnalyticsDatabaseService<
     public toColumnsCreateStatement(): string {
         let columns: string = '';
 
-        this.model.tableColumns.forEach((column) => {
+        this.model.tableColumns.forEach((column: AnalyticsTableColumn) => {
             columns += `${column.key} ${this.toColumnType(column.type)} ${
                 column.required ? 'NOT NULL' : ' NULL'
             },\n`;
