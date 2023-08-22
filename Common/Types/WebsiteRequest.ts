@@ -40,19 +40,17 @@ export default class WebsiteRequest {
         let response: AxiosResponse | null = null;
 
         try {
-            response = await axios(
-                url.toString(),
-                axiosOptions
-            );
+            response = await axios(url.toString(), axiosOptions);
         } catch (err: unknown) {
-            if (err && Object.keys(err).includes('code') && (err as any)['code'] === 'HPE_INVALID_CONSTANT' ) {
-                response = await axios(
-                    url.toString(),
-                    {
-                        ...axiosOptions,
-                        method: HTTPMethod.GET,
-                    }
-                );
+            if (
+                err &&
+                Object.keys(err).includes('code') &&
+                (err as any)['code'] === 'HPE_INVALID_CONSTANT'
+            ) {
+                response = await axios(url.toString(), {
+                    ...axiosOptions,
+                    method: HTTPMethod.GET,
+                });
             } else {
                 throw err;
             }
