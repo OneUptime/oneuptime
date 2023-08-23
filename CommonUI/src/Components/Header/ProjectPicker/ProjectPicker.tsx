@@ -82,7 +82,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                                                 project.name &&
                                                 project.name
                                                     .toLowerCase()
-                                                    .includes(filterValue)
+                                                    .startsWith(filterValue)
                                             );
                                         })
                                         .map((project: Project, i: number) => {
