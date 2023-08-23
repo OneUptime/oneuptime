@@ -68,7 +68,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                     {isComponentVisible && (
                         <ProjectPickerMenu
                             onFilter={(value: string) => {
-                                setFilterValue(value.trim());
+                                setFilterValue(value.toLowerCase().trim());
                             }}
                         >
                             <>
