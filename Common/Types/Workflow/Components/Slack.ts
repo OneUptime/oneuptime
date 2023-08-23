@@ -27,10 +27,11 @@ const components: Array<ComponentMetadata> = [
             {
                 id: 'text',
                 name: 'Message Text',
-                description: 'Message to send to Slack.',
-                type: ComponentInputType.LongText,
+                description: 'Message to send to Slack. ',
+                type: ComponentInputType.Markdown,
                 required: true,
-                placeholder: 'Test slack message from OneUptime',
+                placeholder:
+                    'Guide for message formatting: https://api.slack.com/reference/surfaces/formatting',
             },
         ],
         returnValues: [

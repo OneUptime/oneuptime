@@ -73,8 +73,17 @@ export default class SendMessageToChannel extends ComponentCode {
             null;
 
         try {
+            // https://api.slack.com/messaging/webhooks#advanced_message_formatting
             apiResult = await API.post(args['webhook-url'] as URL, {
-                text: `${args['text']}`,
+                blocks: [
+                    {
+                        type: 'section',
+                        text: {
+                            type: 'mrkdwn',
+                            text: `${args['text']}`,
+                        },
+                    },
+                ],
             });
 
             if (apiResult instanceof HTTPErrorResponse) {
