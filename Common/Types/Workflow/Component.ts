@@ -25,6 +25,7 @@ export enum ComponentInputType {
     LongText = 'Long Text',
     HTML = 'HTML',
     Operator = 'Operator',
+    Markdown = 'Markdown',
 }
 
 export enum ComponentType {

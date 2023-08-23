@@ -68,6 +68,12 @@ export const componentInputTypeToFormFieldType: Function = (
         };
     }
 
+    if (componentInputType === ComponentInputType.Markdown) {
+        return {
+            fieldType: FormFieldSchemaType.Markdown,
+        };
+    }
+
     if (componentInputType === ComponentInputType.JavaScript) {
         return {
             fieldType: FormFieldSchemaType.JavaScript,

@@ -28,9 +28,9 @@ const components: Array<ComponentMetadata> = [
                 id: 'text',
                 name: 'Message Text',
                 description: 'Message to send to Slack.',
-                type: ComponentInputType.LongText,
+                type: ComponentInputType.Markdown,
                 required: true,
-                placeholder: 'Test slack message from OneUptime',
+                placeholder: 'Slack Message',
             },
         ],
         returnValues: [
