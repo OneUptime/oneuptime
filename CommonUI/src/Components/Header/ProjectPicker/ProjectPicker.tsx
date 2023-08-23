@@ -32,6 +32,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         setDropdownVisible(isComponentVisible);
+        setFilterValue('');
     }, [isComponentVisible]);
 
     return (
