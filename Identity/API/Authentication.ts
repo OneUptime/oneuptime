@@ -63,6 +63,10 @@ router.post(
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
                 partialUser.isMasterAdmin = false;
                 partialUser.isEmailVerified = false;
+            } else {
+                // IF its not a saas service then we will make the email verified.
+                partialUser.isMasterAdmin = false;
+                partialUser.isEmailVerified = true;
             }
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
