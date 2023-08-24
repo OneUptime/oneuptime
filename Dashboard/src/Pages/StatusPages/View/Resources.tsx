@@ -127,6 +127,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={
                     'No status page resources created for this status page.'
                 }
+                formSteps={[
+                    {
+                        title: 'Monitor Details',
+                        id: 'monitor-details',
+                    },
+                    {
+                        title: 'Advanced',
+                        id: 'advanced',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
@@ -143,6 +153,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         required: true,
                         placeholder: 'Select Monitor',
+                        stepId: 'monitor-details',
                     },
                     {
                         field: {
@@ -154,6 +165,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Display Name',
+                        stepId: 'monitor-details',
                     },
                     {
                         field: {
@@ -163,6 +175,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Markdown,
                         required: false,
                         placeholder: '',
+                        stepId: 'monitor-details',
                     },
                     {
                         field: {
@@ -174,6 +187,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'This will show up as tooltip beside the resource on your status page.',
                         placeholder: 'Tooltip',
+                        stepId: 'advanced',
                     },
                     {
                         field: {
@@ -185,6 +199,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         defaultValue: true,
                         description:
                             'Current Resource Status will be shown beside this resource on your status page.',
+                        stepId: 'advanced',
                     },
                     {
                         field: {
@@ -196,6 +211,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'Show resource status history for the past 90 days. ',
                         defaultValue: true,
+                        stepId: 'advanced',
                     },
                 ]}
                 showRefreshButton={true}
