@@ -115,6 +115,24 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     }}
                     noItemsMessage={'No SSO configuration found.'}
                     viewPageRoute={Navigation.getCurrentRoute()}
+                    formSteps={[
+                        {
+                            title: 'Baisc Info',
+                            id: 'basic',
+                        },
+                        {
+                            title: 'Sign On',
+                            id: 'sign-on',
+                        },
+                        {
+                            title: 'Certificate',
+                            id: 'certificate',
+                        },
+                        {
+                            title: 'More',
+                            id: 'more',
+                        },
+                    ]}
                     formFields={[
                         {
                             field: {
@@ -125,6 +143,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             required: true,
                             description: 'Friendly name to help you remember.',
                             placeholder: 'Okta',
+                            stepId: 'basic',
                             validation: {
                                 minLength: 2,
                             },
@@ -136,6 +155,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             title: 'Description',
                             fieldType: FormFieldSchemaType.LongText,
                             required: true,
+                            stepId: 'basic',
                             description:
                                 'Friendly description to help you remember.',
                             placeholder: 'Sign in with Okta',
@@ -154,6 +174,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 'Members will be forwarded here when signing in to your organization',
                             placeholder:
                                 'https://yourapp.example.com/apps/appId',
+                            stepId: 'sign-on',
                         },
                         {
                             field: {
@@ -165,6 +186,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             fieldType: FormFieldSchemaType.URL,
                             required: true,
                             placeholder: 'https://example.com',
+                            stepId: 'sign-on',
                         },
                         {
                             field: {
@@ -175,6 +197,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             fieldType: FormFieldSchemaType.LongText,
                             required: true,
                             placeholder: 'Paste in your x509 certificate here.',
+                            stepId: 'certificate',
                         },
                         {
                             field: {
@@ -190,6 +213,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 ),
                             required: true,
                             placeholder: 'RSA-SHA256',
+                            stepId: 'certificate',
                         },
                         {
                             field: {
@@ -205,6 +229,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 ),
                             required: true,
                             placeholder: 'SHA256',
+                            stepId: 'certificate',
                         },
                         {
                             field: {
@@ -214,6 +239,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 'You can test this first, before enabling it. To test, please save the config.',
                             title: 'Enabled',
                             fieldType: FormFieldSchemaType.Toggle,
+                            stepId: 'more',
                         },
                     ]}
                     showRefreshButton={true}

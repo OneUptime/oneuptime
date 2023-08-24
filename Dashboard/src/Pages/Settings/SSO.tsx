@@ -82,6 +82,24 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         description:
                             'Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.',
                     }}
+                    formSteps={[
+                        {
+                            title: 'Baisc Info',
+                            id: 'basic',
+                        },
+                        {
+                            title: 'Sign On',
+                            id: 'sign-on',
+                        },
+                        {
+                            title: 'Certificate',
+                            id: 'certificate',
+                        },
+                        {
+                            title: 'More',
+                            id: 'more',
+                        },
+                    ]}
                     noItemsMessage={'No SSO configuration found.'}
                     viewPageRoute={Navigation.getCurrentRoute()}
                     formFields={[
@@ -97,6 +115,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             validation: {
                                 minLength: 2,
                             },
+                            stepId: 'basic',
                         },
                         {
                             field: {
@@ -111,6 +130,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             validation: {
                                 minLength: 2,
                             },
+                            stepId: 'basic',
                         },
                         {
                             field: {
@@ -123,6 +143,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 'Members will be forwarded here when signing in to your organization',
                             placeholder:
                                 'https://yourapp.example.com/apps/appId',
+                            stepId: 'sign-on',
                         },
                         {
                             field: {
@@ -134,6 +155,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             fieldType: FormFieldSchemaType.URL,
                             required: true,
                             placeholder: 'https://example.com',
+                            stepId: 'sign-on',
                         },
                         {
                             field: {
@@ -144,6 +166,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             fieldType: FormFieldSchemaType.LongText,
                             required: true,
                             placeholder: 'Paste in your x509 certificate here.',
+                            stepId: 'certificate',
                         },
                         {
                             field: {
@@ -159,6 +182,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 ),
                             required: true,
                             placeholder: 'RSA-SHA256',
+                            stepId: 'certificate',
                         },
                         {
                             field: {
@@ -174,6 +198,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 ),
                             required: true,
                             placeholder: 'SHA256',
+                            stepId: 'certificate',
                         },
                         {
                             field: {
@@ -183,6 +208,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 'You can test this first, before enabling it. To test, please save the config.',
                             title: 'Enabled',
                             fieldType: FormFieldSchemaType.Toggle,
+                            stepId: 'more',
                         },
                         {
                             field: {
@@ -199,6 +225,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             required: true,
                             placeholder: 'Select Teams',
+                            stepId: 'more',
                         },
                     ]}
                     showRefreshButton={true}
