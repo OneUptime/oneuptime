@@ -261,7 +261,12 @@ export default class MonitorProbe extends AccessControlModel {
     public monitorId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorProbe,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -280,7 +285,12 @@ export default class MonitorProbe extends AccessControlModel {
     public lastPingAt?: Date = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorProbe,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

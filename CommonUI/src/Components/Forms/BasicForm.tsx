@@ -305,7 +305,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         if ((values as any)[fieldName]) {
                             (values as any)[fieldName] = (
                                 (values as any)[fieldName] as string
-                            ).toString().toLowerCase();
+                            )
+                                .toString()
+                                .toLowerCase();
                         }
                     }
 
