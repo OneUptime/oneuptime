@@ -420,6 +420,10 @@ export default class RunWorkflow {
         };
 
         for (const argument of component.metadata.arguments) {
+            if (!component.arguments) {
+                component.arguments = {};
+            }
+
             if (!component.arguments[argument.id]) {
                 continue;
             }

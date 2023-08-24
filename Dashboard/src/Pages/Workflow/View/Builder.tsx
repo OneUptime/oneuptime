@@ -300,9 +300,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     openInNewTab={true}
                     title="Need help with building workflows?"
                     description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
-                    link={URL.fromString(
-                        'https://www.youtube.com/watch?v=VX3TwFrpvyI'
-                    )}
+                    link={URL.fromString('https://youtu.be/k1-reCQTZnM')}
                 />
                 <Card
                     title={'Workflow Builder'}

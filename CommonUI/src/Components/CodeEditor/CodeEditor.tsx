@@ -33,9 +33,6 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [placeholder, setPlaceholder] = useState<string>('');
     const [helpText, setHelpText] = useState<string>('');
 
-    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
-        useState<boolean>(false);
-
     useEffect(() => {
         setValue(props.value || '');
     }, [props.value]);
@@ -81,10 +78,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [value, setValue] = useState<string>('');
 
     useEffect(() => {
-        if (props.initialValue && !isInitialValuesInitialized) {
-            setValue(props.initialValue);
-            setIsInitialValuesInitialized(true);
-        }
+        setValue(props.initialValue || '');
     }, [props.initialValue]);
 
     return (
