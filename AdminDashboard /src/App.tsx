@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import Route from 'Common/Types/API/Route';
+import React from 'react';
 import {
     Routes,
     Route as PageRoute,
@@ -11,6 +10,10 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
 import URL from 'Common/Types/API/URL';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
+import MasterPage from './Components/MasterPage/MasterPage';
+import RouteMap from './Utils/RouteMap';
+import PageMap from './Utils/PageMap';
+import Init from './Pages/Init/Init';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -30,11 +33,15 @@ const App: () => JSX.Element = () => {
         }
     }
 
-   
-
-
     return (
-       <></>
+        <MasterPage>
+            <Routes>
+                <PageRoute
+                    path={RouteMap[PageMap.INIT]?.toString() || ''}
+                    element={<Init />}
+                />
+            </Routes>
+        </MasterPage>
     );
 };
 
