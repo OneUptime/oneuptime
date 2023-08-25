@@ -166,3 +166,6 @@ export const StatusPageCNameRecord: string =
 
 export const AnalyticsKey: string = env('ANALYTICS_KEY') || '';
 export const AnalyticsHost: string = env('ANALYTICS_HOST');
+
+export const GitSha: string = env('GIT_SHA') || '';
+export const AppVersion: string = env('APP_VERSION') || '';

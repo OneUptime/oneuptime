@@ -116,8 +116,6 @@ export const DashboardHostname: Hostname = Hostname.fromString(
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
 
-export const Version: string = process.env['npm_package_version'] || '1.0.0';
-
 export const HttpProtocol: Protocol = (
     process.env['HTTP_PROTOCOL'] || 'https'
 ).includes('https')
@@ -224,3 +222,8 @@ export const ClickhousePassword: string =
 
 export const ClickhouseDatabase: string =
     process.env['CLICKHOUSE_DATABASE'] || 'oneuptime';
+
+export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
+
+export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
+

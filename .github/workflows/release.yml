@@ -95,6 +95,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   test-server-docker-image-deploy:
     needs: generate-build-number
@@ -152,6 +155,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   workflow-docker-image-deploy:
     needs: generate-build-number
@@ -209,6 +215,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   link-shortener-docker-image-deploy:
     needs: generate-build-number
@@ -266,6 +275,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   workers-docker-image-deploy:
     needs: generate-build-number
@@ -323,6 +335,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   status-page-docker-image-deploy:
     needs: generate-build-number
@@ -380,6 +395,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   realtime-docker-image-deploy:
     needs: generate-build-number
@@ -437,6 +455,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   probe-api-docker-image-deploy:
     needs: generate-build-number
@@ -494,6 +515,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   notification-docker-image-deploy:
     needs: generate-build-number
@@ -551,6 +575,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   licensing-docker-image-deploy:
     needs: generate-build-number
@@ -608,6 +635,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   integrations-docker-image-deploy:
     needs: generate-build-number
@@ -665,6 +695,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   probe-docker-image-deploy:
     needs: generate-build-number
@@ -722,6 +755,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   identity-docker-image-deploy:
     needs: generate-build-number
@@ -779,6 +815,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   home-docker-image-deploy:
     needs: generate-build-number
@@ -836,6 +875,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   helm-chart-docker-image-deploy:
     needs: generate-build-number
@@ -893,6 +935,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   haraka-docker-image-deploy:
     needs: generate-build-number
@@ -950,6 +995,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   file-docker-image-deploy:
     needs: generate-build-number
@@ -1007,6 +1055,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   dashboard-docker-image-deploy:
     needs: generate-build-number
@@ -1064,6 +1115,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   dashboard-api-docker-image-deploy:
     needs: generate-build-number
@@ -1121,6 +1175,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   api-reference-docker-image-deploy:
     needs: generate-build-number
@@ -1178,6 +1235,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   accounts-docker-image-deploy:
     needs: generate-build-number
@@ -1235,3 +1295,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
