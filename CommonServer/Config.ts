@@ -226,4 +226,3 @@ export const ClickhouseDatabase: string =
 export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
-

@@ -2,6 +2,12 @@ FROM nginx:1.25.1-alpine
 
 USER root
 
+ARG GIT_SHA
+ARG APP_VERSION
+
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 

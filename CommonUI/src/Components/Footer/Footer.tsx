@@ -1,10 +1,18 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Link from 'Common/Types/Link';
 import UILink from '../Link/Link';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+
+export interface FooterLink {
+    onClick?: (() => void) | undefined;
+    openInNewTab?: boolean | undefined;
+    to?: Route | URL | undefined;
+    title: string;
+}
 
 export interface ComponentProps {
     copyright?: string | undefined;
-    links: Array<Link>;
+    links: Array<FooterLink>;
     style?: React.CSSProperties | undefined;
     className?: string | undefined;
 }
@@ -24,13 +32,14 @@ const Footer: FunctionComponent<ComponentProps> = (
                     <div className="flex justify-center space-x-6 md:order-2">
                         {props.links &&
                             props.links.length > 0 &&
-                            props.links.map((link: Link, i: number) => {
+                            props.links.map((link: FooterLink, i: number) => {
                                 return (
                                     <UILink
                                         key={i}
                                         className="text-gray-400 hover:text-gray-500"
                                         to={link.to}
                                         openInNewTab={link.openInNewTab}
+                                        onClick={link.onClick}
                                     >
                                         {link.title}
                                     </UILink>
