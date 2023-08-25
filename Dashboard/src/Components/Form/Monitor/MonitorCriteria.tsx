@@ -90,8 +90,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                         MonitorCriteria.fromJSON({
                                             _type: 'MonitorCriteria',
                                             value: {
-                                                monitorCriteriaInstanceArray:
-                                                    [...newMonitorCriterias],
+                                                monitorCriteriaInstanceArray: [
+                                                    ...newMonitorCriterias,
+                                                ],
                                             },
                                         })
                                     );
