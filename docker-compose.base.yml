@@ -19,6 +19,7 @@ x-common-ui-variables: &common-ui-variables
     REALTIME_ROUTE: ${REALTIME_ROUTE}
     NOTIFICATION_ROUTE: ${NOTIFICATION_ROUTE}
     DASHBOARD_ROUTE: ${DASHBOARD_ROUTE}
+    ADMIN_DASHBOARD_ROUTE: ${ADMIN_DASHBOARD_ROUTE}
     DASHBOARD_API_ROUTE: ${DASHBOARD_API_ROUTE}
     PROBE_API_ROUTE: ${PROBE_API_ROUTE}
     DATA_INGESTOR_ROUTE: ${DATA_INGESTOR_ROUTE}
@@ -61,6 +62,7 @@ x-common-server-variables: &common-server-variables
     REALTIME_HOSTNAME: ${REALTIME_HOSTNAME}
     NOTIFICATION_HOSTNAME: ${NOTIFICATION_HOSTNAME}
     DASHBOARD_HOSTNAME: ${DASHBOARD_HOSTNAME}
+    ADMIN_DASHBOARD_HOSTNAME: ${ADMIN_DASHBOARD_HOSTNAME}
     DASHBOARD_API_HOSTNAME: ${DASHBOARD_API_HOSTNAME}
     PROBE_API_HOSTNAME: ${DATA_INGESTOR_HOSTNAME}
     DATA_INGESTOR_HOSTNAME: ${DATA_INGESTOR_HOSTNAME}
@@ -76,6 +78,7 @@ x-common-server-variables: &common-server-variables
     REALTIME_ROUTE: ${REALTIME_ROUTE}
     NOTIFICATION_ROUTE: ${NOTIFICATION_ROUTE}
     DASHBOARD_ROUTE: ${DASHBOARD_ROUTE}
+    ADMIN_DASHBOARD_ROUTE: ${ADMIN_DASHBOARD_ROUTE}
     DASHBOARD_API_ROUTE: ${DASHBOARD_API_ROUTE}
     PROBE_API_ROUTE: ${PROBE_API_ROUTE}
     DATA_INGESTOR_ROUTE: ${DATA_INGESTOR_ROUTE}
@@ -201,6 +204,17 @@ services:
         depends_on:
             - identity
        
+
+    admin-dashboard:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-ui-variables
+            PORT: ${ADMIN_DASHBOARD_PORT}
+        depends_on:
+            - identity
+            - accounts
 
     dashboard:
         networks:

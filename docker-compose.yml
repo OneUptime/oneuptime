@@ -51,7 +51,11 @@ services:
             file: ./docker-compose.base.yml
             service: dashboard
         
-    
+    admin-dashboard:
+        image:  oneuptime/admin-dashboard:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: admin-dashboard
 
     status-page:
         image:  oneuptime/status-page:${APP_TAG}
