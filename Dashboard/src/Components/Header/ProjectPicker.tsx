@@ -116,7 +116,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     name: true,
                 },
                 validation: {
-                    minLength: 6,
+                    minLength: 4,
                 },
                 fieldType: FormFieldSchemaType.Text,
                 placeholder: 'My Project',
