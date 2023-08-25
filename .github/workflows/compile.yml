@@ -105,6 +105,22 @@ jobs:
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd DashboardAPI && npm install && npm run compile
+  
+
+  compile-admin-dashboard:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install --force
+      - run: cd AdminDashboard && npm install && npm run compile
 
   compile-dashboard:
     runs-on: ubuntu-latest

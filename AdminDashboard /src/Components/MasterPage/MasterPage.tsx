@@ -11,7 +11,6 @@ export interface ComponentProps {
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
         <MasterPage
             footer={<Footer />}
