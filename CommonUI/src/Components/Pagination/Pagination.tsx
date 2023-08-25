@@ -6,6 +6,8 @@ import React, {
 } from 'react';
 import BasicFormModal from '../FormModal/BasicFormModal';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
 
 export interface PaginationNavigationItem {
     pageNumber: number;
@@ -86,6 +88,18 @@ const Pagination: FunctionComponent<ComponentProps> = (
             </div>
             <div>
                 <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+                    <div className="my-2">
+                        <Button
+                            className="mx-2 my-2"
+                            buttonSize={ButtonSize.ExtraSmall}
+                            icon={IconProp.AdjustmentHorizontal}
+                            buttonStyle={ButtonStyleType.ICON_LIGHT}
+                            onClick={() => {
+                                setShowPaginationModel(true);
+                            }}
+                        />
+                    </div>
+
                     <ul className="py-3">
                         <li
                             onClick={() => {
@@ -146,7 +160,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     }}
                     submitButtonText={'Go to Page'}
                     onSubmit={(item: PaginationNavigationItem) => {
-                        if (props.onNavigateToPage && !isNextDisabled) {
+                        if (props.onNavigateToPage) {
                             props.onNavigateToPage(
                                 item.pageNumber,
                                 item.itemsOnPage

@@ -26,6 +26,7 @@ export enum ButtonSize {
     Normal = 'px-3 py-2',
     Small = 'px-2 py-1',
     Large = 'px-4 py-2',
+    ExtraSmall = 'px-0 py-0',
 }
 /* Defining the props that the component will take. */
 
