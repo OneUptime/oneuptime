@@ -34,6 +34,14 @@ const DashboardFooter: () => JSX.Element = () => {
                     name: 'Dashboard',
                     path: '/dashboard',
                 },
+                {
+                    name: 'Notification',
+                    path: '/notification',
+                },
+                {
+                    name: 'Identity Service',
+                    path: '/identity',
+                },
             ];
 
             for (const app of apps) {
