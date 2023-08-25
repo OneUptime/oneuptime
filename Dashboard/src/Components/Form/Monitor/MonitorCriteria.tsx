@@ -40,9 +40,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     return (
         <div className="mt-4">
             {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
-                (i: MonitorCriteriaInstance, index: number) => {
+                (i: MonitorCriteriaInstance) => {
                     return (
-                        <div className="mt-10 mb-10" key={index}>
+                        <div className="mt-10 mb-10" key={i.data?.id}>
                             <MonitorCriteriaInstanceElement
                                 monitorType={props.monitorType}
                                 monitorStatusDropdownOptions={
@@ -91,7 +91,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                             _type: 'MonitorCriteria',
                                             value: {
                                                 monitorCriteriaInstanceArray:
-                                                    newMonitorCriterias,
+                                                    [...newMonitorCriterias],
                                             },
                                         })
                                     );
