@@ -71,12 +71,13 @@ COPY ./AdminDashboard/package*.json /usr/src/app/
 RUN npm install  
 
 # Expose ports.
-#   - 3005:  AdminDashboard
-EXPOSE 3005
-
+#   - 3158:  AdminDashboard
+EXPOSE 3158
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+RUN mkdir /usr/src/app/dev-env
+RUN touch /usr/src/app/dev-env/.env
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
@@ -86,4 +87,3 @@ RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
-
