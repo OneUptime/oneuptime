@@ -28,31 +28,30 @@ export default class Response {
 
         const requestEndedAt: Date = new Date();
         const method: string = oneUptimeRequest.method;
-        const path = oneUptimeRequest.originalUrl.toString();
+        const path: string = oneUptimeRequest.originalUrl.toString();
 
         const log_line: JSONObject = {
+            'Request ID': `${oneUptimeRequest.id}`,
 
-            "Request ID": `${oneUptimeRequest.id
-                }`,
+            'Pod Name': `${process.env['POD_NAME'] || 'NONE'}`,
 
-            "Pod Name": `${process.env['POD_NAME'] || 'NONE'
-                }`,
+            'HTTP Method': `${method}`,
 
-            "HTTP Method": `${method}`,
+            Path: `${path.toString()}`,
 
-            "Path": `${path.toString()}`,
-
-            "Request Duration": `${(
+            'Request Duration': `${(
                 requestEndedAt.getTime() -
                 (oneUptimeRequest.requestStartedAt as Date).getTime()
             ).toString()}ms`,
 
-            "Response Status": `${oneUptimeResponse.statusCode}`,
+            'Response Status': `${oneUptimeResponse.statusCode}`,
 
-            "Host": `${oneUptimeRequest.hostname}`,
+            Host: `${oneUptimeRequest.hostname}`,
 
-            "Response body": responsebody || "Empty Response Body"
-        }
+            'Response body': `${
+                responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+            }`,
+        };
 
         if (oneUptimeResponse.statusCode > 299) {
             logger.error(log_line);
@@ -175,7 +174,7 @@ export default class Response {
         res: ExpressResponse,
         list: Array<BaseModel>,
         count: PositiveNumber,
-        modelType: { new(): BaseModel }
+        modelType: { new (): BaseModel }
     ): void {
         return this.sendJsonArrayResponse(
             req,
@@ -191,11 +190,11 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         item: BaseModel | null,
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         options?:
             | {
-                miscData?: JSONObject;
-            }
+                  miscData?: JSONObject;
+              }
             | undefined
     ): void {
         let response: JSONObject = {};
