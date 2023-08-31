@@ -30,7 +30,7 @@ export default class Response {
         const method: string = oneUptimeRequest.method;
         const path: string = oneUptimeRequest.originalUrl.toString();
 
-        const log_line: JSONObject = {
+        const logLine: JSONObject = {
             'Request ID': `${oneUptimeRequest.id}`,
 
             'Pod Name': `${process.env['POD_NAME'] || 'NONE'}`,
@@ -54,9 +54,9 @@ export default class Response {
         };
 
         if (oneUptimeResponse.statusCode > 299) {
-            logger.error(log_line);
+            logger.error(logLine);
         } else {
-            logger.info(log_line);
+            logger.info(logLine);
         }
     }
 
