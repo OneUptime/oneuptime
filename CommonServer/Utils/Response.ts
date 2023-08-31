@@ -37,7 +37,7 @@ export default class Response {
 
             'HTTP Method': `${method}`,
 
-            Path: `${path.toString()}`,
+            'Path': `${path.toString()}`,
 
             'Request Duration': `${(
                 requestEndedAt.getTime() -
@@ -46,7 +46,7 @@ export default class Response {
 
             'Response Status': `${oneUptimeResponse.statusCode}`,
 
-            Host: `${oneUptimeRequest.hostname}`,
+            'Host': `${oneUptimeRequest.hostname}`,
 
             'Response body': `${
                 responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
