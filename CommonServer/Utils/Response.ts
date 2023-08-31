@@ -28,27 +28,35 @@ export default class Response {
 
         const requestEndedAt: Date = new Date();
         const method: string = oneUptimeRequest.method;
-        const url: URL = URL.fromString(oneUptimeRequest.url);
+        const path: string = oneUptimeRequest.originalUrl.toString();
 
-        const header_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- POD NAME: ${
-            process.env['POD_NAME'] || 'NONE'
-        } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
-            requestEndedAt.getTime() -
-            (oneUptimeRequest.requestStartedAt as Date).getTime()
-        ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
+        const logLine: JSONObject = {
+            'Request ID': `${oneUptimeRequest.id}`,
 
-        const body_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- RESPONSE BODY: ${
-            responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
-        }`;
+            'Pod Name': `${process.env['POD_NAME'] || 'NONE'}`,
+
+            'HTTP Method': `${method}`,
+
+            'Path': `${path.toString()}`,
+
+            'Request Duration': `${(
+                requestEndedAt.getTime() -
+                (oneUptimeRequest.requestStartedAt as Date).getTime()
+            ).toString()}ms`,
+
+            'Response Status': `${oneUptimeResponse.statusCode}`,
+
+            'Host': `${oneUptimeRequest.hostname}`,
+
+            'Response body': `${
+                responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+            }`,
+        };
 
         if (oneUptimeResponse.statusCode > 299) {
-            logger.error(header_info + '\n ' + body_info);
+            logger.error(logLine);
         } else {
-            logger.info(header_info + '\n ' + body_info);
+            logger.info(logLine);
         }
     }
 

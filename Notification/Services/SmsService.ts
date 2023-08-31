@@ -71,6 +71,7 @@ export default class SmsService {
                 if (!project) {
                     smsLog.status = SmsStatus.Error;
                     smsLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -83,7 +84,7 @@ export default class SmsService {
                 if (!project.enableSmsNotifications) {
                     smsLog.status = SmsStatus.Error;
                     smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
-
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -128,6 +129,7 @@ export default class SmsService {
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
                     smsLog.status = SmsStatus.LowBalance;
                     smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -171,6 +173,7 @@ export default class SmsService {
                     } USD. Required balance is ${
                         SMSDefaultCostInCents / 100
                     } USD to send this SMS.`;
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -216,6 +219,9 @@ export default class SmsService {
             smsLog.status = SmsStatus.Success;
             smsLog.statusMessage = 'Message ID: ' + twillioMessage.sid;
 
+            logger.info('SMS message sent successfully.');
+            logger.info(smsLog.statusMessage);
+
             if (IsBillingEnabled && project) {
                 smsLog.smsCostInUSDCents = SMSDefaultCostInCents;
 
@@ -241,6 +247,9 @@ export default class SmsService {
             smsLog.status = SmsStatus.Error;
             smsLog.statusMessage =
                 e && e.message ? e.message.toString() : e.toString();
+
+            logger.error('SMS message failed to send.');
+            logger.error(smsLog.statusMessage);
         }
 
         if (options.projectId) {

@@ -74,6 +74,7 @@ export default class CallService {
                 if (!project) {
                     callLog.status = CallStatus.Error;
                     callLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
+                    logger.error(callLog.statusMessage);
                     await CallLogService.create({
                         data: callLog,
                         props: {
@@ -86,7 +87,7 @@ export default class CallService {
                 if (!project.enableCallNotifications) {
                     callLog.status = CallStatus.Error;
                     callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in Project Settings.`;
-
+                    logger.error(callLog.statusMessage);
                     await CallLogService.create({
                         data: callLog,
                         props: {
@@ -132,6 +133,7 @@ export default class CallService {
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
                     callLog.status = CallStatus.LowBalance;
                     callLog.statusMessage = `Project ${options.projectId.toString()} does not have enough Call balance.`;
+                    logger.error(callLog.statusMessage);
                     await CallLogService.create({
                         data: callLog,
                         props: {
@@ -175,6 +177,7 @@ export default class CallService {
                     } USD. Required balance is ${
                         CallDefaultCostInCentsPerMinute / 100
                     } USD to make this call.`;
+                    logger.error(callLog.statusMessage);
                     await CallLogService.create({
                         data: callLog,
                         props: {
@@ -218,7 +221,8 @@ export default class CallService {
 
             callLog.status = CallStatus.Success;
             callLog.statusMessage = 'Call ID: ' + twillioCall.sid;
-
+            logger.info('Call Request sent successfully.');
+            logger.info(callLog.statusMessage);
             if (IsBillingEnabled && project) {
                 callLog.callCostInUSDCents = CallDefaultCostInCentsPerMinute;
 
@@ -251,6 +255,9 @@ export default class CallService {
             callLog.status = CallStatus.Error;
             callLog.statusMessage =
                 e && e.message ? e.message.toString() : e.toString();
+
+            logger.error('Call Request failed.');
+            logger.error(callLog.statusMessage);
         }
 
         if (options.projectId) {
