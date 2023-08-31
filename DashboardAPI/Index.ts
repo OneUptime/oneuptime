@@ -113,6 +113,17 @@ import EmailLogService, {
     Service as EmailLogServiceType,
 } from 'CommonServer/Services/EmailLogService';
 
+
+import Reseller from 'Model/Models/Reseller';
+import ResellerService, {
+    Service as ResellerServiceType,
+} from 'CommonServer/Services/ResellerService';
+
+import ResellerPlan from 'Model/Models/ResellerPlan';
+import ResellerPlanService, {
+    Service as ResellerPlanServiceType,
+} from 'CommonServer/Services/ResellerPlanService';
+
 import CallLog from 'Model/Models/CallLog';
 import CallLogService, {
     Service as CallLogServiceType,
@@ -787,6 +798,23 @@ app.use(
     new BaseAPI<EmailLog, EmailLogServiceType>(
         EmailLog,
         EmailLogService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<Reseller, ResellerServiceType>(
+        Reseller,
+        ResellerService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<ResellerPlan, ResellerPlanServiceType>(
+        ResellerPlan,
+        ResellerPlanService
     ).getRouter()
 );
 
