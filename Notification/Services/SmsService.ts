@@ -71,6 +71,7 @@ export default class SmsService {
                 if (!project) {
                     smsLog.status = SmsStatus.Error;
                     smsLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -83,7 +84,7 @@ export default class SmsService {
                 if (!project.enableSmsNotifications) {
                     smsLog.status = SmsStatus.Error;
                     smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
-
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -104,7 +105,7 @@ export default class SmsService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'SMS notifications not enabled for ' +
-                                (project.name || ''),
+                            (project.name || ''),
                             `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`
                         );
                     }
@@ -128,6 +129,7 @@ export default class SmsService {
                 if (!project.smsOrCallCurrentBalanceInUSDCents) {
                     smsLog.status = SmsStatus.LowBalance;
                     smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -149,12 +151,10 @@ export default class SmsService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Low SMS and Call Balance for ' +
-                                (project.name || ''),
-                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                (project.smsOrCallCurrentBalanceInUSDCents ||
-                                    0) / 100
-                            } USD cents. Required balance to send this SMS should is ${
-                                SMSDefaultCostInCents / 100
+                            (project.name || ''),
+                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents ||
+                                0) / 100
+                            } USD cents. Required balance to send this SMS should is ${SMSDefaultCostInCents / 100
                             } USD. Please enable auto recharge or recharge manually.`
                         );
                     }
@@ -166,11 +166,10 @@ export default class SmsService {
                     SMSDefaultCostInCents
                 ) {
                     smsLog.status = SmsStatus.LowBalance;
-                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${
-                        project.smsOrCallCurrentBalanceInUSDCents / 100
-                    } USD. Required balance is ${
-                        SMSDefaultCostInCents / 100
-                    } USD to send this SMS.`;
+                    smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
+                        } USD. Required balance is ${SMSDefaultCostInCents / 100
+                        } USD to send this SMS.`;
+                    logger.error(smsLog.statusMessage);
                     await SmsLogService.create({
                         data: smsLog,
                         props: {
@@ -191,11 +190,9 @@ export default class SmsService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Low SMS and Call Balance for ' +
-                                (project.name || ''),
-                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                project.smsOrCallCurrentBalanceInUSDCents / 100
-                            } USD. Required balance is ${
-                                SMSDefaultCostInCents / 100
+                            (project.name || ''),
+                            `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
+                            } USD. Required balance is ${SMSDefaultCostInCents / 100
                             } USD to send this SMS. Please enable auto recharge or recharge manually.`
                         );
                     }
@@ -216,12 +213,15 @@ export default class SmsService {
             smsLog.status = SmsStatus.Success;
             smsLog.statusMessage = 'Message ID: ' + twillioMessage.sid;
 
+            logger.info("SMS message sent successfully.");
+            logger.info(smsLog.statusMessage);
+
             if (IsBillingEnabled && project) {
                 smsLog.smsCostInUSDCents = SMSDefaultCostInCents;
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
                     project.smsOrCallCurrentBalanceInUSDCents! -
-                        SMSDefaultCostInCents
+                    SMSDefaultCostInCents
                 );
 
                 await ProjectService.updateOneById({
@@ -241,6 +241,9 @@ export default class SmsService {
             smsLog.status = SmsStatus.Error;
             smsLog.statusMessage =
                 e && e.message ? e.message.toString() : e.toString();
+
+            logger.error("SMS message failed to send.");
+            logger.error(smsLog.statusMessage);
         }
 
         if (options.projectId) {

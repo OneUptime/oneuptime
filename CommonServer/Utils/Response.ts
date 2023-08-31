@@ -28,27 +28,36 @@ export default class Response {
 
         const requestEndedAt: Date = new Date();
         const method: string = oneUptimeRequest.method;
-        const url: URL = URL.fromString(oneUptimeRequest.url);
+        const path = oneUptimeRequest.originalUrl.toString();
 
-        const header_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- POD NAME: ${
-            process.env['POD_NAME'] || 'NONE'
-        } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
-            requestEndedAt.getTime() -
-            (oneUptimeRequest.requestStartedAt as Date).getTime()
-        ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
+        const log_line: JSONObject = {
 
-        const body_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- RESPONSE BODY: ${
-            responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
-        }`;
+            "Request ID": `${oneUptimeRequest.id
+                }`,
+
+            "Pod Name": `${process.env['POD_NAME'] || 'NONE'
+                }`,
+
+            "HTTP Method": `${method}`,
+
+            "Path": `${path.toString()}`,
+
+            "Request Duration": `${(
+                requestEndedAt.getTime() -
+                (oneUptimeRequest.requestStartedAt as Date).getTime()
+            ).toString()}ms`,
+
+            "Response Status": `${oneUptimeResponse.statusCode}`,
+
+            "Host": `${oneUptimeRequest.hostname}`,
+
+            "Response body": responsebody || "Empty Response Body"
+        }
 
         if (oneUptimeResponse.statusCode > 299) {
-            logger.error(header_info + '\n ' + body_info);
+            logger.error(log_line);
         } else {
-            logger.info(header_info + '\n ' + body_info);
+            logger.info(log_line);
         }
     }
 
@@ -166,7 +175,7 @@ export default class Response {
         res: ExpressResponse,
         list: Array<BaseModel>,
         count: PositiveNumber,
-        modelType: { new (): BaseModel }
+        modelType: { new(): BaseModel }
     ): void {
         return this.sendJsonArrayResponse(
             req,
@@ -182,11 +191,11 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         item: BaseModel | null,
-        modelType: { new (): BaseModel },
+        modelType: { new(): BaseModel },
         options?:
             | {
-                  miscData?: JSONObject;
-              }
+                miscData?: JSONObject;
+            }
             | undefined
     ): void {
         let response: JSONObject = {};
