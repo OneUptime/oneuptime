@@ -14,6 +14,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Reseller from './Reseller';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @TableAccessControl({
     create: [],
@@ -120,6 +121,26 @@ export default class ResellerPlan extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public name?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Plan Type',
+        description: 'Name of the Base Plan that the project should created with.',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public planType?: PlanSelect = undefined;
 
     @ColumnAccessControl({
         create: [],
