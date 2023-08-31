@@ -1,4 +1,3 @@
-
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -25,48 +24,52 @@ router.post(
             const resellerId: string | undefined = req.params['resellerid'];
 
             if (!resellerId) {
-                throw new BadDataException("Reseller ID not found");
+                throw new BadDataException('Reseller ID not found');
             }
 
             const username: string = req.body['username'];
             const password: string = req.body['password'];
 
             if (!username) {
-                throw new BadDataException("Username not found");
+                throw new BadDataException('Username not found');
             }
 
             if (!password) {
-                throw new BadDataException("Password not found");
+                throw new BadDataException('Password not found');
             }
 
-            // get the reseller user. 
+            // get the reseller user.
             const reseller: Reseller | null = await ResellerService.findOneBy({
                 query: {
                     resllerId: resellerId,
                     username: username,
-                    password: password
+                    password: password,
                 },
                 select: {
-                    _id: true, 
-                    resllerId: true, 
+                    _id: true,
+                    resllerId: true,
                 },
                 props: {
                     isRoot: true,
-                }
-            })
-
-            if(!reseller) {
-                throw new BadDataException("Reseller not found or username and password is incorrect");
-            }
-
-            // if found then generate a token and return it. 
-
-            const token: string = JSONWebToken.sign(resellerId, OneUptimeDate.getDayInSeconds(365));
-
-            return Response.sendJsonObjectResponse(req, res, {
-                access: token
+                },
             });
 
+            if (!reseller) {
+                throw new BadDataException(
+                    'Reseller not found or username and password is incorrect'
+                );
+            }
+
+            // if found then generate a token and return it.
+
+            const token: string = JSONWebToken.sign(
+                resellerId,
+                OneUptimeDate.getDayInSeconds(365)
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+                access: token,
+            });
         } catch (err) {
             return next(err);
         }

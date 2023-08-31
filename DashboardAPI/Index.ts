@@ -113,7 +113,6 @@ import EmailLogService, {
     Service as EmailLogServiceType,
 } from 'CommonServer/Services/EmailLogService';
 
-
 import Reseller from 'Model/Models/Reseller';
 import ResellerService, {
     Service as ResellerServiceType,
@@ -808,7 +807,6 @@ app.use(
         ResellerService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

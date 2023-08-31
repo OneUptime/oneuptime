@@ -1056,4 +1056,34 @@ export default class Model extends TenantModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public resellerPlanId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+            Permission.CanEditProject,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'License ID',
+        description: 'License ID from a OneUptime Reseller',
+        canReadOnRelationQuery: true,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public resellerLicenseId?: string = undefined;
 }

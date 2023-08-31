@@ -118,9 +118,8 @@ import ResellerService from './ResellerService';
 import ResellerPlanService from './ResellerPlanService';
 
 const services: Array<BaseService> = [
-
     ResellerService,
-    ResellerPlanService, 
+    ResellerPlanService,
     // Import all services in current folder here.
     AccessTokenService,
     ApiKeyPermissionService,
