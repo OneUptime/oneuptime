@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import User from './User';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
@@ -13,6 +13,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
+import Reseller from './Reseller';
 
 
 @TableAccessControl({
@@ -42,6 +43,62 @@ import BaseModel from 'Common/Models/BaseModel';
     name: 'ResellerPlan',
 })
 export default class ResellerPlan extends BaseModel {
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'resellerId',
+        type: TableColumnType.Entity,
+        modelType: Reseller,
+        title: 'Reseller',
+        description:
+            'Relation to Reseller Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Reseller;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'resellerId' })
+    public project?: Reseller = undefined;
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Reseller ID',
+        description:
+            'ID of your OneUptime Reseller in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public resellerId?: ObjectID = undefined;
 
 
     @ColumnAccessControl({
