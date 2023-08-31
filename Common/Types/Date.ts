@@ -482,8 +482,12 @@ export default class OneUptimeDate {
         );
     }
 
-    public static getDayInSeconds(): number {
-        return 24 * 60 * 60;
+    public static getDayInSeconds(days?: number | undefined): number {
+
+        if(!days){
+            days = 1; 
+        }
+        return 24 * 60 * 60 * days;
     }
 
     public static getCurrentTimezoneString(): string {

@@ -233,7 +233,6 @@ export default [
 
     Reseller,
     ResellerPlan,
-    
 ];
 
 export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];

@@ -5,6 +5,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import AuthenticationAPI from './API/Authentication';
 import SsoAPI from './API/SSO';
+import ResellerAPI from './API/Reseller';
 import StatusPageSsoAPI from './API/StatusPageSSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
 import Redis from 'CommonServer/Infrastructure/Redis';
@@ -15,6 +16,8 @@ const app: ExpressApplication = Express.getExpressApp();
 const APP_NAME: string = 'identity';
 
 app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
+
+app.use([`/${APP_NAME}`, '/'], ResellerAPI);
 
 app.use([`/${APP_NAME}`, '/'], SsoAPI);
 

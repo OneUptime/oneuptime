@@ -15,20 +15,11 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Reseller from './Reseller';
 
-
 @TableAccessControl({
-    create: [
-       
-    ],
-    read: [
-       
-    ],
-    delete: [
-        
-    ],
-    update: [
-        
-    ],
+    create: [],
+    read: [],
+    delete: [],
+    update: [],
 })
 @CrudApiEndpoint(new Route('/reseller-plan'))
 @TableMetadata({
@@ -43,14 +34,9 @@ import Reseller from './Reseller';
     name: 'ResellerPlan',
 })
 export default class ResellerPlan extends BaseModel {
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -76,12 +62,8 @@ export default class ResellerPlan extends BaseModel {
     public reseller?: Reseller = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @Index()
@@ -100,14 +82,9 @@ export default class ResellerPlan extends BaseModel {
     })
     public resellerId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -115,7 +92,8 @@ export default class ResellerPlan extends BaseModel {
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'Plan ID',
-        description: 'ID of the plan. This is shared by the Reseller and OneUptime.',
+        description:
+            'ID of the plan. This is shared by the Reseller and OneUptime.',
     })
     @Column({
         nullable: false,
@@ -124,14 +102,9 @@ export default class ResellerPlan extends BaseModel {
     })
     public planId?: string = undefined;
 
-   
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -148,14 +121,9 @@ export default class ResellerPlan extends BaseModel {
     })
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -172,14 +140,9 @@ export default class ResellerPlan extends BaseModel {
     })
     public description?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -195,14 +158,9 @@ export default class ResellerPlan extends BaseModel {
     })
     public monitorLimit?: number = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -217,8 +175,6 @@ export default class ResellerPlan extends BaseModel {
         type: ColumnType.Number,
     })
     public teamMemberLimit?: number = undefined;
-
-    
 
     @ColumnAccessControl({
         create: [
@@ -337,6 +293,4 @@ export default class ResellerPlan extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-
 }

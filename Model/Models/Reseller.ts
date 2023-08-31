@@ -14,20 +14,11 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 
-
 @TableAccessControl({
-    create: [
-       
-    ],
-    read: [
-       
-    ],
-    delete: [
-        
-    ],
-    update: [
-        
-    ],
+    create: [],
+    read: [],
+    delete: [],
+    update: [],
 })
 @CrudApiEndpoint(new Route('/reseller'))
 @TableMetadata({
@@ -42,14 +33,28 @@ import BaseModel from 'Common/Models/BaseModel';
     name: 'Reseller',
 })
 export default class Reseller extends BaseModel {
-   
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Resller ID',
+        description: 'ID that is shared between resller and OneUptime.',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public resllerId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -66,14 +71,9 @@ export default class Reseller extends BaseModel {
     })
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -90,14 +90,9 @@ export default class Reseller extends BaseModel {
     })
     public description?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -114,14 +109,9 @@ export default class Reseller extends BaseModel {
     })
     public username?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -137,8 +127,6 @@ export default class Reseller extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public password?: string = undefined;
-
-    
 
     @ColumnAccessControl({
         create: [
@@ -257,6 +245,4 @@ export default class Reseller extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-
 }

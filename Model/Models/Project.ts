@@ -961,14 +961,9 @@ export default class Model extends TenantModel {
     })
     public createdOwnerCompanyName?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -994,12 +989,8 @@ export default class Model extends TenantModel {
     public reseller?: Reseller = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @Index()
@@ -1017,8 +1008,6 @@ export default class Model extends TenantModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public resellerId?: ObjectID = undefined;
-
-
 
     @ColumnAccessControl({
         create: [],
@@ -1048,12 +1037,8 @@ export default class Model extends TenantModel {
     public resellerPlan?: ResellerPlan = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @Index()
