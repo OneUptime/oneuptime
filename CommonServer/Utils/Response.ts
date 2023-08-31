@@ -31,24 +31,24 @@ export default class Response {
         const path: string = oneUptimeRequest.originalUrl.toString();
 
         const logLine: JSONObject = {
-            'Request ID': `${oneUptimeRequest.id}`,
+            'RequestID': `${oneUptimeRequest.id}`,
 
-            'Pod Name': `${process.env['POD_NAME'] || 'NONE'}`,
+            'PodName': `${process.env['POD_NAME'] || 'NONE'}`,
 
-            'HTTP Method': `${method}`,
+            'HTTPMethod': `${method}`,
 
             'Path': `${path.toString()}`,
 
-            'Request Duration': `${(
+            'RequestDuration': `${(
                 requestEndedAt.getTime() -
                 (oneUptimeRequest.requestStartedAt as Date).getTime()
             ).toString()}ms`,
 
-            'Response Status': `${oneUptimeResponse.statusCode}`,
+            'ResponseStatus': `${oneUptimeResponse.statusCode}`,
 
             'Host': `${oneUptimeRequest.hostname}`,
 
-            'Response body': `${
+            'ResponseBody': `${
                 responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
             }`,
         };

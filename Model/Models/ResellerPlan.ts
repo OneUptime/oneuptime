@@ -73,7 +73,7 @@ export default class ResellerPlan extends BaseModel {
         }
     )
     @JoinColumn({ name: 'resellerId' })
-    public project?: Reseller = undefined;
+    public reseller?: Reseller = undefined;
 
     @ColumnAccessControl({
         create: [
