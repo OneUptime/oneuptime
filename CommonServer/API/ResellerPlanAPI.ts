@@ -41,7 +41,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    const resellerId = req.params['resellerId'];
+                    const resellerId: string | undefined = req.params['resellerId'];
 
                     if (!resellerId) {
                         throw new Error('Invalid reseller id.');
@@ -58,9 +58,13 @@ export default class ResellerPlanAPI extends BaseAPI<
                         );
                     }
 
-                    const action = req.body.action;
+                    const action: string = req.body.action;
 
-                    const resellerPlanId = req.body.plan_id;
+                    if(!action){
+                        throw new BadDataException('Invalid action.');
+                    }
+
+                    const resellerPlanId: string | undefined = req.body.plan_id;
 
                     if (!resellerPlanId) {
                         throw new BadDataException('Invalid reseller plan id.');
@@ -68,7 +72,7 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                     // check reseller Plan.
 
-                    const resellerPlan = await ResellerPlanService.findOneBy({
+                    const resellerPlan: ResellerPlan | null = await ResellerPlanService.findOneBy({
                         query: {
                             planId: resellerPlanId,
                         },
@@ -98,9 +102,13 @@ export default class ResellerPlanAPI extends BaseAPI<
                         );
                     }
 
-                    const licenseKey = req.body.uuid;
+                    const licenseKey: string | undefined = req.body.uuid;
 
-                    const userEmail = new Email(req.body.activation_email);
+                    if(!licenseKey){
+                        throw new BadDataException('Invalid license key.');
+                    }
+
+                    const userEmail: Email = new Email(req.body.activation_email);
 
                     if (action === 'activate') {
                         // generate a coupon code. Billing is handled by the reseller so OneUptime will have 100% discount on its plans.
@@ -112,7 +120,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                                 maxRedemptions: 1,
                                 durationInMonths: 12 * 20, // 20 years.
                                 metadata: {
-                                    licenseKey: licenseKey,
+                                    licenseKey: licenseKey || '',
                                     resellerPlanId:
                                         resellerPlan?.id?.toString() || '',
                                 },
@@ -127,7 +135,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                         promoCode.resellerPlanId = resellerPlan?.id!;
                         promoCode.userEmail = userEmail;
                         promoCode.planType = resellerPlan?.planType!;
-                        promoCode.resellerLicenseId = licenseKey;
+                        promoCode.resellerLicenseId = licenseKey || '';
 
                         await PromoCodeService.create({
                             data: promoCode,

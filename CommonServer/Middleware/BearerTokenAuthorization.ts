@@ -6,6 +6,7 @@ import {
 } from '../Utils/Express';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import JSONWebToken from '../Utils/JsonWebToken';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 
 export default class BearerTokenAuthorization {
     public static async isAuthorizedBearerToken(
@@ -16,12 +17,12 @@ export default class BearerTokenAuthorization {
         req = req as OneUptimeRequest;
 
         if (req.headers['authorization'] || req.headers['Authorization']) {
-            let token =
+            let token: string | undefined | Array<string>  =
                 req.headers['authorization'] || req.headers['Authorization'];
             if (token) {
                 token = token.toString().replace('Bearer ', '');
 
-                const tokenData = JSONWebToken.decode(token);
+                const tokenData: JSONWebTokenData = JSONWebToken.decode(token);
 
                 (req as OneUptimeRequest).bearerTokenData = tokenData;
 

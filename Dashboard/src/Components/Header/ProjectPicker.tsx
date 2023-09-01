@@ -17,6 +17,7 @@ import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import { JSONValue } from 'Common/Types/JSON';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -37,7 +38,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         // check if promocode exists in localstorage and if it does, add it to initialValues.
-        const promoCode = LocalStorage.getItem('promoCode');
+        const promoCode: JSONValue = LocalStorage.getItem('promoCode');
 
         if (promoCode) {
             setInitialValues({
