@@ -50,6 +50,11 @@ const Input: FunctionComponent<ComponentProps> = (
             ' border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500';
     }
 
+
+    if(props.disabled){
+        className += ' bg-gray-100 text-gray-500 cursor-not-allowed';
+    }
+
     const [value, setValue] = useState<string>('');
     const [displayValue, setDisplayValue] = useState<string>('');
     const ref: any = useRef<any>(null);
@@ -115,8 +120,8 @@ const Input: FunctionComponent<ComponentProps> = (
         <>
             <div
                 className={
-                    props.outerDivClassName ||
-                    `relative mt-2 mb-1 rounded-md shadow-sm w-full`
+                    (props.outerDivClassName ||
+                    `relative mt-2 mb-1 rounded-md shadow-sm w-full`)
                 }
             >
                 <input

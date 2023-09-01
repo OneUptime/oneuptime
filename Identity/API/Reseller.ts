@@ -41,13 +41,13 @@ router.post(
             // get the reseller user.
             const reseller: Reseller | null = await ResellerService.findOneBy({
                 query: {
-                    resllerId: resellerId,
+                    resellerId: resellerId,
                     username: username,
                     password: password,
                 },
                 select: {
                     _id: true,
-                    resllerId: true,
+                    resellerId: true,
                 },
                 props: {
                     isRoot: true,
@@ -63,7 +63,7 @@ router.post(
             // if found then generate a token and return it.
 
             const token: string = JSONWebToken.sign(
-                resellerId,
+                {resellerId: resellerId},
                 OneUptimeDate.getDayInSeconds(365)
             );
 

@@ -50,7 +50,7 @@ export default class Reseller extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public resllerId?: string = undefined;
+    public resellerId?: string = undefined;
 
     @ColumnAccessControl({
         create: [],

@@ -12,7 +12,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 
 class JSONWebToken {
     public static sign(
-        data: JSONWebTokenData | User | StatusPagePrivateUser | string,
+        data: JSONWebTokenData | User | StatusPagePrivateUser | string | JSONObject,
         expiresInSeconds: number
     ): string {
         let jsonObj: JSONObject;
@@ -36,8 +36,9 @@ class JSONWebToken {
             };
         } else {
             jsonObj = {
-                userId: data.userId.toString(),
-                email: data.email.toString(),
+                ...data, 
+                userId: data.userId?.toString(),
+                email: data.email?.toString(),
                 name: data.name?.toString() || '',
                 projectId: data.projectId?.toString() || '',
                 isMasterAdmin: data.isMasterAdmin,

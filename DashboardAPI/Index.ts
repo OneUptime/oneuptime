@@ -118,11 +118,6 @@ import ResellerService, {
     Service as ResellerServiceType,
 } from 'CommonServer/Services/ResellerService';
 
-import ResellerPlan from 'Model/Models/ResellerPlan';
-import ResellerPlanService, {
-    Service as ResellerPlanServiceType,
-} from 'CommonServer/Services/ResellerPlanService';
-
 import CallLog from 'Model/Models/CallLog';
 import CallLogService, {
     Service as CallLogServiceType,
@@ -309,7 +304,7 @@ import UserSMSAPI from 'CommonServer/API/UserSmsAPI';
 import UserCallAPI from 'CommonServer/API/UserCallAPI';
 
 // Import API
-
+import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 
@@ -808,13 +803,6 @@ app.use(
     ).getRouter()
 );
 
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<ResellerPlan, ResellerPlanServiceType>(
-        ResellerPlan,
-        ResellerPlanService
-    ).getRouter()
-);
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -842,6 +830,7 @@ app.use(
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ResellerPlanAPI().getRouter());
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
