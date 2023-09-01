@@ -47,7 +47,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
     }, []);
 
-    useEffect(()=>{
+    useEffect(() => {
         refreshFields();
     }, [initialValues]);
 
@@ -229,7 +229,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     title: 'Promo Code',
                     required: false,
                     stepId: 'plan',
-                    disabled: !!initialValues.paymentProviderPromoCode
+                    disabled: Boolean(initialValues.paymentProviderPromoCode),
                 },
             ];
         }
@@ -264,7 +264,6 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         setShowModal(false);
                         props.onProjectModalClose();
                     }}
-
                     submitButtonText="Create Project"
                     onSuccess={(project: Project | null) => {
                         LocalStorage.removeItem('promoCode');

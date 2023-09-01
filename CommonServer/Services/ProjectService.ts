@@ -115,7 +115,6 @@ export class Service extends DatabaseService<Model> {
                 data.data.paymentProviderPlanId
             );
 
-
             if (data.data.paymentProviderPromoCode) {
                 // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.
                 // If they are not in the table, allow projetc creation to proceed.
@@ -138,7 +137,7 @@ export class Service extends DatabaseService<Model> {
                             },
                             resellerId: true,
                             resellerLicenseId: true,
-                            planType: true
+                            planType: true,
                         },
                         props: {
                             isRoot: true,
@@ -196,10 +195,7 @@ export class Service extends DatabaseService<Model> {
                 throw new BadDataException('Promo code is invalid.');
             }
 
-            
             // check if promocode is valid.
-
-          
         }
 
         // check if the user has the project with the same name. If yes, reject.

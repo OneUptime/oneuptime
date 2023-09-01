@@ -24,7 +24,7 @@ import ProjectService from '../Services/ProjectService';
 import QueryHelper from '../Types/Database/QueryHelper';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Response from '../Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
+import TenantNotFoundException from 'Common/Types/Exception/TenantNotFoundException';
 import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import logger from '../Utils/Logger';
@@ -281,7 +281,7 @@ export default class UserMiddleware {
         });
 
         if (!project) {
-            throw new BadDataException('Invalid tenantId');
+            throw new TenantNotFoundException('Invalid tenantId');
         }
 
         if (

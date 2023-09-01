@@ -19,11 +19,13 @@ export default class BearerTokenAuthorization {
 
             if (req.headers['authorization'] || req.headers['Authorization']) {
                 let token: string | undefined | Array<string> =
-                    req.headers['authorization'] || req.headers['Authorization'];
+                    req.headers['authorization'] ||
+                    req.headers['Authorization'];
                 if (token) {
                     token = token.toString().replace('Bearer ', '');
 
-                    const tokenData: JSONObject = JSONWebToken.decodeJsonPayload(token);
+                    const tokenData: JSONObject =
+                        JSONWebToken.decodeJsonPayload(token);
 
                     (req as OneUptimeRequest).bearerTokenData = tokenData;
 
