@@ -147,6 +147,7 @@ export class Service extends DatabaseService<Model> {
                             teamMemberLimit: true, 
                         },
                         resellerId: true, 
+                        resellerPlanId: true
                     },
                     props: {
                         isRoot: true,
@@ -173,6 +174,14 @@ export class Service extends DatabaseService<Model> {
 
                     if(promoCode.planType !== data.data.planName){
                         throw new BadDataException('Promocode is not valid for this plan. Please select the '+promoCode.planType+' plan.');
+                    }
+
+                    if(promoCode.resellerId){
+                        data.data.resellerId = promoCode.resellerId;
+                    }
+
+                    if(promoCode.resellerPlanId){
+                        data.data.resellerPlanId = promoCode.resellerPlanId;
                     }
                 }
             }

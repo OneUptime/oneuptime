@@ -17,6 +17,7 @@ import URL from 'Common/Types/API/URL';
 import { AccountsRoute, Domain, HttpProtocol } from '../Config';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from '../Services/PromoCodeService';
+import StatusCode from 'Common/Types/API/StatusCode';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,
@@ -88,7 +89,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                     if (resellerPlan.reseller?.resellerId !== resellerId) {
                         throw new BadDataException(
                             'This plan does not belong to reseller: ' +
-                                resellerId
+                            resellerId
                         );
                     }
 
@@ -132,17 +133,24 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                         // now redirect to accounts sign up page with this promocode.
 
-                        return Response.redirect(
-                            req,
-                            res,
-                            new URL(HttpProtocol, Domain, AccountsRoute)
+                        return Response.sendJsonObjectResponse(req, res, {
+                            "message": "product activated",
+                            "redirect_url": new URL(HttpProtocol, Domain, AccountsRoute)
                                 .addRoute('/register')
                                 .addQueryParams({
                                     email: userEmail.toString(),
                                     promoCode: couponcode,
-                                })
-                        );
+                                }).toString()
+                        }, {
+                            statusCode: new StatusCode(201)
+                        })
+
+                    } else {
+
                     }
+
+
+
                     throw new BadDataException('Invalid action.');
                 } catch (err) {
                     next(err);

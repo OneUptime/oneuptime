@@ -962,7 +962,7 @@ export default class Model extends TenantModel {
     public createdOwnerCompanyName?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -989,7 +989,7 @@ export default class Model extends TenantModel {
     public reseller?: Reseller = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -1010,7 +1010,7 @@ export default class Model extends TenantModel {
     public resellerId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -1037,7 +1037,7 @@ export default class Model extends TenantModel {
     public resellerPlan?: ResellerPlan = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -1060,17 +1060,10 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProject,
-            Permission.UnAuthorizedSsoUser,
-            Permission.ProjectUser,
+           
         ],
         update: [
-            Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-            Permission.CanEditProject,
+          
         ],
     })
     @TableColumn({
