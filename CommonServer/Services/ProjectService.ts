@@ -216,6 +216,9 @@ export class Service extends DatabaseService<Model> {
         data.data.createdOwnerEmail = user.email!;
         data.data.createdOwnerPhone = user.companyPhoneNumber!;
         data.data.createdOwnerCompanyName = user.companyName!;
+
+
+        // UTM info.
         data.data.utmCampaign = user.utmCampaign!;
         data.data.utmSource = user.utmSource!;
         data.data.utmMedium = user.utmMedium!;
@@ -441,6 +444,24 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                 },
             });
+
+            // mark the promo code as used it it exists. 
+
+            if(createdItem.paymentProviderPromoCode){
+                await PromoCodeService.updateOneBy({
+                    query: {
+                        promoCodeId: createdItem.paymentProviderPromoCode,
+                    },
+                    data: {
+                        isPromoCodeUsed: true,
+                        promoCodeUsedAt: OneUptimeDate.getCurrentDate(),
+                        projectId: createdItem.id!,
+                    },
+                    props: {
+                        isRoot: true, 
+                    }
+                });
+            }
         }
 
         createdItem = await this.addDefaultIncidentSeverity(createdItem);
