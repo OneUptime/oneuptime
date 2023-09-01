@@ -523,7 +523,7 @@ export default class Model extends TenantModel {
     public requireSsoForLogin?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -536,7 +536,7 @@ export default class Model extends TenantModel {
     public activeMonitorsLimit?: number = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
