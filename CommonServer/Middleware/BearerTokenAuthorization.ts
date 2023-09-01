@@ -17,7 +17,7 @@ export default class BearerTokenAuthorization {
         req = req as OneUptimeRequest;
 
         if (req.headers['authorization'] || req.headers['Authorization']) {
-            let token: string | undefined | Array<string>  =
+            let token: string | undefined | Array<string> =
                 req.headers['authorization'] || req.headers['Authorization'];
             if (token) {
                 token = token.toString().replace('Bearer ', '');
