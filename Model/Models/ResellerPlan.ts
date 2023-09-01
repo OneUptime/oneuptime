@@ -121,7 +121,6 @@ export default class ResellerPlan extends BaseModel {
     })
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
@@ -132,7 +131,8 @@ export default class ResellerPlan extends BaseModel {
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'Plan Type',
-        description: 'Name of the Base Plan that the project should created with.',
+        description:
+            'Name of the Base Plan that the project should created with.',
     })
     @Column({
         nullable: false,
@@ -197,12 +197,8 @@ export default class ResellerPlan extends BaseModel {
     public teamMemberLimit?: number = undefined;
 
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -228,12 +224,8 @@ export default class ResellerPlan extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -251,9 +243,7 @@ export default class ResellerPlan extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-           
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -280,9 +270,7 @@ export default class ResellerPlan extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-           
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

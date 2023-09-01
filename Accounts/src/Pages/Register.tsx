@@ -22,25 +22,25 @@ const RegisterPage: () => JSX.Element = () => {
 
     const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
-
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }
 
-
-    useEffect(()=>{
-        // if promo code is found, please save it in localstorage. 
-        if(Navigation.getQueryStringByName("promoCode")){
-            LocalStorage.setItem("promoCode", Navigation.getQueryStringByName("promoCode"));
+    useEffect(() => {
+        // if promo code is found, please save it in localstorage.
+        if (Navigation.getQueryStringByName('promoCode')) {
+            LocalStorage.setItem(
+                'promoCode',
+                Navigation.getQueryStringByName('promoCode')
+            );
         }
 
-        if(Navigation.getQueryStringByName("email")){
+        if (Navigation.getQueryStringByName('email')) {
             setInitialValues({
-                email: Navigation.getQueryStringByName("email")
+                email: Navigation.getQueryStringByName('email'),
             });
         }
-
-    }, [])
+    }, []);
 
     let formFields: Fields<User> = [
         {
@@ -50,7 +50,7 @@ const RegisterPage: () => JSX.Element = () => {
             fieldType: FormFieldSchemaType.Email,
             placeholder: 'jeff@example.com',
             required: true,
-            disabled: !!(initialValues && initialValues['email']),
+            disabled: Boolean(initialValues && initialValues['email']),
             title: 'Email',
         },
         {

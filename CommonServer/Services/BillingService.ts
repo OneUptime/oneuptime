@@ -162,7 +162,7 @@ export class BillingService extends BaseService {
 
     public async generateCouponCode(data: {
         name: string;
-        metadata?: Dictionary<string> | undefined, 
+        metadata?: Dictionary<string> | undefined;
         percentOff: number;
         durationInMonths: number;
         maxRedemptions: number;

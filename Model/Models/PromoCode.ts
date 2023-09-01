@@ -67,7 +67,8 @@ export default class PromoCode extends BaseModel {
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'Plan Type',
-        description: 'If this promocode can be used for specific plan, please specify here. If null, it can be used for all the plans',
+        description:
+            'If this promocode can be used for specific plan, please specify here. If null, it can be used for all the plans',
     })
     @Column({
         nullable: true,
@@ -86,17 +87,16 @@ export default class PromoCode extends BaseModel {
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'User Email',
-        description: 'Which user can redeem this promocode? If no one is specified, anyone can redeem this promocode.',
+        description:
+            'Which user can redeem this promocode? If no one is specified, anyone can redeem this promocode.',
     })
     @Column({
         nullable: true,
         type: ColumnType.Email,
         length: ColumnLength.Email,
-        transformer: Email.getDatabaseTransformer()
+        transformer: Email.getDatabaseTransformer(),
     })
     public userEmail?: Email = undefined;
-
-   
 
     @ColumnAccessControl({
         create: [
@@ -215,7 +215,6 @@ export default class PromoCode extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -343,7 +342,6 @@ export default class PromoCode extends BaseModel {
     })
     public resellerLicenseId?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
@@ -368,15 +366,9 @@ export default class PromoCode extends BaseModel {
     })
     public promoCodeUsedAt?: Date = undefined;
 
-
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -402,12 +394,8 @@ export default class PromoCode extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @Index()
@@ -425,5 +413,4 @@ export default class PromoCode extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public projectId?: ObjectID = undefined;
-
 }

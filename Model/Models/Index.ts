@@ -235,7 +235,7 @@ export default [
     Reseller,
     ResellerPlan,
 
-    PromoCode
+    PromoCode,
 ];
 
 export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];

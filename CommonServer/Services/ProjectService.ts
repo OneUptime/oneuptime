@@ -49,6 +49,8 @@ import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import UserService from './UserService';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
+import PromoCode from 'Model/Models/PromoCode';
+import PromoCodeService from './PromoCodeService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -60,6 +62,37 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnCreate<Model>> {
         if (!data.data.name) {
             throw new BadDataException('Project name is required');
+        }
+
+        if (data.props.userId) {
+            data.data.createdByUserId = data.props.userId;
+        } else {
+            throw new NotAuthorizedException(
+                'User should be logged in to create the project.'
+            );
+        }
+
+        const user: User | null = await UserService.findOneById({
+            id: data.props.userId,
+            select: {
+                name: true,
+                email: true,
+                companyPhoneNumber: true,
+                companyName: true,
+                utmCampaign: true,
+                utmSource: true,
+                utmMedium: true,
+                utmTerm: true,
+                utmContent: true,
+                utmUrl: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!user) {
+            throw new BadDataException('User not found.');
         }
 
         if (IsBillingEnabled) {
@@ -90,6 +123,59 @@ export class Service extends DatabaseService<Model> {
             data.data.planName = SubscriptionPlan.getPlanSelect(
                 data.data.paymentProviderPlanId
             );
+
+
+            // check if promocode is valid.
+
+            if(data.data.paymentProviderPromoCode){
+                // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are. 
+                // If they are not in the table, allow projetc creation to proceed. 
+                // If they are in the project table, then see if anyn restrictions on reseller plan apply and if it does,
+                // apply those restictions to the project. 
+
+                const promoCode: PromoCode | null = await PromoCodeService.findOneBy({
+                    query: {
+                        promoCodeId:data.data.paymentProviderPromoCode,
+                    },
+                    select: {
+                        isPromoCodeUsed: true, 
+                        userEmail: true, 
+                        resellerPlan: {
+                            _id: true, 
+                            planType: true,
+                            monitorLimit: true, 
+                            teamMemberLimit: true, 
+                        },
+                        resellerId: true, 
+                    },
+                    props: {
+                        isRoot: true,
+                    }
+                });
+
+                if(promoCode){
+                    // check if the same user is creating the project. 
+                    if(promoCode.userEmail?.toString() !== user.email?.toString()){
+                        throw new BadDataException('This promocode is assigned to a different user and cannot be used.');
+                    }
+
+                    if(promoCode.isPromoCodeUsed){
+                        throw new BadDataException('This promocode has already been used.');
+                    }
+
+                    if(promoCode.resellerPlan?.monitorLimit){
+                        data.data.activeMonitorsLimit = promoCode.resellerPlan?.monitorLimit;
+                    }
+
+                    if(promoCode.resellerPlan?.teamMemberLimit){
+                        data.data.seatLimit = promoCode.resellerPlan?.teamMemberLimit;
+                    }
+
+                    if(promoCode.planType !== data.data.planName){
+                        throw new BadDataException('Promocode is not valid for this plan. Please select the '+promoCode.planType+' plan.');
+                    }
+                }
+            }
         }
 
         // check if the user has the project with the same name. If yes, reject.
@@ -124,36 +210,7 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        if (data.props.userId) {
-            data.data.createdByUserId = data.props.userId;
-        } else {
-            throw new NotAuthorizedException(
-                'User should be logged in to create the project.'
-            );
-        }
 
-        const user: User | null = await UserService.findOneById({
-            id: data.props.userId,
-            select: {
-                name: true,
-                email: true,
-                companyPhoneNumber: true,
-                companyName: true,
-                utmCampaign: true,
-                utmSource: true,
-                utmMedium: true,
-                utmTerm: true,
-                utmContent: true,
-                utmUrl: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
-
-        if (!user) {
-            throw new BadDataException('User not found.');
-        }
 
         data.data.createdOwnerName = user.name!;
         data.data.createdOwnerEmail = user.email!;

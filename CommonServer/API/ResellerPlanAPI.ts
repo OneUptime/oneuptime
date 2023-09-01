@@ -3,7 +3,11 @@ import ResellerPlanService, {
     Service as ResellerPlanServiceType,
 } from '../Services/ResellerPlanService';
 import BaseAPI from './BaseAPI';
-import { ExpressRequest, ExpressResponse, NextFunction } from '../Utils/Express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from '../Utils/Express';
 import BearerTokenAuthorization from '../Middleware/BearerTokenAuthorization';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -14,10 +18,12 @@ import { AccountsRoute, Domain, HttpProtocol } from '../Config';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from '../Services/PromoCodeService';
 
-export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanServiceType> {
+export default class ResellerPlanAPI extends BaseAPI<
+    ResellerPlan,
+    ResellerPlanServiceType
+> {
     public constructor() {
         super(ResellerPlan, ResellerPlanService);
-
 
         // Reseller Plan Action API
         this.router.post(
@@ -25,18 +31,27 @@ export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanS
                 .getCrudApiPath()
                 ?.toString()}/action/:resellerId`,
             BearerTokenAuthorization.isAuthorizedBearerToken,
-            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
                 try {
-
                     const resellerId = req.params['resellerId'];
 
                     if (!resellerId) {
-                        throw new Error("Invalid reseller id.");
+                        throw new Error('Invalid reseller id.');
                     }
 
-                    if (resellerId.trim().toLowerCase() !== (req as any).bearerTokenData?.resellerId?.trim().toLowerCase()) {
-                        throw new Error("Invalid reseller id found in access token");
+                    if (
+                        resellerId.trim().toLowerCase() !==
+                        (req as any).bearerTokenData?.resellerId
+                            ?.trim()
+                            .toLowerCase()
+                    ) {
+                        throw new Error(
+                            'Invalid reseller id found in access token'
+                        );
                     }
 
                     const action = req.body.action;
@@ -44,11 +59,10 @@ export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanS
                     const resellerPlanId = req.body.plan_id;
 
                     if (!resellerPlanId) {
-                        throw new BadDataException("Invalid reseller plan id.");
+                        throw new BadDataException('Invalid reseller plan id.');
                     }
 
-
-                    // check reseller Plan. 
+                    // check reseller Plan.
 
                     const resellerPlan = await ResellerPlanService.findOneBy({
                         query: {
@@ -60,45 +74,47 @@ export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanS
                             reseller: {
                                 resellerId: true,
                             },
-                            planType: true
+                            planType: true,
                         },
                         props: {
                             isRoot: true,
-                        }
-                    })
+                        },
+                    });
 
                     if (!resellerPlan) {
-                        throw new BadDataException("Invalid reseller plan id.");
+                        throw new BadDataException('Invalid reseller plan id.');
                     }
-
 
                     if (resellerPlan.reseller?.resellerId !== resellerId) {
-                        throw new BadDataException("This plan does not belong to reseller: " + resellerId);
+                        throw new BadDataException(
+                            'This plan does not belong to reseller: ' +
+                                resellerId
+                        );
                     }
-
 
                     const licenseKey = req.body.uuid;
 
                     const userEmail = new Email(req.body.activation_email);
 
-                    if (action === "activate") {
+                    if (action === 'activate') {
+                        // generate a coupon code. Billing is handled by the reseller so OneUptime will have 100% discount on its plans.
 
-                        // generate a coupon code. Billing is handled by the reseller so OneUptime will have 100% discount on its plans. 
+                        const couponcode: string =
+                            await BillingService.generateCouponCode({
+                                name: resellerId + ' ' + licenseKey,
+                                percentOff: 100,
+                                maxRedemptions: 1,
+                                durationInMonths: 12 * 20, // 20 years.
+                                metadata: {
+                                    licenseKey: licenseKey,
+                                    resellerPlanId:
+                                        resellerPlan?.id?.toString() || '',
+                                },
+                            });
 
-                        const couponcode: string = await BillingService.generateCouponCode({
-                            name: resellerId + ' ' + licenseKey,
-                            percentOff: 100,
-                            maxRedemptions: 1,
-                            durationInMonths: 12 * 20, // 20 years. 
-                            metadata: {
-                                licenseKey: licenseKey,
-                                resellerPlanId: resellerPlan?.id?.toString() || '',
-                            }
-                        });
+                        // save this in promocode table.
 
-                        // save this in promocode table. 
-
-                        const promoCode: PromoCode = new PromoCode(); 
+                        const promoCode: PromoCode = new PromoCode();
 
                         promoCode.promoCodeId = couponcode;
                         promoCode.resellerId = resellerPlan?.reseller.id!;
@@ -111,19 +127,23 @@ export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanS
                             data: promoCode,
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
 
-                        // now redirect to accounts sign up page with this promocode. 
+                        // now redirect to accounts sign up page with this promocode.
 
-                        return Response.redirect(req, res, new URL(HttpProtocol, Domain, AccountsRoute).addRoute("/register").addQueryParams({
-                            email: userEmail.toString(),
-                            promoCode: couponcode,
-                        }));
-
-                    } else {
-                        throw new BadDataException("Invalid action.");
+                        return Response.redirect(
+                            req,
+                            res,
+                            new URL(HttpProtocol, Domain, AccountsRoute)
+                                .addRoute('/register')
+                                .addQueryParams({
+                                    email: userEmail.toString(),
+                                    promoCode: couponcode,
+                                })
+                        );
                     }
+                    throw new BadDataException('Invalid action.');
                 } catch (err) {
                     next(err);
                 }

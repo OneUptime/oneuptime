@@ -120,8 +120,7 @@ import ResellerPlanService from './ResellerPlanService';
 import PromoCodeService from './PromoCodeService';
 
 const services: Array<BaseService> = [
-
-    PromoCodeService, 
+    PromoCodeService,
 
     ResellerService,
     ResellerPlanService,

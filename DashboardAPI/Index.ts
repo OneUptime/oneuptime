@@ -343,7 +343,6 @@ import OnCallDutyPolicyExecutionLogService, {
     Service as OnCallDutyPolicyExecutionLogServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyExecutionLogService';
 
-
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService, {
     Service as PromoCodeServiceType,
@@ -809,7 +808,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<CallLog, CallLogServiceType>(
@@ -952,10 +950,7 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<
-        PromoCode,
-        PromoCodeServiceType
-    >(
+    new BaseAPI<PromoCode, PromoCodeServiceType>(
         PromoCode,
         PromoCodeService
     ).getRouter()

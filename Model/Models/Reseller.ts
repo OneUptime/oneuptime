@@ -128,12 +128,8 @@ export default class Reseller extends BaseModel {
     public password?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -159,12 +155,8 @@ export default class Reseller extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            
-        ],
-        read: [
-           
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -182,9 +174,7 @@ export default class Reseller extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-           
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -211,9 +201,7 @@ export default class Reseller extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-           
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

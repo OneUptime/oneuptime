@@ -35,18 +35,16 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
     const [initialValues, setInitialValues] = useState<any>({});
 
-
-
-    useEffect(()=>{
-        // check if promocode exists in localstorage and if it does, add it to initialValues. 
+    useEffect(() => {
+        // check if promocode exists in localstorage and if it does, add it to initialValues.
         const promoCode = LocalStorage.getItem('promoCode');
 
-        if(promoCode){
+        if (promoCode) {
             setInitialValues({
-                paymentProviderPromoCode: promoCode
-            })
+                paymentProviderPromoCode: promoCode,
+            });
         }
-    }, [])
+    }, []);
 
     const getFooter: Function = (): ReactElement => {
         if (!BILLING_ENABLED) {
