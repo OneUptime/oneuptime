@@ -47,6 +47,10 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
     }, []);
 
+    useEffect(()=>{
+        refreshFields();
+    }, [initialValues]);
+
     const getFooter: Function = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
@@ -225,6 +229,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     title: 'Promo Code',
                     required: false,
                     stepId: 'plan',
+                    disabled: !!initialValues.paymentProviderPromoCode
                 },
             ];
         }
@@ -259,8 +264,10 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         setShowModal(false);
                         props.onProjectModalClose();
                     }}
+
                     submitButtonText="Create Project"
                     onSuccess={(project: Project | null) => {
+                        LocalStorage.removeItem('promoCode');
                         setSelectedProject(project);
                         if (project && props.onProjectSelected) {
                             props.onProjectSelected(project);

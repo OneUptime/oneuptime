@@ -103,15 +103,6 @@ export class Service extends DatabaseService<Model> {
             }
 
             if (
-                data.data.paymentProviderPromoCode &&
-                !(await BillingService.isPromoCodeValid(
-                    data.data.paymentProviderPromoCode
-                ))
-            ) {
-                throw new BadDataException('Promo code is invalid.');
-            }
-
-            if (
                 !SubscriptionPlan.isValidPlanId(
                     data.data.paymentProviderPlanId,
                     getAllEnvVars()
@@ -124,7 +115,6 @@ export class Service extends DatabaseService<Model> {
                 data.data.paymentProviderPlanId
             );
 
-            // check if promocode is valid.
 
             if (data.data.paymentProviderPromoCode) {
                 // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.
@@ -148,6 +138,7 @@ export class Service extends DatabaseService<Model> {
                             },
                             resellerId: true,
                             resellerLicenseId: true,
+                            planType: true
                         },
                         props: {
                             isRoot: true,
@@ -195,6 +186,20 @@ export class Service extends DatabaseService<Model> {
                     }
                 }
             }
+
+            if (
+                data.data.paymentProviderPromoCode &&
+                !(await BillingService.isPromoCodeValid(
+                    data.data.paymentProviderPromoCode
+                ))
+            ) {
+                throw new BadDataException('Promo code is invalid.');
+            }
+
+            
+            // check if promocode is valid.
+
+          
         }
 
         // check if the user has the project with the same name. If yes, reject.

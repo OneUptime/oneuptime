@@ -119,9 +119,9 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                         const couponcode: string =
                             await BillingService.generateCouponCode({
-                                name: resellerId + ' ' + licenseKey,
+                                name: resellerId,
                                 percentOff: 100,
-                                maxRedemptions: 1,
+                                maxRedemptions: 2,
                                 durationInMonths: 12 * 20, // 20 years.
                                 metadata: {
                                     licenseKey: licenseKey || '',
@@ -240,7 +240,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                         await ProjectService.deleteOneBy({
                             query: {
                                 resellerLicenseId: licenseKey,
-                                id: project.id!,
+                                _id: project.id?.toString()!,
                             },
                             props: {
                                 isRoot: true,
