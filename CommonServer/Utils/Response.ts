@@ -314,7 +314,9 @@ export default class Response {
         }
 
         oneUptimeResponse.logBody = item as JSONObject;
-        oneUptimeResponse.status(options?.statusCode ? options?.statusCode.toNumber() : 200).send(item);
+        oneUptimeResponse
+            .status(options?.statusCode ? options?.statusCode.toNumber() : 200)
+            .send(item);
         this.logResponse(req, res, item as JSONObject);
     }
 

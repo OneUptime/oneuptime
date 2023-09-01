@@ -29,7 +29,7 @@ export default class ResellerPlanAPI extends BaseAPI<
         super(ResellerPlan, ResellerPlanService);
 
         // Reseller Plan Action API
-        // TODO: Reafactor this APi and make it partner specific. 
+        // TODO: Reafactor this APi and make it partner specific.
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
@@ -94,7 +94,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                     if (resellerPlan.reseller?.resellerId !== resellerId) {
                         throw new BadDataException(
                             'This plan does not belong to reseller: ' +
-                            resellerId
+                                resellerId
                         );
                     }
 
@@ -138,39 +138,53 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                         // now redirect to accounts sign up page with this promocode.
 
-                        return Response.sendJsonObjectResponse(req, res, {
-                            "message": "product activated",
-                            "redirect_url": new URL(HttpProtocol, Domain, AccountsRoute)
-                                .addRoute('/register')
-                                .addQueryParams({
-                                    email: userEmail.toString(),
-                                    promoCode: couponcode,
-                                }).toString()
-                        }, {
-                            statusCode: new StatusCode(201)
-                        })
-
-                    } else if (action === "enhance_tier" || action === "reduce_tier") {
-
-                        // update monitor and team seat limits. 
-
-                        const project: Project | null = await ProjectService.findOneBy({
-                            query: {
-                                resellerLicenseId: licenseKey
+                        return Response.sendJsonObjectResponse(
+                            req,
+                            res,
+                            {
+                                message: 'product activated',
+                                redirect_url: new URL(
+                                    HttpProtocol,
+                                    Domain,
+                                    AccountsRoute
+                                )
+                                    .addRoute('/register')
+                                    .addQueryParams({
+                                        email: userEmail.toString(),
+                                        promoCode: couponcode,
+                                    })
+                                    .toString(),
                             },
-                            select: {
-                                _id: true,
-                            },
-                            props: {
-                                isRoot: true,
+                            {
+                                statusCode: new StatusCode(201),
                             }
-                        });
+                        );
+                    } else if (
+                        action === 'enhance_tier' ||
+                        action === 'reduce_tier'
+                    ) {
+                        // update monitor and team seat limits.
+
+                        const project: Project | null =
+                            await ProjectService.findOneBy({
+                                query: {
+                                    resellerLicenseId: licenseKey,
+                                },
+                                select: {
+                                    _id: true,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
 
                         if (!project) {
-                            throw new BadDataException("Project not found with this license key");
+                            throw new BadDataException(
+                                'Project not found with this license key'
+                            );
                         }
 
-                        // update limits. 
+                        // update limits.
 
                         await ProjectService.updateOneById({
                             id: project.id!,
@@ -180,45 +194,49 @@ export default class ResellerPlanAPI extends BaseAPI<
                             },
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
 
                         return Response.sendJsonObjectResponse(req, res, {
-                            "message": action === "enhance_tier" ? "product enhanced" : "product reduced"
+                            message:
+                                action === 'enhance_tier'
+                                    ? 'product enhanced'
+                                    : 'product reduced',
                         });
+                    } else if (action === 'refund') {
+                        // delete this project.
 
-                    } else if (action === "refund") {
-                        // delete this project. 
-
-                        const project: Project | null = await ProjectService.findOneBy({
-                            query: {
-                                resellerLicenseId: licenseKey
-                            },
-                            select: {
-                                _id: true,
-                            },
-                            props: {
-                                isRoot: true,
-                            }
-                        });
+                        const project: Project | null =
+                            await ProjectService.findOneBy({
+                                query: {
+                                    resellerLicenseId: licenseKey,
+                                },
+                                select: {
+                                    _id: true,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
 
                         if (!project) {
-                            throw new BadDataException("Project not found with this license key");
+                            throw new BadDataException(
+                                'Project not found with this license key'
+                            );
                         }
-
 
                         await ProjectService.deleteOneBy({
                             query: {
                                 resellerLicenseId: licenseKey,
-                                id: project.id!
+                                id: project.id!,
                             },
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
 
                         return Response.sendJsonObjectResponse(req, res, {
-                            "message": "product refunded"
+                            message: 'product refunded',
                         });
                     }
 

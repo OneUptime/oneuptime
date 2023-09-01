@@ -147,7 +147,7 @@ export class Service extends DatabaseService<Model> {
                                 teamMemberLimit: true,
                             },
                             resellerId: true,
-                            resellerLicenseId: true, 
+                            resellerLicenseId: true,
                         },
                         props: {
                             isRoot: true,
@@ -189,8 +189,9 @@ export class Service extends DatabaseService<Model> {
                         );
                     }
 
-                    if(promoCode.resellerLicenseId) {
-                        data.data.resellerLicenseId = promoCode.resellerLicenseId;
+                    if (promoCode.resellerLicenseId) {
+                        data.data.resellerLicenseId =
+                            promoCode.resellerLicenseId;
                     }
                 }
             }

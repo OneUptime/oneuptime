@@ -1059,12 +1059,8 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [
-           
-        ],
-        update: [
-          
-        ],
+        read: [],
+        update: [],
     })
     @TableColumn({
         required: false,
