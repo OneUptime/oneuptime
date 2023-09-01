@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -15,13 +15,32 @@ import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
 import Dictionary from 'Common/Types/Dictionary';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 
 const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
 
+    const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }
+
+    useEffect(() => {
+        // if promo code is found, please save it in localstorage.
+        if (Navigation.getQueryStringByName('promoCode')) {
+            LocalStorage.setItem(
+                'promoCode',
+                Navigation.getQueryStringByName('promoCode')
+            );
+        }
+
+        if (Navigation.getQueryStringByName('email')) {
+            setInitialValues({
+                email: Navigation.getQueryStringByName('email'),
+            });
+        }
+    }, []);
 
     let formFields: Fields<User> = [
         {
@@ -31,6 +50,7 @@ const RegisterPage: () => JSX.Element = () => {
             fieldType: FormFieldSchemaType.Email,
             placeholder: 'jeff@example.com',
             required: true,
+            disabled: Boolean(initialValues && initialValues['email']),
             title: 'Email',
         },
         {
@@ -124,6 +144,7 @@ const RegisterPage: () => JSX.Element = () => {
                         id="register-form"
                         showAsColumns={2}
                         name="Register"
+                        initialValues={initialValues}
                         maxPrimaryButtonWidth={true}
                         fields={formFields}
                         apiUrl={apiUrl}

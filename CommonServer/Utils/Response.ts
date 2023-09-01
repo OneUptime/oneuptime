@@ -16,6 +16,7 @@ import EmptyResponse from 'Common/Types/API/EmptyResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import FileModel from 'Common/Models/FileModel';
 import Dictionary from 'Common/Types/Dictionary';
+import StatusCode from 'Common/Types/API/StatusCode';
 
 export default class Response {
     private static logResponse(
@@ -31,24 +32,24 @@ export default class Response {
         const path: string = oneUptimeRequest.originalUrl.toString();
 
         const logLine: JSONObject = {
-            'Request ID': `${oneUptimeRequest.id}`,
+            RequestID: `${oneUptimeRequest.id}`,
 
-            'Pod Name': `${process.env['POD_NAME'] || 'NONE'}`,
+            PodName: `${process.env['POD_NAME'] || 'NONE'}`,
 
-            'HTTP Method': `${method}`,
+            HTTPMethod: `${method}`,
 
             Path: `${path.toString()}`,
 
-            'Request Duration': `${(
+            RequestDuration: `${(
                 requestEndedAt.getTime() -
                 (oneUptimeRequest.requestStartedAt as Date).getTime()
             ).toString()}ms`,
 
-            'Response Status': `${oneUptimeResponse.statusCode}`,
+            ResponseStatus: `${oneUptimeResponse.statusCode}`,
 
             Host: `${oneUptimeRequest.hostname}`,
 
-            'Response body': `${
+            ResponseBody: `${
                 responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
             }`,
         };
@@ -290,7 +291,10 @@ export default class Response {
     public static sendJsonObjectResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: JSONObject
+        item: JSONObject,
+        options?: {
+            statusCode?: StatusCode;
+        }
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -310,7 +314,9 @@ export default class Response {
         }
 
         oneUptimeResponse.logBody = item as JSONObject;
-        oneUptimeResponse.status(200).send(item);
+        oneUptimeResponse
+            .status(options?.statusCode ? options?.statusCode.toNumber() : 200)
+            .send(item);
         this.logResponse(req, res, item as JSONObject);
     }
 
