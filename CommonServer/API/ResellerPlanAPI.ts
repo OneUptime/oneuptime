@@ -11,6 +11,8 @@ import BillingService from '../Services/BillingService';
 import Response from '../Utils/Response';
 import URL from 'Common/Types/API/URL';
 import { AccountsRoute, Domain, HttpProtocol } from '../Config';
+import PromoCode from 'Model/Models/PromoCode';
+import PromoCodeService from '../Services/PromoCodeService';
 
 export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanServiceType> {
     public constructor() {
@@ -57,7 +59,8 @@ export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanS
                             planId: true,
                             reseller: {
                                 resellerId: true,
-                            }
+                            },
+                            planType: true
                         },
                         props: {
                             isRoot: true,
@@ -93,8 +96,23 @@ export default class ResellerPlanAPI extends BaseAPI<ResellerPlan, ResellerPlanS
                             }
                         });
 
+                        // save this in promocode table. 
 
+                        const promoCode: PromoCode = new PromoCode(); 
 
+                        promoCode.promoCodeId = couponcode;
+                        promoCode.resellerId = resellerPlan?.reseller.id!;
+                        promoCode.resellerPlanId = resellerPlan?.id!;
+                        promoCode.userEmail = userEmail;
+                        promoCode.planType = resellerPlan?.planType!;
+                        promoCode.resellerLicenseId = licenseKey;
+
+                        await PromoCodeService.create({
+                            data: promoCode,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
 
                         // now redirect to accounts sign up page with this promocode. 
 

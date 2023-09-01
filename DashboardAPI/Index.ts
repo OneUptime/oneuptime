@@ -343,6 +343,12 @@ import OnCallDutyPolicyExecutionLogService, {
     Service as OnCallDutyPolicyExecutionLogServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyExecutionLogService';
 
+
+import PromoCode from 'Model/Models/PromoCode';
+import PromoCodeService, {
+    Service as PromoCodeServiceType,
+} from 'CommonServer/Services/PromoCodeService';
+
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import OnCallDutyPolicyEscalationRuleService, {
     Service as OnCallDutyPolicyEscalationRuleServiceType,
@@ -941,6 +947,17 @@ app.use(
     >(
         OnCallDutyPolicyExecutionLog,
         OnCallDutyPolicyExecutionLogService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        PromoCode,
+        PromoCodeServiceType
+    >(
+        PromoCode,
+        PromoCodeService
     ).getRouter()
 );
 

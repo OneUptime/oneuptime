@@ -117,7 +117,12 @@ import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
 import ResellerService from './ResellerService';
 import ResellerPlanService from './ResellerPlanService';
 
+import PromoCodeService from './PromoCodeService';
+
 const services: Array<BaseService> = [
+
+    PromoCodeService, 
+
     ResellerService,
     ResellerPlanService,
     // Import all services in current folder here.

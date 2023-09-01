@@ -8,7 +8,6 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
-import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -130,15 +129,10 @@ export default class Reseller extends BaseModel {
 
     @ColumnAccessControl({
         create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            
         ],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+           
         ],
         update: [],
     })
@@ -166,15 +160,10 @@ export default class Reseller extends BaseModel {
 
     @ColumnAccessControl({
         create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            
         ],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+           
         ],
         update: [],
     })
@@ -194,10 +183,7 @@ export default class Reseller extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+           
         ],
         update: [],
     })
@@ -226,10 +212,7 @@ export default class Reseller extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+           
         ],
         update: [],
     })
