@@ -18,6 +18,8 @@ import { AccountsRoute, Domain, HttpProtocol } from '../Config';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from '../Services/PromoCodeService';
 import StatusCode from 'Common/Types/API/StatusCode';
+import Project from 'Model/Models/Project';
+import ProjectService from '../Services/ProjectService';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,
@@ -75,6 +77,8 @@ export default class ResellerPlanAPI extends BaseAPI<
                             reseller: {
                                 resellerId: true,
                             },
+                            teamMemberLimit: true,
+                            monitorLimit: true,
                             planType: true,
                         },
                         props: {
@@ -145,8 +149,72 @@ export default class ResellerPlanAPI extends BaseAPI<
                             statusCode: new StatusCode(201)
                         })
 
-                    } else {
+                    } else if (action === "enhance_tier" || action === "reduce_tier") {
 
+                        // update monitor and team seat limits. 
+
+                        const project: Project | null = await ProjectService.findOneBy({
+                            query: {
+                                resellerLicenseId: licenseKey
+                            },
+                            select: {
+                                _id: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+
+                        if (!project) {
+                            throw new BadDataException("Project not found with this license key");
+                        }
+
+                        // update limits. 
+
+                        await ProjectService.updateOneById({
+                            id: project.id!,
+                            data: {
+                                activeMonitorsLimit: resellerPlan.monitorLimit!,
+                                seatLimit: resellerPlan.teamMemberLimit!,
+                            },
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+
+                        return Response.sendJsonObjectResponse(req, res, {
+                            "message": action === "enhance_tier" ? "product enhanced" : "product reduced"
+                        });
+
+                    } else if (action === "refund") {
+                        // delete this project. 
+
+                        const project: Project | null = await ProjectService.findOneBy({
+                            query: {
+                                resellerLicenseId: licenseKey
+                            },
+                            select: {
+                                _id: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+
+                        if (!project) {
+                            throw new BadDataException("Project not found with this license key");
+                        }
+
+
+                        await ProjectService.deleteOneBy({
+                            query: {
+                                resellerLicenseId: licenseKey,
+                                id: project.id!
+                            },
+                            props: {
+                                isRoot: true,
+                            }
+                        });
                     }
 
 

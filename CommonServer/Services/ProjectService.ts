@@ -124,64 +124,73 @@ export class Service extends DatabaseService<Model> {
                 data.data.paymentProviderPlanId
             );
 
-
             // check if promocode is valid.
 
-            if(data.data.paymentProviderPromoCode){
-                // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are. 
-                // If they are not in the table, allow projetc creation to proceed. 
+            if (data.data.paymentProviderPromoCode) {
+                // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.
+                // If they are not in the table, allow projetc creation to proceed.
                 // If they are in the project table, then see if anyn restrictions on reseller plan apply and if it does,
-                // apply those restictions to the project. 
+                // apply those restictions to the project.
 
-                const promoCode: PromoCode | null = await PromoCodeService.findOneBy({
-                    query: {
-                        promoCodeId:data.data.paymentProviderPromoCode,
-                    },
-                    select: {
-                        isPromoCodeUsed: true, 
-                        userEmail: true, 
-                        resellerPlan: {
-                            _id: true, 
-                            planType: true,
-                            monitorLimit: true, 
-                            teamMemberLimit: true, 
+                const promoCode: PromoCode | null =
+                    await PromoCodeService.findOneBy({
+                        query: {
+                            promoCodeId: data.data.paymentProviderPromoCode,
                         },
-                        resellerId: true, 
-                        resellerPlanId: true
-                    },
-                    props: {
-                        isRoot: true,
-                    }
-                });
+                        select: {
+                            isPromoCodeUsed: true,
+                            userEmail: true,
+                            resellerPlan: {
+                                _id: true,
+                                planType: true,
+                                monitorLimit: true,
+                                teamMemberLimit: true,
+                            },
+                            resellerId: true,
+                            resellerLicenseId: true, 
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
-                if(promoCode){
-                    // check if the same user is creating the project. 
-                    if(promoCode.userEmail?.toString() !== user.email?.toString()){
-                        throw new BadDataException('This promocode is assigned to a different user and cannot be used.');
-                    }
-
-                    if(promoCode.isPromoCodeUsed){
-                        throw new BadDataException('This promocode has already been used.');
-                    }
-
-                    if(promoCode.resellerPlan?.monitorLimit){
-                        data.data.activeMonitorsLimit = promoCode.resellerPlan?.monitorLimit;
-                    }
-
-                    if(promoCode.resellerPlan?.teamMemberLimit){
-                        data.data.seatLimit = promoCode.resellerPlan?.teamMemberLimit;
-                    }
-
-                    if(promoCode.planType !== data.data.planName){
-                        throw new BadDataException('Promocode is not valid for this plan. Please select the '+promoCode.planType+' plan.');
+                if (promoCode) {
+                    // check if the same user is creating the project.
+                    if (
+                        promoCode.userEmail?.toString() !==
+                        user.email?.toString()
+                    ) {
+                        throw new BadDataException(
+                            'This promocode is assigned to a different user and cannot be used.'
+                        );
                     }
 
-                    if(promoCode.resellerId){
-                        data.data.resellerId = promoCode.resellerId;
+                    if (promoCode.isPromoCodeUsed) {
+                        throw new BadDataException(
+                            'This promocode has already been used.'
+                        );
                     }
 
-                    if(promoCode.resellerPlanId){
-                        data.data.resellerPlanId = promoCode.resellerPlanId;
+                    if (promoCode.resellerPlan?.monitorLimit) {
+                        data.data.activeMonitorsLimit =
+                            promoCode.resellerPlan?.monitorLimit;
+                    }
+
+                    if (promoCode.resellerPlan?.teamMemberLimit) {
+                        data.data.seatLimit =
+                            promoCode.resellerPlan?.teamMemberLimit;
+                    }
+
+                    if (promoCode.planType !== data.data.planName) {
+                        throw new BadDataException(
+                            'Promocode is not valid for this plan. Please select the ' +
+                                promoCode.planType +
+                                ' plan.'
+                        );
+                    }
+
+                    if(promoCode.resellerLicenseId) {
+                        data.data.resellerLicenseId = promoCode.resellerLicenseId;
                     }
                 }
             }
@@ -219,13 +228,10 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-
-
         data.data.createdOwnerName = user.name!;
         data.data.createdOwnerEmail = user.email!;
         data.data.createdOwnerPhone = user.companyPhoneNumber!;
         data.data.createdOwnerCompanyName = user.companyName!;
-
 
         // UTM info.
         data.data.utmCampaign = user.utmCampaign!;
@@ -454,9 +460,9 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-            // mark the promo code as used it it exists. 
+            // mark the promo code as used it it exists.
 
-            if(createdItem.paymentProviderPromoCode){
+            if (createdItem.paymentProviderPromoCode) {
                 await PromoCodeService.updateOneBy({
                     query: {
                         promoCodeId: createdItem.paymentProviderPromoCode,
@@ -467,8 +473,8 @@ export class Service extends DatabaseService<Model> {
                         projectId: createdItem.id!,
                     },
                     props: {
-                        isRoot: true, 
-                    }
+                        isRoot: true,
+                    },
                 });
             }
         }
