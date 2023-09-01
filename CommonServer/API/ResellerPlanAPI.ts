@@ -14,7 +14,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import BillingService from '../Services/BillingService';
 import Response from '../Utils/Response';
 import URL from 'Common/Types/API/URL';
-import { AccountsRoute, Domain, HttpProtocol } from '../Config';
+import { AccountsUrl } from '../Config';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from '../Services/PromoCodeService';
 import StatusCode from 'Common/Types/API/StatusCode';
@@ -155,10 +155,8 @@ export default class ResellerPlanAPI extends BaseAPI<
                             res,
                             {
                                 message: 'product activated',
-                                redirect_url: new URL(
-                                    HttpProtocol,
-                                    Domain,
-                                    AccountsRoute
+                                redirect_url: URL.fromString(
+                                    AccountsUrl.toString()
                                 )
                                     .addRoute('/register')
                                     .addQueryParams({
