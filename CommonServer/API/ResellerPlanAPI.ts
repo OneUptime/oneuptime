@@ -29,6 +29,7 @@ export default class ResellerPlanAPI extends BaseAPI<
         super(ResellerPlan, ResellerPlanService);
 
         // Reseller Plan Action API
+        // TODO: Reafactor this APi and make it partner specific. 
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
@@ -215,9 +216,11 @@ export default class ResellerPlanAPI extends BaseAPI<
                                 isRoot: true,
                             }
                         });
+
+                        return Response.sendJsonObjectResponse(req, res, {
+                            "message": "product refunded"
+                        });
                     }
-
-
 
                     throw new BadDataException('Invalid action.');
                 } catch (err) {
