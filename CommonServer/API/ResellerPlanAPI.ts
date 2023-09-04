@@ -230,9 +230,10 @@ export default class ResellerPlanAPI extends BaseAPI<
                             });
 
                         if (!project) {
-                            throw new BadDataException(
-                                'Project not found with this license key'
-                            );
+                            // maybe already deleted. so, we just issue a refund and return.
+                            return Response.sendJsonObjectResponse(req, res, {
+                                message: 'product refunded',
+                            });
                         }
 
                         await ProjectService.deleteOneBy({
