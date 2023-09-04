@@ -14,10 +14,11 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Reseller from './Reseller';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import Permission from 'Common/Types/Permission';
 
 @TableAccessControl({
     create: [],
-    read: [],
+    read: [Permission.ProjectOwner],
     delete: [],
     update: [],
 })

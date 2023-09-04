@@ -12,10 +12,11 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
+import Permission from 'Common/Types/Permission';
 
 @TableAccessControl({
     create: [],
-    read: [],
+    read: [Permission.ProjectOwner],
     delete: [],
     update: [],
 })

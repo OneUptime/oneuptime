@@ -963,7 +963,7 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [],
+        read: [Permission.ProjectOwner],
         update: [],
     })
     @TableColumn({
@@ -990,7 +990,7 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [],
+        read: [Permission.ProjectOwner],
         update: [],
     })
     @Index()
@@ -1011,7 +1011,7 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [],
+        read: [Permission.ProjectOwner],
         update: [],
     })
     @TableColumn({
@@ -1038,7 +1038,7 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [],
+        read: [Permission.ProjectOwner],
         update: [],
     })
     @Index()
