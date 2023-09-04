@@ -6,6 +6,8 @@ import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/admin-dashboard`),
+    [PageMap.HOME]: new Route(`/admin-dashboard`),
+    [PageMap.LOGOUT]: new Route(`/admin-dashboard/logout`)
 };
 
 export class RouteUtil {
