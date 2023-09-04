@@ -138,6 +138,7 @@ export class Service extends DatabaseService<Model> {
                             resellerId: true,
                             resellerLicenseId: true,
                             planType: true,
+                            resellerPlanId: true,
                         },
                         props: {
                             isRoot: true,
@@ -182,6 +183,14 @@ export class Service extends DatabaseService<Model> {
                     if (promoCode.resellerLicenseId) {
                         data.data.resellerLicenseId =
                             promoCode.resellerLicenseId;
+                    }
+
+                    if (promoCode.resellerId) {
+                        data.data.resellerId = promoCode.resellerId;
+                    }
+
+                    if (promoCode.resellerPlanId) {
+                        data.data.resellerPlanId = promoCode.resellerPlanId;
                     }
                 }
             }
