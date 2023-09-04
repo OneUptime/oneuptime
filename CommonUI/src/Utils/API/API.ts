@@ -98,7 +98,12 @@ class BaseAPI extends API {
     protected static override handleError(
         error: HTTPErrorResponse | APIException
     ): HTTPErrorResponse | APIException {
-        if (error instanceof HTTPErrorResponse && error.statusCode === 401) {
+        // 405 Status - Tenant not found. If Project was deleted.
+        // 401 Status - User is not logged in.
+        if (
+            error instanceof HTTPErrorResponse &&
+            (error.statusCode === 401 || error.statusCode === 405)
+        ) {
             const cookies: Cookies = new Cookies();
             cookies.remove('admin-data', { path: '/' });
             cookies.remove('data', { path: '/' });

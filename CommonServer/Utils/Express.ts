@@ -1,7 +1,7 @@
 import 'ejs';
 import express from 'express';
 import logger from './Logger';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
+import { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import {
@@ -29,6 +29,7 @@ export type ExpressApplication = express.Application;
 export type ExpressRouter = express.Router;
 
 export interface OneUptimeRequest extends express.Request {
+    bearerTokenData?: JSONObject | string | undefined; //  if bearer token is passed then this is populated.
     probe?: ProbeRequest;
     id: ObjectID;
     requestStartedAt?: Date;

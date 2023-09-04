@@ -23,6 +23,8 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import Phone from 'Common/Types/Phone';
 import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
+import Reseller from './Reseller';
+import ResellerPlan from './ResellerPlan';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
@@ -521,7 +523,7 @@ export default class Model extends TenantModel {
     public requireSsoForLogin?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -534,7 +536,7 @@ export default class Model extends TenantModel {
     public activeMonitorsLimit?: number = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.User],
         read: [],
         update: [],
     })
@@ -958,4 +960,119 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public createdOwnerCompanyName?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectOwner],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'resellerId',
+        type: TableColumnType.Entity,
+        modelType: Reseller,
+        title: 'Reseller',
+        description:
+            'Relation to Reseller Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Reseller;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'resellerId' })
+    public reseller?: Reseller = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectOwner],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Reseller ID',
+        description:
+            'ID of your OneUptime Reseller in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public resellerId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectOwner],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'ResellerPlanId',
+        type: TableColumnType.Entity,
+        modelType: ResellerPlan,
+        title: 'ResellerPlan',
+        description:
+            'Relation to ResellerPlan Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return ResellerPlan;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'resellerPlanId' })
+    public resellerPlan?: ResellerPlan = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectOwner],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Reseller Plan ID',
+        description:
+            'ID of your OneUptime Reseller Plan in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public resellerPlanId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        title: 'License ID',
+        description: 'License ID from a OneUptime Reseller',
+        canReadOnRelationQuery: true,
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public resellerLicenseId?: string = undefined;
 }

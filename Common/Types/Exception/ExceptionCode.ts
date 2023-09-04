@@ -13,6 +13,7 @@ enum ExceptionCode {
     PaymentRequiredException = 402,
     NotFoundException = 404,
     TimeoutException = 408,
+    TenantNotFoundException = 405,
     SsoAuthorizationException = 406,
 }
 

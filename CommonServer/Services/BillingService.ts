@@ -12,6 +12,7 @@ import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
+import Dictionary from 'Common/Types/Dictionary';
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -161,6 +162,7 @@ export class BillingService extends BaseService {
 
     public async generateCouponCode(data: {
         name: string;
+        metadata?: Dictionary<string> | undefined;
         percentOff: number;
         durationInMonths: number;
         maxRedemptions: number;
@@ -171,6 +173,7 @@ export class BillingService extends BaseService {
             duration: 'repeating',
             duration_in_months: data.durationInMonths,
             max_redemptions: data.maxRedemptions,
+            metadata: data.metadata || null,
         });
 
         return coupon.id;

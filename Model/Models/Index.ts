@@ -123,6 +123,10 @@ import Log from './Log';
 import IncidentNoteTemplate from './IncidentNoteTemplate';
 import ScheduledMaintenanceNoteTemplate from './ScheduledMaintenanceNoteTemplate';
 
+import ResellerPlan from './ResellerPlan';
+import Reseller from './Reseller';
+import PromoCode from './PromoCode';
+
 export default [
     User,
     Probe,
@@ -227,6 +231,11 @@ export default [
     IncidentNoteTemplate,
 
     ScheduledMaintenanceNoteTemplate,
+
+    Reseller,
+    ResellerPlan,
+
+    PromoCode,
 ];
 
 export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];
