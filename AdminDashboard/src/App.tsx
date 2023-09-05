@@ -16,6 +16,7 @@ import PageMap from './Utils/PageMap';
 import Init from './Pages/Init/Init';
 import Projects from './Pages/Projects/Index';
 import Users from './Pages/Users/Index';
+import Logout from './Pages/Logout/Logout';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -55,6 +56,11 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={RouteMap[PageMap.USERS]?.toString() || ''}
                     element={<Users />}
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.LOGOUT]?.toString() || ''}
+                    element={<Logout />}
                 />
             </Routes>
         </MasterPage>

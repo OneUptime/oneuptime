@@ -126,6 +126,7 @@ import ScheduledMaintenanceNoteTemplate from './ScheduledMaintenanceNoteTemplate
 import ResellerPlan from './ResellerPlan';
 import Reseller from './Reseller';
 import PromoCode from './PromoCode';
+import GlobalConfig from './GlobalConfig';
 
 export default [
     User,
@@ -236,6 +237,8 @@ export default [
     ResellerPlan,
 
     PromoCode,
+
+    GlobalConfig
 ];
 
 export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];
