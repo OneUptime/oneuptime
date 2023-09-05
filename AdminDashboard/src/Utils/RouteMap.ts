@@ -5,9 +5,12 @@ import RouteParams from './RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
-    [PageMap.INIT]: new Route(`/admin-dashboard`),
-    [PageMap.HOME]: new Route(`/admin-dashboard`),
-    [PageMap.LOGOUT]: new Route(`/admin-dashboard/logout`)
+    [PageMap.INIT]: new Route(`/admin`),
+    [PageMap.HOME]: new Route(`/admin`),
+    [PageMap.LOGOUT]: new Route(`/admin/logout`),
+    [PageMap.SETTINGS]: new Route(`/admin/settings`),
+    [PageMap.PROJECTS]: new Route(`/admin/projects`),
+    [PageMap.USERS]: new Route(`/admin/users`),
 };
 
 export class RouteUtil {

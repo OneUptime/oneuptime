@@ -118,6 +118,14 @@ export default class User {
         return sessionStorage.removeItem('initialUrl');
     }
 
+    public static isMasterAdmin(): boolean {
+        return LocalStorage.getItem('is_master_admin') as boolean;
+    }
+
+    public static setIsMasterAdmin(isMasterAdmin: boolean): void {
+        LocalStorage.setItem('is_master_admin', isMasterAdmin);
+    }
+
     public static isLoggedIn(): boolean {
         return LocalStorage.getItem('access_token') ? true : false;
     }

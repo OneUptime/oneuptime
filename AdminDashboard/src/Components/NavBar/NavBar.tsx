@@ -11,13 +11,33 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
 
     return (
         <NavBar>
+            
             <NavBarItem
-                title="Home"
-                icon={IconProp.Home}
+                title="Users"
+                icon={IconProp.User}
                 route={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.HOME] as Route
+                    RouteMap[PageMap.USERS] as Route
                 )}
             ></NavBarItem>
+
+            <NavBarItem
+                title="Projects"
+                icon={IconProp.Folder}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.PROJECTS] as Route
+                )}
+            ></NavBarItem>
+
+
+            <NavBarItem
+                title="Settings"
+                icon={IconProp.Settings}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS] as Route
+                )}
+            ></NavBarItem>
+
+
         </NavBar>
     );
 };

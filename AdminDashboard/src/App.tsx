@@ -9,7 +9,7 @@ import {
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
 import URL from 'Common/Types/API/URL';
-import { ACCOUNTS_URL } from 'CommonUI/src/Config';
+import { ACCOUNTS_URL, DASHBOARD_URL } from 'CommonUI/src/Config';
 import MasterPage from './Components/MasterPage/MasterPage';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
@@ -31,6 +31,10 @@ const App: () => JSX.Element = () => {
         } else {
             Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()));
         }
+    }
+    
+    if(!User.isMasterAdmin()){
+        Navigation.navigate(URL.fromString(DASHBOARD_URL.toString()))
     }
 
     return (

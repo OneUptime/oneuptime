@@ -47,7 +47,7 @@ export const HELM_ROUTE: Route = new Route(env('HELMCHART_ROUTE'));
 export const API_DOCS_ROUTE: Route = new Route(env('API_REFERENCE_ROUTE'));
 
 export const ADMIN_DASHBOARD_ROUTE: Route = new Route(
-    env('ADMINDASHBOARD_ROUTE')
+    env('ADMIN_DASHBOARD_ROUTE')
 );
 export const ACCOUNTS_ROUTE: Route = new Route(env('ACCOUNTS_ROUTE'));
 export const HOME_ROUTE: Route = new Route(env('HOME_ROUTE'));

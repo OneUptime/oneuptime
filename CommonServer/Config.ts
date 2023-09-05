@@ -184,7 +184,7 @@ export const ApiReferenceRoute: Route = new Route(
 );
 
 export const AdminDashboardRoute: Route = new Route(
-    process.env['ADMINDASHBOARD_ROUTE'] || '/admin-dashboard'
+    process.env['ADMIN_DASHBOARD_ROUTE'] || '/admin-dashboard'
 );
 
 export const IsProduction: boolean =
