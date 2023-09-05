@@ -72,7 +72,7 @@ router.post(
                     props: {
                         isRoot: true,
                     },
-                    query: {}
+                    query: {},
                 });
 
                 partialUser.isMasterAdmin = userCount.isZero(); // if the user count is 0 then make the first user master admin.

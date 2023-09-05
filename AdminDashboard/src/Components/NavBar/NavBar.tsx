@@ -7,11 +7,8 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 
 const DashboardNavbar: FunctionComponent = (): ReactElement => {
-
-
     return (
         <NavBar>
-            
             <NavBarItem
                 title="Users"
                 icon={IconProp.User}
@@ -28,7 +25,6 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
                 )}
             ></NavBarItem>
 
-
             <NavBarItem
                 title="Settings"
                 icon={IconProp.Settings}
@@ -36,8 +32,6 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
                     RouteMap[PageMap.SETTINGS] as Route
                 )}
             ></NavBarItem>
-
-
         </NavBar>
     );
 };

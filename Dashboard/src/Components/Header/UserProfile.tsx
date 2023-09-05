@@ -40,14 +40,18 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
                         icon={IconProp.User}
                     />
 
-                    {User.isMasterAdmin() ? <IconDropdownItem
-                        title="Admin Settings"
-                        onClick={() => {
-                            setIsDropdownVisible(false);
-                            Navigation.navigate(ADMIN_DASHBOARD_URL);
-                        }}
-                        icon={IconProp.Settings}
-                    /> : <></>}
+                    {User.isMasterAdmin() ? (
+                        <IconDropdownItem
+                            title="Admin Settings"
+                            onClick={() => {
+                                setIsDropdownVisible(false);
+                                Navigation.navigate(ADMIN_DASHBOARD_URL);
+                            }}
+                            icon={IconProp.Settings}
+                        />
+                    ) : (
+                        <></>
+                    )}
 
                     <IconDropdownItem
                         title="Log out"

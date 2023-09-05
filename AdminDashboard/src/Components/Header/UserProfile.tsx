@@ -7,13 +7,13 @@ import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
 import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import User from 'CommonUI/src/Utils/User';
 
-export interface ComponentProps {
-    onClickUserProfile: () => void;
-}
 
-const DashboardUserProfile: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const DashboardUserProfile: FunctionComponent = (
+
 ): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
@@ -28,14 +28,20 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
                 }}
             >
                 <IconDropdownMenu>
-                    <IconDropdownItem
-                        title="Profile"
-                        onClick={() => {
-                            setIsDropdownVisible(false);
-                            props.onClickUserProfile();
-                        }}
-                        icon={IconProp.User}
-                    />
+                    
+
+                    {User.isMasterAdmin() ? (
+                        <IconDropdownItem
+                            title="Exit Admin"
+                            onClick={() => {
+                                setIsDropdownVisible(false);
+                                Navigation.navigate(DASHBOARD_URL);
+                            }}
+                            icon={IconProp.ExternalLink}
+                        />
+                    ) : (
+                        <></>
+                    )}
 
                     <IconDropdownItem
                         title="Log out"

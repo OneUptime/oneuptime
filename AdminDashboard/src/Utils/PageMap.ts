@@ -5,7 +5,6 @@ enum PageMap {
     SETTINGS = 'SETTINGS',
     USERS = 'USERS',
     PROJECTS = 'PROJECTS',
-    
 }
 
 export default PageMap;

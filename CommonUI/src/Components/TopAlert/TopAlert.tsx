@@ -1,5 +1,4 @@
-
-import React, { FunctionComponent, ReactElement } from 'react'
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title: string;
@@ -12,19 +11,21 @@ const TopAlert: FunctionComponent<ComponentProps> = (
     return (
         <div className="flex items-center text-center gap-x-6 bg-gray-700 px-6 py-2.5 sm:px-3.5">
             <p className="text-sm leading-6 text-white w-full">
-                <div className='w-full'>
-                    <strong className="font-semibold">{props.title}</strong>&nbsp;-&nbsp;
+                <div className="w-full">
+                    <strong className="font-semibold">{props.title}</strong>
+                    &nbsp;-&nbsp;
                     {props.description} &nbsp;&nbsp;
-                    <a
+                    {/** Uncomment the follwing line if you need a button on top alert */}
+                    {/* <a
                         href="#"
                         className="flex-none rounded-full bg-gray-200 px-3.5 py-1 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
                     >
                         Go to User Dashboard <span aria-hidden="true">&rarr;</span>
-                    </a>
+                    </a> */}
                 </div>
             </p>
         </div>
-    )
-}
+    );
+};
 
-export default TopAlert; 
+export default TopAlert;

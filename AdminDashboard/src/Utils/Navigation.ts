@@ -1,5 +1,1 @@
-
-
-export default class AdminDashboardNavigation {
-   
-}
+export default class AdminDashboardNavigation {}

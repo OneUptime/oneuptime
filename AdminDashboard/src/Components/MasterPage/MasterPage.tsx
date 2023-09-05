@@ -13,9 +13,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-
         <div>
-            <TopAlert title="OneUptime Admin Dashboard" description="You can perform your instance related tasks here." />
+            <TopAlert
+                title="OneUptime Admin Dashboard"
+                description="You can perform your OneUptime server related tasks on this dashboard."
+            />
             <MasterPage
                 footer={<Footer />}
                 header={<Header />}
@@ -27,7 +29,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 {props.children}
             </MasterPage>
         </div>
-
     );
 };
 
