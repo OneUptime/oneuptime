@@ -65,7 +65,17 @@ router.post(
                 partialUser.isEmailVerified = false;
             } else {
                 // IF its not a saas service then we will make the email verified.
-                partialUser.isMasterAdmin = false;
+
+                // check if there are more than one user and if there is then we will not make the user master admin.
+
+                const userCount: PositiveNumber = await UserService.countBy({
+                    props: {
+                        isRoot: true,
+                    },
+                    query: {}
+                });
+
+                partialUser.isMasterAdmin = userCount.isZero(); // if the user count is 0 then make the first user master admin.
                 partialUser.isEmailVerified = true;
             }
 
