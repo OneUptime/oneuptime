@@ -12,6 +12,11 @@ import UserService, {
     Service as UserServiceType,
 } from 'CommonServer/Services/UserService';
 
+import GlobalConfig from 'Model/Models/GlobalConfig';
+import GlobalConfigService, {
+    Service as GlobalConfigServiceType,
+} from 'CommonServer/Services/GlobalConfigService';
+
 import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
@@ -734,6 +739,11 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<GlobalConfig, GlobalConfigServiceType>(GlobalConfig, GlobalConfigService).getRouter()
 );
 
 app.use(
