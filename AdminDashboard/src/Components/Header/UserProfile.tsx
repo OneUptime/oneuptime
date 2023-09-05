@@ -11,10 +11,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import User from 'CommonUI/src/Utils/User';
 
-
-const DashboardUserProfile: FunctionComponent = (
-
-): ReactElement => {
+const DashboardUserProfile: FunctionComponent = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
     return (
@@ -28,8 +25,6 @@ const DashboardUserProfile: FunctionComponent = (
                 }}
             >
                 <IconDropdownMenu>
-                    
-
                     {User.isMasterAdmin() ? (
                         <IconDropdownItem
                             title="Exit Admin"

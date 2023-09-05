@@ -35,9 +35,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
                             }}
                         />
                         <Help />
-                        <UserProfile
-                            
-                        />
+                        <UserProfile />
                     </>
                 }
             />

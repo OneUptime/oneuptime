@@ -52,7 +52,7 @@ const App: () => JSX.Element = () => {
                     element={<Projects />}
                 />
 
-<PageRoute
+                <PageRoute
                     path={RouteMap[PageMap.USERS]?.toString() || ''}
                     element={<Users />}
                 />

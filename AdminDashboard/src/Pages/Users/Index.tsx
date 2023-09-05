@@ -9,9 +9,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from 'Model/Models/User';
 
-const Users: FunctionComponent = (
-   
-): ReactElement => {
+const Users: FunctionComponent = (): ReactElement => {
     return (
         <Page
             title={'Users'}
@@ -40,8 +38,7 @@ const Users: FunctionComponent = (
                 isViewable={true}
                 cardProps={{
                     title: 'Users',
-                    description:
-                        'Here is a list of users in OneUptime.',
+                    description: 'Here is a list of users in OneUptime.',
                 }}
                 showViewIdButton={false}
                 noItemsMessage={'No users found.'}
@@ -73,8 +70,6 @@ const Users: FunctionComponent = (
                         required: true,
                         placeholder: 'John Smith',
                     },
-
-
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -87,7 +82,7 @@ const Users: FunctionComponent = (
                         title: 'User ID',
                         type: FieldType.Text,
                         isFilterable: true,
-                    },  
+                    },
                     {
                         field: {
                             name: true,
@@ -95,7 +90,7 @@ const Users: FunctionComponent = (
                         title: 'Full Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                    } ,
+                    },
                     {
                         field: {
                             email: true,
@@ -103,7 +98,7 @@ const Users: FunctionComponent = (
                         title: 'Email',
                         type: FieldType.Email,
                         isFilterable: true,
-                    }    
+                    },
                 ]}
             />
         </Page>
