@@ -23,7 +23,7 @@ module.exports = {
     output: {
         filename: "bundle.js",
         path: path.resolve(__dirname, "public", "dist"),
-        publicPath: "/AdminDashboard/dist/",
+        publicPath: "/admin/dist/",
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss'],
@@ -70,7 +70,7 @@ module.exports = {
         },
         allowedHosts: "all",
         setupMiddlewares: (middlewares, devServer) => {
-            devServer.app.use('/AdminDashboard/assets', express.static(path.resolve(__dirname, 'public', 'assets')));
+            devServer.app.use('/admin/assets', express.static(path.resolve(__dirname, 'public', 'assets')));
             return middlewares;
         }
     },

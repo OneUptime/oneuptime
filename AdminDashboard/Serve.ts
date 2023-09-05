@@ -2,7 +2,7 @@ import App from 'CommonServer/Utils/StartServer';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 
-export const APP_NAME: string = 'admin-dashboard';
+export const APP_NAME: string = 'admin';
 
 const app: ExpressApplication = Express.getExpressApp();
 
