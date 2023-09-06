@@ -10,9 +10,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 
-const Logout: FunctionComponent = (
-
-): ReactElement => {
+const Logout: FunctionComponent = (): ReactElement => {
     useEffect(() => {
         UiAnalytics.logout();
         UserUtil.logout();

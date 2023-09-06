@@ -10,9 +10,7 @@ import GlobalConfig from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
-const Settings: FunctionComponent = (
-    
-): ReactElement => {
+const Settings: FunctionComponent = (): ReactElement => {
     return (
         <Page
             title={'Admin Settings'}
@@ -43,10 +41,11 @@ const Settings: FunctionComponent = (
                 name="Host Settings"
                 cardProps={{
                     title: 'Email and SMTP Settings',
-                    description: 'Email and SMTP Settings. We will use this SMTP server to send all the emails.',
+                    description:
+                        'Email and SMTP Settings. We will use this SMTP server to send all the emails.',
                 }}
                 isEditable={true}
-                editButtonText='Edit SMTP Config'
+                editButtonText="Edit SMTP Config"
                 formSteps={[
                     {
                         title: 'SMTP Server',
@@ -145,21 +144,21 @@ const Settings: FunctionComponent = (
                                 smtpHost: true,
                             },
                             title: 'SMTP Host',
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
                         {
                             field: {
                                 smtpPort: true,
                             },
                             title: 'SMTP Port',
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
                         {
                             field: {
                                 smtpUsername: true,
                             },
                             title: 'SMTP Username',
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
                         {
                             field: {
@@ -174,7 +173,7 @@ const Settings: FunctionComponent = (
                                 smtpFromName: true,
                             },
                             title: 'SMTP From Name',
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
 
                         {
@@ -185,7 +184,6 @@ const Settings: FunctionComponent = (
                             placeholder: 'No',
                             fieldType: FieldType.Boolean,
                         },
-
                     ],
                     modelId: ObjectID.getZeroObjectID(),
                 }}

@@ -18,7 +18,7 @@ import Projects from './Pages/Projects/Index';
 import Users from './Pages/Users/Index';
 import Logout from './Pages/Logout/Logout';
 
-// Settings Pages. 
+// Settings Pages.
 import SettingsHost from './Pages/Settings/Host/Index';
 import SettingsEmail from './Pages/Settings/SMTP/Index';
 import SettingsCallSMS from './Pages/Settings/CallSMS/Index';
@@ -73,7 +73,6 @@ const App: () => JSX.Element = () => {
                     element={<SettingsHost />}
                 />
 
-
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS_HOST]?.toString() || ''}
                     element={<SettingsHost />}
@@ -85,10 +84,12 @@ const App: () => JSX.Element = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_CALL_AND_SMS]?.toString() || ''}
+                    path={
+                        RouteMap[PageMap.SETTINGS_CALL_AND_SMS]?.toString() ||
+                        ''
+                    }
                     element={<SettingsCallSMS />}
                 />
-
             </Routes>
         </MasterPage>
     );

@@ -743,7 +743,10 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<GlobalConfig, GlobalConfigServiceType>(GlobalConfig, GlobalConfigService).getRouter()
+    new BaseAPI<GlobalConfig, GlobalConfigServiceType>(
+        GlobalConfig,
+        GlobalConfigService
+    ).getRouter()
 );
 
 app.use(

@@ -1,11 +1,11 @@
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Image from 'CommonUI/src/Components/Image/Image';
+import Image from '../Image/Image';
 import URL from 'Common/Types/API/URL';
-import { FILE_URL } from 'CommonUI/src/Config';
+import { FILE_URL } from '../../Config';
 import Probe from 'Model/Models/Probe';
-import Icon from 'CommonUI/src/Components/Icon/Icon';
+import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {

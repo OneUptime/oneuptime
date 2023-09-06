@@ -10,7 +10,6 @@ import PageMap from '../../Utils/PageMap';
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     return (
         <SideMenu>
-
             <SideMenuSection title="Basic">
                 <SideMenuItem
                     link={{
@@ -55,8 +54,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.Signal}
                 />
             </SideMenuSection>
-
-            
         </SideMenu>
     );
 };

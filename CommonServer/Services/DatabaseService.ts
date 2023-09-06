@@ -175,31 +175,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return data;
     }
 
-    protected async checkForUniqueValues(data: TBaseModel): Promise<TBaseModel> {
+    protected async checkForUniqueValues(
+        data: TBaseModel
+    ): Promise<TBaseModel> {
         const tableColumns: Array<string> = data.getTableColumns().columns;
 
         for (const columnName of tableColumns) {
             const metadata: TableColumnMetadata =
                 data.getTableColumnMetadata(columnName);
             if (metadata.unique && data.getColumnValue(columnName)) {
-                // check for unique values. 
+                // check for unique values.
                 const count: PositiveNumber = await this.countBy({
                     query: {
                         [columnName]: data.getColumnValue(columnName),
                     } as any,
                     props: {
-                        isRoot: true
-                    }
+                        isRoot: true,
+                    },
                 });
 
-
-                if(count.toNumber() > 0){
-                    throw new BadDataException(`${metadata.title} ${data.getColumnValue(columnName)?.toString()} already exists. Please choose a different ${metadata.title}`);
+                if (count.toNumber() > 0) {
+                    throw new BadDataException(
+                        `${metadata.title} ${data
+                            .getColumnValue(columnName)
+                            ?.toString()} already exists. Please choose a different ${
+                            metadata.title
+                        }`
+                    );
                 }
             }
         }
 
-        return data; 
+        return data;
     }
 
     protected checkRequiredFields(data: TBaseModel): TBaseModel {

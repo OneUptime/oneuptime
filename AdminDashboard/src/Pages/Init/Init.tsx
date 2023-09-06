@@ -6,13 +6,11 @@ import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 
 const Init: FunctionComponent = (): ReactElement => {
-
-
     useEffect(() => {
         Navigation.navigate(RouteMap[PageMap.USERS]!, {
-            forceNavigate: true
+            forceNavigate: true,
         });
-    },[]);
+    }, []);
 
     return (
         <Page title={''} breadcrumbLinks={[]}>

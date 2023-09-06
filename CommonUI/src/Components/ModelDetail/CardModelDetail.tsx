@@ -48,20 +48,19 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         const userProjectPermissions: UserTenantAccessPermission | null =
             PermissionUtil.getProjectPermissions();
 
-        const hasPermissionToEdit: boolean = Boolean(
-            userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    model.updateRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
+        const hasPermissionToEdit: boolean =
+            Boolean(
+                userProjectPermissions &&
+                    userProjectPermissions.permissions &&
+                    PermissionHelper.doesPermissionsIntersect(
+                        model.updateRecordPermissions,
+                        userProjectPermissions.permissions.map(
+                            (item: UserPermission) => {
+                                return item.permission;
+                            }
+                        )
                     )
-                )
-        ) || User.isMasterAdmin();
-
-
+            ) || User.isMasterAdmin();
 
         let cardButtons: Array<CardButtonSchema> = [];
 

@@ -238,7 +238,7 @@ export default [
 
     PromoCode,
 
-    GlobalConfig
+    GlobalConfig,
 ];
 
 export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];

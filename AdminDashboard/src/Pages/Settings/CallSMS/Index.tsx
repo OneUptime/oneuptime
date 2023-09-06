@@ -10,9 +10,7 @@ import GlobalConfig from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
-const Settings: FunctionComponent = (
-    
-): ReactElement => {
+const Settings: FunctionComponent = (): ReactElement => {
     return (
         <Page
             title={'Admin Settings'}
@@ -46,7 +44,7 @@ const Settings: FunctionComponent = (
                     description: 'This will be used to make Call and send SMS.',
                 }}
                 isEditable={true}
-                editButtonText='Edit Twilio Config'
+                editButtonText="Edit Twilio Config"
                 formFields={[
                     {
                         field: {
@@ -55,7 +53,8 @@ const Settings: FunctionComponent = (
                         title: 'Twilio Account SID',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        description: 'You can find this in your Twilio console.',
+                        description:
+                            'You can find this in your Twilio console.',
                         placeholder: '',
                         validation: {
                             minLength: 2,
@@ -68,7 +67,8 @@ const Settings: FunctionComponent = (
                         title: 'Twilio Auth Token',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        description: 'You can find this in your Twilio console.',
+                        description:
+                            'You can find this in your Twilio console.',
                         placeholder: '',
                         validation: {
                             minLength: 2,
@@ -81,7 +81,8 @@ const Settings: FunctionComponent = (
                         title: 'Twilio Phone Number',
                         fieldType: FormFieldSchemaType.Phone,
                         required: true,
-                        description: 'You can find this in your Twilio console.',
+                        description:
+                            'You can find this in your Twilio console.',
                         placeholder: '',
                         validation: {
                             minLength: 2,
@@ -97,14 +98,14 @@ const Settings: FunctionComponent = (
                                 twilioAccountSID: true,
                             },
                             title: 'Twilio Account SID',
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
                         {
                             field: {
                                 twilioAuthToken: true,
                             },
                             title: 'Twilio Auth Token',
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
                         {
                             field: {
@@ -112,9 +113,8 @@ const Settings: FunctionComponent = (
                             },
                             title: 'Twilio Phone Number',
                             fieldType: FieldType.Phone,
-                            placeholder: 'None'
+                            placeholder: 'None',
                         },
-                        
                     ],
                     modelId: ObjectID.getZeroObjectID(),
                 }}

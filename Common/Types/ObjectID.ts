@@ -64,9 +64,8 @@ export default class ObjectID extends DatabaseProperty {
         return null;
     }
 
-
-    public static getZeroObjectID(): ObjectID { 
-        return new ObjectID("00000000-0000-0000-0000-000000000000")
+    public static getZeroObjectID(): ObjectID {
+        return new ObjectID('00000000-0000-0000-0000-000000000000');
     }
 
     public static fromString(id: string): ObjectID {

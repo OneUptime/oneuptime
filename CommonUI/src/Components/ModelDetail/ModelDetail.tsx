@@ -114,15 +114,14 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
                 fieldPermissions = accessControl[key]?.read || [];
 
-                const hasPermissions = fieldPermissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    userPermissions,
-                    fieldPermissions
-                ); 
+                const hasPermissions: boolean =
+                    fieldPermissions &&
+                    PermissionHelper.doesPermissionsIntersect(
+                        userPermissions,
+                        fieldPermissions
+                    );
 
-                if (
-                    hasPermissions || User.isMasterAdmin()
-                ) {
+                if (hasPermissions || User.isMasterAdmin()) {
                     fieldsToSet.push({
                         ...field,
                         key: key,

@@ -152,9 +152,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const hasPermissionOnField: (fieldName: string) => boolean = (
         fieldName: string
     ): boolean => {
-
-
-        if(User.isMasterAdmin()){
+        if (User.isMasterAdmin()) {
             return true; // master admin can do anything.
         }
 

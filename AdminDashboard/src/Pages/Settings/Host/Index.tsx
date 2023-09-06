@@ -9,9 +9,7 @@ import DashboardSideMenu from '../SideMenu';
 import GlobalConfig from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 
-const Settings: FunctionComponent = (
-    
-): ReactElement => {
+const Settings: FunctionComponent = (): ReactElement => {
     return (
         <Page
             title={'Admin Settings'}
@@ -42,10 +40,11 @@ const Settings: FunctionComponent = (
                 name="Host Settings"
                 cardProps={{
                     title: 'Host Settings',
-                    description: 'Host Settings for this OneUptime Server instance.',
+                    description:
+                        'Host Settings for this OneUptime Server instance.',
                 }}
                 isEditable={true}
-                editButtonText='Edit Host'
+                editButtonText="Edit Host"
                 formFields={[
                     {
                         field: {
@@ -54,7 +53,8 @@ const Settings: FunctionComponent = (
                         title: 'Host',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        description: 'IP address or Hostname of this server instance.',
+                        description:
+                            'IP address or Hostname of this server instance.',
                         placeholder: 'oneuptime.yourcompany.com',
                         validation: {
                             minLength: 2,
@@ -71,7 +71,8 @@ const Settings: FunctionComponent = (
                             },
                             title: 'Host',
                             placeholder: 'None',
-                            description: 'IP address or Hostname of this server instance.',
+                            description:
+                                'IP address or Hostname of this server instance.',
                         },
                     ],
                     modelId: ObjectID.getZeroObjectID(),

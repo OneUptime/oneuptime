@@ -217,7 +217,6 @@ export default class BaseAPI<
     public async getDatabaseCommonInteractionProps(
         req: ExpressRequest
     ): Promise<DatabaseCommonInteractionProps> {
-
         const props: DatabaseCommonInteractionProps = {
             tenantId: undefined,
             userGlobalAccessPermission: undefined,
@@ -263,9 +262,9 @@ export default class BaseAPI<
             props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
         }
 
-        // check for root permissions. 
+        // check for root permissions.
 
-        if(props.userType === UserType.MasterAdmin) {
+        if (props.userType === UserType.MasterAdmin) {
             props.isRoot = true;
         }
 

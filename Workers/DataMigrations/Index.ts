@@ -16,7 +16,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new MigrateToMeteredSubscription(),
     new UpdateActiveMonitorCountToBillingProvider(),
     new AddMonitoringDatesToMonitor(),
-    new AddDefaultGlobalConfig()
+    new AddDefaultGlobalConfig(),
 ];
 
 export default DataMigrations;

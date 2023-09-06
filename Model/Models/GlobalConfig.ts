@@ -32,14 +32,9 @@ import Port from 'Common/Types/Port';
     update: [],
 })
 export default class GlobalConfig extends GlobalConfigModel {
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -56,21 +51,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public host?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.Boolean,
         title: 'Use HTTPS',
-        description:
-            'Is this server hosted on with SSL/TLS?',
+        description: 'Is this server hosted on with SSL/TLS?',
     })
     @Column({
         type: ColumnType.Boolean,
@@ -79,23 +68,17 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public useHttps?: boolean = undefined;
 
-
-    // SMTP Settings. 
+    // SMTP Settings.
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.Boolean,
         title: 'Is SMTP Secure',
-        description:
-            'Is this SMTP server hosted with SSL/TLS?',
+        description: 'Is this SMTP server hosted with SSL/TLS?',
     })
     @Column({
         type: ColumnType.Boolean,
@@ -104,21 +87,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public isSMTPSecure?: boolean = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ShortText,
         title: 'SMTP Username',
-        description:
-            'Username for your SMTP Server',
+        description: 'Username for your SMTP Server',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -128,21 +105,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public smtpUsername?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ShortText,
         title: 'SMTP Password',
-        description:
-            'Password for your SMTP Server',
+        description: 'Password for your SMTP Server',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -152,45 +123,33 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public smtpPassword?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.Number,
         title: 'SMTP Port',
-        description:
-            'Port for your SMTP Server',
+        description: 'Port for your SMTP Server',
     })
     @Column({
         type: ColumnType.Number,
         nullable: true,
         unique: true,
-        transformer: Port.getDatabaseTransformer()
+        transformer: Port.getDatabaseTransformer(),
     })
     public smtpPort?: Port = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ShortText,
         title: 'SMTP Host',
-        description:
-            'Host for your SMTP Server',
+        description: 'Host for your SMTP Server',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -200,46 +159,34 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public smtpHost?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.Email,
         title: 'SMTP From Email',
-        description:
-            'Which email should we send mail from?',
+        description: 'Which email should we send mail from?',
     })
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
         nullable: true,
         unique: true,
-        transformer: Email.getDatabaseTransformer()
+        transformer: Email.getDatabaseTransformer(),
     })
     public smtpFromEmail?: Email = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ShortText,
         title: 'SMTP From Name',
-        description:
-            'Which name should we send emails from?',
+        description: 'Which name should we send emails from?',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -249,24 +196,17 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public smtpFromName?: string = undefined;
 
-
-    // Twilio config. 
-
+    // Twilio config.
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ShortText,
         title: 'Twilio Account SID',
-        description:
-            'Account SID for your Twilio Account',
+        description: 'Account SID for your Twilio Account',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -276,21 +216,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public twilioAccountSID?: string = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.ShortText,
         title: 'Twilio Auth Token',
-        description:
-            'Auth Token for your Twilio Account',
+        description: 'Auth Token for your Twilio Account',
     })
     @Column({
         type: ColumnType.ShortText,
@@ -300,30 +234,22 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public twilioAuthToken?: string = undefined;
 
-
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
-        read: [
-            
-        ],
+        create: [],
+        read: [],
         update: [],
     })
     @TableColumn({
         type: TableColumnType.Phone,
         title: 'Twilio Phone Number',
-        description:
-            'Phone Number for your Twilio account',
+        description: 'Phone Number for your Twilio account',
     })
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
         nullable: true,
         unique: true,
-        transformer: Phone.getDatabaseTransformer()
+        transformer: Phone.getDatabaseTransformer(),
     })
     public twilioPhoneNumber?: Phone = undefined;
-
 }

@@ -14,10 +14,10 @@ export default class AddDefaultGlobalConfig extends DataMigrationBase {
         const globalConfig: GlobalConfig = new GlobalConfig();
         globalConfig.id = ObjectID.getZeroObjectID();
         globalConfig.host = 'localhost';
-        globalConfig.useHttps = false; 
+        globalConfig.useHttps = false;
 
         await GlobalConfigService.create({
-            data: globalConfig, 
+            data: globalConfig,
             props: {
                 isRoot: true,
             },
