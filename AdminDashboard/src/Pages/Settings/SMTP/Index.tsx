@@ -30,9 +30,9 @@ const Settings: FunctionComponent = (
                     ),
                 },
                 {
-                    title: 'Host',
+                    title: 'Email Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_HOST] as Route
+                        RouteMap[PageMap.SETTINGS_SMTP] as Route
                     ),
                 },
             ]}

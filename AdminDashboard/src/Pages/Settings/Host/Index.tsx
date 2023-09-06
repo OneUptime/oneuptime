@@ -70,6 +70,7 @@ const Settings: FunctionComponent = (
                                 host: true,
                             },
                             title: 'Host',
+                            placeholder: 'None',
                             description: 'IP address or Hostname of this server instance.',
                         },
                     ],

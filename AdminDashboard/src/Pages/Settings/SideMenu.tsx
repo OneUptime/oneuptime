@@ -47,7 +47,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             <SideMenuSection title="Monitoring">
                 <SideMenuItem
                     link={{
-                        title: 'Probes',
+                        title: 'Global Probes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.SETTINGS_PROBES] as Route
                         ),
