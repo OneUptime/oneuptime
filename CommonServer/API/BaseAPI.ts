@@ -25,6 +25,7 @@ import { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../Config';
 import ProjectService from '../Services/ProjectService';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import UserType from 'Common/Types/UserType';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -216,6 +217,7 @@ export default class BaseAPI<
     public async getDatabaseCommonInteractionProps(
         req: ExpressRequest
     ): Promise<DatabaseCommonInteractionProps> {
+
         const props: DatabaseCommonInteractionProps = {
             tenantId: undefined,
             userGlobalAccessPermission: undefined,
@@ -259,6 +261,12 @@ export default class BaseAPI<
             } = await ProjectService.getCurrentPlan(props.tenantId!);
             props.currentPlan = plan.plan || undefined;
             props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
+        }
+
+        // check for root permissions. 
+
+        if(props.userType === UserType.MasterAdmin) {
+            props.isRoot = true;
         }
 
         return props;

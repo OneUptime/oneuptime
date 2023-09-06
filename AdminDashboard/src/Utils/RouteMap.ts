@@ -8,9 +8,14 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/admin`),
     [PageMap.HOME]: new Route(`/admin`),
     [PageMap.LOGOUT]: new Route(`/admin/logout`),
-    [PageMap.SETTINGS]: new Route(`/admin/settings`),
+    [PageMap.SETTINGS]: new Route(`/admin/settings/host`),
     [PageMap.PROJECTS]: new Route(`/admin/projects`),
     [PageMap.USERS]: new Route(`/admin/users`),
+    [PageMap.SETTINGS_HOST]: new Route(`/admin/settings/host`),
+    [PageMap.SETTINGS_SMTP]: new Route(`/admin/settings/smtp`),
+    [PageMap.SETTINGS_CALL_AND_SMS]: new Route(`/admin/settings/call-and-sms`),
+    [PageMap.SETTINGS_PROBES]: new Route(`/admin/settings/probes`),
+
 };
 
 export class RouteUtil {

@@ -18,6 +18,9 @@ import Projects from './Pages/Projects/Index';
 import Users from './Pages/Users/Index';
 import Logout from './Pages/Logout/Logout';
 
+// Settings Pages. 
+import SettingsHost from './Pages/Settings/Host/Index';
+
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
@@ -62,6 +65,18 @@ const App: () => JSX.Element = () => {
                     path={RouteMap[PageMap.LOGOUT]?.toString() || ''}
                     element={<Logout />}
                 />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS]?.toString() || ''}
+                    element={<SettingsHost />}
+                />
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_HOST]?.toString() || ''}
+                    element={<SettingsHost />}
+                />
+
             </Routes>
         </MasterPage>
     );

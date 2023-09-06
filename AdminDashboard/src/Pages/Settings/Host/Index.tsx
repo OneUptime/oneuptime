@@ -1,13 +1,13 @@
-import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import DashboardSideMenu from '../SideMenu';
+import GlobalConfig from 'Model/Models/GlobalConfig';
+import ObjectID from 'Common/Types/ObjectID';
 
 const Settings: FunctionComponent = (
     
@@ -28,6 +28,12 @@ const Settings: FunctionComponent = (
                         RouteMap[PageMap.SETTINGS] as Route
                     ),
                 },
+                {
+                    title: 'Host',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_HOST] as Route
+                    ),
+                },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
@@ -36,18 +42,19 @@ const Settings: FunctionComponent = (
                 name="Host Settings"
                 cardProps={{
                     title: 'Host Settings',
-                    description: 'Host settings for this OneUptime Server Instance',
+                    description: 'Host Settings for this OneUptime Server Instance',
                 }}
                 isEditable={true}
                 formFields={[
                     {
                         field: {
-                            name: true,
+                            host: true,
                         },
-                        title: 'Project Name',
+                        title: 'Host',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Project Name',
+                        description: 'IP address or Hostname of this server instance.',
+                        placeholder: 'oneuptime.yourcompany.com',
                         validation: {
                             minLength: 2,
                         },
@@ -55,22 +62,16 @@ const Settings: FunctionComponent = (
                 ]}
                 modelDetailProps={{
                     modelType: GlobalConfig,
-                    id: 'model-detail-project',
+                    id: 'model-detail-global-config',
                     fields: [
                         {
                             field: {
-                                _id: true,
+                                host: true,
                             },
-                            title: 'Project ID',
-                        },
-                        {
-                            field: {
-                                name: true,
-                            },
-                            title: 'Project Name',
+                            title: 'Host',
                         },
                     ],
-                    modelId: DashboardNavigation.getProjectId()!,
+                    modelId: ObjectID.getZeroObjectID(),
                 }}
             />
         </Page>
