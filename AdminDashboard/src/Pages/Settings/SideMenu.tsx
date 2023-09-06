@@ -40,7 +40,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                             RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route
                         ),
                     }}
-                    icon={IconProp.Notification}
+                    icon={IconProp.Call}
                 />
             </SideMenuSection>
 

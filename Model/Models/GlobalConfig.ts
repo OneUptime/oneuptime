@@ -12,6 +12,7 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import Email from 'Common/Types/Email';
 import Phone from 'Common/Types/Phone';
+import Port from 'Common/Types/Port';
 
 @TableMetadata({
     tableName: 'GlobalConfig',
@@ -150,6 +151,30 @@ export default class GlobalConfig extends GlobalConfigModel {
         unique: true,
     })
     public smtpPassword?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Number,
+        title: 'SMTP Port',
+        description:
+            'Port for your SMTP Server',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: true,
+        transformer: Port.getDatabaseTransformer()
+    })
+    public smtpPort?: Port = undefined;
 
 
     @ColumnAccessControl({

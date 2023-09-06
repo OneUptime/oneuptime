@@ -10,7 +10,7 @@ const TopAlert: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div className="flex items-center text-center gap-x-6 bg-gray-700 px-6 py-2.5 sm:px-3.5">
-            <p className="text-sm leading-6 text-white w-full">
+            <div className="text-sm leading-6 text-white w-full">
                 <div className="w-full">
                     <strong className="font-semibold">{props.title}</strong>
                     &nbsp;-&nbsp;
@@ -23,7 +23,7 @@ const TopAlert: FunctionComponent<ComponentProps> = (
                         Go to User Dashboard <span aria-hidden="true">&rarr;</span>
                     </a> */}
                 </div>
-            </p>
+            </div>
         </div>
     );
 };

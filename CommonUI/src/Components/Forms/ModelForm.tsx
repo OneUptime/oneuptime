@@ -36,6 +36,7 @@ import { FormStep } from './Types/FormStep';
 import Field from './Types/Field';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 import SelectFormFields from '../../Types/SelectEntityField';
+import User from '../../Utils/User';
 
 export enum FormType {
     Create,
@@ -151,6 +152,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const hasPermissionOnField: (fieldName: string) => boolean = (
         fieldName: string
     ): boolean => {
+
+
+        if(User.isMasterAdmin()){
+            return true; // master admin can do anything.
+        }
+
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (

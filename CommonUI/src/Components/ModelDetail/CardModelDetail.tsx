@@ -18,6 +18,7 @@ import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 import { FormStep } from '../Forms/Types/FormStep';
 import { ModalWidth } from '../Modal/Modal';
+import User from '../../Utils/User';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
@@ -58,7 +59,9 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
                         }
                     )
                 )
-        );
+        ) || User.isMasterAdmin();
+
+
 
         let cardButtons: Array<CardButtonSchema> = [];
 

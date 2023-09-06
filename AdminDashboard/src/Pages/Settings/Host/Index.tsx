@@ -42,9 +42,10 @@ const Settings: FunctionComponent = (
                 name="Host Settings"
                 cardProps={{
                     title: 'Host Settings',
-                    description: 'Host Settings for this OneUptime Server Instance',
+                    description: 'Host Settings for this OneUptime Server instance.',
                 }}
                 isEditable={true}
+                editButtonText='Edit Host'
                 formFields={[
                     {
                         field: {
@@ -69,6 +70,7 @@ const Settings: FunctionComponent = (
                                 host: true,
                             },
                             title: 'Host',
+                            description: 'IP address or Hostname of this server instance.',
                         },
                     ],
                     modelId: ObjectID.getZeroObjectID(),

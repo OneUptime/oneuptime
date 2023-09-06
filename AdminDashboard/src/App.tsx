@@ -20,6 +20,7 @@ import Logout from './Pages/Logout/Logout';
 
 // Settings Pages. 
 import SettingsHost from './Pages/Settings/Host/Index';
+import SettingsEmail from './Pages/Settings/SMTP/Index';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -75,6 +76,11 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS_HOST]?.toString() || ''}
                     element={<SettingsHost />}
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_SMTP]?.toString() || ''}
+                    element={<SettingsEmail />}
                 />
 
             </Routes>
