@@ -93,10 +93,7 @@ const App: () => JSX.Element = () => {
                 />
 
                 <PageRoute
-                    path={
-                        RouteMap[PageMap.SETTINGS_PROBES]?.toString() ||
-                        ''
-                    }
+                    path={RouteMap[PageMap.SETTINGS_PROBES]?.toString() || ''}
                     element={<SettingsProbes />}
                 />
             </Routes>

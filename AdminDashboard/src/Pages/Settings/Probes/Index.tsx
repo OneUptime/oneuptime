@@ -11,7 +11,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
 import { Green, Red } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import ProbeElement from 'CommonUI/src/Components/Probe/Probe'
+import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import IsNull from 'Common/Types/Database/IsNull';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';
@@ -19,14 +19,10 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-const Settings: FunctionComponent = (
-
-): ReactElement => {
-
+const Settings: FunctionComponent = (): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
     const [currentProbe, setCurrentProbe] = useState<JSONObject | null>(null);
-
 
     return (
         <Page
@@ -77,7 +73,7 @@ const Settings: FunctionComponent = (
                         'Global Probes help you monitor external resources from different locations around the world.',
                 }}
                 query={{
-                    projectId: new IsNull()
+                    projectId: new IsNull(),
                 }}
                 noItemsMessage={'No probes found.'}
                 showRefreshButton={true}
@@ -115,7 +111,7 @@ const Settings: FunctionComponent = (
                         fieldType: FormFieldSchemaType.ImageFile,
                         required: false,
                         placeholder: 'Upload logo',
-                    }
+                    },
                 ]}
                 selectMoreFields={{
                     key: true,
@@ -231,8 +227,6 @@ const Settings: FunctionComponent = (
             ) : (
                 <></>
             )}
-
-
         </Page>
     );
 };
