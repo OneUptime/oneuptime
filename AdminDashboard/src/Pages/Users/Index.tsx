@@ -35,7 +35,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 isEditable={false}
                 isCreateable={true}
                 name="Users"
-                isViewable={true}
+                isViewable={false}
                 cardProps={{
                     title: 'Users',
                     description: 'Here is a list of users in OneUptime.',
