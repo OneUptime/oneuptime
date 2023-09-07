@@ -48,7 +48,8 @@ export default class AddEndedState extends DataMigrationBase {
                 continue;
             }
 
-            const endedState: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+            const endedState: ScheduledMaintenanceState =
+                new ScheduledMaintenanceState();
             endedState.projectId = project.id!;
             endedState.name = 'Ended';
             endedState.description =
