@@ -1,10 +1,7 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Phone from 'Common/Types/Phone';
 import {
-    SMSDefaultCostInCents,
-    TwilioAccountSid,
-    TwilioAuthToken,
-    TwilioPhoneNumber,
+    SMSDefaultCostInCents, TwilioConfig, getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
 import SmsLog from 'Model/Models/SmsLog';
@@ -16,9 +13,9 @@ import Project from 'Model/Models/Project';
 import { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message';
 import NotificationService from 'CommonServer/Services/NotificationService';
 import logger from 'CommonServer/Utils/Logger';
-import TwilioUtil from '../Utils/Twilio';
 import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class SmsService {
     public static async sendSms(
@@ -31,13 +28,18 @@ export default class SmsService {
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
-        TwilioUtil.checkEnvironmentVariables();
+        const twilioConfig: TwilioConfig | null  = await getTwilioConfig();
 
-        const client: Twilio.Twilio = Twilio(TwilioAccountSid, TwilioAuthToken);
+        if(!twilioConfig){
+            throw new BadDataException("Twilio Config not found");
+        }
+
+
+        const client: Twilio.Twilio = Twilio(twilioConfig.accountSid, twilioConfig.authToken);
 
         const smsLog: SmsLog = new SmsLog();
         smsLog.toNumber = to;
-        smsLog.fromNumber = options.from || new Phone(TwilioPhoneNumber);
+        smsLog.fromNumber = options.from || twilioConfig.phoneNumber;
         smsLog.smsText =
             options && options.isSensitive
                 ? 'This message is sensitive and is not logged'
@@ -213,7 +215,7 @@ export default class SmsService {
                     from:
                         options && options.from
                             ? options.from.toString()
-                            : TwilioPhoneNumber.toString(), // From a valid Twilio number
+                            : twilioConfig.phoneNumber.toString(), // From a valid Twilio number
                 });
 
             smsLog.status = SmsStatus.Success;

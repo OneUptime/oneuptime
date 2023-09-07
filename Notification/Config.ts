@@ -1,6 +1,11 @@
+import GlobalConfig from 'Model/Models/GlobalConfig';
 import Hostname from 'Common/Types/API/Hostname';
 import Email from 'Common/Types/Email';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
+import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
+import Phone from 'Common/Types/Phone';
 
 export const ShouldUseInternalSmtp: boolean =
     process.env['USE_INTERNAL_SMTP'] === 'true';
@@ -29,12 +34,44 @@ export const InternalSmtpEmail: Email = new Email(
 export const InternalSmtpFromName: string =
     process.env['INTERNAL_SMTP_NAME'] || '';
 
-export const TwilioAccountSid: string = process.env['TWILIO_ACCOUNT_SID'] || '';
-export const TwilioAuthToken: string = process.env['TWILIO_AUTH_TOKEN'] || '';
-export const TwilioPhoneNumber: string =
-    process.env['TWILIO_PHONE_NUMBER'] || '';
+    export interface TwilioConfig {
+        accountSid: string;
+        authToken: string;
+        phoneNumber: Phone;
+    }
 
-    
+export const getTwilioConfig = async (): Promise< TwilioConfig | null > => {
+    const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+            query: {
+                _id: ObjectID.getZeroObjectID().toString(),
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                twilioAccountSID: true, 
+                twilioAuthToken: true,
+                twilioPhoneNumber: true,
+            },
+        });
+
+    if (!globalConfig) {
+        throw new BadDataException('Global Config not found');
+    }
+
+    if(!globalConfig.twilioAccountSID || !globalConfig.twilioAuthToken || !globalConfig.twilioPhoneNumber) {
+        return null;
+    }
+
+    return {
+        accountSid: globalConfig.twilioAccountSID,
+        authToken: globalConfig.twilioAuthToken,
+        phoneNumber: globalConfig.twilioPhoneNumber,
+    }
+}
+
+
 export const SMSDefaultCostInCents: number = process.env[
     'SMS_DEFAULT_COST_IN_CENTS'
 ]
