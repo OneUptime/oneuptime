@@ -1,3 +1,4 @@
+import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
 import DataMigrationBase from './DataMigrationBase';
@@ -15,6 +16,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new MigrateToMeteredSubscription(),
     new UpdateActiveMonitorCountToBillingProvider(),
     new AddMonitoringDatesToMonitor(),
+    new AddEndedState(),
 ];
 
 export default DataMigrations;

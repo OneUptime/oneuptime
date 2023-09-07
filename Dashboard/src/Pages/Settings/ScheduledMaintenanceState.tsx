@@ -85,6 +85,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                             'This Scheduled Maintenance cannot be deleted because its the ended state of for this project. Scheduled, Ongoing, Ended, Completed states cannot be deleted.'
                         );
                     }
+                    
 
                     return Promise.resolve(item);
                 }}
@@ -93,7 +94,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     isScheduledState: true,
                     isOngoingState: true,
                     isResolvedState: true,
-                    isEndedState: true,
+                    isEndedState: true, 
                     order: true,
                 }}
                 columns={[
