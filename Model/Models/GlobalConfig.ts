@@ -13,6 +13,7 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import Email from 'Common/Types/Email';
 import Phone from 'Common/Types/Phone';
 import Port from 'Common/Types/Port';
+import Hostname from 'Common/Types/API/Hostname';
 
 @TableMetadata({
     tableName: 'GlobalConfig',
@@ -48,8 +49,9 @@ export default class GlobalConfig extends GlobalConfigModel {
         length: ColumnLength.ShortText,
         nullable: true,
         unique: true,
+        transformer: Hostname.getDatabaseTransformer()
     })
-    public host?: string = undefined;
+    public host?: Hostname = undefined;
 
     @ColumnAccessControl({
         create: [],

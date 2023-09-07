@@ -153,10 +153,10 @@ RunCron(
                     (note.getColumnValue('note')! as string) || ''
                 ),
                 incidentSeverity: incident.incidentSeverity!.name!,
-                incidentViewLink: IncidentService.getIncidentLinkInDashboard(
+                incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
                     incident.projectId!,
                     incident.id!
-                ).toString(),
+                )).toString(),
             };
 
             if (doesResourceHasOwners === true) {

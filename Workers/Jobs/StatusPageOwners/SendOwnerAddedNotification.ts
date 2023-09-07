@@ -164,10 +164,10 @@ RunCron(
                     statusPage.description! || ''
                 ),
                 statusPageViewLink:
-                    StatusPageService.getStatusPageLinkInDashboard(
+                    (await StatusPageService.getStatusPageLinkInDashboard(
                         statusPage.projectId!,
                         statusPage.id!
-                    ).toString(),
+                    )).toString(),
             };
 
             for (const user of users) {

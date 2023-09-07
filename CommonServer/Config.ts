@@ -4,8 +4,33 @@ import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
+import GlobalConfigService from './Services/GlobalConfigService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+
+const getFromGlobalConfig = async (key: string): Promise<JSONValue> => {
+
+    const globalConfig = await GlobalConfigService.findOneBy({
+        query:{
+            _id: ObjectID.getZeroObjectID().toString()
+        },
+        props: {
+            isRoot: true, 
+        },
+        select: {
+            [key]: true
+        }
+    });
+
+    if(!globalConfig){
+        throw new BadDataException("Global Config not found");
+    }
+
+    return globalConfig.getColumnValue(key);
+};
+
+
 
 export const getAllEnvVars: Function = (): JSONObject => {
     return process.env;
@@ -66,9 +91,6 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
-export const Domain: Hostname = Hostname.fromString(
-    process.env['DOMAIN'] || 'localhost'
-);
 
 export const RealtimeHostname: Hostname = Hostname.fromString(
     process.env['REALTIME_HOSTNAME'] || 'realtime'
@@ -139,52 +161,52 @@ export const ShouldRedisTlsEnable: boolean = Boolean(
 );
 
 export const DashboardApiRoute: Route = new Route(
-    process.env['DASHBOARD_API_ROUTE'] || '/dashboard-api'
+    '/dashboard-api'
 );
 
 export const IdentityRoute: Route = new Route(
-    process.env['IDENTITY_ROUTE'] || '/identity'
+    '/identity'
 );
 
 export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '/file');
 
 export const StatusPageRoute: Route = new Route(
-    process.env['STATUS_PAGE_ROUTE'] || '/status-page'
+    '/status-page'
 );
 
 export const LinkShortenerRoute: Route = new Route(
-    process.env['LINK_SHORTENER_ROUTE'] || '/l'
+    '/l'
 );
 
 export const DashboardRoute: Route = new Route(
-    process.env['DASHBOARD_ROUTE'] || '/dashboard'
+   '/dashboard'
 );
 
 export const IntegrationRoute: Route = new Route(
-    process.env['INTEGRATION_ROUTE'] || '/integration'
+    '/integration'
 );
 
 export const NotificationRoute: Route = new Route(
-    process.env['NOTIFICATION_ROUTE'] || '/notification'
+    '/notification'
 );
 
 export const HelmRoute: Route = new Route(
-    process.env['HELMCHART_ROUTE'] || '/helm-chart'
+    '/helm-chart'
 );
 export const AccountsRoute: Route = new Route(
-    process.env['ACCOUNTS_ROUTE'] || '/accounts'
+    '/accounts'
 );
 
 export const WorkflowRoute: Route = new Route(
-    process.env['WORKFLOW_ROUTE'] || '/workflow'
+    '/workflow'
 );
 
 export const ApiReferenceRoute: Route = new Route(
-    process.env['API_REFERENCE_ROUTE'] || '/api-reference'
+    '/api-reference'
 );
 
 export const AdminDashboardRoute: Route = new Route(
-    process.env['ADMIN_DASHBOARD_ROUTE'] || '/admin-dashboard'
+   '/admin-dashboard'
 );
 
 export const IsProduction: boolean =
@@ -200,8 +222,6 @@ export const SubscriptionPlans: Array<SubscriptionPlan> =
 
 export const AnalyticsKey: string = process.env['ANALYTICS_KEY'] || '';
 export const AnalyticsHost: string = process.env['ANALYTICS_HOST'] || '';
-
-export const DashboardUrl: URL = new URL(HttpProtocol, Domain, DashboardRoute);
 
 export const DisableAutomaticIncidentCreation: boolean =
     process.env['DISABLE_AUTOMATIC_INCIDENT_CREATION'] === 'true';
@@ -227,4 +247,23 @@ export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
-export const AccountsUrl: URL = new URL(HttpProtocol, Domain, AccountsRoute);
+
+export const getHost: Function  = async (): Promise<Hostname> => {
+    return await getFromGlobalConfig('host') as Hostname;
+}
+
+export const getAccountsUrl: Function = async (): Promise<URL> => {
+    const host: Hostname =  await getHost();
+    return new URL(HttpProtocol,host, AccountsRoute);
+}
+
+export const getDashboardUrl: Function = async (): Promise<URL> => {
+    const host: Hostname =  await getHost();
+    return new URL(HttpProtocol,host, DashboardRoute);
+}
+
+
+
+
+
+

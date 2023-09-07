@@ -87,10 +87,10 @@ RunCron(
                 rootCause:
                     incident.rootCause ||
                     'No root cause identified for this incident',
-                incidentViewLink: IncidentService.getIncidentLinkInDashboard(
+                incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
                     incident.projectId!,
                     incident.id!
-                ).toString(),
+                )).toString(),
             };
 
             if (doesResourceHasOwners === true) {

@@ -16,7 +16,6 @@ import IncidentOwnerTeam from 'Model/Models/IncidentOwnerTeam';
 import IncidentOwnerUser from 'Model/Models/IncidentOwnerUser';
 import IncidentOwnerUserService from './IncidentOwnerUserService';
 import Typeof from 'Common/Types/Typeof';
-import { DashboardUrl } from '../Config';
 import URL from 'Common/Types/API/URL';
 import User from 'Model/Models/User';
 import TeamMemberService from './TeamMemberService';
@@ -26,6 +25,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import { getDashboardUrl } from '../Config';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -355,11 +355,14 @@ export class Service extends DatabaseService<Model> {
         }
     }
 
-    public getIncidentLinkInDashboard(
+    public async getIncidentLinkInDashboard(
         projectId: ObjectID,
         incidentId: ObjectID
-    ): URL {
-        return URL.fromString(DashboardUrl.toString()).addRoute(
+    ): Promise<URL> {
+
+        const dashboardUrl: URL = await getDashboardUrl();
+        
+        return URL.fromString(dashboardUrl.toString()).addRoute(
             `/${projectId.toString()}/incidents/${incidentId.toString()}`
         );
     }

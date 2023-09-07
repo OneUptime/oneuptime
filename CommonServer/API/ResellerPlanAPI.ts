@@ -14,12 +14,12 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import BillingService from '../Services/BillingService';
 import Response from '../Utils/Response';
 import URL from 'Common/Types/API/URL';
-import { AccountsUrl } from '../Config';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from '../Services/PromoCodeService';
 import StatusCode from 'Common/Types/API/StatusCode';
 import Project from 'Model/Models/Project';
 import ProjectService from '../Services/ProjectService';
+import { getAccountsUrl } from '../Config';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,
@@ -150,13 +150,16 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                         // now redirect to accounts sign up page with this promocode.
 
+
+                        const accountUrl: URL = await getAccountsUrl();
+
                         return Response.sendJsonObjectResponse(
                             req,
                             res,
                             {
                                 message: 'product activated',
                                 redirect_url: URL.fromString(
-                                    AccountsUrl.toString()
+                                    accountUrl.toString()
                                 )
                                     .addRoute('/register')
                                     .addQueryParams({

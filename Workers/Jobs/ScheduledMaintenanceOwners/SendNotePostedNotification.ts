@@ -154,10 +154,10 @@ RunCron(
                     (note.getColumnValue('note')! as string) || ''
                 ),
                 scheduledMaintenanceViewLink:
-                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                    (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                         scheduledMaintenance.projectId!,
                         scheduledMaintenance.id!
-                    ).toString(),
+                    )).toString(),
             };
 
             if (doesResourceHasOwners === true) {

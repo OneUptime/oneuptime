@@ -162,10 +162,10 @@ RunCron(
                 monitorDescription: Markdown.convertToHTML(
                     monitor.description! || ''
                 ),
-                monitorViewLink: MonitorService.getMonitorLinkInDashboard(
+                monitorViewLink: (await MonitorService.getMonitorLinkInDashboard(
                     monitor.projectId!,
                     monitor.id!
-                ).toString(),
+                )).toString(),
             };
 
             for (const user of users) {

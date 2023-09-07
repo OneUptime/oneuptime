@@ -8,7 +8,7 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import { DashboardUrl, Domain, HttpProtocol } from '../Config';
+import { HttpProtocol, getDashboardUrl, getHost } from '../Config';
 import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
@@ -21,6 +21,7 @@ import StatusPageOwnerUserService from './StatusPageOwnerUserService';
 import User from 'Model/Models/User';
 import TeamMemberService from './TeamMemberService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Hostname from 'Common/Types/API/Hostname';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -170,11 +171,14 @@ export class Service extends DatabaseService<StatusPage> {
         }
     }
 
-    public getStatusPageLinkInDashboard(
+    public async getStatusPageLinkInDashboard(
         projectId: ObjectID,
         statusPageId: ObjectID
-    ): URL {
-        return URL.fromString(DashboardUrl.toString()).addRoute(
+    ): Promise<URL> {
+
+        const dahboardUrl: URL = await getDashboardUrl();
+
+        return URL.fromString(dahboardUrl.toString()).addRoute(
             `/${projectId.toString()}/status-pages/${statusPageId.toString()}`
         );
     }
@@ -271,8 +275,11 @@ export class Service extends DatabaseService<StatusPage> {
             .join(', ');
 
         if (domains.length === 0) {
+
+            const host: Hostname = await getHost();
+
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-            statusPageURL = new URL(HttpProtocol, Domain)
+            statusPageURL = new URL(HttpProtocol, host)
                 .addRoute('/status-page/' + statusPageId.toString())
                 .toString();
         }
@@ -303,8 +310,11 @@ export class Service extends DatabaseService<StatusPage> {
         let statusPageURL: string = '';
 
         if (domains.length === 0) {
+
+            const host: Hostname = await getHost();
+
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-            statusPageURL = new URL(HttpProtocol, Domain)
+            statusPageURL = new URL(HttpProtocol, host)
                 .addRoute('/status-page/' + statusPageId.toString())
                 .toString();
         } else {

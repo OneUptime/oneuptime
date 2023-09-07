@@ -20,7 +20,7 @@ import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import ActiveMonitoringMeteredPlan from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
-import { DashboardUrl, IsBillingEnabled } from '../Config';
+import { IsBillingEnabled, getDashboardUrl } from '../Config';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import MonitorOwnerTeamService from './MonitorOwnerTeamService';
@@ -191,11 +191,14 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public getMonitorLinkInDashboard(
+    public async getMonitorLinkInDashboard(
         projectId: ObjectID,
         monitorId: ObjectID
-    ): URL {
-        return URL.fromString(DashboardUrl.toString()).addRoute(
+    ): Promise<URL> {
+
+        const dashboardUrl: URL  = await getDashboardUrl();
+
+        return URL.fromString(dashboardUrl.toString()).addRoute(
             `/${projectId.toString()}/monitors/${monitorId.toString()}`
         );
     }

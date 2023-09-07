@@ -4,8 +4,9 @@ import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';
-import { Domain, HttpProtocol, LinkShortenerRoute } from '../Config';
+import {  HttpProtocol, LinkShortenerRoute, getHost } from '../Config';
 import Route from 'Common/Types/API/Route';
+import Hostname from 'Common/Types/API/Hostname';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -27,10 +28,13 @@ export class Service extends DatabaseService<Model> {
         return await this.create({ data: model, props: { isRoot: true } });
     }
 
-    public getShortenedUrl(model: Model): URL {
+    public async getShortenedUrl(model: Model): Promise<URL> {
+
+        const host: Hostname = await getHost();
+
         return new URL(
             HttpProtocol,
-            Domain,
+            host,
             new Route(LinkShortenerRoute.toString()).addRoute(
                 '/' + model.shortId?.toString()
             )

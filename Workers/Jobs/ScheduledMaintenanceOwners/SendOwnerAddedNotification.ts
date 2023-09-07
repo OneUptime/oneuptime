@@ -192,10 +192,10 @@ RunCron(
                     scheduledMaintenance.description! || ''
                 ),
                 scheduledMaintenanceViewLink:
-                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                    (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                         scheduledMaintenance.projectId!,
                         scheduledMaintenance.id!
-                    ).toString(),
+                    )).toString(),
             };
 
             for (const user of users) {

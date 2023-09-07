@@ -76,10 +76,10 @@ RunCron(
                     statusPage.description! || ''
                 ),
                 statusPageViewLink:
-                    StatusPageService.getStatusPageLinkInDashboard(
+                    (await StatusPageService.getStatusPageLinkInDashboard(
                         statusPage.projectId!,
                         statusPage.id!
-                    ).toString(),
+                    )).toString(),
             };
 
             if (doesResourceHasOwners === true) {
