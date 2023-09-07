@@ -109,7 +109,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
     const model: TBaseModel = new props.modelType();
 
-    const modelAPI = props.modelAPI || ModelAPI;
+    const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};

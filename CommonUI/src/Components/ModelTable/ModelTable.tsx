@@ -149,7 +149,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 ): ReactElement => {
     let showTableAs: ShowTableAs | undefined = props.showTableAs;
 
-    const modelAPI = props.modelAPI || ModelAPI;
+    const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
     if (!showTableAs) {
         showTableAs = ShowTableAs.Table;

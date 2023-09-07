@@ -8,9 +8,10 @@ import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import GlobalConfigService from './Services/GlobalConfigService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import GlobalConfig from 'Model/Models/GlobalConfig';
 
-const getFromGlobalConfig = async (key: string): Promise<JSONValue> => {
-    const globalConfig = await GlobalConfigService.findOneBy({
+const getFromGlobalConfig: (key: string) => Promise<JSONValue>  = async (key: string): Promise<JSONValue> => {
+    const globalConfig: GlobalConfig | null = await GlobalConfigService.findOneBy({
         query: {
             _id: ObjectID.getZeroObjectID().toString(),
         },
@@ -29,7 +30,7 @@ const getFromGlobalConfig = async (key: string): Promise<JSONValue> => {
     return globalConfig.getColumnValue(key);
 };
 
-export const getAllEnvVars: Function = (): JSONObject => {
+export const getAllEnvVars: () => JSONObject = (): JSONObject => {
     return process.env;
 };
 
@@ -220,18 +221,18 @@ export const getHost: Function = async (): Promise<Hostname> => {
     );
 };
 
-export const getHttpProtocol: Function = async (): Promise<Protocol> => {
+export const getHttpProtocol: () => Promise<Protocol> = async (): Promise<Protocol> => {
     return (await getFromGlobalConfig('useHttps'))
         ? Protocol.HTTPS
         : Protocol.HTTP;
 };
 
-export const getAccountsUrl: Function = async (): Promise<URL> => {
+export const getAccountsUrl: () => Promise<URL> = async (): Promise<URL> => {
     const host: Hostname = await getHost();
     return new URL(await getHttpProtocol(), host, AccountsRoute);
 };
 
-export const getDashboardUrl: Function = async (): Promise<URL> => {
+export const getDashboardUrl: () => Promise<URL> = async (): Promise<URL> => {
     const host: Hostname = await getHost();
     return new URL(await getHttpProtocol(), host, DashboardRoute);
 };
