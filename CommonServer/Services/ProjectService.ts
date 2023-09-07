@@ -51,6 +51,7 @@ import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from './PromoCodeService';
+import Color from 'Common/Types/Color';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -398,6 +399,24 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
+        let endedScheduledMaintenanceState: ScheduledMaintenanceState =
+            new ScheduledMaintenanceState();
+        endedScheduledMaintenanceState.name = 'Ended';
+        endedScheduledMaintenanceState.description =
+            'Scheduled maintenance events switch to this state when they end.';
+        endedScheduledMaintenanceState.color = new Color('#4A4A4A');
+        endedScheduledMaintenanceState.isEndedState = true;
+        endedScheduledMaintenanceState.projectId = createdItem.id!;
+        endedScheduledMaintenanceState.order = 3;
+
+        endedScheduledMaintenanceState =
+            await ScheduledMaintenanceStateService.create({
+                data: endedScheduledMaintenanceState,
+                props: {
+                    isRoot: true,
+                },
+            });
+
         let completedScheduledMaintenanceState: ScheduledMaintenanceState =
             new ScheduledMaintenanceState();
         completedScheduledMaintenanceState.name = 'Completed';
@@ -406,7 +425,7 @@ export class Service extends DatabaseService<Model> {
         completedScheduledMaintenanceState.color = Green;
         completedScheduledMaintenanceState.isResolvedState = true;
         completedScheduledMaintenanceState.projectId = createdItem.id!;
-        completedScheduledMaintenanceState.order = 3;
+        completedScheduledMaintenanceState.order = 4;
 
         completedScheduledMaintenanceState =
             await ScheduledMaintenanceStateService.create({
