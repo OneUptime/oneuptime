@@ -79,10 +79,12 @@ RunCron(
                 monitorDescription: Markdown.convertToHTML(
                     monitor.description! || ''
                 ),
-                monitorViewLink: (await MonitorService.getMonitorLinkInDashboard(
-                    monitor.projectId!,
-                    monitor.id!
-                )).toString(),
+                monitorViewLink: (
+                    await MonitorService.getMonitorLinkInDashboard(
+                        monitor.projectId!,
+                        monitor.id!
+                    )
+                ).toString(),
             };
 
             if (doesResourceHasOwners === true) {

@@ -68,10 +68,7 @@ export class Service extends DatabaseService<Model> {
         onUpdate: OnUpdate<Model>,
         _updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
-
-
         if (onUpdate && onUpdate.updateBy.data.password) {
-
             const host: Hostname = await getHost();
             const httpProtocol: Protocol = await getHttpProtocol();
 

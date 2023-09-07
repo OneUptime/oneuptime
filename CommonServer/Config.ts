@@ -10,27 +10,24 @@ import GlobalConfigService from './Services/GlobalConfigService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const getFromGlobalConfig = async (key: string): Promise<JSONValue> => {
-
     const globalConfig = await GlobalConfigService.findOneBy({
         query: {
-            _id: ObjectID.getZeroObjectID().toString()
+            _id: ObjectID.getZeroObjectID().toString(),
         },
         props: {
             isRoot: true,
         },
         select: {
-            [key]: true
-        }
+            [key]: true,
+        },
     });
 
     if (!globalConfig) {
-        throw new BadDataException("Global Config not found");
+        throw new BadDataException('Global Config not found');
     }
 
     return globalConfig.getColumnValue(key);
 };
-
-
 
 export const getAllEnvVars: Function = (): JSONObject => {
     return process.env;
@@ -90,7 +87,6 @@ export const ClusterKey: ObjectID = new ObjectID(
 );
 
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
-
 
 export const RealtimeHostname: Hostname = Hostname.fromString(
     process.env['REALTIME_HOSTNAME'] || 'realtime'
@@ -154,54 +150,30 @@ export const ShouldRedisTlsEnable: boolean = Boolean(
     RedisTlsCa || RedisTlsSentinelMode
 );
 
-export const DashboardApiRoute: Route = new Route(
-    '/dashboard-api'
-);
+export const DashboardApiRoute: Route = new Route('/dashboard-api');
 
-export const IdentityRoute: Route = new Route(
-    '/identity'
-);
+export const IdentityRoute: Route = new Route('/identity');
 
 export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '/file');
 
-export const StatusPageRoute: Route = new Route(
-    '/status-page'
-);
+export const StatusPageRoute: Route = new Route('/status-page');
 
-export const LinkShortenerRoute: Route = new Route(
-    '/l'
-);
+export const LinkShortenerRoute: Route = new Route('/l');
 
-export const DashboardRoute: Route = new Route(
-    '/dashboard'
-);
+export const DashboardRoute: Route = new Route('/dashboard');
 
-export const IntegrationRoute: Route = new Route(
-    '/integration'
-);
+export const IntegrationRoute: Route = new Route('/integration');
 
-export const NotificationRoute: Route = new Route(
-    '/notification'
-);
+export const NotificationRoute: Route = new Route('/notification');
 
-export const HelmRoute: Route = new Route(
-    '/helm-chart'
-);
-export const AccountsRoute: Route = new Route(
-    '/accounts'
-);
+export const HelmRoute: Route = new Route('/helm-chart');
+export const AccountsRoute: Route = new Route('/accounts');
 
-export const WorkflowRoute: Route = new Route(
-    '/workflow'
-);
+export const WorkflowRoute: Route = new Route('/workflow');
 
-export const ApiReferenceRoute: Route = new Route(
-    '/api-reference'
-);
+export const ApiReferenceRoute: Route = new Route('/api-reference');
 
-export const AdminDashboardRoute: Route = new Route(
-    '/admin-dashboard'
-);
+export const AdminDashboardRoute: Route = new Route('/admin-dashboard');
 
 export const IsProduction: boolean =
     process.env['ENVIRONMENT'] === 'production';
@@ -241,27 +213,25 @@ export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
-
 export const getHost: Function = async (): Promise<Hostname> => {
-    return await getFromGlobalConfig('host') as Hostname || new Hostname("localhost");
-}
+    return (
+        ((await getFromGlobalConfig('host')) as Hostname) ||
+        new Hostname('localhost')
+    );
+};
 
 export const getHttpProtocol: Function = async (): Promise<Protocol> => {
-    return await getFromGlobalConfig('useHttps') ? Protocol.HTTPS : Protocol.HTTP;
-}
+    return (await getFromGlobalConfig('useHttps'))
+        ? Protocol.HTTPS
+        : Protocol.HTTP;
+};
 
 export const getAccountsUrl: Function = async (): Promise<URL> => {
     const host: Hostname = await getHost();
     return new URL(await getHttpProtocol(), host, AccountsRoute);
-}
+};
 
 export const getDashboardUrl: Function = async (): Promise<URL> => {
     const host: Hostname = await getHost();
     return new URL(await getHttpProtocol(), host, DashboardRoute);
-}
-
-
-
-
-
-
+};

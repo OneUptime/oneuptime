@@ -132,8 +132,6 @@ RunCron(
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
-                       
-
                         MailService.sendMail(
                             {
                                 toEmail: subscriber.subscriberEmail,
@@ -160,10 +158,7 @@ RunCron(
                                         Markdown.convertToHTML(
                                             announcement.description || ''
                                         ),
-                                    unsubscribeUrl: new URL(
-                                        httpProtocol,
-                                        host
-                                    )
+                                    unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
                                                 subscriber._id.toString()

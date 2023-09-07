@@ -29,11 +29,9 @@ RunCron(
     'ScheduledMaintenanceStateTimeline:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-
         const host: Hostname = await getHost();
         const httpProtocol: Protocol = await getHttpProtocol();
 
-        
         const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
             await ScheduledMaintenanceStateTimelineService.findBy({
                 query: {
@@ -259,10 +257,7 @@ RunCron(
                                         ),
                                     eventTitle: event.title || '',
                                     eventDescription: event.description || '',
-                                    unsubscribeUrl: new URL(
-                                        httpProtocol,
-                                        host
-                                    )
+                                    unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
                                                 subscriber._id.toString()

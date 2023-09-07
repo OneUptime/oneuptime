@@ -1,6 +1,11 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -17,10 +22,8 @@ import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import AdminModelAPI from '../../Utils/ModelAPI';
 
 const Projects: FunctionComponent = (): ReactElement => {
-
     const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
-
 
     useEffect(() => {
         refreshFields();
@@ -47,7 +50,8 @@ const Projects: FunctionComponent = (): ReactElement => {
                     createdByUser: true,
                 },
                 title: 'Owner',
-                description: "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project",
+                description:
+                    'Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project',
                 fieldType: FormFieldSchemaType.Dropdown,
                 stepId: BILLING_ENABLED ? 'basic' : undefined,
                 dropdownModal: {
@@ -76,13 +80,15 @@ const Projects: FunctionComponent = (): ReactElement => {
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
-                            : `Billed ${isSubscriptionPlanYearly
-                                ? 'yearly'
-                                : 'monthly'
-                            }. ${plan.getTrialPeriod() > 0
-                                ? `Free ${plan.getTrialPeriod()} days trial.`
-                                : ''
-                            }`;
+                            : `Billed ${
+                                  isSubscriptionPlanYearly
+                                      ? 'yearly'
+                                      : 'monthly'
+                              }. ${
+                                  plan.getTrialPeriod() > 0
+                                      ? `Free ${plan.getTrialPeriod()} days trial.`
+                                      : ''
+                              }`;
 
                         if (
                             isSubscriptionPlanYearly &&
@@ -107,22 +113,23 @@ const Projects: FunctionComponent = (): ReactElement => {
                             sideTitle: plan.isCustomPricing()
                                 ? 'Custom Price'
                                 : isSubscriptionPlanYearly
-                                    ? '$' +
-                                    plan
-                                        .getYearlySubscriptionAmountInUSD()
-                                        .toString() +
-                                    '/mo billed yearly'
-                                    : '$' +
-                                    plan
-                                        .getMonthlySubscriptionAmountInUSD()
-                                        .toString(),
+                                ? '$' +
+                                  plan
+                                      .getYearlySubscriptionAmountInUSD()
+                                      .toString() +
+                                  '/mo billed yearly'
+                                : '$' +
+                                  plan
+                                      .getMonthlySubscriptionAmountInUSD()
+                                      .toString(),
                             sideDescription: plan.isCustomPricing()
                                 ? ''
                                 : isSubscriptionPlanYearly
-                                    ? `~ $${plan.getYearlySubscriptionAmountInUSD() *
-                                    12
-                                    } per user / year`
-                                    : `/month per user`,
+                                ? `~ $${
+                                      plan.getYearlySubscriptionAmountInUSD() *
+                                      12
+                                  } per user / year`
+                                : `/month per user`,
                         };
                     }),
                     title: 'Please select a plan.',
@@ -165,7 +172,6 @@ const Projects: FunctionComponent = (): ReactElement => {
         );
     };
 
-
     return (
         <Page
             title={'Projects'}
@@ -198,18 +204,20 @@ const Projects: FunctionComponent = (): ReactElement => {
                     description: 'Here is a list of proejcts in OneUptime.',
                 }}
                 showViewIdButton={true}
-                formSteps={BILLING_ENABLED
-                    ? [
-                        {
-                            title: 'Basic',
-                            id: 'basic',
-                        },
-                        {
-                            title: 'Select Plan',
-                            id: 'plan',
-                        },
-                    ]
-                    : undefined}
+                formSteps={
+                    BILLING_ENABLED
+                        ? [
+                              {
+                                  title: 'Basic',
+                                  id: 'basic',
+                              },
+                              {
+                                  title: 'Select Plan',
+                                  id: 'plan',
+                              },
+                          ]
+                        : undefined
+                }
                 noItemsMessage={'No projects found.'}
                 formFields={fields}
                 showRefreshButton={true}

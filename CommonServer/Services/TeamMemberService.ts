@@ -100,7 +100,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             });
 
             if (project) {
-
                 const host: Hostname = await getHost();
                 const httpProtocol: Protocol = await getHttpProtocol();
 

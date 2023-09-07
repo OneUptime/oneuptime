@@ -100,10 +100,12 @@ RunCron(
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
                         monitorStatusTimeline.createdAt!
                     ),
-                monitorViewLink: (await MonitorService.getMonitorLinkInDashboard(
-                    monitorStatusTimeline.projectId!,
-                    monitor.id!
-                )).toString(),
+                monitorViewLink: (
+                    await MonitorService.getMonitorLinkInDashboard(
+                        monitorStatusTimeline.projectId!,
+                        monitor.id!
+                    )
+                ).toString(),
                 rootCause:
                     monitorStatusTimeline.rootCause ||
                     'No root cause identified.',

@@ -154,7 +154,6 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID,
         scheduledMaintenanceId: ObjectID
     ): Promise<URL> {
-
         const dashboardUrl: URL = await getDashboardUrl();
 
         return URL.fromString(dashboardUrl.toString()).addRoute(

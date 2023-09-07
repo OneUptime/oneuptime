@@ -75,15 +75,15 @@ const Settings: FunctionComponent = (): ReactElement => {
                 }}
                 query={{
                     projectId: new IsNull(),
-                    isGlobalProbe: true
+                    isGlobalProbe: true,
                 }}
                 modelAPI={AdminModelAPI}
                 noItemsMessage={'No probes found.'}
                 showRefreshButton={true}
                 showFilterButton={true}
-                onBeforeCreate={(item: Probe)=>{
-                    item.isGlobalProbe = true; 
-                    return Promise.resolve(item); 
+                onBeforeCreate={(item: Probe) => {
+                    item.isGlobalProbe = true;
+                    return Promise.resolve(item);
                 }}
                 formFields={[
                     {

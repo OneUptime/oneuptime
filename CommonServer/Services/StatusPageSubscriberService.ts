@@ -113,9 +113,9 @@ export class Service extends DatabaseService<Model> {
                 onCreate.carryForward.name ||
                 'Status Page';
 
-                const host: Hostname = await getHost();
+            const host: Hostname = await getHost();
 
-                const httpProtocol: Protocol = await getHttpProtocol();
+            const httpProtocol: Protocol = await getHttpProtocol();
 
             MailService.sendMail(
                 {

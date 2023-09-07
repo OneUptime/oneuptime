@@ -217,10 +217,7 @@ RunCron(
                                     incidentDescription: Markdown.convertToHTML(
                                         incident.description || ''
                                     ),
-                                    unsubscribeUrl: new URL(
-                                        httpProtocol,
-                                        host
-                                    )
+                                    unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
                                                 subscriber._id.toString()

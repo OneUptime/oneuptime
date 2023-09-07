@@ -52,8 +52,8 @@ RunCron(
                 },
             });
 
-            const host: Hostname = await getHost();
-            const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await getHost();
+        const httpProtocol: Protocol = await getHttpProtocol();
 
         for (const incidentStateTimeline of incidentStateTimelines) {
             await IncidentStateTimelineService.updateOneById({
@@ -257,10 +257,7 @@ RunCron(
                                     incidentState:
                                         incidentStateTimeline.incidentState
                                             .name,
-                                    unsubscribeUrl: new URL(
-                                        httpProtocol,
-                                        host
-                                    )
+                                    unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
                                                 subscriber._id.toString()

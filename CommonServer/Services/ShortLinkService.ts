@@ -30,7 +30,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     public async getShortenedUrl(model: Model): Promise<URL> {
-
         const host: Hostname = await getHost();
         const httpProtocol: Protocol = await getHttpProtocol();
         return new URL(

@@ -176,7 +176,6 @@ export class Service extends DatabaseService<StatusPage> {
         projectId: ObjectID,
         statusPageId: ObjectID
     ): Promise<URL> {
-
         const dahboardUrl: URL = await getDashboardUrl();
 
         return URL.fromString(dahboardUrl.toString()).addRoute(
@@ -276,7 +275,6 @@ export class Service extends DatabaseService<StatusPage> {
             .join(', ');
 
         if (domains.length === 0) {
-
             const host: Hostname = await getHost();
 
             const httpProtocol: Protocol = await getHttpProtocol();
@@ -313,7 +311,6 @@ export class Service extends DatabaseService<StatusPage> {
         let statusPageURL: string = '';
 
         if (domains.length === 0) {
-
             const host: Hostname = await getHost();
 
             const httpProtocol: Protocol = await getHttpProtocol();

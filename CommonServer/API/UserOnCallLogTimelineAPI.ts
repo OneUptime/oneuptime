@@ -149,7 +149,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
                 const host: Hostname = await getHost();
                 const httpProtocol: Protocol = await getHttpProtocol();
-                
+
                 return Response.redirect(
                     req,
                     res,

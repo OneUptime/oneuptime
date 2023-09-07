@@ -170,10 +170,12 @@ RunCron(
                     incident.description! || ''
                 ),
                 incidentSeverity: incident.incidentSeverity!.name!,
-                incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
-                    incident.projectId!,
-                    incident.id!
-                )).toString(),
+                incidentViewLink: (
+                    await IncidentService.getIncidentLinkInDashboard(
+                        incident.projectId!,
+                        incident.id!
+                    )
+                ).toString(),
             };
 
             for (const user of users) {

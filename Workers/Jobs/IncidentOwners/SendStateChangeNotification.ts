@@ -119,10 +119,12 @@ RunCron(
                         incidentStateTimeline.createdAt!
                     ),
                 incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
-                incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
-                    incidentStateTimeline.projectId!,
-                    incident.id!
-                )).toString(),
+                incidentViewLink: (
+                    await IncidentService.getIncidentLinkInDashboard(
+                        incidentStateTimeline.projectId!,
+                        incident.id!
+                    )
+                ).toString(),
             };
 
             if (doesResourceHasOwners === true) {

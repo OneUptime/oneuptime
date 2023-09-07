@@ -359,9 +359,8 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID,
         incidentId: ObjectID
     ): Promise<URL> {
-
         const dashboardUrl: URL = await getDashboardUrl();
-        
+
         return URL.fromString(dashboardUrl.toString()).addRoute(
             `/${projectId.toString()}/incidents/${incidentId.toString()}`
         );

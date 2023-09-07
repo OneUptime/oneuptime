@@ -29,7 +29,6 @@ export class StatusPageCertificateService extends BaseService {
     public async remove(
         domain: string
     ): Promise<HTTPResponse<EmptyResponseData>> {
-
         const httpProtocol: Protocol = await getHttpProtocol();
 
         const body: JSONObject = {

@@ -150,7 +150,6 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                         // now redirect to accounts sign up page with this promocode.
 
-
                         const accountUrl: URL = await getAccountsUrl();
 
                         return Response.sendJsonObjectResponse(

@@ -410,7 +410,6 @@ export class Service extends DatabaseService<Model> {
         incident: Incident,
         userOnCallLogTimelineId: ObjectID
     ): Promise<CallRequest> {
-
         const host: Hostname = await getHost();
 
         const httpProtocol: Protocol = await getHttpProtocol();
@@ -463,7 +462,6 @@ export class Service extends DatabaseService<Model> {
         incident: Incident,
         userOnCallLogTimelineId: ObjectID
     ): Promise<SMS> {
-
         const host: Hostname = await getHost();
         const httpProtocol: Protocol = await getHttpProtocol();
 
@@ -495,7 +493,6 @@ export class Service extends DatabaseService<Model> {
         incident: Incident,
         userOnCallLogTimelineId: ObjectID
     ): Promise<EmailMessage> {
-
         const host: Hostname = await getHost();
         const httpProtocol: Protocol = await getHttpProtocol();
 
@@ -510,10 +507,12 @@ export class Service extends DatabaseService<Model> {
             rootCause:
                 incident.rootCause ||
                 'No root cause identified for this incident',
-            incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
-                incident.projectId!,
-                incident.id!
-            )).toString(),
+            incidentViewLink: (
+                await IncidentService.getIncidentLinkInDashboard(
+                    incident.projectId!,
+                    incident.id!
+                )
+            ).toString(),
             acknowledgeIncidentLink: new URL(
                 httpProtocol,
                 host,

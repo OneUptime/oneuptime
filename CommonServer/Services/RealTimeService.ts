@@ -13,7 +13,6 @@ class Service {
     private headers: Headers;
 
     public constructor() {
-
         this.headers = {
             ONEUPTIME_SECRET: ClusterKey.toString(),
         };
@@ -24,7 +23,6 @@ class Service {
         eventType: string,
         data: JSONObjectOrArray
     ): Promise<HTTPResponse<EmptyResponse>> {
-
         const httpProtocol: Protocol = await getHttpProtocol();
         this.api = new API(httpProtocol, RealtimeHostname);
 

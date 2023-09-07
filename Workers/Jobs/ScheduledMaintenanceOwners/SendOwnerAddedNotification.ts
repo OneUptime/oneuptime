@@ -191,11 +191,12 @@ RunCron(
                 scheduledMaintenanceDescription: Markdown.convertToHTML(
                     scheduledMaintenance.description! || ''
                 ),
-                scheduledMaintenanceViewLink:
-                    (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                scheduledMaintenanceViewLink: (
+                    await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                         scheduledMaintenance.projectId!,
                         scheduledMaintenance.id!
-                    )).toString(),
+                    )
+                ).toString(),
             };
 
             for (const user of users) {

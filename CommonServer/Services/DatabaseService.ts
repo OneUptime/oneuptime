@@ -593,7 +593,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        
         const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
             ? { createBy, carryForward: [] }
             : await this._onBeforeCreate(createBy);

@@ -339,7 +339,7 @@ router.post(
             await AccessTokenService.refreshUserAllPermissions(
                 alreadySavedUser.id!
             );
-            
+
             const host: Hostname = await getHost();
             const httpProtocol: Protocol = await getHttpProtocol();
 
