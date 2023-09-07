@@ -158,7 +158,7 @@ export default class GlobalConfig extends GlobalConfigModel {
         length: ColumnLength.ShortText,
         nullable: true,
         unique: true,
-        transformer: Hostname.getDatabaseTransformer()
+        transformer: Hostname.getDatabaseTransformer(),
     })
     public smtpHost?: Hostname = undefined;
 

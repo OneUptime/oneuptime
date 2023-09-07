@@ -57,7 +57,7 @@ export const getGlobalSMTPConfig = async (): Promise<EmailServer | null> => {
                 smtpUsername: true,
                 smtpPassword: true,
                 isSMTPSecure: true,
-                smtpFromName: true
+                smtpFromName: true,
             },
         });
 
@@ -65,7 +65,14 @@ export const getGlobalSMTPConfig = async (): Promise<EmailServer | null> => {
         throw new BadDataException('Global Config not found');
     }
 
-    if (!globalConfig.smtpFromEmail || !globalConfig.smtpHost || !globalConfig.smtpPort || !globalConfig.smtpUsername || !globalConfig.smtpPassword || !globalConfig.smtpFromName) {
+    if (
+        !globalConfig.smtpFromEmail ||
+        !globalConfig.smtpHost ||
+        !globalConfig.smtpPort ||
+        !globalConfig.smtpUsername ||
+        !globalConfig.smtpPassword ||
+        !globalConfig.smtpFromName
+    ) {
         return null;
     }
 
@@ -76,10 +83,9 @@ export const getGlobalSMTPConfig = async (): Promise<EmailServer | null> => {
         password: globalConfig.smtpPassword,
         secure: globalConfig.isSMTPSecure || false,
         fromEmail: globalConfig.smtpFromEmail,
-        fromName: globalConfig.smtpFromName
-    }
-}
-
+        fromName: globalConfig.smtpFromName,
+    };
+};
 
 export const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
     const globalConfig: GlobalConfig | null =
@@ -101,7 +107,11 @@ export const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
         throw new BadDataException('Global Config not found');
     }
 
-    if (!globalConfig.twilioAccountSID || !globalConfig.twilioAuthToken || !globalConfig.twilioPhoneNumber) {
+    if (
+        !globalConfig.twilioAccountSID ||
+        !globalConfig.twilioAuthToken ||
+        !globalConfig.twilioPhoneNumber
+    ) {
         return null;
     }
 
@@ -109,9 +119,8 @@ export const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
         accountSid: globalConfig.twilioAccountSID,
         authToken: globalConfig.twilioAuthToken,
         phoneNumber: globalConfig.twilioPhoneNumber,
-    }
-}
-
+    };
+};
 
 export const SMSDefaultCostInCents: number = process.env[
     'SMS_DEFAULT_COST_IN_CENTS'

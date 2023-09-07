@@ -6,6 +6,7 @@ import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotification
 import MigrateDefaultUserNotificationSetting from './MigrateDefaultUserSettingNotification';
 import MigrateToMeteredSubscription from './MigrateToMeteredSubscription';
 import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCountToBillingProvider';
+import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -17,6 +18,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new UpdateActiveMonitorCountToBillingProvider(),
     new AddMonitoringDatesToMonitor(),
     new AddDefaultGlobalConfig(),
+    new UpdateGlobalConfigFromEnv()
 ];
 
 export default DataMigrations;

@@ -1,7 +1,9 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Phone from 'Common/Types/Phone';
 import {
-    SMSDefaultCostInCents, TwilioConfig, getTwilioConfig,
+    SMSDefaultCostInCents,
+    TwilioConfig,
+    getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
 import SmsLog from 'Model/Models/SmsLog';
@@ -28,14 +30,16 @@ export default class SmsService {
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
-        const twilioConfig: TwilioConfig | null  = await getTwilioConfig();
+        const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
-        if(!twilioConfig){
-            throw new BadDataException("Twilio Config not found");
+        if (!twilioConfig) {
+            throw new BadDataException('Twilio Config not found');
         }
 
-
-        const client: Twilio.Twilio = Twilio(twilioConfig.accountSid, twilioConfig.authToken);
+        const client: Twilio.Twilio = Twilio(
+            twilioConfig.accountSid,
+            twilioConfig.authToken
+        );
 
         const smsLog: SmsLog = new SmsLog();
         smsLog.toNumber = to;

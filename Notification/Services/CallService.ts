@@ -1,7 +1,9 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Phone from 'Common/Types/Phone';
 import {
-    CallDefaultCostInCentsPerMinute, TwilioConfig, getTwilioConfig,
+    CallDefaultCostInCentsPerMinute,
+    TwilioConfig,
+    getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
 import CallLog from 'Model/Models/CallLog';
@@ -31,13 +33,16 @@ export default class CallService {
             userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
-        const twilioConfig: TwilioConfig | null  = await getTwilioConfig();
+        const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
-        if(!twilioConfig){
-            throw new BadDataException("Twilio Config not found");
+        if (!twilioConfig) {
+            throw new BadDataException('Twilio Config not found');
         }
 
-        const client: Twilio.Twilio = Twilio(twilioConfig.accountSid, twilioConfig.authToken);
+        const client: Twilio.Twilio = Twilio(
+            twilioConfig.accountSid,
+            twilioConfig.authToken
+        );
 
         const callLog: CallLog = new CallLog();
         callLog.toNumber = callRequest.to;

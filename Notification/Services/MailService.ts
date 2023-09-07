@@ -129,10 +129,11 @@ export default class MailService {
     }
 
     public static async getGlobalFromEmail(): Promise<Email> {
-        const emailServer: EmailServer | null = await this.getGlobalSmtpSettings();
+        const emailServer: EmailServer | null =
+            await this.getGlobalSmtpSettings();
 
-        if(!emailServer){
-            throw new BadDataException("Global SMTP Config not found");
+        if (!emailServer) {
+            throw new BadDataException('Global SMTP Config not found');
         }
 
         return emailServer.fromEmail;
@@ -331,10 +332,11 @@ export default class MailService {
                     options = {};
                 }
 
-                const globalEmailServer: EmailServer | null = await this.getGlobalSmtpSettings();
+                const globalEmailServer: EmailServer | null =
+                    await this.getGlobalSmtpSettings();
 
-                if(!globalEmailServer){
-                    throw new BadDataException("Global SMTP Config not found");
+                if (!globalEmailServer) {
+                    throw new BadDataException('Global SMTP Config not found');
                 }
 
                 options.emailServer = globalEmailServer;
