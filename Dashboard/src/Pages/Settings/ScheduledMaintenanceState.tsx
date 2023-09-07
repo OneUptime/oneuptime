@@ -64,19 +64,25 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                 ): Promise<ScheduledMaintenanceState> => {
                     if (item.isScheduledState) {
                         throw new BadDataException(
-                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
+                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Ended, Completed states cannot be deleted.'
                         );
                     }
 
                     if (item.isOngoingState) {
                         throw new BadDataException(
-                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
+                            'This Scheduled Maintenance cannot be deleted because its the ongoing state of for this project. Scheduled, Ongoing, Ended, Completed states cannot be deleted.'
                         );
                     }
 
                     if (item.isResolvedState) {
                         throw new BadDataException(
-                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
+                            'This Scheduled Maintenance cannot be deleted because its the resolved state of for this project. Scheduled, Ongoing, Ended, Completed states cannot be deleted.'
+                        );
+                    }
+
+                    if (item.isEndedState) {
+                        throw new BadDataException(
+                            'This Scheduled Maintenance cannot be deleted because its the ended state of for this project. Scheduled, Ongoing, Ended, Completed states cannot be deleted.'
                         );
                     }
 
@@ -87,6 +93,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     isScheduledState: true,
                     isOngoingState: true,
                     isResolvedState: true,
+                    isEndedState: true,
                     order: true,
                 }}
                 columns={[
