@@ -97,6 +97,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         monitorLimit: true,
                         teamMemberLimit: true,
                         planType: true,
+                        changePlanLink: true,
                     },
                 }
             );
@@ -393,6 +394,21 @@ const Settings: FunctionComponent<ComponentProps> = (
                         <Card
                             title={`You have purchased this project from ${reseller.name}`}
                             description={`If you would like to change the plan, please contact ${reseller.name} at ${reseller.description}`}
+                            buttons={
+                                reseller.changePlanLink
+                                    ? [
+                                          {
+                                              title: `Change Plan`,
+                                              onClick: () => {
+                                                  Navigation.navigate(
+                                                      reseller.changePlanLink!
+                                                  );
+                                              },
+                                              icon: IconProp.Edit,
+                                          },
+                                      ]
+                                    : []
+                            }
                         >
                             <div className="space-y-2">
                                 <div className="text-sm font-medium text-gray-500">

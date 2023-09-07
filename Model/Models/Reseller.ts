@@ -13,6 +13,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Permission from 'Common/Types/Permission';
+import URL from 'Common/Types/API/URL';
 
 @TableAccessControl({
     create: [],
@@ -98,7 +99,7 @@ export default class Reseller extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnRelationQuery: true,
+        canReadOnRelationQuery: false,
         title: 'Username',
         description: 'Username of the reseller',
     })
@@ -117,7 +118,7 @@ export default class Reseller extends BaseModel {
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
-        canReadOnRelationQuery: true,
+        canReadOnRelationQuery: false,
         title: 'Password',
         description: 'Password for reseller to login',
     })
@@ -217,4 +218,24 @@ export default class Reseller extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortURL,
+        canReadOnRelationQuery: true,
+        title: 'Change Plan Link',
+        description: 'Reseller Change plan Link',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortURL,
+        length: ColumnLength.ShortURL,
+        transformer: URL.getDatabaseTransformer(),
+    })
+    public changePlanLink?: URL = undefined;
 }
