@@ -287,7 +287,6 @@ export default class ResellerPlan extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

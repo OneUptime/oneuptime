@@ -204,7 +204,7 @@ const RegisterPage: () => JSX.Element = () => {
                     <ModelForm<User>
                         modelType={User}
                         id="register-form"
-                        showAsColumns={2}
+                        showAsColumns={reseller ? 1 : 2}
                         name="Register"
                         initialValues={initialValues}
                         maxPrimaryButtonWidth={true}
