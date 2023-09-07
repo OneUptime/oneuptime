@@ -158,8 +158,9 @@ export default class GlobalConfig extends GlobalConfigModel {
         length: ColumnLength.ShortText,
         nullable: true,
         unique: true,
+        transformer: Hostname.getDatabaseTransformer()
     })
-    public smtpHost?: string = undefined;
+    public smtpHost?: Hostname = undefined;
 
     @ColumnAccessControl({
         create: [],

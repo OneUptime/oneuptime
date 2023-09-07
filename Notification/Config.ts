@@ -6,6 +6,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Phone from 'Common/Types/Phone';
+import EmailServer from 'Common/Types/Email/EmailServer';
 
 export const ShouldUseInternalSmtp: boolean =
     process.env['USE_INTERNAL_SMTP'] === 'true';
@@ -34,13 +35,13 @@ export const InternalSmtpEmail: Email = new Email(
 export const InternalSmtpFromName: string =
     process.env['INTERNAL_SMTP_NAME'] || '';
 
-    export interface TwilioConfig {
-        accountSid: string;
-        authToken: string;
-        phoneNumber: Phone;
-    }
+export interface TwilioConfig {
+    accountSid: string;
+    authToken: string;
+    phoneNumber: Phone;
+}
 
-export const getTwilioConfig = async (): Promise< TwilioConfig | null > => {
+export const getGlobalSMTPConfig = async (): Promise<EmailServer | null> => {
     const globalConfig: GlobalConfig | null =
         await GlobalConfigService.findOneBy({
             query: {
@@ -50,7 +51,47 @@ export const getTwilioConfig = async (): Promise< TwilioConfig | null > => {
                 isRoot: true,
             },
             select: {
-                twilioAccountSID: true, 
+                smtpFromEmail: true,
+                smtpHost: true,
+                smtpPort: true,
+                smtpUsername: true,
+                smtpPassword: true,
+                isSMTPSecure: true,
+                smtpFromName: true
+            },
+        });
+
+    if (!globalConfig) {
+        throw new BadDataException('Global Config not found');
+    }
+
+    if (!globalConfig.smtpFromEmail || !globalConfig.smtpHost || !globalConfig.smtpPort || !globalConfig.smtpUsername || !globalConfig.smtpPassword || !globalConfig.smtpFromName) {
+        return null;
+    }
+
+    return {
+        host: globalConfig.smtpHost,
+        port: globalConfig.smtpPort,
+        username: globalConfig.smtpUsername,
+        password: globalConfig.smtpPassword,
+        secure: globalConfig.isSMTPSecure || false,
+        fromEmail: globalConfig.smtpFromEmail,
+        fromName: globalConfig.smtpFromName
+    }
+}
+
+
+export const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
+    const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+            query: {
+                _id: ObjectID.getZeroObjectID().toString(),
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                twilioAccountSID: true,
                 twilioAuthToken: true,
                 twilioPhoneNumber: true,
             },
@@ -60,7 +101,7 @@ export const getTwilioConfig = async (): Promise< TwilioConfig | null > => {
         throw new BadDataException('Global Config not found');
     }
 
-    if(!globalConfig.twilioAccountSID || !globalConfig.twilioAuthToken || !globalConfig.twilioPhoneNumber) {
+    if (!globalConfig.twilioAccountSID || !globalConfig.twilioAuthToken || !globalConfig.twilioPhoneNumber) {
         return null;
     }
 

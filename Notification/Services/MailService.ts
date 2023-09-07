@@ -25,6 +25,7 @@ import {
     InternalSmtpUsername,
     SendGridApiKey,
     ShouldUseInternalSmtp,
+    getGlobalSMTPConfig,
 } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 import ObjectID from 'Common/Types/ObjectID';
@@ -127,13 +128,18 @@ export default class MailService {
         };
     }
 
-    public static getGlobalFromEmail(): Email {
-        const emailServer: EmailServer = this.getGlobalSmtpSettings();
+    public static async getGlobalFromEmail(): Promise<Email> {
+        const emailServer: EmailServer | null = await this.getGlobalSmtpSettings();
+
+        if(!emailServer){
+            throw new BadDataException("Global SMTP Config not found");
+        }
+
         return emailServer.fromEmail;
     }
 
-    private static getGlobalSmtpSettings(): EmailServer {
-        return this.getEmailServer(process.env);
+    private static async getGlobalSmtpSettings(): Promise<EmailServer | null> {
+        return await getGlobalSMTPConfig();
     }
 
     private static async updateUserNotificationLogTimelineAsSent(
@@ -294,7 +300,7 @@ export default class MailService {
                 };
 
                 if (emailLog) {
-                    emailLog.fromEmail = this.getGlobalFromEmail();
+                    emailLog.fromEmail = await this.getGlobalFromEmail();
                 }
 
                 await SendgridMail.send(msg);
@@ -324,7 +330,14 @@ export default class MailService {
                 if (!options) {
                     options = {};
                 }
-                options.emailServer = this.getGlobalSmtpSettings();
+
+                const globalEmailServer: EmailServer | null = await this.getGlobalSmtpSettings();
+
+                if(!globalEmailServer){
+                    throw new BadDataException("Global SMTP Config not found");
+                }
+
+                options.emailServer = globalEmailServer;
             }
 
             if (ShouldUseInternalSmtp && (!options || !options.emailServer)) {
