@@ -10,8 +10,9 @@ import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import URL from 'Common/Types/API/URL';
 import logger from '../Utils/Logger';
-import { FileRoute, HttpProtocol, getHost } from '../Config';
+import { FileRoute, getHost, getHttpProtocol } from '../Config';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -69,6 +70,8 @@ export class Service extends DatabaseService<Model> {
 
         const host: Hostname = await getHost();
 
+        const httpProtocol: Protocol = await getHttpProtocol();
+
         MailService.sendMail(
             {
                 toEmail: createdItem.email!,
@@ -78,7 +81,7 @@ export class Service extends DatabaseService<Model> {
                     statusPageName: statusPageName!,
                     statusPageUrl: statusPageURL,
                     logoUrl: statusPage.logoFileId
-                        ? new URL(HttpProtocol, host)
+                        ? new URL(httpProtocol, host)
                               .addRoute(FileRoute)
                               .addRoute('/image/' + statusPage.logoFileId)
                               .toString()

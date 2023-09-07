@@ -8,7 +8,7 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import { HttpProtocol, getDashboardUrl, getHost } from '../Config';
+import { getDashboardUrl, getHost, getHttpProtocol } from '../Config';
 import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
@@ -22,6 +22,7 @@ import User from 'Model/Models/User';
 import TeamMemberService from './TeamMemberService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -278,8 +279,10 @@ export class Service extends DatabaseService<StatusPage> {
 
             const host: Hostname = await getHost();
 
+            const httpProtocol: Protocol = await getHttpProtocol();
+
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-            statusPageURL = new URL(HttpProtocol, host)
+            statusPageURL = new URL(httpProtocol, host)
                 .addRoute('/status-page/' + statusPageId.toString())
                 .toString();
         }
@@ -313,8 +316,10 @@ export class Service extends DatabaseService<StatusPage> {
 
             const host: Hostname = await getHost();
 
+            const httpProtocol: Protocol = await getHttpProtocol();
+
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-            statusPageURL = new URL(HttpProtocol, host)
+            statusPageURL = new URL(httpProtocol, host)
                 .addRoute('/status-page/' + statusPageId.toString())
                 .toString();
         } else {

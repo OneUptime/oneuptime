@@ -12,18 +12,18 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 const getFromGlobalConfig = async (key: string): Promise<JSONValue> => {
 
     const globalConfig = await GlobalConfigService.findOneBy({
-        query:{
+        query: {
             _id: ObjectID.getZeroObjectID().toString()
         },
         props: {
-            isRoot: true, 
+            isRoot: true,
         },
         select: {
             [key]: true
         }
     });
 
-    if(!globalConfig){
+    if (!globalConfig) {
         throw new BadDataException("Global Config not found");
     }
 
@@ -138,12 +138,6 @@ export const DashboardHostname: Hostname = Hostname.fromString(
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
 
-export const HttpProtocol: Protocol = (
-    process.env['HTTP_PROTOCOL'] || 'https'
-).includes('https')
-    ? Protocol.HTTPS
-    : Protocol.HTTP;
-
 // Redis does not require password.
 export const RedisHostname: string = process.env['REDIS_HOST'] || 'redis';
 export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '6379');
@@ -179,7 +173,7 @@ export const LinkShortenerRoute: Route = new Route(
 );
 
 export const DashboardRoute: Route = new Route(
-   '/dashboard'
+    '/dashboard'
 );
 
 export const IntegrationRoute: Route = new Route(
@@ -206,7 +200,7 @@ export const ApiReferenceRoute: Route = new Route(
 );
 
 export const AdminDashboardRoute: Route = new Route(
-   '/admin-dashboard'
+    '/admin-dashboard'
 );
 
 export const IsProduction: boolean =
@@ -248,18 +242,22 @@ export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
 
-export const getHost: Function  = async (): Promise<Hostname> => {
+export const getHost: Function = async (): Promise<Hostname> => {
     return await getFromGlobalConfig('host') as Hostname || new Hostname("localhost");
 }
 
+export const getHttpProtocol: Function = async (): Promise<Protocol> => {
+    return await getFromGlobalConfig('useHttps') ? Protocol.HTTPS : Protocol.HTTP;
+}
+
 export const getAccountsUrl: Function = async (): Promise<URL> => {
-    const host: Hostname =  await getHost();
-    return new URL(HttpProtocol,host, AccountsRoute);
+    const host: Hostname = await getHost();
+    return new URL(await getHttpProtocol(), host, AccountsRoute);
 }
 
 export const getDashboardUrl: Function = async (): Promise<URL> => {
-    const host: Hostname =  await getHost();
-    return new URL(HttpProtocol,host, DashboardRoute);
+    const host: Hostname = await getHost();
+    return new URL(await getHttpProtocol(), host, DashboardRoute);
 }
 
 

@@ -4,8 +4,9 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
-import { HttpProtocol, WorkerHostname } from '../Config';
+import { WorkerHostname, getHttpProtocol } from '../Config';
 import BaseService from './BaseService';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class StatusPageCertificateService extends BaseService {
     public constructor() {
@@ -17,8 +18,10 @@ export class StatusPageCertificateService extends BaseService {
             domain: domain,
         };
 
+        const httpProtocol: Protocol = await getHttpProtocol();
+
         return await API.post<EmptyResponseData>(
-            new URL(HttpProtocol, WorkerHostname, new Route('/cert')),
+            new URL(httpProtocol, WorkerHostname, new Route('/cert')),
             body
         );
     }
@@ -26,12 +29,15 @@ export class StatusPageCertificateService extends BaseService {
     public async remove(
         domain: string
     ): Promise<HTTPResponse<EmptyResponseData>> {
+
+        const httpProtocol: Protocol = await getHttpProtocol();
+
         const body: JSONObject = {
             domain: domain,
         };
 
         return await API.delete<EmptyResponseData>(
-            new URL(HttpProtocol, WorkerHostname, new Route('/cert')),
+            new URL(httpProtocol, WorkerHostname, new Route('/cert')),
             body
         );
     }
@@ -41,8 +47,10 @@ export class StatusPageCertificateService extends BaseService {
             domain: domain,
         };
 
+        const httpProtocol: Protocol = await getHttpProtocol();
+
         return await API.get<JSONObject>(
-            new URL(HttpProtocol, WorkerHostname, new Route('/cert')),
+            new URL(httpProtocol, WorkerHostname, new Route('/cert')),
             body
         );
     }

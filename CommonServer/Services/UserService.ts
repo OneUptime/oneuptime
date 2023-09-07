@@ -8,7 +8,7 @@ import MailService from './MailService';
 import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import { AccountsRoute, HttpProtocol, getHost } from '../Config';
+import { AccountsRoute, getHttpProtocol, getHost } from '../Config';
 import logger from '../Utils/Logger';
 import URL from 'Common/Types/API/URL';
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
@@ -20,6 +20,7 @@ import TeamMemberService from './TeamMemberService';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -72,6 +73,7 @@ export class Service extends DatabaseService<Model> {
         if (onUpdate && onUpdate.updateBy.data.password) {
 
             const host: Hostname = await getHost();
+            const httpProtocol: Protocol = await getHttpProtocol();
 
             for (const user of onUpdate.carryForward) {
                 // password changed, send password changed mail
@@ -80,7 +82,7 @@ export class Service extends DatabaseService<Model> {
                     subject: 'Password Changed.',
                     templateType: EmailTemplateType.PasswordChanged,
                     vars: {
-                        homeURL: new URL(HttpProtocol, host).toString(),
+                        homeURL: new URL(httpProtocol, host).toString(),
                     },
                 }).catch((err: Error) => {
                     logger.error(err);
@@ -181,6 +183,7 @@ export class Service extends DatabaseService<Model> {
                     });
 
                     const host: Hostname = await getHost();
+                    const httpProtocol: Protocol = await getHttpProtocol();
 
                     MailService.sendMail({
                         toEmail: newUser.email!,
@@ -190,13 +193,13 @@ export class Service extends DatabaseService<Model> {
                         vars: {
                             name: newUser.name!.toString(),
                             tokenVerifyUrl: new URL(
-                                HttpProtocol,
+                                httpProtocol,
                                 host,
                                 new Route(AccountsRoute.toString()).addRoute(
                                     '/verify-email/' + generatedToken.toString()
                                 )
                             ).toString(),
-                            homeUrl: new URL(HttpProtocol, host).toString(),
+                            homeUrl: new URL(httpProtocol, host).toString(),
                         },
                     }).catch((err: Error) => {
                         logger.error(err);

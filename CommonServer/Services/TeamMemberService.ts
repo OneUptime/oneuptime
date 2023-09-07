@@ -17,9 +17,9 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
 import {
     DashboardRoute,
-    HttpProtocol,
     IsBillingEnabled,
     getHost,
+    getHttpProtocol,
 } from '../Config';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
@@ -34,6 +34,7 @@ import TeamMember from 'Model/Models/TeamMember';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -101,6 +102,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             if (project) {
 
                 const host: Hostname = await getHost();
+                const httpProtocol: Protocol = await getHttpProtocol();
 
                 MailService.sendMail(
                     {
@@ -108,12 +110,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                         templateType: EmailTemplateType.InviteMember,
                         vars: {
                             dashboardUrl: new URL(
-                                HttpProtocol,
+                                httpProtocol,
                                 host,
                                 DashboardRoute
                             ).toString(),
                             projectName: project.name!,
-                            homeUrl: new URL(HttpProtocol, host).toString(),
+                            homeUrl: new URL(httpProtocol, host).toString(),
                         },
                         subject: 'You have been invited to ' + project.name,
                     },

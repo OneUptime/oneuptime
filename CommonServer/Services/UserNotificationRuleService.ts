@@ -21,7 +21,7 @@ import EmailMessage from 'Common/Types/Email/EmailMessage';
 import SMS from 'Common/Types/SMS/SMS';
 import Incident from 'Model/Models/Incident';
 import URL from 'Common/Types/API/URL';
-import { DashboardApiRoute, HttpProtocol, getHost } from '../Config';
+import { DashboardApiRoute, getHost, getHttpProtocol } from '../Config';
 import ShortLinkService from './ShortLinkService';
 import ShortLink from 'Model/Models/ShortLink';
 import Phone from 'Common/Types/Phone';
@@ -37,6 +37,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
 import Route from 'Common/Types/API/Route';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -412,6 +413,8 @@ export class Service extends DatabaseService<Model> {
 
         const host: Hostname = await getHost();
 
+        const httpProtocol: Protocol = await getHttpProtocol();
+
         const callRequest: CallRequest = {
             to: to,
             data: [
@@ -439,7 +442,7 @@ export class Service extends DatabaseService<Model> {
                         },
                     },
                     responseUrl: new URL(
-                        HttpProtocol,
+                        httpProtocol,
                         host,
                         new Route(DashboardApiRoute.toString())
                             .addRoute(new UserOnCallLogTimeline().crudApiPath!)
@@ -462,10 +465,11 @@ export class Service extends DatabaseService<Model> {
     ): Promise<SMS> {
 
         const host: Hostname = await getHost();
+        const httpProtocol: Protocol = await getHttpProtocol();
 
         const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
             new URL(
-                HttpProtocol,
+                httpProtocol,
                 host,
                 new Route(DashboardApiRoute.toString())
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
@@ -493,6 +497,7 @@ export class Service extends DatabaseService<Model> {
     ): Promise<EmailMessage> {
 
         const host: Hostname = await getHost();
+        const httpProtocol: Protocol = await getHttpProtocol();
 
         const vars: Dictionary<string> = {
             incidentTitle: incident.title!,
@@ -510,7 +515,7 @@ export class Service extends DatabaseService<Model> {
                 incident.id!
             )).toString(),
             acknowledgeIncidentLink: new URL(
-                HttpProtocol,
+                httpProtocol,
                 host,
                 new Route(DashboardApiRoute.toString())
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)

@@ -15,9 +15,10 @@ import { JSONObject } from 'Common/Types/JSON';
 import NotificationMiddleware from '../Middleware/NotificationMiddleware';
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
-import { DashboardRoute, HttpProtocol, getHost } from '../Config';
+import { DashboardRoute, getHost, getHttpProtocol } from '../Config';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
     UserOnCallLogTimeline,
@@ -147,12 +148,13 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 // redirect to dashboard to incidents page.
 
                 const host: Hostname = await getHost();
+                const httpProtocol: Protocol = await getHttpProtocol();
                 
                 return Response.redirect(
                     req,
                     res,
                     new URL(
-                        HttpProtocol,
+                        httpProtocol,
                         host,
                         DashboardRoute.addRoute(
                             `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`
