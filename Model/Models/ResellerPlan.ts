@@ -294,7 +294,7 @@ export default class ResellerPlan extends BaseModel {
         update: [],
     })
     @TableColumn({
-        required: true,
+        required: false,
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'Other Features',
@@ -302,7 +302,7 @@ export default class ResellerPlan extends BaseModel {
             'Other Features of this Reseller Plan. This is shown on the dashboard. Its a comma seperated list of features',
     })
     @Column({
-        nullable: false,
+        nullable: true,
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
