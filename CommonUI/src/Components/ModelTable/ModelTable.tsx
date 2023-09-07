@@ -134,6 +134,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     };
     onViewComplete?: ((item: TBaseModel) => void) | undefined;
     name: string;
+    modelAPI?: typeof ModelAPI | undefined;
 }
 
 enum ModalType {
@@ -147,6 +148,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     let showTableAs: ShowTableAs | undefined = props.showTableAs;
+
+    let modelAPI = props.modelAPI || ModelAPI;
 
     if (!showTableAs) {
         showTableAs = ShowTableAs.Table;
@@ -249,7 +252,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            await ModelAPI.deleteItem<TBaseModel>(
+            await modelAPI.deleteItem<TBaseModel>(
                 props.modelType,
                 item.id,
                 props.deleteRequestOptions
@@ -447,7 +450,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 const query: Query<BaseModel> = column.filterQuery || {};
 
                 const listResult: ListResult<BaseModel> =
-                    await ModelAPI.getList<BaseModel>(
+                    await modelAPI.getList<BaseModel>(
                         column.filterEntityType,
                         query,
                         LIMIT_PER_PROJECT,
@@ -507,7 +510,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
         try {
             const listResult: ListResult<TBaseModel> =
-                await ModelAPI.getList<TBaseModel>(
+                await modelAPI.getList<TBaseModel>(
                     props.modelType,
                     {
                         ...query,
@@ -1030,7 +1033,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                     setIsLoading(true);
 
-                    await ModelAPI.updateById(
+                    await modelAPI.updateById(
                         props.modelType,
                         new ObjectID(id),
                         {
@@ -1148,7 +1151,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                     setIsLoading(true);
 
-                    await ModelAPI.updateById(
+                    await modelAPI.updateById(
                         props.modelType,
                         new ObjectID(id),
                         {
@@ -1305,6 +1308,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>
+                    modelAPI={props.modelAPI}
                     title={
                         modalType === ModalType.Create
                             ? `${props.createVerb || 'Create'} New ${

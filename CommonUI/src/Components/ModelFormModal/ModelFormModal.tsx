@@ -11,10 +11,12 @@ import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
 import FormValues from '../Forms/Types/FormValues';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     description?: string | undefined;
+    modelAPI?: typeof ModelAPI | undefined;
     name?: string | undefined;
     modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;
@@ -71,6 +73,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
                     <ModelForm<TBaseModel>
                         {...props.formProps}
                         name={props.name}
+                        modelAPI={props.modelAPI}
                         modelType={props.modelType}
                         onIsLastFormStep={(isLastFormStep: boolean) => {
                             if (isLastFormStep) {

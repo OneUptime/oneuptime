@@ -18,6 +18,7 @@ import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import AdminModelAPI from '../../../Utils/ModelAPI';
 
 const Settings: FunctionComponent = (): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
@@ -74,10 +75,16 @@ const Settings: FunctionComponent = (): ReactElement => {
                 }}
                 query={{
                     projectId: new IsNull(),
+                    isGlobalProbe: true
                 }}
+                modelAPI={AdminModelAPI}
                 noItemsMessage={'No probes found.'}
                 showRefreshButton={true}
                 showFilterButton={true}
+                onBeforeCreate={(item: Probe)=>{
+                    item.isGlobalProbe = true; 
+                    return Promise.resolve(item); 
+                }}
                 formFields={[
                     {
                         field: {
