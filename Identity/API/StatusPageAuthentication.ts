@@ -1,8 +1,8 @@
 import {
-    HttpProtocol,
     EncryptionSecret,
-    Domain,
     FileRoute,
+    getHost,
+    getHttpProtocol,
 } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
@@ -26,6 +26,8 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
+import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -112,6 +114,9 @@ router.post(
                     },
                 });
 
+                const host: Hostname = await getHost();
+                const httpProtocol: Protocol = await getHttpProtocol();
+
                 MailService.sendMail(
                     {
                         toEmail: user.email!,
@@ -121,7 +126,7 @@ router.post(
                         vars: {
                             statusPageName: statusPageName!,
                             logoUrl: statusPage.logoFileId
-                                ? new URL(HttpProtocol, Domain)
+                                ? new URL(httpProtocol, host)
                                       .addRoute(FileRoute)
                                       .addRoute(
                                           '/image/' + statusPage.logoFileId
@@ -247,6 +252,9 @@ router.post(
                 },
             });
 
+            const host: Hostname = await getHost();
+            const httpProtocol: Protocol = await getHttpProtocol();
+
             MailService.sendMail(
                 {
                     toEmail: alreadySavedUser.email!,
@@ -256,7 +264,7 @@ router.post(
                         homeURL: statusPageURL,
                         statusPageName: statusPageName || '',
                         logoUrl: statusPage.logoFileId
-                            ? new URL(HttpProtocol, Domain)
+                            ? new URL(httpProtocol, host)
                                   .addRoute(FileRoute)
                                   .addRoute('/image/' + statusPage.logoFileId)
                                   .toString()

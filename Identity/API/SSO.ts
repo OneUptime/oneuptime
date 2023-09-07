@@ -21,13 +21,15 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import URL from 'Common/Types/API/URL';
-import { DashboardRoute, Domain, HttpProtocol } from 'CommonServer/Config';
+import { DashboardRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
 import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import AccessTokenService from 'CommonServer/Services/AccessTokenService';
 import SSOUtil from '../Utils/SSO';
 import Exception from 'Common/Types/Exception/Exception';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -337,13 +339,16 @@ router.post(
             await AccessTokenService.refreshUserAllPermissions(
                 alreadySavedUser.id!
             );
+            
+            const host: Hostname = await getHost();
+            const httpProtocol: Protocol = await getHttpProtocol();
 
             return Response.redirect(
                 req,
                 res,
                 new URL(
-                    HttpProtocol,
-                    Domain,
+                    httpProtocol,
+                    host,
                     new Route(DashboardRoute.toString()).addRoute(
                         '/' + req.params['projectId']
                     ),

@@ -1,10 +1,10 @@
 import {
     DisableSignup,
-    HttpProtocol,
     IsBillingEnabled,
     EncryptionSecret,
-    Domain,
     AccountsRoute,
+    getHost,
+    getHttpProtocol,
 } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
@@ -35,6 +35,8 @@ import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
 import AuthenticationEmail from '../Utils/AuthenticationEmail';
 import AccessTokenService from 'CommonServer/Services/AccessTokenService';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -147,6 +149,9 @@ router.post(
                 },
             });
 
+            const host: Hostname = await getHost();
+            const httpProtocol: Protocol = await getHttpProtocol();
+
             MailService.sendMail({
                 toEmail: partialUser.email as Email,
                 subject: 'Welcome to OneUptime. Please verify your email.',
@@ -154,13 +159,13 @@ router.post(
                 vars: {
                     name: (partialUser.name! as Name).toString(),
                     tokenVerifyUrl: new URL(
-                        HttpProtocol,
-                        Domain,
+                        httpProtocol,
+                        host,
                         new Route(AccountsRoute.toString()).addRoute(
                             '/verify-email/' + generatedToken.toString()
                         )
                     ).toString(),
-                    homeUrl: new URL(HttpProtocol, Domain).toString(),
+                    homeUrl: new URL(httpProtocol, host).toString(),
                 },
             }).catch((err: Error) => {
                 logger.error(err);
@@ -239,15 +244,18 @@ router.post(
                     },
                 });
 
+                const host: Hostname = await getHost();
+                const httpProtocol: Protocol = await getHttpProtocol();
+
                 MailService.sendMail({
                     toEmail: user.email!,
                     subject: 'Password Reset Request for OneUptime',
                     templateType: EmailTemplateType.ForgotPassword,
                     vars: {
-                        homeURL: new URL(HttpProtocol, Domain).toString(),
+                        homeURL: new URL(httpProtocol, host).toString(),
                         tokenVerifyUrl: new URL(
-                            HttpProtocol,
-                            Domain,
+                            httpProtocol,
+                            host,
                             new Route(AccountsRoute.toString()).addRoute(
                                 '/reset-password/' + token
                             )
@@ -357,12 +365,15 @@ router.post(
                 },
             });
 
+            const host: Hostname = await getHost();
+            const httpProtocol: Protocol = await getHttpProtocol();
+
             MailService.sendMail({
                 toEmail: user.email!,
                 subject: 'Email Verified.',
                 templateType: EmailTemplateType.EmailVerified,
                 vars: {
-                    homeURL: new URL(HttpProtocol, Domain).toString(),
+                    homeURL: new URL(httpProtocol, host).toString(),
                 },
             }).catch((err: Error) => {
                 logger.error(err);
@@ -445,12 +456,15 @@ router.post(
                 },
             });
 
+            const host: Hostname = await getHost();
+            const httpProtocol: Protocol = await getHttpProtocol();
+
             MailService.sendMail({
                 toEmail: alreadySavedUser.email!,
                 subject: 'Password Changed.',
                 templateType: EmailTemplateType.PasswordChanged,
                 vars: {
-                    homeURL: new URL(HttpProtocol, Domain).toString(),
+                    homeURL: new URL(httpProtocol, host).toString(),
                 },
             }).catch((err: Error) => {
                 logger.error(err);

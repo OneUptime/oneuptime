@@ -1,4 +1,4 @@
-import { HttpProtocol, Domain, AccountsRoute } from 'CommonServer/Config';
+import { AccountsRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
 
 import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 
@@ -14,6 +14,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
 import User from 'Model/Models/User';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export default class AuthenticationEmail {
     public static async sendVerificationEmail(user: User): Promise<void> {
@@ -33,6 +35,9 @@ export default class AuthenticationEmail {
             },
         });
 
+        const host: Hostname = await getHost();
+        const httpProtocol: Protocol = await getHttpProtocol();
+
         MailService.sendMail({
             toEmail: user.email!,
             subject: 'Please verify email.',
@@ -40,13 +45,13 @@ export default class AuthenticationEmail {
             vars: {
                 name: user.name?.toString() || '',
                 tokenVerifyUrl: new URL(
-                    HttpProtocol,
-                    Domain,
+                    httpProtocol,
+                    host,
                     new Route(AccountsRoute.toString()).addRoute(
                         '/verify-email/' + generatedToken.toString()
                     )
                 ).toString(),
-                homeUrl: new URL(HttpProtocol, Domain).toString(),
+                homeUrl: new URL(httpProtocol, host).toString(),
             },
         }).catch((err: Error) => {
             logger.error(err);
