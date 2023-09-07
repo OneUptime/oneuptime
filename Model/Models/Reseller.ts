@@ -239,7 +239,6 @@ export default class Reseller extends BaseModel {
     })
     public changePlanLink?: URL = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.Public],
@@ -247,18 +246,14 @@ export default class Reseller extends BaseModel {
     })
     @TableColumn({
         required: false,
-        type: TableColumnType.ShortURL,
+        type: TableColumnType.Boolean,
         canReadOnRelationQuery: true,
-        title: 'Change Plan Link',
-        description: 'Reseller Change plan Link',
+        title: 'Hide Phone Number on Signup',
+        description: 'Should we hide the phone number on sign up form based on reseller request?',
     })
     @Column({
         nullable: true,
-        type: ColumnType.ShortURL,
-        length: ColumnLength.ShortURL,
-        transformer: URL.getDatabaseTransformer(),
+        type: ColumnType.Boolean
     })
     public hidePhoneNumberOnSignup?: boolean = undefined;
-
-
 }

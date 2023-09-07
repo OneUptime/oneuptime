@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -32,30 +32,32 @@ const RegisterPage: () => JSX.Element = () => {
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
-
-    const [reseller, setResller] = React.useState<Reseller | undefined>(undefined);
+    const [reseller, setResller] = React.useState<Reseller | undefined>(
+        undefined
+    );
 
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }
 
-    const fetchReseller = async (resellerId: string) => {
+    const fetchReseller: Function = async (resellerId: string): Promise<void> => {
         setIsLoading(true);
 
         try {
-            const reseller: ListResult<Reseller> = await ModelAPI.getList<Reseller>(
-                Reseller,
-                {
-                    resellerId: resellerId
-                },
-                1,
-                0,
-                {
-                    hidePhoneNumberOnSignup: true,
-                },
-                {},
-                {}
-            );
+            const reseller: ListResult<Reseller> =
+                await ModelAPI.getList<Reseller>(
+                    Reseller,
+                    {
+                        resellerId: resellerId,
+                    },
+                    1,
+                    0,
+                    {
+                        hidePhoneNumberOnSignup: true,
+                    },
+                    {},
+                    {}
+                );
 
             if (reseller.data.length > 0) {
                 setResller(reseller.data[0]);
@@ -65,11 +67,7 @@ const RegisterPage: () => JSX.Element = () => {
         }
 
         setIsLoading(false);
-
     };
-
-
-
 
     useAsyncEffect(async () => {
         // if promo code is found, please save it in localstorage.
@@ -80,7 +78,6 @@ const RegisterPage: () => JSX.Element = () => {
             );
         }
 
-
         if (Navigation.getQueryStringByName('email')) {
             setInitialValues({
                 email: Navigation.getQueryStringByName('email'),
@@ -89,7 +86,7 @@ const RegisterPage: () => JSX.Element = () => {
 
         // if promo code is found, please save it in localstorage.
         if (Navigation.getQueryStringByName('partnerId')) {
-            await fetchReseller(Navigation.getQueryStringByName('partnerId')!)
+            await fetchReseller(Navigation.getQueryStringByName('partnerId')!.toLowerCase());
         }
     }, []);
 
@@ -125,7 +122,7 @@ const RegisterPage: () => JSX.Element = () => {
                 placeholder: 'Acme, Inc.',
                 required: true,
                 title: 'Company Name',
-            }
+            },
         ]);
 
         // If reseller wants to hide phone number on sign up, we hide it.
@@ -173,11 +170,11 @@ const RegisterPage: () => JSX.Element = () => {
     ]);
 
     if (error) {
-        return <ErrorMessage error={error} />
+        return <ErrorMessage error={error} />;
     }
 
     if (isLoading) {
-        return <PageLoader isVisible={true} />
+        return <PageLoader isVisible={true} />;
     }
 
     return (
