@@ -33,6 +33,8 @@ export const TwilioAccountSid: string = process.env['TWILIO_ACCOUNT_SID'] || '';
 export const TwilioAuthToken: string = process.env['TWILIO_AUTH_TOKEN'] || '';
 export const TwilioPhoneNumber: string =
     process.env['TWILIO_PHONE_NUMBER'] || '';
+
+    
 export const SMSDefaultCostInCents: number = process.env[
     'SMS_DEFAULT_COST_IN_CENTS'
 ]

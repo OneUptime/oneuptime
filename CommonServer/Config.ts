@@ -10,18 +10,21 @@ import GlobalConfigService from './Services/GlobalConfigService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import GlobalConfig from 'Model/Models/GlobalConfig';
 
-const getFromGlobalConfig: (key: string) => Promise<JSONValue>  = async (key: string): Promise<JSONValue> => {
-    const globalConfig: GlobalConfig | null = await GlobalConfigService.findOneBy({
-        query: {
-            _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-            isRoot: true,
-        },
-        select: {
-            [key]: true,
-        },
-    });
+const getFromGlobalConfig: (key: string) => Promise<JSONValue> = async (
+    key: string
+): Promise<JSONValue> => {
+    const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+            query: {
+                _id: ObjectID.getZeroObjectID().toString(),
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                [key]: true,
+            },
+        });
 
     if (!globalConfig) {
         throw new BadDataException('Global Config not found');
@@ -221,11 +224,12 @@ export const getHost: Function = async (): Promise<Hostname> => {
     );
 };
 
-export const getHttpProtocol: () => Promise<Protocol> = async (): Promise<Protocol> => {
-    return (await getFromGlobalConfig('useHttps'))
-        ? Protocol.HTTPS
-        : Protocol.HTTP;
-};
+export const getHttpProtocol: () => Promise<Protocol> =
+    async (): Promise<Protocol> => {
+        return (await getFromGlobalConfig('useHttps'))
+            ? Protocol.HTTPS
+            : Protocol.HTTP;
+    };
 
 export const getAccountsUrl: () => Promise<URL> = async (): Promise<URL> => {
     const host: Hostname = await getHost();
