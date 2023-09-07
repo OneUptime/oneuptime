@@ -249,7 +249,7 @@ export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
 
 export const getHost: Function  = async (): Promise<Hostname> => {
-    return await getFromGlobalConfig('host') as Hostname;
+    return await getFromGlobalConfig('host') as Hostname || new Hostname("localhost");
 }
 
 export const getAccountsUrl: Function = async (): Promise<URL> => {
