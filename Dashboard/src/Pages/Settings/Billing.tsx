@@ -99,6 +99,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         monitorLimit: true,
                         teamMemberLimit: true,
                         planType: true,
+                        otherFeatures: true
                     },
                 }
             );
@@ -424,22 +425,34 @@ const Settings: FunctionComponent<ComponentProps> = (
                                     <ul className="space-y-1 mt-2">
                                         <li className="text-sm font-medium text-gray-500">
                                             {' '}
-                                            <Icon icon={IconProp.Check} />{' '}
-                                            <span className="text-gray-700">
+                                            
+                                            <span className="text-gray-700 flex">
+                                            <Icon icon={IconProp.CheckCircle} className='h-5 w-5 mr-1' />{' '}
                                                 {resellerPlan?.monitorLimit}{' '}
                                                 Active Monitors, Unlimited Manual Monitors
                                             </span>
                                         </li>
                                         <li className="text-sm font-medium text-gray-500">
                                             {' '}
-                                            <span className="text-gray-700">
-                                            <Icon icon={IconProp.Check} />{' '}
+                                            <span className="text-gray-700 flex">
+                                            <Icon icon={IconProp.CheckCircle} className='h-5 w-5 mr-1' />{' '}
                                                 {
                                                     resellerPlan?.teamMemberLimit
                                                 }{' '}
                                                 Team Members
                                             </span>
                                         </li>
+
+                                        {resellerPlan?.otherFeatures ? resellerPlan.otherFeatures.split(",").map((item: string)=>{
+                                            return  (<li className="text-sm font-medium text-gray-500">
+                                            {' '}
+                                            
+                                            <span className="text-gray-700 flex">
+                                            <Icon icon={IconProp.CheckCircle} className='h-5 w-5 mr-1' />{' '}
+                                               {item}
+                                            </span>
+                                        </li>)
+                                        }) : <></>}
                                     </ul>
                                 </div>
                             </div>
