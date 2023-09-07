@@ -7,7 +7,7 @@ import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnou
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
+import { FileRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -16,6 +16,8 @@ import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Markdown from 'CommonServer/Types/Markdown';
+import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
 
 RunCron(
     'Announcement:SendEmailToSubscribers',
@@ -46,6 +48,9 @@ RunCron(
             });
 
         // change their state to Ongoing.
+
+        const host: Hostname = await getHost();
+        const httpProtocol: Protocol = await getHttpProtocol();
 
         for (const announcement of announcements) {
             if (!announcement.statusPages) {
@@ -127,6 +132,8 @@ RunCron(
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
+                       
+
                         MailService.sendMail(
                             {
                                 toEmail: subscriber.subscriberEmail,
@@ -136,7 +143,7 @@ RunCron(
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
-                                        ? new URL(HttpProtocol, Domain)
+                                        ? new URL(httpProtocol, host)
                                               .addRoute(FileRoute)
                                               .addRoute(
                                                   '/image/' +
@@ -154,8 +161,8 @@ RunCron(
                                             announcement.description || ''
                                         ),
                                     unsubscribeUrl: new URL(
-                                        HttpProtocol,
-                                        Domain
+                                        httpProtocol,
+                                        host
                                     )
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +

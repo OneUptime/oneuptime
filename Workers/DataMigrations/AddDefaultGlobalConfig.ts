@@ -2,6 +2,7 @@ import DataMigrationBase from './DataMigrationBase';
 import GlobalConfig from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
+import Hostname from 'Common/Types/API/Hostname';
 
 export default class AddDefaultGlobalConfig extends DataMigrationBase {
     public constructor() {
@@ -13,7 +14,7 @@ export default class AddDefaultGlobalConfig extends DataMigrationBase {
 
         const globalConfig: GlobalConfig = new GlobalConfig();
         globalConfig.id = ObjectID.getZeroObjectID();
-        globalConfig.host = 'localhost';
+        globalConfig.host = new Hostname('localhost');
         globalConfig.useHttps = false;
 
         await GlobalConfigService.create({

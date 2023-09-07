@@ -6,7 +6,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
+import { FileRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -23,12 +23,17 @@ import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteS
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import Markdown from 'CommonServer/Types/Markdown';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 RunCron(
     'IncidentPublicNote:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all incident notes of all the projects
+
+        const host: Hostname = await getHost();
+        const httpProtocol: Protocol = await getHttpProtocol();
 
         const incidentPublicNoteNotes: Array<IncidentPublicNote> =
             await IncidentPublicNoteService.findBy({
@@ -219,7 +224,7 @@ RunCron(
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
-                                        ? new URL(HttpProtocol, Domain)
+                                        ? new URL(httpProtocol, host)
                                               .addRoute(FileRoute)
                                               .addRoute(
                                                   '/image/' +
@@ -244,8 +249,8 @@ RunCron(
                                     incidentDescription:
                                         incident.description || '',
                                     unsubscribeUrl: new URL(
-                                        HttpProtocol,
-                                        Domain
+                                        httpProtocol,
+                                        host
                                     )
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
