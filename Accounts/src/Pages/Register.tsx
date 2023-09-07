@@ -40,7 +40,9 @@ const RegisterPage: () => JSX.Element = () => {
         Navigation.navigate(DASHBOARD_URL);
     }
 
-    const fetchReseller: Function = async (resellerId: string): Promise<void> => {
+    const fetchReseller: Function = async (
+        resellerId: string
+    ): Promise<void> => {
         setIsLoading(true);
 
         try {
@@ -86,7 +88,7 @@ const RegisterPage: () => JSX.Element = () => {
 
         // if promo code is found, please save it in localstorage.
         if (Navigation.getQueryStringByName('partnerId')) {
-            await fetchReseller(Navigation.getQueryStringByName('partnerId')!.toLowerCase());
+            await fetchReseller(Navigation.getQueryStringByName('partnerId')!);
         }
     }, []);
 

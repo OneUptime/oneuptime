@@ -46,6 +46,7 @@ import Reseller from 'Model/Models/Reseller';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ResellerPlan from 'Model/Models/ResellerPlan';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -89,6 +90,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         name: true,
                         description: true,
                         _id: true,
+                        changePlanLink: true,
                     },
                     resellerPlan: {
                         name: true,
@@ -97,7 +99,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                         monitorLimit: true,
                         teamMemberLimit: true,
                         planType: true,
-                        changePlanLink: true,
                     },
                 }
             );
@@ -417,23 +418,26 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 </div>
                                 <div>
                                     <span className="text-sm font-medium text-gray-500 mt-10">
-                                        With the following restrictions:
+                                        With the following features:
                                     </span>
 
-                                    <ul className="space-y-1">
+                                    <ul className="space-y-1 mt-2">
                                         <li className="text-sm font-medium text-gray-500">
                                             {' '}
-                                            - Monitor Limit:{' '}
+                                            <Icon icon={IconProp.Check} />{' '}
                                             <span className="text-gray-700">
                                                 {resellerPlan?.monitorLimit}{' '}
-                                                monitors
+                                                Active Monitors, Unlimited Manual Monitors
                                             </span>
                                         </li>
                                         <li className="text-sm font-medium text-gray-500">
                                             {' '}
-                                            - Team Member Limit:{' '}
                                             <span className="text-gray-700">
-                                                {resellerPlan?.teamMemberLimit}
+                                            <Icon icon={IconProp.Check} />{' '}
+                                                {
+                                                    resellerPlan?.teamMemberLimit
+                                                }{' '}
+                                                Team Members
                                             </span>
                                         </li>
                                     </ul>
@@ -571,7 +575,10 @@ const Settings: FunctionComponent<ComponentProps> = (
                                                 RouteMap[
                                                     PageMap.SETTINGS_DANGERZONE
                                                 ] as Route
-                                            )
+                                            ),
+                                            {
+                                                openInNewTab: true,
+                                            }
                                         );
                                     },
                                     icon: IconProp.Close,

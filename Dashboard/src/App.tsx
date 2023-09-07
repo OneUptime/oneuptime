@@ -281,6 +281,7 @@ const App: () => JSX.Element = () => {
                     _id: true,
                     trialEndsAt: true,
                     paymentProviderPlanId: true,
+                    resellerId: true,
                 },
                 {},
 

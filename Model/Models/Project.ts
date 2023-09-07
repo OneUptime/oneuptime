@@ -990,7 +990,14 @@ export default class Model extends TenantModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectOwner],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
         update: [],
     })
     @Index()

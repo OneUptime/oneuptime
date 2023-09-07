@@ -162,6 +162,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                                     .addQueryParams({
                                         email: userEmail.toString(),
                                         promoCode: couponcode,
+                                        partnerId: resellerId,
                                     })
                                     .toString(),
                             },

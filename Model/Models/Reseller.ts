@@ -249,11 +249,12 @@ export default class Reseller extends BaseModel {
         type: TableColumnType.Boolean,
         canReadOnRelationQuery: true,
         title: 'Hide Phone Number on Signup',
-        description: 'Should we hide the phone number on sign up form based on reseller request?',
+        description:
+            'Should we hide the phone number on sign up form based on reseller request?',
     })
     @Column({
         nullable: true,
-        type: ColumnType.Boolean
+        type: ColumnType.Boolean,
     })
     public hidePhoneNumberOnSignup?: boolean = undefined;
 }
