@@ -17,7 +17,7 @@ import URL from 'Common/Types/API/URL';
 
 @TableAccessControl({
     create: [],
-    read: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner, Permission.Public],
     delete: [],
     update: [],
 })
@@ -36,7 +36,7 @@ import URL from 'Common/Types/API/URL';
 export default class Reseller extends BaseModel {
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [Permission.Public],
         update: [],
     })
     @TableColumn({
@@ -238,4 +238,27 @@ export default class Reseller extends BaseModel {
         transformer: URL.getDatabaseTransformer(),
     })
     public changePlanLink?: URL = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.Public],
+        update: [],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortURL,
+        canReadOnRelationQuery: true,
+        title: 'Change Plan Link',
+        description: 'Reseller Change plan Link',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortURL,
+        length: ColumnLength.ShortURL,
+        transformer: URL.getDatabaseTransformer(),
+    })
+    public hidePhoneNumberOnSignup?: boolean = undefined;
+
+
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -16,17 +16,62 @@ import Fields from 'CommonUI/src/Components/Forms/Types/Fields';
 import Dictionary from 'Common/Types/Dictionary';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Reseller from 'Model/Models/Reseller';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import BaseAPI from 'CommonUI/src/Utils/API/API';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import useAsyncEffect from 'use-async-effect';
 
 const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = SIGNUP_API_URL;
 
     const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
+    const [error, setError] = useState<string>('');
+
+    const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
+
+    const [reseller, setResller] = React.useState<Reseller | undefined>(undefined);
+
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }
 
-    useEffect(() => {
+    const fetchReseller = async (resellerId: string) => {
+        setIsLoading(true);
+
+        try {
+            const reseller: ListResult<Reseller> = await ModelAPI.getList<Reseller>(
+                Reseller,
+                {
+                    resellerId: resellerId
+                },
+                1,
+                0,
+                {
+                    hidePhoneNumberOnSignup: true,
+                },
+                {},
+                {}
+            );
+
+            if (reseller.data.length > 0) {
+                setResller(reseller.data[0]);
+            }
+        } catch (err) {
+            setError(BaseAPI.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+
+    };
+
+
+
+
+    useAsyncEffect(async () => {
         // if promo code is found, please save it in localstorage.
         if (Navigation.getQueryStringByName('promoCode')) {
             LocalStorage.setItem(
@@ -35,10 +80,16 @@ const RegisterPage: () => JSX.Element = () => {
             );
         }
 
+
         if (Navigation.getQueryStringByName('email')) {
             setInitialValues({
                 email: Navigation.getQueryStringByName('email'),
             });
+        }
+
+        // if promo code is found, please save it in localstorage.
+        if (Navigation.getQueryStringByName('partnerId')) {
+            await fetchReseller(Navigation.getQueryStringByName('partnerId')!)
         }
     }, []);
 
@@ -74,8 +125,12 @@ const RegisterPage: () => JSX.Element = () => {
                 placeholder: 'Acme, Inc.',
                 required: true,
                 title: 'Company Name',
-            },
-            {
+            }
+        ]);
+
+        // If reseller wants to hide phone number on sign up, we hide it.
+        if (!reseller || !reseller.hidePhoneNumberOnSignup) {
+            formFields.push({
                 field: {
                     companyPhoneNumber: true,
                 },
@@ -83,8 +138,8 @@ const RegisterPage: () => JSX.Element = () => {
                 required: true,
                 placeholder: '+11234567890',
                 title: 'Phone Number',
-            },
-        ]);
+            });
+        }
     }
 
     formFields = formFields.concat([
@@ -116,6 +171,14 @@ const RegisterPage: () => JSX.Element = () => {
             forceShow: true,
         },
     ]);
+
+    if (error) {
+        return <ErrorMessage error={error} />
+    }
+
+    if (isLoading) {
+        return <PageLoader isVisible={true} />
+    }
 
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
