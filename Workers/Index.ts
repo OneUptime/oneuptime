@@ -25,6 +25,7 @@ import './Jobs/HardDelete/HardDeleteItemsInDatabase';
 
 // Scheduled Event
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
+import './Jobs/ScheduledMaintenance/ChangeStateToEnded';
 import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
 import './Jobs/ScheduledMaintenanceStateTimeline/SendEmailToSubscribers';
 

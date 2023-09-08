@@ -129,7 +129,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                     OneUptimeDate.getCurrentDate(),
                                     props.selectedProject?.trialEndsAt!
-                                ) > 0 && (
+                                ) > 0 &&
+                                !props.selectedProject.resellerId && (
                                     <HeaderAlert
                                         icon={IconProp.Clock}
                                         className="rounded-md m-3 bg-indigo-500 p-3  ml-0"

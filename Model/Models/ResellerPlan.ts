@@ -286,4 +286,24 @@ export default class ResellerPlan extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Other Features',
+        description:
+            'Other Features of this Reseller Plan. This is shown on the dashboard. Its a comma seperated list of features',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public otherFeatures?: string = undefined;
 }

@@ -137,6 +137,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <DisabledWarning monitorId={modelId} />
+
             {/* Monitor View  */}
             <CardModelDetail
                 name="Monitor Details"

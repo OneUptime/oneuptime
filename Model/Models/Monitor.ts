@@ -708,4 +708,57 @@ export default class Monitor extends BaseModel {
         nullable: true,
     })
     public incomingRequestReceivedAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Disable Monitoring because of Ongoing Scheduled Maintenance Event',
+        description:
+            'Disable Monitoring because of Ongoing Scheduled Maintenance Event',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public disableActiveMonitoringBecauseOfScheduledMaintenanceEvent?: boolean =
+        undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Disable Monitoring because of Manual Incident',
+        description:
+            'Disable Monitoring because of Incident which is creeated manually by user.',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+    })
+    public disableActiveMonitoringBecauseOfManualIncident?: boolean = undefined;
 }

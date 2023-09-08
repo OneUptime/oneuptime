@@ -46,6 +46,7 @@ import Reseller from 'Model/Models/Reseller';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ResellerPlan from 'Model/Models/ResellerPlan';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -89,6 +90,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         name: true,
                         description: true,
                         _id: true,
+                        changePlanLink: true,
                     },
                     resellerPlan: {
                         name: true,
@@ -97,6 +99,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         monitorLimit: true,
                         teamMemberLimit: true,
                         planType: true,
+                        otherFeatures: true,
                     },
                 }
             );
@@ -393,6 +396,21 @@ const Settings: FunctionComponent<ComponentProps> = (
                         <Card
                             title={`You have purchased this project from ${reseller.name}`}
                             description={`If you would like to change the plan, please contact ${reseller.name} at ${reseller.description}`}
+                            buttons={
+                                reseller.changePlanLink
+                                    ? [
+                                          {
+                                              title: `Change Plan`,
+                                              onClick: () => {
+                                                  Navigation.navigate(
+                                                      reseller.changePlanLink!
+                                                  );
+                                              },
+                                              icon: IconProp.Edit,
+                                          },
+                                      ]
+                                    : []
+                            }
                         >
                             <div className="space-y-2">
                                 <div className="text-sm font-medium text-gray-500">
@@ -401,25 +419,63 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 </div>
                                 <div>
                                     <span className="text-sm font-medium text-gray-500 mt-10">
-                                        With the following restrictions:
+                                        With the following features:
                                     </span>
 
-                                    <ul className="space-y-1">
+                                    <ul className="space-y-1 mt-2">
                                         <li className="text-sm font-medium text-gray-500">
                                             {' '}
-                                            - Monitor Limit:{' '}
-                                            <span className="text-gray-700">
+                                            <span className="text-gray-700 flex">
+                                                <Icon
+                                                    icon={IconProp.CheckCircle}
+                                                    className="h-5 w-5 mr-1"
+                                                />{' '}
                                                 {resellerPlan?.monitorLimit}{' '}
-                                                monitors
+                                                Monitors
                                             </span>
                                         </li>
                                         <li className="text-sm font-medium text-gray-500">
                                             {' '}
-                                            - Team Member Limit:{' '}
-                                            <span className="text-gray-700">
-                                                {resellerPlan?.teamMemberLimit}
+                                            <span className="text-gray-700 flex">
+                                                <Icon
+                                                    icon={IconProp.CheckCircle}
+                                                    className="h-5 w-5 mr-1"
+                                                />{' '}
+                                                {resellerPlan?.teamMemberLimit}{' '}
+                                                Team Members
                                             </span>
                                         </li>
+
+                                        {resellerPlan?.otherFeatures ? (
+                                            resellerPlan.otherFeatures
+                                                .split(',')
+                                                .map(
+                                                    (
+                                                        item: string,
+                                                        i: number
+                                                    ) => {
+                                                        return (
+                                                            <li
+                                                                key={i}
+                                                                className="text-sm font-medium text-gray-500"
+                                                            >
+                                                                {' '}
+                                                                <span className="text-gray-700 flex">
+                                                                    <Icon
+                                                                        icon={
+                                                                            IconProp.CheckCircle
+                                                                        }
+                                                                        className="h-5 w-5 mr-1"
+                                                                    />{' '}
+                                                                    {item}
+                                                                </span>
+                                                            </li>
+                                                        );
+                                                    }
+                                                )
+                                        ) : (
+                                            <></>
+                                        )}
                                     </ul>
                                 </div>
                             </div>
@@ -555,7 +611,10 @@ const Settings: FunctionComponent<ComponentProps> = (
                                                 RouteMap[
                                                     PageMap.SETTINGS_DANGERZONE
                                                 ] as Route
-                                            )
+                                            ),
+                                            {
+                                                openInNewTab: true,
+                                            }
                                         );
                                     },
                                     icon: IconProp.Close,

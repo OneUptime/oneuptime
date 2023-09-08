@@ -484,6 +484,39 @@ export default class ScheduledMaintenanceState extends BaseModel {
         isDefaultValueColumn: false,
         type: TableColumnType.Boolean,
         canReadOnRelationQuery: true,
+        title: 'Ended State',
+        description: 'Is this state a ended state?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isEndedState?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        type: TableColumnType.Boolean,
+        canReadOnRelationQuery: true,
         title: 'Resolved State',
         description: 'Is this state a resolved state?',
     })

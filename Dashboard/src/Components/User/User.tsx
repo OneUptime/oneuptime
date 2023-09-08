@@ -56,7 +56,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
                                     : ''
                             }
                         >
-                            {'OneUptime Automation'}
+                            {'OneUptime'}
                         </span>{' '}
                     </div>
                 </div>

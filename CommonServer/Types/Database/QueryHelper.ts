@@ -3,6 +3,7 @@ import { FindOperator, Raw } from 'typeorm';
 import Text from 'Common/Types/Text';
 import Typeof from 'Common/Types/Typeof';
 import Dictionary from 'Common/Types/Dictionary';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default class QueryHelper {
     public static findWithSameText(text: string | number): FindOperator<any> {
@@ -120,6 +121,18 @@ export default class QueryHelper {
                 [rid]: values,
             }
         );
+    }
+
+    public static inRelationArray(
+        values: Array<BaseModel | ObjectID>
+    ): Array<any> {
+        return values.map((item: BaseModel | ObjectID) => {
+            if (item instanceof ObjectID) {
+                return item;
+            }
+
+            return item.id!;
+        });
     }
 
     public static equalTo(value: string): FindOperator<any> {
