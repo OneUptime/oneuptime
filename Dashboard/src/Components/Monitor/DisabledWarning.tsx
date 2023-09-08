@@ -21,32 +21,42 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
     useAsyncEffect(async () => {
         setIsLoading(true);
 
-        const monitor: Monitor | null = await ModelAPI.getItem(Monitor, props.monitorId, {
-            disableActiveMonitoring: true, 
-            disableActiveMonitoringBecauseOfManualIncident: true,
-            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, 
-            monitorType: true
-        });
+        const monitor: Monitor | null = await ModelAPI.getItem(
+            Monitor,
+            props.monitorId,
+            {
+                disableActiveMonitoring: true,
+                disableActiveMonitoringBecauseOfManualIncident: true,
+                disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+                monitorType: true,
+            }
+        );
 
-        if(monitor?.monitorType === MonitorType.Manual){
+        if (monitor?.monitorType === MonitorType.Manual) {
             setIsLoading(false);
             return;
         }
 
         if (monitor?.disableActiveMonitoring) {
             setIsDisabled(true);
-            setMessage("We are not monitoring this monitor since it is disabled. To enable active monitoring, please go to Settings.");
-        }else if(monitor?.disableActiveMonitoringBecauseOfManualIncident){
+            setMessage(
+                'We are not monitoring this monitor since it is disabled. To enable active monitoring, please go to Settings.'
+            );
+        } else if (monitor?.disableActiveMonitoringBecauseOfManualIncident) {
             setIsDisabled(true);
-            setMessage("We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.");
-        }else if (monitor?.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent){
+            setMessage(
+                'We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.'
+            );
+        } else if (
+            monitor?.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+        ) {
             setIsDisabled(true);
-            setMessage("We are not monitoring this monitor since it is disabled because of an ongoing scheduled maintenance event. To enable active monitoring, please resolve the scheduled maintenance event.");
+            setMessage(
+                'We are not monitoring this monitor since it is disabled because of an ongoing scheduled maintenance event. To enable active monitoring, please resolve the scheduled maintenance event.'
+            );
         }
 
         setIsLoading(false);
-
-        
     }, [props.refreshToggle]);
 
     if (isLoading) {

@@ -123,15 +123,16 @@ export default class QueryHelper {
         );
     }
 
-    public static inRelationArray(values: Array<BaseModel | ObjectID>): Array<any> {
-        return values.map((item: BaseModel | ObjectID)=>{
-
-            if(item instanceof ObjectID){
+    public static inRelationArray(
+        values: Array<BaseModel | ObjectID>
+    ): Array<any> {
+        return values.map((item: BaseModel | ObjectID) => {
+            if (item instanceof ObjectID) {
                 return item;
             }
 
-            return item.id!; 
-        })
+            return item.id!;
+        });
     }
 
     public static equalTo(value: string): FindOperator<any> {

@@ -234,7 +234,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 },
             ]}
             showViewIdButton={true}
-            viewButtonText='View Event'
+            viewButtonText="View Event"
             showRefreshButton={true}
             showFilterButton={true}
             viewPageRoute={props.viewPageRoute}

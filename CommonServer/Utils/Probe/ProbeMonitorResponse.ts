@@ -80,7 +80,6 @@ export default class ProbeMonitorResponseService {
             );
         }
 
-
         if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
             logger.info(
                 `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`
@@ -90,7 +89,6 @@ export default class ProbeMonitorResponseService {
                 'Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.'
             );
         }
-
 
         if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
             logger.info(
