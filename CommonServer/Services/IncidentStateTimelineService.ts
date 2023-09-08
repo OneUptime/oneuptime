@@ -17,6 +17,8 @@ import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 import CreateBy from '../Types/Database/CreateBy';
 import UserService from './UserService';
 import User from 'Model/Models/User';
+import MonitorService from './MonitorService';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -167,6 +169,27 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
                     for (const monitor of incident.monitors) {
                         //check state of the monitor.
 
+                        const doesMonitorHasMoreActiveManualIncidents: boolean =
+                            await this.doesMonitorHasMoreActiveManualIncidents(
+                                monitor.id!,
+                                incident.projectId!
+                            );
+
+                        if (doesMonitorHasMoreActiveManualIncidents) {
+                            continue;
+                        }
+
+                        await MonitorService.updateOneById({
+                            id: monitor.id!,
+                            data: {
+                                disableActiveMonitoringBecauseOfManualIncident:
+                                    false,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
                         const latestState: MonitorStatusTimeline | null =
                             await MonitorStatusTimelineService.findOneBy({
                                 query: {
@@ -213,6 +236,41 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         }
 
         return createdItem;
+    }
+
+    public async doesMonitorHasMoreActiveManualIncidents(
+        monitorId: ObjectID,
+        proojectId: ObjectID
+    ): Promise<boolean> {
+        const resolvedState: IncidentState | null =
+            await IncidentStateService.findOneBy({
+                query: {
+                    projectId: proojectId,
+                    isResolvedState: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                    order: true,
+                },
+            });
+
+        const incidentCount: PositiveNumber = await IncidentService.countBy({
+            query: {
+                monitors: QueryHelper.inRelationArray([monitorId]),
+                currentIncidentState: {
+                    order: QueryHelper.lessThan(resolvedState?.order!),
+                },
+                isCreatedAutomatically: false,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return incidentCount.toNumber() > 0;
     }
 
     protected override async onBeforeDelete(

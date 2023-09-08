@@ -155,7 +155,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                     });
 
                 // check if this monitor is not in this status already.
-                
+
                 if (resolvedMonitorState) {
                     for (const monitor of scheduledMaintenanceService.monitors) {
                         // check if the monitor is not in this status already.

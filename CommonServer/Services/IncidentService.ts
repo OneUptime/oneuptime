@@ -239,6 +239,24 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
+        // check if the incident is created manaull by a user and if thats the case, then disable active monitoting on that monitor.
+
+        if (!createdItem.isCreatedAutomatically) {
+            const monitors: Array<Monitor> = createdItem.monitors || [];
+
+            for (const monitor of monitors) {
+                await MonitorService.updateOneById({
+                    id: monitor.id!,
+                    data: {
+                        disableActiveMonitoringBecauseOfManualIncident: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+        }
+
         return createdItem;
     }
 

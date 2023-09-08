@@ -35,6 +35,7 @@ import IncidentSeverity from './IncidentSeverity';
 import { JSONObject } from 'Common/Types/JSON';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 import OnCallDutyPolicy from './OnCallDutyPolicy';
+import Probe from './Probe';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -907,4 +908,85 @@ export default class Incident extends BaseModel {
         nullable: true,
     })
     public createdIncidentTemplateId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'createdByProbeId',
+        type: TableColumnType.Entity,
+        modelType: Probe,
+        title: 'Created By Probe',
+        description:
+            'If this incident was created by a Probe, this is the probe that created it.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Probe;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'createdByProbeId' })
+    public createdByProbe?: Probe = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Created By Probe ID',
+        description:
+            'If this incident was created by a Probe, this is the ID of the probe that created it.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public createdByProbeId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Is created automatically?',
+        description:
+            'Is this incident created by OneUptime Probe or Workers automatically (and not created manually by a user)?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isCreatedAutomatically?: boolean = undefined;
 }

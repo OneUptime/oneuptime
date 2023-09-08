@@ -559,6 +559,17 @@ export default class ProbeMonitorResponseService {
                         return onCallPolicy;
                     }) || [];
 
+                incident.isCreatedAutomatically = true;
+
+                if (
+                    input.dataToProcess &&
+                    (input.dataToProcess as ProbeMonitorResponse).probeId
+                ) {
+                    incident.createdByProbeId = (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).probeId;
+                }
+
                 await IncidentService.create({
                     data: incident,
                     props: {
