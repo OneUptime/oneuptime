@@ -449,22 +449,30 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         {resellerPlan?.otherFeatures ? (
                                             resellerPlan.otherFeatures
                                                 .split(',')
-                                                .map((item: string, i: number) => {
-                                                    return (
-                                                        <li key={i} className="text-sm font-medium text-gray-500">
-                                                            {' '}
-                                                            <span className="text-gray-700 flex">
-                                                                <Icon
-                                                                    icon={
-                                                                        IconProp.CheckCircle
-                                                                    }
-                                                                    className="h-5 w-5 mr-1"
-                                                                />{' '}
-                                                                {item}
-                                                            </span>
-                                                        </li>
-                                                    );
-                                                })
+                                                .map(
+                                                    (
+                                                        item: string,
+                                                        i: number
+                                                    ) => {
+                                                        return (
+                                                            <li
+                                                                key={i}
+                                                                className="text-sm font-medium text-gray-500"
+                                                            >
+                                                                {' '}
+                                                                <span className="text-gray-700 flex">
+                                                                    <Icon
+                                                                        icon={
+                                                                            IconProp.CheckCircle
+                                                                        }
+                                                                        className="h-5 w-5 mr-1"
+                                                                    />{' '}
+                                                                    {item}
+                                                                </span>
+                                                            </li>
+                                                        );
+                                                    }
+                                                )
                                         ) : (
                                             <></>
                                         )}
