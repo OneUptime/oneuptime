@@ -38,6 +38,8 @@ const getMonitorFetchQuery: Function = (
         ),
         monitor: {
             disableActiveMonitoring: false, // do not fetch if disabled is true.
+            disableActiveMonitoringBecauseOfManualIncident: false,
+            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
         },
 
         project: {

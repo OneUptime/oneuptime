@@ -56,6 +56,8 @@ export default class ProbeMonitorResponseService {
                 monitorType: true,
                 projectId: true,
                 disableActiveMonitoring: true,
+                disableActiveMonitoringBecauseOfManualIncident: true,
+                disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
                 currentMonitorStatusId: true,
                 _id: true,
             },
@@ -75,6 +77,28 @@ export default class ProbeMonitorResponseService {
 
             throw new BadDataException(
                 'Monitor is disabled. Please enable it to start monitoring again.'
+            );
+        }
+
+
+        if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
+            logger.info(
+                `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`
+            );
+
+            throw new BadDataException(
+                'Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.'
+            );
+        }
+
+
+        if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
+            logger.info(
+                `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.`
+            );
+
+            throw new BadDataException(
+                'Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.'
             );
         }
 

@@ -16,6 +16,7 @@ import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 import MonitorService from './MonitorService';
 import Monitor from 'Model/Models/Monitor';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -78,24 +79,62 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                 },
             });
 
+
+        const isOngoingState: ScheduledMaintenanceState | null =
+            await ScheduledMaintenanceStateService.findOneBy({
+                query: {
+                    _id: createdItem.scheduledMaintenanceStateId.toString()!,
+                    isOngoingState: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+
+        const scheduledMaintenanceService: ScheduledMaintenance | null =
+            await ScheduledMaintenanceService.findOneBy({
+                query: {
+                    _id: createdItem.scheduledMaintenanceId?.toString(),
+                },
+                select: {
+                    _id: true,
+                    projectId: true,
+                    monitors: {
+                        _id: true,
+                    },
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+
+        if(isOngoingState){
+            if (
+                scheduledMaintenanceService &&
+                scheduledMaintenanceService.monitors &&
+                scheduledMaintenanceService.monitors.length > 0
+            ) {
+                for (const monitor of scheduledMaintenanceService.monitors) {
+                    await MonitorService.updateOneById({
+                        id: monitor.id!,
+                        data: {
+                            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
+                        },
+                        props: {
+                            isRoot: true,
+                        }
+                    });
+                }
+            }
+        }
+
         if (isResolvedState || isEndedState) {
             // resolve all the monitors.
-            const scheduledMaintenanceService: ScheduledMaintenance | null =
-                await ScheduledMaintenanceService.findOneBy({
-                    query: {
-                        _id: createdItem.scheduledMaintenanceId?.toString(),
-                    },
-                    select: {
-                        _id: true,
-                        projectId: true,
-                        monitors: {
-                            _id: true,
-                        },
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
 
             if (
                 scheduledMaintenanceService &&
@@ -118,19 +157,37 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                     });
 
                 // check if this monitor is not in this status already.
-
+                    debugger; 
                 if (resolvedMonitorState) {
                     for (const monitor of scheduledMaintenanceService.monitors) {
                         // check if the monitor is not in this status already.
 
-                        const dbMonitor: Monitor | null = await MonitorService.findOneById({
+                        const dbMonitor: Monitor | null =
+                            await MonitorService.findOneById({
+                                id: monitor.id!,
+                                select: {
+                                    currentMonitorStatusId: true,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+
+                        const hasMoreOngoingScheduledMaintenanceEvents: boolean = await this.hasThisMonitorMoreOngoingScheduledMaintenanceEvents(monitor.id!);
+
+                        if(hasMoreOngoingScheduledMaintenanceEvents){
+                            // dont do anything because other events are active at the same time. 
+                            continue; 
+                        }
+                        
+                        await MonitorService.updateOneById({
                             id: monitor.id!,
-                            select: {
-                                currentMonitorStatusId: true,
+                            data: {
+                                disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false, /// This will start active monitoring again. 
                             },
                             props: {
                                 isRoot: true,
-                            },
+                            }
                         });
 
                         if (
@@ -161,6 +218,30 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         }
 
         return createdItem;
+    }
+
+
+    public async hasThisMonitorMoreOngoingScheduledMaintenanceEvents(id: ObjectID): Promise<boolean> {
+
+
+        const count: PositiveNumber = await ScheduledMaintenanceService.countBy({
+            query: {
+                monitors: QueryHelper.inRelationArray([id]),
+                currentScheduledMaintenanceState: {
+                    isOngoingState: true,
+                }
+            },
+            props: {
+                isRoot: true,
+            }
+        });
+
+        if (count.toNumber() > 0) {
+            return true;
+        }
+
+        return false;
+
     }
 
     protected override async onBeforeDelete(
