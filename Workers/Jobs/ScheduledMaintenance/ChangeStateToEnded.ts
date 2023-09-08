@@ -69,14 +69,6 @@ RunCron(
                     isRoot: true,
                 }
             );
-
-            // change attached monitor states.
-            await ScheduledMaintenanceService.changeAttachedMonitorStates(
-                event,
-                {
-                    isRoot: true,
-                }
-            );
         }
     }
 );

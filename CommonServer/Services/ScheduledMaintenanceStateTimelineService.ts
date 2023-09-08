@@ -14,6 +14,8 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
+import MonitorService from './MonitorService';
+import Monitor from 'Model/Models/Monitor';
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -62,7 +64,21 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                 },
             });
 
-        if (isResolvedState) {
+        const isEndedState: ScheduledMaintenanceState | null =
+            await ScheduledMaintenanceStateService.findOneBy({
+                query: {
+                    _id: createdItem.scheduledMaintenanceStateId.toString()!,
+                    isEndedState: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+        if (isResolvedState || isEndedState) {
             // resolve all the monitors.
             const scheduledMaintenanceService: ScheduledMaintenance | null =
                 await ScheduledMaintenanceService.findOneBy({
@@ -101,8 +117,30 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                         },
                     });
 
+                // check if this monitor is not in this status already.
+
                 if (resolvedMonitorState) {
                     for (const monitor of scheduledMaintenanceService.monitors) {
+                        // check if the monitor is not in this status already.
+
+                        const dbMonitor: Monitor | null = await MonitorService.findOneById({
+                            id: monitor.id!,
+                            select: {
+                                currentMonitorStatusId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                        if (
+                            dbMonitor?.currentMonitorStatusId?.toString() ===
+                            resolvedMonitorState.id?.toString()
+                        ) {
+                            // if already in resolved state then skip.
+                            continue;
+                        }
+
                         const monitorStatusTimeline: MonitorStatusTimeline =
                             new MonitorStatusTimeline();
                         monitorStatusTimeline.monitorId = monitor.id!;
