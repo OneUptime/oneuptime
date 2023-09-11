@@ -2,7 +2,7 @@ import React from 'react';
 import Footer from 'CommonUI/src/Components/Footer/Footer';
 import URL from 'Common/Types/API/URL';
 import API from 'Common/Utils/API';
-import { DOMAIN, HTTP_PROTOCOL } from 'CommonUI/src/Config';
+import { HOST, HTTP_PROTOCOL } from 'CommonUI/src/Config';
 import { JSONObject } from 'Common/Types/JSON';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -66,7 +66,7 @@ const DashboardFooter: () => JSX.Element = () => {
         appName: string
     ): Promise<JSONObject> => {
         const response: HTTPResponse<JSONObject> = await API.get<JSONObject>(
-            URL.fromString(`${HTTP_PROTOCOL}/${DOMAIN}${appName}/version`)
+            URL.fromString(`${HTTP_PROTOCOL}/${HOST}${appName}/version`)
         );
 
         if (response.data) {

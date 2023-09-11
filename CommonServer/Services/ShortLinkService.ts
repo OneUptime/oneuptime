@@ -4,7 +4,7 @@ import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';
-import { LinkShortenerRoute } from '../EnvironmentConfig';
+import { LinkShortenerRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import Route from 'Common/Types/API/Route';
 import Hostname from 'Common/Types/API/Hostname';

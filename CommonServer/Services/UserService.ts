@@ -8,7 +8,7 @@ import MailService from './MailService';
 import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import { AccountsRoute } from '../EnvironmentConfig';
+import { AccountsRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import logger from '../Utils/Logger';
 import URL from 'Common/Types/API/URL';

@@ -26,8 +26,8 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import {
     EncryptionSecret,
     WorkflowHostname,
-    WorkflowRoute,
 } from '../EnvironmentConfig';
+import { WorkflowRoute } from 'Common/ServiceRoute';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';

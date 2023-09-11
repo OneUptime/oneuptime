@@ -5,7 +5,7 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import { DOMAIN, HOME_URL, HTTP_PROTOCOL } from '../../Config';
+import { HOST, HOME_URL, HTTP_PROTOCOL } from '../../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import useAsyncEffect from 'use-async-effect';
@@ -34,7 +34,7 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
             try {
                 setIsLoading(true);
                 const body: HTTPResponse<any> = await API.get(
-                    new URL(HTTP_PROTOCOL, DOMAIN, props.documentationLink),
+                    new URL(HTTP_PROTOCOL, HOST, props.documentationLink),
                     {},
                     {
                         Accept: 'text/plain',

@@ -21,7 +21,7 @@ import EmailMessage from 'Common/Types/Email/EmailMessage';
 import SMS from 'Common/Types/SMS/SMS';
 import Incident from 'Model/Models/Incident';
 import URL from 'Common/Types/API/URL';
-import { DashboardApiRoute } from '../EnvironmentConfig';
+import { DashboardApiRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import ShortLinkService from './ShortLinkService';
 import ShortLink from 'Model/Models/ShortLink';

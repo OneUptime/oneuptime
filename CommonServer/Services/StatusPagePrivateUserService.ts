@@ -10,7 +10,7 @@ import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import URL from 'Common/Types/API/URL';
 import logger from '../Utils/Logger';
-import { FileRoute } from '../EnvironmentConfig';
+import { FileRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';

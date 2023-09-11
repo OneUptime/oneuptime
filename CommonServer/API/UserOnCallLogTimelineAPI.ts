@@ -15,7 +15,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import NotificationMiddleware from '../Middleware/NotificationMiddleware';
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
-import { DashboardRoute } from '../EnvironmentConfig';
+import { DashboardRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import Hostname from 'Common/Types/API/Hostname';

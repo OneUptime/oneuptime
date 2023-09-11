@@ -8,7 +8,7 @@ import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { FileRoute } from '../EnvironmentConfig';
+import { FileRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';

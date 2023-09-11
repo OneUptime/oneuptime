@@ -6,7 +6,7 @@ import URL from 'Common/Types/API/URL';
 import GlobalConfigService from './Services/GlobalConfigService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import GlobalConfig from 'Model/Models/GlobalConfig';
-import { AccountsRoute, DashboardRoute } from './EnvironmentConfig';
+import { AccountsRoute, DashboardRoute } from 'Common/ServiceRoute';
 
 export default class DatabaseConfig {
     public static async getFromGlobalConfig(key: string): Promise<JSONValue> {
