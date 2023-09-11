@@ -33,6 +33,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 id="users-table"
                 isDeleteable={false}
                 isEditable={false}
+                showViewIdButton={true}
                 isCreateable={true}
                 name="Users"
                 isViewable={false}
@@ -40,7 +41,6 @@ const Users: FunctionComponent = (): ReactElement => {
                     title: 'Users',
                     description: 'Here is a list of users in OneUptime.',
                 }}
-                showViewIdButton={false}
                 noItemsMessage={'No users found.'}
                 formFields={[
                     {
@@ -75,14 +75,6 @@ const Users: FunctionComponent = (): ReactElement => {
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
-                    {
-                        field: {
-                            _id: true,
-                        },
-                        title: 'User ID',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
                     {
                         field: {
                             name: true,

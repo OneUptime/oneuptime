@@ -19,7 +19,7 @@ import PromoCodeService from '../Services/PromoCodeService';
 import StatusCode from 'Common/Types/API/StatusCode';
 import Project from 'Model/Models/Project';
 import ProjectService from '../Services/ProjectService';
-import { getAccountsUrl } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,
@@ -150,7 +150,7 @@ export default class ResellerPlanAPI extends BaseAPI<
 
                         // now redirect to accounts sign up page with this promocode.
 
-                        const accountUrl: URL = await getAccountsUrl();
+                        const accountUrl: URL = await DatabaseConfig.getAccountsUrl();
 
                         return Response.sendJsonObjectResponse(
                             req,

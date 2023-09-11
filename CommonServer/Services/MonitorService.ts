@@ -20,7 +20,7 @@ import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import ActiveMonitoringMeteredPlan from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
-import { IsBillingEnabled, getDashboardUrl } from '../EnvironmentConfig';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import MonitorOwnerTeamService from './MonitorOwnerTeamService';
@@ -31,6 +31,7 @@ import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import DatabaseConfig from '../DatabaseConfig';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -195,7 +196,7 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID,
         monitorId: ObjectID
     ): Promise<URL> {
-        const dashboardUrl: URL = await getDashboardUrl();
+        const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
         return URL.fromString(dashboardUrl.toString()).addRoute(
             `/${projectId.toString()}/monitors/${monitorId.toString()}`

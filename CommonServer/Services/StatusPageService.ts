@@ -8,7 +8,6 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import { getDashboardUrl } from '../EnvironmentConfig';
 import DatabaseConfig from '../DatabaseConfig';
 import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
@@ -177,7 +176,7 @@ export class Service extends DatabaseService<StatusPage> {
         projectId: ObjectID,
         statusPageId: ObjectID
     ): Promise<URL> {
-        const dahboardUrl: URL = await getDashboardUrl();
+        const dahboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
         return URL.fromString(dahboardUrl.toString()).addRoute(
             `/${projectId.toString()}/status-pages/${statusPageId.toString()}`
