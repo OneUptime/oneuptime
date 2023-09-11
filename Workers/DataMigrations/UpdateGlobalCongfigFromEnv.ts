@@ -2,6 +2,7 @@ import DataMigrationBase from './DataMigrationBase';
 import ObjectID from 'Common/Types/ObjectID';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Hostname from 'Common/Types/API/Hostname';
+import Port from 'Common/Types/Port';
 
 export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
     public constructor() {
@@ -28,7 +29,7 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
                 smtpUsername: process.env['SMTP_USERNAME'] || '',
                 smtpPassword: process.env['SMTP_PASSWORD'] || '',
                 smtpHost: Hostname.fromString(process.env['SMTP_HOST'] || ''),
-                smtpPort: parseInt(process.env['SMTP_PORT'] || '25'),
+                smtpPort: new Port(process.env['SMTP_PORT'] || '25'),
                 isSMTPSecure: process.env['SMTP_IS_SECURE'] === 'true',
                 smtpFromEmail: process.env['SMTP_FROM_EMAIL'] || process.env['SMTP_EMAIL'] || '',
                 smtpFromName: process.env['SMTP_FROM_NAME'] || '',
