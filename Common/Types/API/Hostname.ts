@@ -78,7 +78,12 @@ export default class Hostname extends DatabaseProperty {
         return hostname;
     }
 
-    public static fromString(hostname: string): Hostname {
+    public static fromString(hostname: string | Hostname): Hostname {
+
+        if(hostname instanceof Hostname) {
+            hostname = hostname.toString(); 
+        }
+
         if (hostname.includes(':')) {
             return new Hostname(
                 hostname.split(':')[0] as string,

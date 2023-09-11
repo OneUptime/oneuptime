@@ -29,13 +29,13 @@ export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
     HOST
 );
 
-export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(
     HOST
 );
 
-export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
     HOST
@@ -45,21 +45,21 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
     HOST
 );
 
-export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const PROBE_API_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const PROBE_API_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const HELM_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
     HOST
 );
-export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
-export const HOME_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(HOST);
+export const HOME_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const FILE_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const FILE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const DASHBOARD_API_URL: URL = new URL(
     HTTP_PROTOCOL,
