@@ -28,9 +28,9 @@ const Settings: FunctionComponent = (): ReactElement => {
                     ),
                 },
                 {
-                    title: 'Host',
+                    title: 'Authentication',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_HOST] as Route
+                        RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route
                     ),
                 },
             ]}
@@ -38,38 +38,24 @@ const Settings: FunctionComponent = (): ReactElement => {
         >
             {/* Project Settings View  */}
             <CardModelDetail
-                name="Host Settings"
+                name="Authentication Settings"
                 cardProps={{
-                    title: 'Host Settings',
+                    title: 'Authentication Settings',
                     description:
-                        'Host Settings for this OneUptime Server instance.',
+                        'Authentication Settings for this OneUptime Server instance.',
                 }}
                 isEditable={true}
-                editButtonText="Edit Host"
+                editButtonText="Edit Settings"
                 formFields={[
                     {
                         field: {
-                            host: true,
+                            disableSignup: true,
                         },
-                        title: 'Host',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        description:
-                            'IP address or Hostname of this server instance.',
-                        placeholder: 'oneuptime.yourcompany.com',
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                    {
-                        field: {
-                            useHttps: true,
-                        },
-                        title: 'Use HTTPs',
+                        title: 'Disable Sign Up',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         description:
-                            'Is this server hosted with a  TLS / SSL cert?',
+                                'Should we disable sign up of new users to OneUptime?',
                     },
                 ]}
                 modelDetailProps={{
@@ -78,22 +64,13 @@ const Settings: FunctionComponent = (): ReactElement => {
                     fields: [
                         {
                             field: {
-                                host: true,
-                            },
-                            title: 'Host',
-                            placeholder: 'None',
-                            description:
-                                'IP address or Hostname of this server instance.',
-                        },
-                        {
-                            field: {
-                                useHttps: true,
+                                disableSignup: true,
                             },
                             fieldType: FieldType.Boolean,
-                            title: 'Use HTTPS',
+                            title: 'Disable Sign Up',
                             placeholder: 'No',
                             description:
-                                'Is this server hosted with a valid TLS / SSL cert?',
+                                'Should we disable sign up of new users to OneUptime?',
                         },
                     ],
                     modelId: ObjectID.getZeroObjectID(),

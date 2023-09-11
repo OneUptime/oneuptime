@@ -15,6 +15,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_SMTP]: new Route(`/admin/settings/smtp`),
     [PageMap.SETTINGS_CALL_AND_SMS]: new Route(`/admin/settings/call-and-sms`),
     [PageMap.SETTINGS_PROBES]: new Route(`/admin/settings/probes`),
+    [PageMap.SETTINGS_AUTHENTICATION]: new Route(`/admin/settings/authentication`),
 };
 
 export class RouteUtil {

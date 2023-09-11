@@ -20,6 +20,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     }}
                     icon={IconProp.Globe}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Authentication',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route
+                        ),
+                    }}
+                    icon={IconProp.Lock}
+                />
             </SideMenuSection>
 
             <SideMenuSection title="Notifications">

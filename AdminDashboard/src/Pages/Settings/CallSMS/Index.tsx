@@ -65,7 +65,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                             twilioAuthToken: true,
                         },
                         title: 'Twilio Auth Token',
-                        fieldType: FormFieldSchemaType.Text,
+                        fieldType: FormFieldSchemaType.Password,
                         required: true,
                         description:
                             'You can find this in your Twilio console.',
@@ -98,13 +98,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 twilioAccountSID: true,
                             },
                             title: 'Twilio Account SID',
-                            placeholder: 'None',
-                        },
-                        {
-                            field: {
-                                twilioAuthToken: true,
-                            },
-                            title: 'Twilio Auth Token',
                             placeholder: 'None',
                         },
                         {

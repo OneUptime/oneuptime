@@ -23,6 +23,7 @@ import SettingsHost from './Pages/Settings/Host/Index';
 import SettingsEmail from './Pages/Settings/SMTP/Index';
 import SettingsCallSMS from './Pages/Settings/CallSMS/Index';
 import SettingsProbes from './Pages/Settings/Probes/Index';
+import SettingsAuthentication from './Pages/Settings/Authentication/Index';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -95,6 +96,12 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS_PROBES]?.toString() || ''}
                     element={<SettingsProbes />}
+                />
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_AUTHENTICATION]?.toString() || ''}
+                    element={<SettingsAuthentication />}
                 />
             </Routes>
         </MasterPage>
