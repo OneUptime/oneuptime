@@ -21,10 +21,7 @@ import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 
-import Project from 'Model/Models/Project';
-import ProjectService, {
-    Service as ProjectServiceType,
-} from 'CommonServer/Services/ProjectService';
+import ProjectAPI from 'CommonServer/API/ProjectAPI';
 
 import ShortLink from 'Model/Models/ShortLink';
 import ShortLinkService, {
@@ -393,13 +390,6 @@ const APP_NAME: string = 'api';
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<User, UserServiceType>(User, UserService).getRouter()
-);
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<Project, ProjectServiceType>(
-        Project,
-        ProjectService
-    ).getRouter()
 );
 
 app.use(
@@ -862,10 +852,17 @@ app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new StatusPageSubscriberAPI().getRouter()
 );
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BillingPaymentMethodAPI().getRouter()
 );
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new ProjectAPI().getRouter()
+);
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BillingInvoiceAPI().getRouter()
