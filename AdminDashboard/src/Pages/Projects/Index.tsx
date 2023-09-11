@@ -232,6 +232,14 @@ const Projects: FunctionComponent = (): ReactElement => {
                         type: FieldType.Text,
                         isFilterable: true,
                     },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created At',
+                        type: FieldType.DateTime,
+                        isFilterable: true,
+                    },
                 ]}
             />
         </Page>

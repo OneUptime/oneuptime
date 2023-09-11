@@ -91,6 +91,14 @@ const Users: FunctionComponent = (): ReactElement => {
                         type: FieldType.Email,
                         isFilterable: true,
                     },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created At',
+                        type: FieldType.DateTime,
+                        isFilterable: true,
+                    },
                 ]}
             />
         </Page>

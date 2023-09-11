@@ -61,6 +61,7 @@ import { DropdownOption } from '../Dropdown/Dropdown';
 import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
+import User from '../../Utils/User';
 
 export enum ShowTableAs {
     Table,
@@ -292,7 +293,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
             model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns || []) {
-            const hasPermission: boolean = hasPermissionToReadColumn(column);
+            const hasPermission: boolean = hasPermissionToReadColumn(column) || User.isMasterAdmin();
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
