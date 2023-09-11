@@ -23,10 +23,7 @@ import PostgresDatabase, {
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import {
-    EncryptionSecret,
-    WorkflowHostname,
-} from '../EnvironmentConfig';
+import { EncryptionSecret, WorkflowHostname } from '../EnvironmentConfig';
 import { WorkflowRoute } from 'Common/ServiceRoute';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';

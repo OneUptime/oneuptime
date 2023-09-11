@@ -1,6 +1,21 @@
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
-import { AccountsRoute, AdminDashboardRoute, ApiReferenceRoute, DashboardApiRoute, DashboardRoute, FileRoute, HelmRoute, IdentityRoute, IntegrationRoute, NotificationRoute, ProbeApiRoute, StatusPageRoute, WorkflowRoute, homeRoute } from 'Common/ServiceRoute';
+import {
+    AccountsRoute,
+    AdminDashboardRoute,
+    ApiReferenceRoute,
+    DashboardApiRoute,
+    DashboardRoute,
+    FileRoute,
+    HelmRoute,
+    IdentityRoute,
+    IntegrationRoute,
+    NotificationRoute,
+    ProbeApiRoute,
+    StatusPageRoute,
+    WorkflowRoute,
+    homeRoute,
+} from 'Common/ServiceRoute';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
@@ -24,26 +39,17 @@ export const BILLING_PUBLIC_KEY: string = env('BILLING_PUBLIC_KEY') || '';
 export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
 export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
 
-
-export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
-    HOST
-);
+export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(
-    HOST
-);
+export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
-    HOST
-);
+export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
-    HOST
-);
+export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
@@ -53,9 +59,7 @@ export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-    HOST
-);
+export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(HOST);
 export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(HOST);
 export const HOME_HOSTNAME: Hostname = Hostname.fromString(HOST);
 

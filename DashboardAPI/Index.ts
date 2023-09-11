@@ -858,10 +858,7 @@ app.use(
     new BillingPaymentMethodAPI().getRouter()
 );
 
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new ProjectAPI().getRouter()
-);
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectAPI().getRouter());
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

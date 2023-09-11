@@ -293,7 +293,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
             model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns || []) {
-            const hasPermission: boolean = hasPermissionToReadColumn(column) || User.isMasterAdmin();
+            const hasPermission: boolean =
+                hasPermissionToReadColumn(column) || User.isMasterAdmin();
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
@@ -642,7 +643,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
         let hasPermissionToCreate: boolean = false;
 
         if (permissions) {
-            hasPermissionToCreate = model.hasCreatePermissions(permissions) || User.isMasterAdmin();
+            hasPermissionToCreate =
+                model.hasCreatePermissions(permissions) || User.isMasterAdmin();
         }
 
         // because ordered list add button is inside the table and not on the card header.
@@ -830,7 +832,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
         }
 
         if (permissions) {
-            if (props.isViewable && (model.hasReadPermissions(permissions) || User.isMasterAdmin())) {
+            if (
+                props.isViewable &&
+                (model.hasReadPermissions(permissions) || User.isMasterAdmin())
+            ) {
                 actionsSchema.push({
                     title:
                         props.viewButtonText ||

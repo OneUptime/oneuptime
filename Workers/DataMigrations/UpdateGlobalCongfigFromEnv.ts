@@ -31,8 +31,14 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
                 smtpHost: Hostname.fromString(process.env['SMTP_HOST'] || ''),
                 smtpPort: new Port(process.env['SMTP_PORT'] || '25'),
                 isSMTPSecure: process.env['SMTP_IS_SECURE'] === 'true',
-                smtpFromEmail: process.env['SMTP_FROM_EMAIL'] || process.env['SMTP_EMAIL'] || '',
+                smtpFromEmail:
+                    process.env['SMTP_FROM_EMAIL'] ||
+                    process.env['SMTP_EMAIL'] ||
+                    '',
                 smtpFromName: process.env['SMTP_FROM_NAME'] || '',
+
+                // diable signup
+                disableSignup: process.env['DISABLE_SIGNUP'] === 'true',
             },
             props: {
                 isRoot: true,

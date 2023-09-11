@@ -60,4 +60,9 @@ export default class DatabaseConfig {
             DashboardRoute
         );
     }
+
+
+    public static async shouldDisableSignup(): Promise<boolean> {
+        return await DatabaseConfig.getFromGlobalConfig('disableSignup') as boolean;
+    }
 }

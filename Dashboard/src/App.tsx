@@ -76,7 +76,11 @@ import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
-import { ACCOUNTS_URL, BILLING_ENABLED, DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import {
+    ACCOUNTS_URL,
+    BILLING_ENABLED,
+    DASHBOARD_API_URL,
+} from 'CommonUI/src/Config';
 // Settings Pages
 import ProjectSettings from './Pages/Settings/ProjectSettings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
@@ -276,14 +280,14 @@ const App: () => JSX.Element = () => {
                 {},
                 50,
                 0,
-                {
-                    
-                },
+                {},
                 {},
 
                 {
                     isMultiTenantRequest: true,
-                    overrideRequestUrl: URL.fromString(DASHBOARD_API_URL.toString()).addRoute("/project/list-user-projects")
+                    overrideRequestUrl: URL.fromString(
+                        DASHBOARD_API_URL.toString()
+                    ).addRoute('/project/list-user-projects'),
                 }
             );
             setProjects(result.data);

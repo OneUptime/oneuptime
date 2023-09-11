@@ -67,8 +67,27 @@ export default class GlobalConfig extends GlobalConfigModel {
         type: ColumnType.Boolean,
         nullable: true,
         unique: true,
+        default: false,
     })
     public useHttps?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        title: 'Disable Signup',
+        description: 'Should we disable new user sign up to this server?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: true,
+        default: false,
+        unique: true,
+    })
+    public disableSignup?: boolean = undefined;
 
     // SMTP Settings.
 

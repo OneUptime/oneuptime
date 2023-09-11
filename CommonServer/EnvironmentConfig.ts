@@ -9,8 +9,6 @@ export const getAllEnvVars: () => JSONObject = (): JSONObject => {
     return process.env;
 };
 
-export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
-
 export const IsBillingEnabled: boolean =
     process.env['BILLING_ENABLED'] === 'true';
 export const BillingPublicKey: string = process.env['BILLING_PUBLIC_KEY'] || '';

@@ -48,7 +48,6 @@ export default class AddEndedState extends DataMigrationBase {
                 continue;
             }
 
-
             let endedState: ScheduledMaintenanceState | null =
                 await ScheduledMaintenanceStateService.findOneBy({
                     query: {
@@ -67,27 +66,24 @@ export default class AddEndedState extends DataMigrationBase {
                 continue;
             }
 
-
-            endedState =
-                await ScheduledMaintenanceStateService.findOneBy({
-                    query: {
-                        projectId: project.id!,
-                        name: 'Ended'
-                    },
-                    select: {
-                        order: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
+            endedState = await ScheduledMaintenanceStateService.findOneBy({
+                query: {
+                    projectId: project.id!,
+                    name: 'Ended',
+                },
+                select: {
+                    order: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
             if (endedState) {
                 continue;
             }
 
-            endedState =
-                new ScheduledMaintenanceState();
+            endedState = new ScheduledMaintenanceState();
             endedState.projectId = project.id!;
             endedState.name = 'Ended';
             endedState.description =

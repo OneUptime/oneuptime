@@ -1,9 +1,8 @@
 import {
-    DisableSignup,
     IsBillingEnabled,
     EncryptionSecret,
-    AccountsRoute,
 } from 'CommonServer/EnvironmentConfig';
+import { AccountsRoute } from 'Common/ServiceRoute';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -47,7 +46,7 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            if (DisableSignup) {
+            if (await DatabaseConfig.shouldDisableSignup()) {
                 return Response.sendErrorResponse(
                     req,
                     res,

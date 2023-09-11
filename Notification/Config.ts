@@ -41,86 +41,88 @@ export interface TwilioConfig {
     phoneNumber: Phone;
 }
 
-export const getGlobalSMTPConfig: Function = async (): Promise<EmailServer | null> => {
-    const globalConfig: GlobalConfig | null =
-        await GlobalConfigService.findOneBy({
-            query: {
-                _id: ObjectID.getZeroObjectID().toString(),
-            },
-            props: {
-                isRoot: true,
-            },
-            select: {
-                smtpFromEmail: true,
-                smtpHost: true,
-                smtpPort: true,
-                smtpUsername: true,
-                smtpPassword: true,
-                isSMTPSecure: true,
-                smtpFromName: true,
-            },
-        });
+export const getGlobalSMTPConfig: Function =
+    async (): Promise<EmailServer | null> => {
+        const globalConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneBy({
+                query: {
+                    _id: ObjectID.getZeroObjectID().toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    smtpFromEmail: true,
+                    smtpHost: true,
+                    smtpPort: true,
+                    smtpUsername: true,
+                    smtpPassword: true,
+                    isSMTPSecure: true,
+                    smtpFromName: true,
+                },
+            });
 
-    if (!globalConfig) {
-        throw new BadDataException('Global Config not found');
-    }
+        if (!globalConfig) {
+            throw new BadDataException('Global Config not found');
+        }
 
-    if (
-        !globalConfig.smtpFromEmail ||
-        !globalConfig.smtpHost ||
-        !globalConfig.smtpPort ||
-        !globalConfig.smtpUsername ||
-        !globalConfig.smtpPassword ||
-        !globalConfig.smtpFromName
-    ) {
-        return null;
-    }
+        if (
+            !globalConfig.smtpFromEmail ||
+            !globalConfig.smtpHost ||
+            !globalConfig.smtpPort ||
+            !globalConfig.smtpUsername ||
+            !globalConfig.smtpPassword ||
+            !globalConfig.smtpFromName
+        ) {
+            return null;
+        }
 
-    return {
-        host: globalConfig.smtpHost,
-        port: globalConfig.smtpPort,
-        username: globalConfig.smtpUsername,
-        password: globalConfig.smtpPassword,
-        secure: globalConfig.isSMTPSecure || false,
-        fromEmail: globalConfig.smtpFromEmail,
-        fromName: globalConfig.smtpFromName,
+        return {
+            host: globalConfig.smtpHost,
+            port: globalConfig.smtpPort,
+            username: globalConfig.smtpUsername,
+            password: globalConfig.smtpPassword,
+            secure: globalConfig.isSMTPSecure || false,
+            fromEmail: globalConfig.smtpFromEmail,
+            fromName: globalConfig.smtpFromName,
+        };
     };
-};
 
-export const getTwilioConfig: Function = async (): Promise<TwilioConfig | null> => {
-    const globalConfig: GlobalConfig | null =
-        await GlobalConfigService.findOneBy({
-            query: {
-                _id: ObjectID.getZeroObjectID().toString(),
-            },
-            props: {
-                isRoot: true,
-            },
-            select: {
-                twilioAccountSID: true,
-                twilioAuthToken: true,
-                twilioPhoneNumber: true,
-            },
-        });
+export const getTwilioConfig: Function =
+    async (): Promise<TwilioConfig | null> => {
+        const globalConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneBy({
+                query: {
+                    _id: ObjectID.getZeroObjectID().toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    twilioAccountSID: true,
+                    twilioAuthToken: true,
+                    twilioPhoneNumber: true,
+                },
+            });
 
-    if (!globalConfig) {
-        throw new BadDataException('Global Config not found');
-    }
+        if (!globalConfig) {
+            throw new BadDataException('Global Config not found');
+        }
 
-    if (
-        !globalConfig.twilioAccountSID ||
-        !globalConfig.twilioAuthToken ||
-        !globalConfig.twilioPhoneNumber
-    ) {
-        return null;
-    }
+        if (
+            !globalConfig.twilioAccountSID ||
+            !globalConfig.twilioAuthToken ||
+            !globalConfig.twilioPhoneNumber
+        ) {
+            return null;
+        }
 
-    return {
-        accountSid: globalConfig.twilioAccountSID,
-        authToken: globalConfig.twilioAuthToken,
-        phoneNumber: globalConfig.twilioPhoneNumber,
+        return {
+            accountSid: globalConfig.twilioAccountSID,
+            authToken: globalConfig.twilioAuthToken,
+            phoneNumber: globalConfig.twilioPhoneNumber,
+        };
     };
-};
 
 export const SMSDefaultCostInCents: number = process.env[
     'SMS_DEFAULT_COST_IN_CENTS'
