@@ -29,7 +29,7 @@ export const env: Function = (key: string): string => {
     return (getAllEnvVars()[key] as string) || '';
 };
 
-export const HTTP_PROTOCOL: Protocol =
+export const HTTP_PROTOCOL: Protocol = 
     env('HTTP_PROTOCOL') === 'http' ? Protocol.HTTP : Protocol.HTTPS;
 
 export const HOST: string = env('DOMAIN') || '';
