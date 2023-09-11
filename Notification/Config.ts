@@ -41,7 +41,7 @@ export interface TwilioConfig {
     phoneNumber: Phone;
 }
 
-export const getGlobalSMTPConfig = async (): Promise<EmailServer | null> => {
+export const getGlobalSMTPConfig: Function = async (): Promise<EmailServer | null> => {
     const globalConfig: GlobalConfig | null =
         await GlobalConfigService.findOneBy({
             query: {
@@ -87,7 +87,7 @@ export const getGlobalSMTPConfig = async (): Promise<EmailServer | null> => {
     };
 };
 
-export const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
+export const getTwilioConfig: Function = async (): Promise<TwilioConfig | null> => {
     const globalConfig: GlobalConfig | null =
         await GlobalConfigService.findOneBy({
             query: {

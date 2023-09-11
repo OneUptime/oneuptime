@@ -29,7 +29,7 @@ import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/
 import User from 'Model/Models/User';
 import OneUptimeDate from 'Common/Types/Date';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
-import { IsBillingEnabled } from '../Config';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export class Service extends DatabaseService<Model> {

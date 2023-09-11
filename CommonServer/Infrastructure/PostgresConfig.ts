@@ -11,12 +11,15 @@ import {
     DatabaseRejectUnauthorized,
     ShouldDatabaseSslEnable,
     Env,
-} from '../Config';
+} from '../EnvironmentConfig';
 import Entities from 'Model/Models/Index';
 import Migrations from 'Model/Migrations/Index';
 import DatabaseType from 'Common/Types/DatabaseType';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import Faker from 'Common/Utils/Faker';
+import logger from '../Utils/Logger';
+
+logger.info('Here!');
 
 export const dataSourceOptions: DataSourceOptions = {
     type: DatabaseType.Postgres,

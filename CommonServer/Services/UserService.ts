@@ -8,7 +8,8 @@ import MailService from './MailService';
 import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import { AccountsRoute, getHttpProtocol, getHost } from '../Config';
+import { AccountsRoute } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 import logger from '../Utils/Logger';
 import URL from 'Common/Types/API/URL';
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
@@ -69,8 +70,9 @@ export class Service extends DatabaseService<Model> {
         _updatedItemIds: ObjectID[]
     ): Promise<OnUpdate<Model>> {
         if (onUpdate && onUpdate.updateBy.data.password) {
-            const host: Hostname = await getHost();
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const host: Hostname = await DatabaseConfig.getHost();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             for (const user of onUpdate.carryForward) {
                 // password changed, send password changed mail
@@ -179,8 +181,9 @@ export class Service extends DatabaseService<Model> {
                         },
                     });
 
-                    const host: Hostname = await getHost();
-                    const httpProtocol: Protocol = await getHttpProtocol();
+                    const host: Hostname = await DatabaseConfig.getHost();
+                    const httpProtocol: Protocol =
+                        await DatabaseConfig.getHttpProtocol();
 
                     MailService.sendMail({
                         toEmail: newUser.email!,

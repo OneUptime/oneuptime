@@ -3,9 +3,7 @@ import {
     IsBillingEnabled,
     EncryptionSecret,
     AccountsRoute,
-    getHost,
-    getHttpProtocol,
-} from 'CommonServer/Config';
+} from 'CommonServer/EnvironmentConfig';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -37,6 +35,7 @@ import AuthenticationEmail from '../Utils/AuthenticationEmail';
 import AccessTokenService from 'CommonServer/Services/AccessTokenService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -149,8 +148,9 @@ router.post(
                 },
             });
 
-            const host: Hostname = await getHost();
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const host: Hostname = await DatabaseConfig.getHost();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             MailService.sendMail({
                 toEmail: partialUser.email as Email,
@@ -244,8 +244,9 @@ router.post(
                     },
                 });
 
-                const host: Hostname = await getHost();
-                const httpProtocol: Protocol = await getHttpProtocol();
+                const host: Hostname = await DatabaseConfig.getHost();
+                const httpProtocol: Protocol =
+                    await DatabaseConfig.getHttpProtocol();
 
                 MailService.sendMail({
                     toEmail: user.email!,
@@ -365,8 +366,9 @@ router.post(
                 },
             });
 
-            const host: Hostname = await getHost();
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const host: Hostname = await DatabaseConfig.getHost();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             MailService.sendMail({
                 toEmail: user.email!,
@@ -456,8 +458,9 @@ router.post(
                 },
             });
 
-            const host: Hostname = await getHost();
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const host: Hostname = await DatabaseConfig.getHost();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             MailService.sendMail({
                 toEmail: alreadySavedUser.email!,

@@ -1,5 +1,5 @@
 import Crypto from 'crypto';
-import { EncryptionSecret } from '../Config';
+import { EncryptionSecret } from '../EnvironmentConfig';
 
 export default class Encryption {
     public static encrypt(text: string, iv: Buffer): string {

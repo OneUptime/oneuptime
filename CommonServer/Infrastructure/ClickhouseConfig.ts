@@ -4,7 +4,7 @@ import {
     ClickhousePassword,
     ClickhousePort,
     ClickhouseUsername,
-} from '../Config';
+} from '../EnvironmentConfig';
 import { NodeClickHouseClientConfigOptions } from '@clickhouse/client/dist/client';
 
 export type ClickHouseClientConfigOptions = NodeClickHouseClientConfigOptions;

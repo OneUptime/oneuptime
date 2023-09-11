@@ -9,7 +9,7 @@ import {
     RedisTlsCa,
     RedisTlsSentinelMode,
     ShouldRedisTlsEnable,
-} from '../Config';
+} from '../EnvironmentConfig';
 import logger from '../Utils/Logger';
 
 export type ClientType = RedisClient;

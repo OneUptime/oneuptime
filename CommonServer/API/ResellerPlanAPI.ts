@@ -19,7 +19,7 @@ import PromoCodeService from '../Services/PromoCodeService';
 import StatusCode from 'Common/Types/API/StatusCode';
 import Project from 'Model/Models/Project';
 import ProjectService from '../Services/ProjectService';
-import { getAccountsUrl } from '../Config';
+import { getAccountsUrl } from '../EnvironmentConfig';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,

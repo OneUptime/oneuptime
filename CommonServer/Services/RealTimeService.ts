@@ -1,5 +1,6 @@
 import API from 'Common/Utils/API';
-import { RealtimeHostname, ClusterKey, getHttpProtocol } from '../Config';
+import { RealtimeHostname, ClusterKey } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import Route from 'Common/Types/API/Route';
 import Headers from 'Common/Types/API/Headers';
@@ -23,7 +24,7 @@ class Service {
         eventType: string,
         data: JSONObjectOrArray
     ): Promise<HTTPResponse<EmptyResponse>> {
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
         this.api = new API(httpProtocol, RealtimeHostname);
 
         return await this.api.post<EmptyResponse>(

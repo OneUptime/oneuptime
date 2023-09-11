@@ -20,7 +20,7 @@ import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import ActiveMonitoringMeteredPlan from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
-import { IsBillingEnabled, getDashboardUrl } from '../Config';
+import { IsBillingEnabled, getDashboardUrl } from '../EnvironmentConfig';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
 import MonitorOwnerTeamService from './MonitorOwnerTeamService';

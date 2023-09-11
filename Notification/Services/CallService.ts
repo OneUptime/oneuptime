@@ -9,7 +9,7 @@ import Twilio from 'twilio';
 import CallLog from 'Model/Models/CallLog';
 import CallStatus from 'Common/Types/Call/CallStatus';
 import CallRequest, { GatherInput, Say } from 'Common/Types/Call/CallRequest';
-import { IsBillingEnabled } from 'CommonServer/Config';
+import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 import CallLogService from 'CommonServer/Services/CallLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';

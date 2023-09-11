@@ -8,7 +8,7 @@ import {
 import Twilio from 'twilio';
 import SmsLog from 'Model/Models/SmsLog';
 import SmsStatus from 'Common/Types/SmsStatus';
-import { IsBillingEnabled } from 'CommonServer/Config';
+import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 import SmsLogService from 'CommonServer/Services/SmsLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';

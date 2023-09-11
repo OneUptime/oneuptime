@@ -25,7 +25,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import { getDashboardUrl } from '../Config';
+import { getDashboardUrl } from '../EnvironmentConfig';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

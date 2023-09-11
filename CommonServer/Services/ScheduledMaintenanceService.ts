@@ -19,7 +19,7 @@ import ScheduledMaintenanceOwnerTeamService from './ScheduledMaintenanceOwnerTea
 import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
 import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
-import { getDashboardUrl } from '../Config';
+import { getDashboardUrl } from '../EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import SortOrder from 'Common/Types/Database/SortOrder';
 

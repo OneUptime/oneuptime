@@ -3,7 +3,7 @@ import Express, {
     ExpressResponse,
     ExpressRouter,
 } from '../Utils/Express';
-import { AppVersion, GitSha } from '../Config';
+import { AppVersion, GitSha } from '../EnvironmentConfig';
 const router: ExpressRouter = Express.getRouter();
 
 router.get('/version', (_req: ExpressRequest, res: ExpressResponse) => {

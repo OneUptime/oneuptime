@@ -15,12 +15,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
-import {
-    DashboardRoute,
-    IsBillingEnabled,
-    getHost,
-    getHttpProtocol,
-} from '../Config';
+import { DashboardRoute, IsBillingEnabled } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Project from 'Model/Models/Project';
@@ -100,8 +96,9 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             });
 
             if (project) {
-                const host: Hostname = await getHost();
-                const httpProtocol: Protocol = await getHttpProtocol();
+                const host: Hostname = await DatabaseConfig.getHost();
+                const httpProtocol: Protocol =
+                    await DatabaseConfig.getHttpProtocol();
 
                 MailService.sendMail(
                     {

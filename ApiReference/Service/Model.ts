@@ -6,7 +6,7 @@ import Permission, {
     PermissionHelper,
     PermissionProps,
 } from 'Common/Types/Permission';
-import { DashboardApiRoute } from 'CommonServer/Config';
+import { DashboardApiRoute } from 'CommonServer/EnvironmentConfig';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import LocalFile from 'CommonServer/Utils/LocalFile';

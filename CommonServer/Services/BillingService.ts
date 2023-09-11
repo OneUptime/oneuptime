@@ -7,7 +7,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Typeof from 'Common/Types/Typeof';
 import logger from '../Utils/Logger';
 import Stripe from 'stripe';
-import { BillingPrivateKey, IsBillingEnabled } from '../Config';
+import { BillingPrivateKey, IsBillingEnabled } from '../EnvironmentConfig';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import BaseService from './BaseService';

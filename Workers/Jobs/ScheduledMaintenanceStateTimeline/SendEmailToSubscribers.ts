@@ -5,7 +5,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { FileRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
+import { FileRoute } from 'CommonServer/EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -24,13 +24,14 @@ import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenance
 import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 RunCron(
     'ScheduledMaintenanceStateTimeline:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
             await ScheduledMaintenanceStateTimelineService.findBy({

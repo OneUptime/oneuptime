@@ -7,7 +7,7 @@ import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnou
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { FileRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
+import { FileRoute } from 'CommonServer/EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -18,6 +18,7 @@ import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigSer
 import Markdown from 'CommonServer/Types/Markdown';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 RunCron(
     'Announcement:SendEmailToSubscribers',
@@ -49,8 +50,8 @@ RunCron(
 
         // change their state to Ongoing.
 
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         for (const announcement of announcements) {
             if (!announcement.statusPages) {

@@ -1,9 +1,4 @@
-import {
-    EncryptionSecret,
-    FileRoute,
-    getHost,
-    getHttpProtocol,
-} from 'CommonServer/Config';
+import { EncryptionSecret, FileRoute } from 'CommonServer/EnvironmentConfig';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -28,6 +23,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -114,8 +110,9 @@ router.post(
                     },
                 });
 
-                const host: Hostname = await getHost();
-                const httpProtocol: Protocol = await getHttpProtocol();
+                const host: Hostname = await DatabaseConfig.getHost();
+                const httpProtocol: Protocol =
+                    await DatabaseConfig.getHttpProtocol();
 
                 MailService.sendMail(
                     {
@@ -252,8 +249,9 @@ router.post(
                 },
             });
 
-            const host: Hostname = await getHost();
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const host: Hostname = await DatabaseConfig.getHost();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             MailService.sendMail(
                 {

@@ -8,7 +8,8 @@ import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { FileRoute, getHost, getHttpProtocol } from '../Config';
+import { FileRoute } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
@@ -113,9 +114,10 @@ export class Service extends DatabaseService<Model> {
                 onCreate.carryForward.name ||
                 'Status Page';
 
-            const host: Hostname = await getHost();
+            const host: Hostname = await DatabaseConfig.getHost();
 
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             MailService.sendMail(
                 {

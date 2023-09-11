@@ -1,4 +1,4 @@
-import { IsDevelopment } from 'CommonServer/Config';
+import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import RunCron from '../../Utils/Cron';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';

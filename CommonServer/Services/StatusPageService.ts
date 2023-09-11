@@ -8,7 +8,8 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import { getDashboardUrl, getHost, getHttpProtocol } from '../Config';
+import { getDashboardUrl } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
@@ -275,9 +276,10 @@ export class Service extends DatabaseService<StatusPage> {
             .join(', ');
 
         if (domains.length === 0) {
-            const host: Hostname = await getHost();
+            const host: Hostname = await DatabaseConfig.getHost();
 
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
             statusPageURL = new URL(httpProtocol, host)
@@ -311,9 +313,10 @@ export class Service extends DatabaseService<StatusPage> {
         let statusPageURL: string = '';
 
         if (domains.length === 0) {
-            const host: Hostname = await getHost();
+            const host: Hostname = await DatabaseConfig.getHost();
 
-            const httpProtocol: Protocol = await getHttpProtocol();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
 
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
             statusPageURL = new URL(httpProtocol, host)

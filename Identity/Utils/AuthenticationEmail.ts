@@ -1,4 +1,4 @@
-import { AccountsRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
+import { AccountsRoute } from 'CommonServer/EnvironmentConfig';
 
 import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 
@@ -16,6 +16,7 @@ import logger from 'CommonServer/Utils/Logger';
 import User from 'Model/Models/User';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 export default class AuthenticationEmail {
     public static async sendVerificationEmail(user: User): Promise<void> {
@@ -35,8 +36,8 @@ export default class AuthenticationEmail {
             },
         });
 
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         MailService.sendMail({
             toEmail: user.email!,

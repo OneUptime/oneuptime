@@ -1,37 +1,9 @@
-import Protocol from 'Common/Types/API/Protocol';
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject, JSONValue } from 'Common/Types/JSON';
-import URL from 'Common/Types/API/URL';
-import GlobalConfigService from './Services/GlobalConfigService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import GlobalConfig from 'Model/Models/GlobalConfig';
-
-const getFromGlobalConfig: (key: string) => Promise<JSONValue> = async (
-    key: string
-): Promise<JSONValue> => {
-    const globalConfig: GlobalConfig | null =
-        await GlobalConfigService.findOneBy({
-            query: {
-                _id: ObjectID.getZeroObjectID().toString(),
-            },
-            props: {
-                isRoot: true,
-            },
-            select: {
-                [key]: true,
-            },
-        });
-
-    if (!globalConfig) {
-        throw new BadDataException('Global Config not found');
-    }
-
-    return globalConfig.getColumnValue(key);
-};
+import { JSONObject } from 'Common/Types/JSON';
 
 export const getAllEnvVars: () => JSONObject = (): JSONObject => {
     return process.env;
@@ -216,27 +188,3 @@ export const ClickhouseDatabase: string =
 export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
-
-export const getHost: Function = async (): Promise<Hostname> => {
-    return (
-        ((await getFromGlobalConfig('host')) as Hostname) ||
-        new Hostname('localhost')
-    );
-};
-
-export const getHttpProtocol: () => Promise<Protocol> =
-    async (): Promise<Protocol> => {
-        return (await getFromGlobalConfig('useHttps'))
-            ? Protocol.HTTPS
-            : Protocol.HTTP;
-    };
-
-export const getAccountsUrl: () => Promise<URL> = async (): Promise<URL> => {
-    const host: Hostname = await getHost();
-    return new URL(await getHttpProtocol(), host, AccountsRoute);
-};
-
-export const getDashboardUrl: () => Promise<URL> = async (): Promise<URL> => {
-    const host: Hostname = await getHost();
-    return new URL(await getHttpProtocol(), host, DashboardRoute);
-};

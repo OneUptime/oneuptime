@@ -22,7 +22,7 @@ import Sort from '../Types/Database/Sort';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
-import { IsBillingEnabled } from '../Config';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 import ProjectService from '../Services/ProjectService';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import UserType from 'Common/Types/UserType';

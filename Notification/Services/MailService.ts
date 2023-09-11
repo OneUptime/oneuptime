@@ -14,7 +14,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Port from 'Common/Types/Port';
 import { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
-import { IsDevelopment } from 'CommonServer/Config';
+import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import {
     InternalSmtpEmail,
     InternalSmtpFromName,

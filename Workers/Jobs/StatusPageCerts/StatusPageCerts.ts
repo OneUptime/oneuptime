@@ -4,7 +4,7 @@ import {
     EVERY_MINUTE,
 } from 'Common/Utils/CronTime';
 import RunCron from '../../Utils/Cron';
-import { IsDevelopment } from 'CommonServer/Config';
+import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 // @ts-ignore

@@ -1,6 +1,6 @@
 import Dictionary from 'Common/Types/Dictionary';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { ClusterKey as ONEUPTIME_SECRET } from '../../Config';
+import { ClusterKey as ONEUPTIME_SECRET } from '../../EnvironmentConfig';
 import ClusterKeyAuthorization from '../../Middleware/ClusterKeyAuthorization';
 import {
     ExpressRequest,

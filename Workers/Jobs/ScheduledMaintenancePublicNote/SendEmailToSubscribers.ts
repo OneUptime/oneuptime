@@ -5,7 +5,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { FileRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
+import { FileRoute } from 'CommonServer/EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -25,6 +25,7 @@ import Markdown from 'CommonServer/Types/Markdown';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 RunCron(
     'ScheduledMaintenancePublicNote:SendEmailToSubscribers',
@@ -32,8 +33,8 @@ RunCron(
     async () => {
         // get all incident notes of all the projects
 
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         const publicNotes: Array<ScheduledMaintenancePublicNote> =
             await ScheduledMaintenancePublicNoteService.findBy({

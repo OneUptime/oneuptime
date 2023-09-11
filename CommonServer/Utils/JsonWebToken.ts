@@ -3,7 +3,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import jwt from 'jsonwebtoken';
-import { EncryptionSecret } from '../Config';
+import { EncryptionSecret } from '../EnvironmentConfig';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
 import User from 'Model/Models/User';

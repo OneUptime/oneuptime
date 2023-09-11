@@ -12,7 +12,7 @@ import API from 'Common/Utils/API';
 import EmptyResponseData from 'Common/Types/API/EmptyResponse';
 import URL from 'Common/Types/API/URL';
 import Protocol from 'Common/Types/API/Protocol';
-import { WorkflowHostname } from '../Config';
+import { WorkflowHostname } from '../EnvironmentConfig';
 import Route from 'Common/Types/API/Route';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 

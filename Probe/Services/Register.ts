@@ -7,7 +7,7 @@ import {
     PROBE_NAME,
 } from '../Config';
 import URL from 'Common/Types/API/URL';
-import { ClusterKey, HasClusterKey } from 'CommonServer/Config';
+import { ClusterKey, HasClusterKey } from 'CommonServer/EnvironmentConfig';
 import logger from 'CommonServer/Utils/Logger';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONObject } from 'Common/Types/JSON';

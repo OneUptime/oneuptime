@@ -35,7 +35,7 @@ import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import { getAllEnvVars, IsBillingEnabled } from '../Config';
+import { getAllEnvVars, IsBillingEnabled } from '../EnvironmentConfig';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';

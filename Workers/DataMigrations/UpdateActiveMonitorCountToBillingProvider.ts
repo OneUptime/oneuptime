@@ -2,7 +2,7 @@ import DataMigrationBase from './DataMigrationBase';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';
-import { IsBillingEnabled } from 'CommonServer/Config';
+import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 import AllMeteredPlans from 'CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import Sleep from 'Common/Types/Sleep';

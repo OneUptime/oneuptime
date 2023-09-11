@@ -4,7 +4,10 @@ import ProjectService from 'CommonServer/Services/ProjectService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Project from 'Model/Models/Project';
 import BillingService from 'CommonServer/Services/BillingService';
-import { IsBillingEnabled, IsDevelopment } from 'CommonServer/Config';
+import {
+    IsBillingEnabled,
+    IsDevelopment,
+} from 'CommonServer/EnvironmentConfig';
 import logger from 'CommonServer/Utils/Logger';
 import Sleep from 'Common/Types/Sleep';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';

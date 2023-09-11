@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from '../Config';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import Project from 'Model/Models/Project';
 import ProjectService from './ProjectService';

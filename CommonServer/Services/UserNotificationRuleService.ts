@@ -21,7 +21,8 @@ import EmailMessage from 'Common/Types/Email/EmailMessage';
 import SMS from 'Common/Types/SMS/SMS';
 import Incident from 'Model/Models/Incident';
 import URL from 'Common/Types/API/URL';
-import { DashboardApiRoute, getHost, getHttpProtocol } from '../Config';
+import { DashboardApiRoute } from '../EnvironmentConfig';
+import DatabaseConfig from '../DatabaseConfig';
 import ShortLinkService from './ShortLinkService';
 import ShortLink from 'Model/Models/ShortLink';
 import Phone from 'Common/Types/Phone';
@@ -410,9 +411,9 @@ export class Service extends DatabaseService<Model> {
         incident: Incident,
         userOnCallLogTimelineId: ObjectID
     ): Promise<CallRequest> {
-        const host: Hostname = await getHost();
+        const host: Hostname = await DatabaseConfig.getHost();
 
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         const callRequest: CallRequest = {
             to: to,
@@ -462,8 +463,8 @@ export class Service extends DatabaseService<Model> {
         incident: Incident,
         userOnCallLogTimelineId: ObjectID
     ): Promise<SMS> {
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
             new URL(
@@ -493,8 +494,8 @@ export class Service extends DatabaseService<Model> {
         incident: Incident,
         userOnCallLogTimelineId: ObjectID
     ): Promise<EmailMessage> {
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         const vars: Dictionary<string> = {
             incidentTitle: incident.title!,

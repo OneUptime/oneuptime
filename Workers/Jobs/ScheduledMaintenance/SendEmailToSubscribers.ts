@@ -5,7 +5,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { FileRoute, getHost, getHttpProtocol } from 'CommonServer/Config';
+import { FileRoute } from 'CommonServer/EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -23,13 +23,14 @@ import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigSer
 import Markdown from 'CommonServer/Types/Markdown';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 RunCron(
     'ScheduledMaintenance:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const host: Hostname = await getHost();
-        const httpProtocol: Protocol = await getHttpProtocol();
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         // get all scheduled events of all the projects.
         const scheduledEvents: Array<ScheduledMaintenance> =
