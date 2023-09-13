@@ -60,8 +60,6 @@ COPY --from=model /usr/src/Model .
 WORKDIR /usr/src/CommonServer
 COPY --from=commonserver /usr/src/CommonServer .
 
-WORKDIR /usr/src/CommonUI
-COPY --from=commonui /usr/src/CommonUI .
 
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
