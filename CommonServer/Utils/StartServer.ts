@@ -115,21 +115,29 @@ const init: Function = async (
         app.get(
             [`/${appName}/env.js`, '/env.js'],
             async (req: ExpressRequest, res: ExpressResponse) => {
+                // ping api server for database config.
 
+                const databaseConfig:
+                    | HTTPResponse<JSONObject>
+                    | HTTPErrorResponse = await API.get<JSONObject>(
+                    URL.fromString(
+                        `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
+                    )
+                );
 
-                // ping api server for database config. 
-
-                const databaseConfig: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.get<JSONObject>(URL.fromString(`http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`))
-
-                if(databaseConfig instanceof HTTPErrorResponse){
+                if (databaseConfig instanceof HTTPErrorResponse) {
                     // error getting database config.
-                    return Response.sendErrorResponse(req, res, new ServerException("Error getting database config."));
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new ServerException('Error getting database config.')
+                    );
                 }
 
                 const env: JSONObject = {
                     ...process.env,
-                    ...databaseConfig.data
-                }
+                    ...databaseConfig.data,
+                };
 
                 const script: string = `
     if(!window.process){

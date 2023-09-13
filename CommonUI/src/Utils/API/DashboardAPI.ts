@@ -1,7 +1,4 @@
-import {
-    DASHBOARD_API_HOSTNAME,
-    HTTP_PROTOCOL,
-} from '../../Config';
+import { DASHBOARD_API_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
 import { DashboardApiRoute } from 'Common/ServiceRoute';
 import BaseAPI from './API';
 

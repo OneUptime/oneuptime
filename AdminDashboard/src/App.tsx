@@ -98,9 +98,11 @@ const App: () => JSX.Element = () => {
                     element={<SettingsProbes />}
                 />
 
-
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_AUTHENTICATION]?.toString() || ''}
+                    path={
+                        RouteMap[PageMap.SETTINGS_AUTHENTICATION]?.toString() ||
+                        ''
+                    }
                     element={<SettingsAuthentication />}
                 />
             </Routes>

@@ -12,7 +12,6 @@ import UserService, {
     Service as UserServiceType,
 } from 'CommonServer/Services/UserService';
 
-
 import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
@@ -728,8 +727,6 @@ app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter()
 );
-
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

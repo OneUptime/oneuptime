@@ -55,7 +55,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         description:
-                                'Should we disable sign up of new users to OneUptime?',
+                            'Should we disable sign up of new users to OneUptime?',
                     },
                 ]}
                 modelDetailProps={{

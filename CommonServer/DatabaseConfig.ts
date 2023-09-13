@@ -61,8 +61,9 @@ export default class DatabaseConfig {
         );
     }
 
-
     public static async shouldDisableSignup(): Promise<boolean> {
-        return await DatabaseConfig.getFromGlobalConfig('disableSignup') as boolean;
+        return (await DatabaseConfig.getFromGlobalConfig(
+            'disableSignup'
+        )) as boolean;
     }
 }

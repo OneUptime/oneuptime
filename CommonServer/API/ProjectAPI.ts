@@ -40,26 +40,27 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                         );
                     }
 
-                    const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
-                        query: {
-                            userId: (req as OneUptimeRequest).userAuthorization!
-                                .userId!,
-                        },
-                        select: {
-                            project: {
-                                _id: true,
-                                name: true,
-                                trialEndsAt: true,
-                                paymentProviderPlanId: true,
-                                resellerId: true,
+                    const teamMembers: Array<TeamMember> =
+                        await TeamMemberService.findBy({
+                            query: {
+                                userId: (req as OneUptimeRequest)
+                                    .userAuthorization!.userId!,
                             },
-                        },
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                            select: {
+                                project: {
+                                    _id: true,
+                                    name: true,
+                                    trialEndsAt: true,
+                                    paymentProviderPlanId: true,
+                                    resellerId: true,
+                                },
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     const projects: Array<Project> = [];
 
