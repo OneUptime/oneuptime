@@ -205,6 +205,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                             data: {
                                 activeMonitorsLimit: resellerPlan.monitorLimit!,
                                 seatLimit: resellerPlan.teamMemberLimit!,
+                                resellerPlanId: resellerPlan.id!,
                             },
                             props: {
                                 isRoot: true,
