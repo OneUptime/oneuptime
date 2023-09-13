@@ -48,6 +48,25 @@ COPY ./CommonServer /usr/src/CommonServer
 
 
 
+# Install app
+FROM base AS app
+
+WORKDIR /usr/src/Common
+COPY --from=common /usr/src/Common .
+
+WORKDIR /usr/src/Model
+COPY --from=model /usr/src/Model .
+
+WORKDIR /usr/src/CommonServer
+COPY --from=commonserver /usr/src/CommonServer .
+
+WORKDIR /usr/src/CommonUI
+COPY --from=commonui /usr/src/CommonUI .
+
+
+ENV PRODUCTION=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 WORKDIR /usr/src/app
 
 # Install app dependencies
