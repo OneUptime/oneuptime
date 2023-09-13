@@ -107,27 +107,44 @@ export const getEmailServerType: Function =
         return globalConfig.emailServerType || EmailServerType.Internal;
     };
 
-export const getSendgridAPIKey: Function =
-    async (): Promise<string | null> => {
-        const globalConfig: GlobalConfig | null =
-            await GlobalConfigService.findOneBy({
-                query: {
-                    _id: ObjectID.getZeroObjectID().toString(),
-                },
-                props: {
-                    isRoot: true,
-                },
-                select: {
-                    sendgridApiKey: true,
-                },
-            });
+export interface SendGridConfig {
+    apiKey: string;
+    fromName: string;
+    fromEmail: Email;
+};
 
-        if (!globalConfig) {
-            return null;
+
+export const getSendgridConfig: Function = async (): Promise<SendGridConfig | null> => {
+    const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+            query: {
+                _id: ObjectID.getZeroObjectID().toString(),
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                sendgridApiKey: true,
+                sendgridFromEmail: true, 
+                sendgridFromName: true
+            },
+        });
+
+    if (!globalConfig) {
+        return null;
+    }
+
+    if(globalConfig.sendgridApiKey && globalConfig.sendgridFromEmail && globalConfig.sendgridFromName) {
+        return {
+            apiKey: globalConfig.sendgridApiKey,
+            fromName: globalConfig.sendgridFromName,
+            fromEmail: globalConfig.sendgridFromEmail
         }
+    }
 
-        return globalConfig.sendgridApiKey || null;
-    };
+    return null;
+};
+
 
 export const getTwilioConfig: Function =
     async (): Promise<TwilioConfig | null> => {
@@ -176,4 +193,3 @@ export const CallDefaultCostInCentsPerMinute: number = process.env[
 ]
     ? parseInt(process.env['CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE'])
     : 0;
-

@@ -17,6 +17,9 @@ export default class AddDefaultGlobalConfig extends DataMigrationBase {
         globalConfig.host = new Hostname('localhost');
         globalConfig.useHttps = false;
         globalConfig.emailServerType = EmailServerType.Internal;
+        globalConfig.sendgridFromName = 'OneUptime';
+        globalConfig.smtpFromName = 'OneUptime';
+
 
         await GlobalConfigService.create({
             data: globalConfig,

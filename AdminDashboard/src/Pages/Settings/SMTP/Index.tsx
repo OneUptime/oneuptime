@@ -300,26 +300,54 @@ const Settings: FunctionComponent = (): ReactElement => {
                             },
                             title: 'Sendgrid API Key',
                             fieldType: FormFieldSchemaType.Text,
-                            required: false,
+                            required: true,
                             placeholder: 'Sendgrid API Key',
+                        },
+                        {
+                            field: {
+                                sendgridFromEmail: true,
+                            },
+                            title: 'From Email',
+                            fieldType: FormFieldSchemaType.Email,
+                            required: true,
+                            placeholder: 'email@yourcompany.com',
+                        },
+                        {
+                            field: {
+                                sendgridFromName: true,
+                            },
+                            title: 'From Name',
+                            fieldType: FormFieldSchemaType.Text,
+                            required: true,
+                            placeholder: 'Acme, Inc.',
                         }
                     ]}
                     modelDetailProps={{
                         modelType: GlobalConfig,
                         id: 'model-detail-global-config',
+                        selectMoreFields: {
+                            sendgridFromEmail: true,
+                            sendgridFromName: true
+                        },
                         fields: [
                             {
                                 field: {
                                     sendgridApiKey: true,
                                 },
-                                title: 'Enable Sendgrid',
+                                title: '',
                                 placeholder: 'None',
                                 getElement: (item: JSONObject) => {
-                                    if (item['sendgridApiKey']) {
+                                    if (item['sendgridApiKey'] && item['sendgridFromEmail'] && item['sendgridFromName']) {
                                         return <Pill text="Enabled" color={Green} />
-                                    } else {
-                                        return <Pill text="Not Enabled. Please enter the API key." color={Red} />
+                                    } else if(!item['sendgridApiKey']) {
+                                        return <Pill text="Not Enabled. Please add the API key." color={Red} />
+                                    } else if(!item['sendgridFromEmail']) {
+                                        return <Pill text="Not Enabled. Please add the From Email." color={Red} />
+                                    } else if(!item['sendgridFromName']) {
+                                        return <Pill text="Not Enabled. Please add the From Name." color={Red} />
                                     }
+
+                                    return <></>
                                 },
                             }
                         ],

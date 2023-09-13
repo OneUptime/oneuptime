@@ -23,9 +23,10 @@ import {
     InternalSmtpPort,
     InternalSmtpSecure,
     InternalSmtpUsername,
-    getSendgridAPIKey, 
     getEmailServerType,
     getGlobalSMTPConfig,
+    SendGridConfig,
+    getSendgridConfig,
 } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
 import ObjectID from 'Common/Types/ObjectID';
@@ -287,22 +288,20 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
 
-       const emailServerType: EmailServerType = await getEmailServerType();
+        const emailServerType: EmailServerType = await getEmailServerType();
 
         try {
             if (
                 (!options || !options.emailServer) &&
                 emailServerType === EmailServerType.Sendgrid
             ) {
+                const sendgridConfig: SendGridConfig | null = await getSendgridConfig();
 
-                const sendgridAPIKey: string | null = await getSendgridAPIKey();
-
-                if(!sendgridAPIKey) {
-                    if (emailLog) {
+                if(!sendgridConfig) {
+                    if(emailLog) {
                         emailLog.status = MailStatus.Error;
-                        emailLog.statusMessage =
-                            'Email is configured to use Sendgrid, but Sendgrid API key is not configured.';
-    
+                        emailLog.statusMessage = 'Email is configured to use Sendgrid, but Sendgrid Settings is not configured.';
+
                         await EmailLogService.create({
                             data: emailLog,
                             props: {
@@ -311,20 +310,79 @@ export default class MailService {
                         });
                     }
 
-                    throw new BadDataException("Sendgrid API key not configured");
+                    throw new BadDataException('Sendgrid Config not found');
                 }
 
-                SendgridMail.setApiKey(sendgridAPIKey);
+                if (!sendgridConfig.apiKey) {
+                    if (emailLog) {
+                        emailLog.status = MailStatus.Error;
+                        emailLog.statusMessage =
+                            'Email is configured to use Sendgrid, but Sendgrid API key is not configured.';
+
+                        await EmailLogService.create({
+                            data: emailLog,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+
+                    throw new BadDataException(
+                        'Sendgrid API key not configured'
+                    );
+                }
+
+
+
+                if (!sendgridConfig.fromEmail) {
+                    if (emailLog) {
+                        emailLog.status = MailStatus.Error;
+                        emailLog.statusMessage =
+                            'Email is configured to use Sendgrid, but Sendgrid From Email is not configured.';
+
+                        await EmailLogService.create({
+                            data: emailLog,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+
+                    throw new BadDataException(
+                        'Sendgrid From Email not configured'
+                    );
+                }
+
+                if(!sendgridConfig.fromName) {
+                    if (emailLog) {
+                        emailLog.status = MailStatus.Error;
+                        emailLog.statusMessage =
+                            'Email is configured to use Sendgrid, but Sendgrid From Name is not configured.';
+
+                        await EmailLogService.create({
+                            data: emailLog,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+
+                    throw new BadDataException(
+                        'Sendgrid From Name not configured'
+                    );
+                }
+
+                SendgridMail.setApiKey(sendgridConfig.apiKey);
 
                 const msg: MailDataRequired = {
                     to: mail.toEmail.toString(),
-                    from: this.getGlobalFromEmail().toString(),
+                    from: `${(sendgridConfig.fromName || 'OneUptime')} <${sendgridConfig.fromEmail.toString()}>`,
                     subject: mail.subject,
                     html: mail.body,
                 };
 
                 if (emailLog) {
-                    emailLog.fromEmail = await this.getGlobalFromEmail();
+                    emailLog.fromEmail = sendgridConfig.fromEmail;
                 }
 
                 await SendgridMail.send(msg);
@@ -350,7 +408,10 @@ export default class MailService {
                 return;
             }
 
-            if ((!options || !options.emailServer) && emailServerType === EmailServerType.CustomSMTP) {
+            if (
+                (!options || !options.emailServer) &&
+                emailServerType === EmailServerType.CustomSMTP
+            ) {
                 if (!options) {
                     options = {};
                 }
@@ -359,12 +420,11 @@ export default class MailService {
                     await this.getGlobalSmtpSettings();
 
                 if (!globalEmailServer) {
-
                     if (emailLog) {
                         emailLog.status = MailStatus.Error;
                         emailLog.statusMessage =
                             'Email is configured to use SMTP, but SMTP settings are not configured.';
-    
+
                         await EmailLogService.create({
                             data: emailLog,
                             props: {
@@ -379,7 +439,10 @@ export default class MailService {
                 options.emailServer = globalEmailServer;
             }
 
-            if (emailServerType === EmailServerType.Internal && (!options || !options.emailServer)) {
+            if (
+                emailServerType === EmailServerType.Internal &&
+                (!options || !options.emailServer)
+            ) {
                 if (!options) {
                     options = {};
                 }

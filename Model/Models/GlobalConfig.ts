@@ -316,4 +316,39 @@ export default class GlobalConfig extends GlobalConfigModel {
         unique: true,
     })
     public sendgridApiKey?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Email,
+        title: 'Sendgrid From Email',
+        description: 'Sendgrid From Email',
+    })
+    @Column({
+        type: ColumnType.Email,
+        nullable: true,
+        unique: true,
+    })
+    public sendgridFromEmail?: Email = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ShortText,
+        title: 'Sendgrid From Name',
+        description: 'Sendgrid From Name',
+    })
+    @Column({
+        type: ColumnType.ShortText,
+        nullable: true,
+        unique: true,
+    })
+    public sendgridFromName?: string = undefined;
 }
