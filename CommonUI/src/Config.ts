@@ -22,11 +22,13 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 
 export const getAllEnvVars: Function = (): JSONObject => {
-    return window?.process?.env || process?.env || {};
+    const envVars: JSONObject = window?.process?.env || process?.env || {};
+    return envVars;
 };
 
 export const env: Function = (key: string): string => {
-    return (getAllEnvVars()[key] as string) || '';
+    const allEnv: JSONObject = getAllEnvVars();
+    return ((allEnv)[key] as string) || '';
 };
 
 export const HTTP_PROTOCOL: Protocol =
