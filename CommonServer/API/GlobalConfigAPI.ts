@@ -25,16 +25,17 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
                 next: NextFunction
             ) => {
                 try {
-                    const globalConfig: GlobalConfig | null = await GlobalConfigService.findOneById({
-                        id: ObjectID.getZeroObjectID(),
-                        select: {
-                            host: true,
-                            useHttps: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const globalConfig: GlobalConfig | null =
+                        await GlobalConfigService.findOneById({
+                            id: ObjectID.getZeroObjectID(),
+                            select: {
+                                host: true,
+                                useHttps: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     return Response.sendJsonObjectResponse(req, res, {
                         HOST: globalConfig?.host?.toString() || 'localhost',
