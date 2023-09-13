@@ -1,10 +1,11 @@
-import { API_DOCS_HOSTNAME, HTTP_PROTOCOL, API_DOCS_ROUTE } from '../../Config';
+import { API_DOCS_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
 import API from 'Common/Utils/API';
+import { ApiReferenceRoute } from 'Common/ServiceRoute';
 
-class HelmAPI extends API {
+class ApiDocsRoute extends API {
     public constructor() {
-        super(HTTP_PROTOCOL, API_DOCS_HOSTNAME, API_DOCS_ROUTE);
+        super(HTTP_PROTOCOL, API_DOCS_HOSTNAME, ApiReferenceRoute);
     }
 }
 
-export default new HelmAPI();
+export default new ApiDocsRoute();
