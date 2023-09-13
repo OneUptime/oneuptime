@@ -12,16 +12,14 @@ import UserService, {
     Service as UserServiceType,
 } from 'CommonServer/Services/UserService';
 
-import GlobalConfig from 'Model/Models/GlobalConfig';
-import GlobalConfigService, {
-    Service as GlobalConfigServiceType,
-} from 'CommonServer/Services/GlobalConfigService';
 
 import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 
 import ProjectAPI from 'CommonServer/API/ProjectAPI';
+
+import GlobalConfigAPI from 'CommonServer/API/GlobalConfig';
 
 import ShortLink from 'Model/Models/ShortLink';
 import ShortLinkService, {
@@ -731,13 +729,7 @@ app.use(
     new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter()
 );
 
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<GlobalConfig, GlobalConfigServiceType>(
-        GlobalConfig,
-        GlobalConfigService
-    ).getRouter()
-);
+
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -838,6 +830,7 @@ app.use(
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ResellerPlanAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GlobalConfigAPI().getRouter());
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
