@@ -19,7 +19,7 @@ import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 
 import ProjectAPI from 'CommonServer/API/ProjectAPI';
 
-import GlobalConfigAPI from 'CommonServer/API/GlobalConfig';
+import GlobalConfigAPI from 'CommonServer/API/GlobalConfigAPI';
 
 import ShortLink from 'Model/Models/ShortLink';
 import ShortLinkService, {

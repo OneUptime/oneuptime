@@ -7,14 +7,12 @@ const readEnvFile = (pathToFile) => {
 
     const parsed = dotenv.config({ path: pathToFile }).parsed;
 
-    const env = {};
+    const env = {
+    };
 
     for (const key in parsed) {
         env[key] = JSON.stringify(parsed[key]);
     }
-
-    env['HOST'] = 'localhost' // use localhost for dev. 
-    env['USE_HTTPS'] = true; 
 
     return env;
 }

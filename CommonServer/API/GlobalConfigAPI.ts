@@ -42,7 +42,7 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
                         res,
                         {
                             'HOST': globalConfig?.host?.toString() || 'localhost',
-                            'USE_HTTPS': globalConfig?.useHttps || false
+                            'USE_HTTPS': globalConfig?.useHttps?.toString() || "false"
                         },
                         
                     );
