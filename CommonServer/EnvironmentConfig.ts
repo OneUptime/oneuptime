@@ -1,17 +1,13 @@
-import Protocol from 'Common/Types/API/Protocol';
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
-import URL from 'Common/Types/API/URL';
 
-export const getAllEnvVars: Function = (): JSONObject => {
+export const getAllEnvVars: () => JSONObject = (): JSONObject => {
     return process.env;
 };
-
-export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
 export const IsBillingEnabled: boolean =
     process.env['BILLING_ENABLED'] === 'true';
@@ -66,10 +62,6 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
-export const Domain: Hostname = Hostname.fromString(
-    process.env['DOMAIN'] || 'localhost'
-);
-
 export const RealtimeHostname: Hostname = Hostname.fromString(
     process.env['REALTIME_HOSTNAME'] || 'realtime'
 );
@@ -116,12 +108,6 @@ export const DashboardHostname: Hostname = Hostname.fromString(
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
 
-export const HttpProtocol: Protocol = (
-    process.env['HTTP_PROTOCOL'] || 'https'
-).includes('https')
-    ? Protocol.HTTPS
-    : Protocol.HTTP;
-
 // Redis does not require password.
 export const RedisHostname: string = process.env['REDIS_HOST'] || 'redis';
 export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '6379');
@@ -138,55 +124,6 @@ export const ShouldRedisTlsEnable: boolean = Boolean(
     RedisTlsCa || RedisTlsSentinelMode
 );
 
-export const DashboardApiRoute: Route = new Route(
-    process.env['DASHBOARD_API_ROUTE'] || '/dashboard-api'
-);
-
-export const IdentityRoute: Route = new Route(
-    process.env['IDENTITY_ROUTE'] || '/identity'
-);
-
-export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '/file');
-
-export const StatusPageRoute: Route = new Route(
-    process.env['STATUS_PAGE_ROUTE'] || '/status-page'
-);
-
-export const LinkShortenerRoute: Route = new Route(
-    process.env['LINK_SHORTENER_ROUTE'] || '/l'
-);
-
-export const DashboardRoute: Route = new Route(
-    process.env['DASHBOARD_ROUTE'] || '/dashboard'
-);
-
-export const IntegrationRoute: Route = new Route(
-    process.env['INTEGRATION_ROUTE'] || '/integration'
-);
-
-export const NotificationRoute: Route = new Route(
-    process.env['NOTIFICATION_ROUTE'] || '/notification'
-);
-
-export const HelmRoute: Route = new Route(
-    process.env['HELMCHART_ROUTE'] || '/helm-chart'
-);
-export const AccountsRoute: Route = new Route(
-    process.env['ACCOUNTS_ROUTE'] || '/accounts'
-);
-
-export const WorkflowRoute: Route = new Route(
-    process.env['WORKFLOW_ROUTE'] || '/workflow'
-);
-
-export const ApiReferenceRoute: Route = new Route(
-    process.env['API_REFERENCE_ROUTE'] || '/api-reference'
-);
-
-export const AdminDashboardRoute: Route = new Route(
-    process.env['ADMINDASHBOARD_ROUTE'] || '/admin-dashboard'
-);
-
 export const IsProduction: boolean =
     process.env['ENVIRONMENT'] === 'production';
 
@@ -200,8 +137,6 @@ export const SubscriptionPlans: Array<SubscriptionPlan> =
 
 export const AnalyticsKey: string = process.env['ANALYTICS_KEY'] || '';
 export const AnalyticsHost: string = process.env['ANALYTICS_HOST'] || '';
-
-export const DashboardUrl: URL = new URL(HttpProtocol, Domain, DashboardRoute);
 
 export const DisableAutomaticIncidentCreation: boolean =
     process.env['DISABLE_AUTOMATIC_INCIDENT_CREATION'] === 'true';
@@ -226,5 +161,3 @@ export const ClickhouseDatabase: string =
 export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
-
-export const AccountsUrl: URL = new URL(HttpProtocol, Domain, AccountsRoute);

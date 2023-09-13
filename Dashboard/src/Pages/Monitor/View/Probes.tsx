@@ -22,7 +22,7 @@ import MonitorProbe from 'Model/Models/MonitorProbe';
 import DashboardNavigation from '../../../Utils/Navigation';
 import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import ProbeElement from '../../../Components/Probe/Probe';
+import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';

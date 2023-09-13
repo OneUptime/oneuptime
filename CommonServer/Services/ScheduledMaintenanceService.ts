@@ -19,9 +19,9 @@ import ScheduledMaintenanceOwnerTeamService from './ScheduledMaintenanceOwnerTea
 import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwnerTeam';
 import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
-import { DashboardUrl } from '../Config';
 import URL from 'Common/Types/API/URL';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import DatabaseConfig from '../DatabaseConfig';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -150,11 +150,13 @@ export class Service extends DatabaseService<Model> {
         }
     }
 
-    public getScheduledMaintenanceLinkInDashboard(
+    public async getScheduledMaintenanceLinkInDashboard(
         projectId: ObjectID,
         scheduledMaintenanceId: ObjectID
-    ): URL {
-        return URL.fromString(DashboardUrl.toString()).addRoute(
+    ): Promise<URL> {
+        const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+        return URL.fromString(dashboardUrl.toString()).addRoute(
             `/${projectId.toString()}/scheduled-maintenance-events/${scheduledMaintenanceId.toString()}`
         );
     }

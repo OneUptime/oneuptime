@@ -153,9 +153,11 @@ RunCron(
                     (note.getColumnValue('note')! as string) || ''
                 ),
                 incidentSeverity: incident.incidentSeverity!.name!,
-                incidentViewLink: IncidentService.getIncidentLinkInDashboard(
-                    incident.projectId!,
-                    incident.id!
+                incidentViewLink: (
+                    await IncidentService.getIncidentLinkInDashboard(
+                        incident.projectId!,
+                        incident.id!
+                    )
                 ).toString(),
             };
 

@@ -75,11 +75,12 @@ RunCron(
                 statusPageDescription: Markdown.convertToHTML(
                     statusPage.description! || ''
                 ),
-                statusPageViewLink:
-                    StatusPageService.getStatusPageLinkInDashboard(
+                statusPageViewLink: (
+                    await StatusPageService.getStatusPageLinkInDashboard(
                         statusPage.projectId!,
                         statusPage.id!
-                    ).toString(),
+                    )
+                ).toString(),
             };
 
             if (doesResourceHasOwners === true) {

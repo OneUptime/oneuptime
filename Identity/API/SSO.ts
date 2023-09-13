@@ -21,13 +21,16 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import URL from 'Common/Types/API/URL';
-import { DashboardRoute, Domain, HttpProtocol } from 'CommonServer/Config';
+import { DashboardRoute } from 'CommonServer/EnvironmentConfig';
 import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import AccessTokenService from 'CommonServer/Services/AccessTokenService';
 import SSOUtil from '../Utils/SSO';
 import Exception from 'Common/Types/Exception/Exception';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -338,12 +341,16 @@ router.post(
                 alreadySavedUser.id!
             );
 
+            const host: Hostname = await DatabaseConfig.getHost();
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
+
             return Response.redirect(
                 req,
                 res,
                 new URL(
-                    HttpProtocol,
-                    Domain,
+                    httpProtocol,
+                    host,
                     new Route(DashboardRoute.toString()).addRoute(
                         '/' + req.params['projectId']
                     ),

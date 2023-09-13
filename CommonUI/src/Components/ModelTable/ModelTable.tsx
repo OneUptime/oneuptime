@@ -61,6 +61,7 @@ import { DropdownOption } from '../Dropdown/Dropdown';
 import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
+import User from '../../Utils/User';
 
 export enum ShowTableAs {
     Table,
@@ -134,6 +135,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     };
     onViewComplete?: ((item: TBaseModel) => void) | undefined;
     name: string;
+    modelAPI?: typeof ModelAPI | undefined;
 }
 
 enum ModalType {
@@ -147,6 +149,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     let showTableAs: ShowTableAs | undefined = props.showTableAs;
+
+    const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
     if (!showTableAs) {
         showTableAs = ShowTableAs.Table;
@@ -249,7 +253,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            await ModelAPI.deleteItem<TBaseModel>(
+            await modelAPI.deleteItem<TBaseModel>(
                 props.modelType,
                 item.id,
                 props.deleteRequestOptions
@@ -289,7 +293,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
             model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns || []) {
-            const hasPermission: boolean = hasPermissionToReadColumn(column);
+            const hasPermission: boolean =
+                hasPermissionToReadColumn(column) || User.isMasterAdmin();
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
@@ -447,7 +452,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 const query: Query<BaseModel> = column.filterQuery || {};
 
                 const listResult: ListResult<BaseModel> =
-                    await ModelAPI.getList<BaseModel>(
+                    await modelAPI.getList<BaseModel>(
                         column.filterEntityType,
                         query,
                         LIMIT_PER_PROJECT,
@@ -507,7 +512,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
         try {
             const listResult: ListResult<TBaseModel> =
-                await ModelAPI.getList<TBaseModel>(
+                await modelAPI.getList<TBaseModel>(
                     props.modelType,
                     {
                         ...query,
@@ -638,7 +643,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
         let hasPermissionToCreate: boolean = false;
 
         if (permissions) {
-            hasPermissionToCreate = model.hasCreatePermissions(permissions);
+            hasPermissionToCreate =
+                model.hasCreatePermissions(permissions) || User.isMasterAdmin();
         }
 
         // because ordered list add button is inside the table and not on the card header.
@@ -826,7 +832,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
         }
 
         if (permissions) {
-            if (props.isViewable && model.hasReadPermissions(permissions)) {
+            if (
+                props.isViewable &&
+                (model.hasReadPermissions(permissions) || User.isMasterAdmin())
+            ) {
                 actionsSchema.push({
                     title:
                         props.viewButtonText ||
@@ -1030,7 +1039,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                     setIsLoading(true);
 
-                    await ModelAPI.updateById(
+                    await modelAPI.updateById(
                         props.modelType,
                         new ObjectID(id),
                         {
@@ -1148,7 +1157,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                     setIsLoading(true);
 
-                    await ModelAPI.updateById(
+                    await modelAPI.updateById(
                         props.modelType,
                         new ObjectID(id),
                         {
@@ -1305,6 +1314,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>
+                    modelAPI={props.modelAPI}
                     title={
                         modalType === ModalType.Create
                             ? `${props.createVerb || 'Create'} New ${

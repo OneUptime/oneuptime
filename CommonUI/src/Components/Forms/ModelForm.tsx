@@ -36,6 +36,7 @@ import { FormStep } from './Types/FormStep';
 import Field from './Types/Field';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 import SelectFormFields from '../../Types/SelectEntityField';
+import User from '../../Utils/User';
 
 export enum FormType {
     Create,
@@ -91,6 +92,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
+    modelAPI?: typeof ModelAPI | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -106,6 +108,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
     const model: TBaseModel = new props.modelType();
+
+    const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
@@ -151,6 +155,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const hasPermissionOnField: (fieldName: string) => boolean = (
         fieldName: string
     ): boolean => {
+        if (User.isMasterAdmin()) {
+            return true; // master admin can do anything.
+        }
+
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -277,7 +285,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             throw new BadDataException('Model ID to update not found.');
         }
 
-        let item: BaseModel | null = await ModelAPI.getItem(
+        let item: BaseModel | null = await modelAPI.getItem(
             props.modelType,
             props.modelIdToEdit,
             { ...getSelectFields(), ...getRelationSelect() }
@@ -350,7 +358,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             for (const field of fields) {
                 if (field.dropdownModal && field.dropdownModal.type) {
                     const listResult: ListResult<BaseModel> =
-                        await ModelAPI.getList<BaseModel>(
+                        await modelAPI.getList<BaseModel>(
                             field.dropdownModal.type,
                             {},
                             LIMIT_PER_PROJECT,
@@ -528,7 +536,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 );
             }
 
-            result = await ModelAPI.createOrUpdate<TBaseModel>(
+            result = await modelAPI.createOrUpdate<TBaseModel>(
                 tBaseModel as TBaseModel,
                 props.modelType,
                 props.formType,

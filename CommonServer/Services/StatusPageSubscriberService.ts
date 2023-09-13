@@ -8,11 +8,14 @@ import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { Domain, FileRoute, HttpProtocol } from '../Config';
+import { FileRoute } from 'Common/ServiceRoute';
+import DatabaseConfig from '../DatabaseConfig';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -111,6 +114,11 @@ export class Service extends DatabaseService<Model> {
                 onCreate.carryForward.name ||
                 'Status Page';
 
+            const host: Hostname = await DatabaseConfig.getHost();
+
+            const httpProtocol: Protocol =
+                await DatabaseConfig.getHttpProtocol();
+
             MailService.sendMail(
                 {
                     toEmail: createdItem.subscriberEmail,
@@ -118,7 +126,7 @@ export class Service extends DatabaseService<Model> {
                     vars: {
                         statusPageName: statusPageName,
                         logoUrl: onCreate.carryForward.logoFileId
-                            ? new URL(HttpProtocol, Domain)
+                            ? new URL(httpProtocol, host)
                                   .addRoute(FileRoute)
                                   .addRoute(
                                       '/image/' +
@@ -131,7 +139,7 @@ export class Service extends DatabaseService<Model> {
                             .isPublicStatusPage
                             ? 'true'
                             : 'false',
-                        unsubscribeUrl: new URL(HttpProtocol, Domain)
+                        unsubscribeUrl: new URL(httpProtocol, host)
                             .addRoute(
                                 '/api/status-page-subscriber/unsubscribe/' +
                                     createdItem._id.toString()

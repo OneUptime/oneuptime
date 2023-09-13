@@ -5,7 +5,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
+import { FileRoute } from 'CommonServer/EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -23,12 +23,18 @@ import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePub
 import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 import Markdown from 'CommonServer/Types/Markdown';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 RunCron(
     'ScheduledMaintenancePublicNote:SendEmailToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all incident notes of all the projects
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         const publicNotes: Array<ScheduledMaintenancePublicNote> =
             await ScheduledMaintenancePublicNoteService.findBy({
@@ -213,7 +219,7 @@ RunCron(
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
-                                        ? new URL(HttpProtocol, Domain)
+                                        ? new URL(httpProtocol, host)
                                               .addRoute(FileRoute)
                                               .addRoute(
                                                   '/image/' +
@@ -238,10 +244,7 @@ RunCron(
                                         ),
                                     eventTitle: event.title || '',
                                     eventDescription: event.description || '',
-                                    unsubscribeUrl: new URL(
-                                        HttpProtocol,
-                                        Domain
-                                    )
+                                    unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
                                                 subscriber._id.toString()

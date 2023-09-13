@@ -7,12 +7,12 @@ const readEnvFile = (pathToFile) => {
 
     const parsed = dotenv.config({ path: pathToFile }).parsed;
 
-    const env = {};
+    const env = {
+    };
 
     for (const key in parsed) {
         env[key] = JSON.stringify(parsed[key]);
     }
-
 
     return env;
 }

@@ -11,7 +11,7 @@ import {
     DatabaseRejectUnauthorized,
     ShouldDatabaseSslEnable,
     Env,
-} from '../Config';
+} from '../EnvironmentConfig';
 import Entities from 'Model/Models/Index';
 import Migrations from 'Model/Migrations/Index';
 import DatabaseType from 'Common/Types/DatabaseType';

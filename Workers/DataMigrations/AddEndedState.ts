@@ -48,8 +48,42 @@ export default class AddEndedState extends DataMigrationBase {
                 continue;
             }
 
-            const endedState: ScheduledMaintenanceState =
-                new ScheduledMaintenanceState();
+            let endedState: ScheduledMaintenanceState | null =
+                await ScheduledMaintenanceStateService.findOneBy({
+                    query: {
+                        projectId: project.id!,
+                        isEndedState: true,
+                    },
+                    select: {
+                        order: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+            if (endedState) {
+                continue;
+            }
+
+            endedState = await ScheduledMaintenanceStateService.findOneBy({
+                query: {
+                    projectId: project.id!,
+                    name: 'Ended',
+                },
+                select: {
+                    order: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (endedState) {
+                continue;
+            }
+
+            endedState = new ScheduledMaintenanceState();
             endedState.projectId = project.id!;
             endedState.name = 'Ended';
             endedState.description =

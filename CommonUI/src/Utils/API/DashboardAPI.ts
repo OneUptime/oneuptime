@@ -1,13 +1,10 @@
-import {
-    DASHBOARD_API_HOSTNAME,
-    HTTP_PROTOCOL,
-    DASHBOARD_API_ROUTE,
-} from '../../Config';
+import { DASHBOARD_API_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
+import { DashboardApiRoute } from 'Common/ServiceRoute';
 import BaseAPI from './API';
 
 class BackendAPI extends BaseAPI {
     public constructor() {
-        super(HTTP_PROTOCOL, DASHBOARD_API_HOSTNAME, DASHBOARD_API_ROUTE);
+        super(HTTP_PROTOCOL, DASHBOARD_API_HOSTNAME, DashboardApiRoute);
     }
 }
 

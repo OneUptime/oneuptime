@@ -20,7 +20,7 @@ ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Install bash. 
-RUN apk update && apk add bash && apk add curl
+RUN apk add bash && apk add curl
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]

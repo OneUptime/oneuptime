@@ -85,11 +85,12 @@ RunCron(
                 scheduledMaintenanceDescription: Markdown.convertToHTML(
                     scheduledMaintenance.description! || ''
                 ),
-                scheduledMaintenanceViewLink:
-                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                scheduledMaintenanceViewLink: (
+                    await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                         scheduledMaintenance.projectId!,
                         scheduledMaintenance.id!
-                    ).toString(),
+                    )
+                ).toString(),
             };
 
             if (doesResourceHasOwners === true) {

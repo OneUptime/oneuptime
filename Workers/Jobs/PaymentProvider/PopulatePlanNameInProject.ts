@@ -3,7 +3,7 @@ import RunCron from '../../Utils/Cron';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Project from 'Model/Models/Project';
-import { IsBillingEnabled } from 'CommonServer/Config';
+import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 import logger from 'CommonServer/Utils/Logger';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import SubscriptionPlan, {

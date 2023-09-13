@@ -1,4 +1,4 @@
-import { ClusterKey as ONEUPTIME_SECRET } from 'CommonServer/Config';
+import { ClusterKey as ONEUPTIME_SECRET } from 'CommonServer/EnvironmentConfig';
 import { ExpressResponse, NextFunction } from 'CommonServer/Utils/Express';
 
 import Response from 'CommonServer/Utils/Response';

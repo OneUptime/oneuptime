@@ -87,9 +87,11 @@ RunCron(
                 rootCause:
                     incident.rootCause ||
                     'No root cause identified for this incident',
-                incidentViewLink: IncidentService.getIncidentLinkInDashboard(
-                    incident.projectId!,
-                    incident.id!
+                incidentViewLink: (
+                    await IncidentService.getIncidentLinkInDashboard(
+                        incident.projectId!,
+                        incident.id!
+                    )
                 ).toString(),
             };
 

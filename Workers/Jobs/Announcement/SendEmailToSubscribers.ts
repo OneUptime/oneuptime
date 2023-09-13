@@ -7,7 +7,7 @@ import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnou
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
+import { FileRoute } from 'CommonServer/EnvironmentConfig';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -16,6 +16,9 @@ import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Markdown from 'CommonServer/Types/Markdown';
+import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 RunCron(
     'Announcement:SendEmailToSubscribers',
@@ -46,6 +49,9 @@ RunCron(
             });
 
         // change their state to Ongoing.
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         for (const announcement of announcements) {
             if (!announcement.statusPages) {
@@ -136,7 +142,7 @@ RunCron(
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
-                                        ? new URL(HttpProtocol, Domain)
+                                        ? new URL(httpProtocol, host)
                                               .addRoute(FileRoute)
                                               .addRoute(
                                                   '/image/' +
@@ -153,10 +159,7 @@ RunCron(
                                         Markdown.convertToHTML(
                                             announcement.description || ''
                                         ),
-                                    unsubscribeUrl: new URL(
-                                        HttpProtocol,
-                                        Domain
-                                    )
+                                    unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
                                                 subscriber._id.toString()

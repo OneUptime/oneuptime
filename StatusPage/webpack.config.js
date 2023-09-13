@@ -13,7 +13,6 @@ const readEnvFile = (pathToFile) => {
         env[key] = JSON.stringify(parsed[key]);
     }
 
-
     return env;
 }
 

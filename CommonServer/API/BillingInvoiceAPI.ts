@@ -4,7 +4,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import Permission, { UserPermission } from 'Common/Types/Permission';
 import BillingInvoice from 'Model/Models/BillingInvoice';
 import Project from 'Model/Models/Project';
-import { IsBillingEnabled } from '../Config';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import BillingInvoiceService, {
     Service as BillingInvoiceServiceType,

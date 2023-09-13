@@ -2,16 +2,14 @@ import ObjectID from 'Common/Types/ObjectID';
 import Phone from 'Common/Types/Phone';
 import {
     CallDefaultCostInCentsPerMinute,
-    TwilioAccountSid,
-    TwilioAuthToken,
-    TwilioPhoneNumber,
+    TwilioConfig,
+    getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
-import TwilioUtil from '../Utils/Twilio';
 import CallLog from 'Model/Models/CallLog';
 import CallStatus from 'Common/Types/Call/CallStatus';
 import CallRequest, { GatherInput, Say } from 'Common/Types/Call/CallRequest';
-import { IsBillingEnabled } from 'CommonServer/Config';
+import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 import CallLogService from 'CommonServer/Services/CallLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import Project from 'Model/Models/Project';
@@ -23,6 +21,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class CallService {
     public static async makeCall(
@@ -34,13 +33,20 @@ export default class CallService {
             userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
-        TwilioUtil.checkEnvironmentVariables();
+        const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
-        const client: Twilio.Twilio = Twilio(TwilioAccountSid, TwilioAuthToken);
+        if (!twilioConfig) {
+            throw new BadDataException('Twilio Config not found');
+        }
+
+        const client: Twilio.Twilio = Twilio(
+            twilioConfig.accountSid,
+            twilioConfig.authToken
+        );
 
         const callLog: CallLog = new CallLog();
         callLog.toNumber = callRequest.to;
-        callLog.fromNumber = options.from || new Phone(TwilioPhoneNumber);
+        callLog.fromNumber = options.from || twilioConfig.phoneNumber;
         callLog.callData =
             options && options.isSensitive
                 ? { message: 'This call is sensitive and is not logged' }
@@ -216,7 +222,7 @@ export default class CallService {
                 from:
                     options && options.from
                         ? options.from.toString()
-                        : TwilioPhoneNumber.toString(), // From a valid Twilio number
+                        : twilioConfig.phoneNumber.toString(), // From a valid Twilio number
             });
 
             callLog.status = CallStatus.Success;

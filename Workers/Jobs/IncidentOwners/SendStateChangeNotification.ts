@@ -119,9 +119,11 @@ RunCron(
                         incidentStateTimeline.createdAt!
                     ),
                 incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
-                incidentViewLink: IncidentService.getIncidentLinkInDashboard(
-                    incidentStateTimeline.projectId!,
-                    incident.id!
+                incidentViewLink: (
+                    await IncidentService.getIncidentLinkInDashboard(
+                        incidentStateTimeline.projectId!,
+                        incident.id!
+                    )
                 ).toString(),
             };
 

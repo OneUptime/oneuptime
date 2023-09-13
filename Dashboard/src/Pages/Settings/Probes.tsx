@@ -14,7 +14,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ProbeElement from '../../Components/Probe/Probe';
+import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import { Green, Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';

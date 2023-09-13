@@ -79,9 +79,11 @@ RunCron(
                 monitorDescription: Markdown.convertToHTML(
                     monitor.description! || ''
                 ),
-                monitorViewLink: MonitorService.getMonitorLinkInDashboard(
-                    monitor.projectId!,
-                    monitor.id!
+                monitorViewLink: (
+                    await MonitorService.getMonitorLinkInDashboard(
+                        monitor.projectId!,
+                        monitor.id!
+                    )
                 ).toString(),
             };
 

@@ -11,7 +11,7 @@ import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import { DisableAutomaticIncidentCreation } from 'CommonServer/Config';
+import { DisableAutomaticIncidentCreation } from 'CommonServer/EnvironmentConfig';
 
 const router: ExpressRouter = Express.getRouter();
 

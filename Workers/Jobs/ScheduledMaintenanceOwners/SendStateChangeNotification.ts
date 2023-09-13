@@ -101,11 +101,12 @@ RunCron(
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
                         scheduledMaintenanceStateTimeline.createdAt!
                     ),
-                scheduledMaintenanceViewLink:
-                    ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                scheduledMaintenanceViewLink: (
+                    await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                         scheduledMaintenanceStateTimeline.projectId!,
                         scheduledMaintenance.id!
-                    ).toString(),
+                    )
+                ).toString(),
             };
 
             if (doesResourceHasOwners === true) {

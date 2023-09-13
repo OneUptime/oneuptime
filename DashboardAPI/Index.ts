@@ -16,10 +16,9 @@ import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 
-import Project from 'Model/Models/Project';
-import ProjectService, {
-    Service as ProjectServiceType,
-} from 'CommonServer/Services/ProjectService';
+import ProjectAPI from 'CommonServer/API/ProjectAPI';
+
+import GlobalConfigAPI from 'CommonServer/API/GlobalConfigAPI';
 
 import ShortLink from 'Model/Models/ShortLink';
 import ShortLinkService, {
@@ -388,13 +387,6 @@ const APP_NAME: string = 'api';
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<User, UserServiceType>(User, UserService).getRouter()
-);
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<Project, ProjectServiceType>(
-        Project,
-        ProjectService
-    ).getRouter()
 );
 
 app.use(
@@ -835,6 +827,7 @@ app.use(
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ResellerPlanAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GlobalConfigAPI().getRouter());
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -849,10 +842,14 @@ app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new StatusPageSubscriberAPI().getRouter()
 );
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BillingPaymentMethodAPI().getRouter()
 );
+
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectAPI().getRouter());
+
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BillingInvoiceAPI().getRouter()

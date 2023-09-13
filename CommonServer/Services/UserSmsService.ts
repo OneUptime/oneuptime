@@ -12,7 +12,7 @@ import Text from 'Common/Types/Text';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import DeleteBy from '../Types/Database/DeleteBy';
-import { IsBillingEnabled } from '../Config';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

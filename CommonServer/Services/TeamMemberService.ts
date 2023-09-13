@@ -15,12 +15,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
-import {
-    DashboardRoute,
-    Domain,
-    HttpProtocol,
-    IsBillingEnabled,
-} from '../Config';
+import { IsBillingEnabled } from '../EnvironmentConfig';
+import { DashboardRoute } from 'Common/ServiceRoute';
+import DatabaseConfig from '../DatabaseConfig';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Project from 'Model/Models/Project';
@@ -33,6 +30,8 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import TeamMember from 'Model/Models/TeamMember';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -98,18 +97,22 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             });
 
             if (project) {
+                const host: Hostname = await DatabaseConfig.getHost();
+                const httpProtocol: Protocol =
+                    await DatabaseConfig.getHttpProtocol();
+
                 MailService.sendMail(
                     {
                         toEmail: email,
                         templateType: EmailTemplateType.InviteMember,
                         vars: {
                             dashboardUrl: new URL(
-                                HttpProtocol,
-                                Domain,
+                                httpProtocol,
+                                host,
                                 DashboardRoute
                             ).toString(),
                             projectName: project.name!,
-                            homeUrl: new URL(HttpProtocol, Domain).toString(),
+                            homeUrl: new URL(httpProtocol, host).toString(),
                         },
                         subject: 'You have been invited to ' + project.name,
                     },

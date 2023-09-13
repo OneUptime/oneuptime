@@ -30,7 +30,7 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from './IncidentSeverityService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
-import { getAllEnvVars, IsBillingEnabled } from '../Config';
+import { getAllEnvVars, IsBillingEnabled } from '../EnvironmentConfig';
 import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';

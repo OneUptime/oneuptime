@@ -18,7 +18,7 @@ ENV APP_VERSION=${APP_VERSION}
 ENV PRODUCTION=true
 
 # Install bash. 
-RUN apk update && apk add bash && apk add curl
+RUN apk add bash && apk add curl
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]

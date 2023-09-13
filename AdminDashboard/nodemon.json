@@ -1,0 +1,4 @@
+{
+    "watch": ["webpack.config.js"],
+    "exec": "export DEBUG=express:* && printenv > /usr/src/app/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/dev-env/.env && webpack-dev-server --port=3158 --mode=development"
+}

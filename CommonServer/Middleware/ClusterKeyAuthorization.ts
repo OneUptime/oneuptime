@@ -1,4 +1,4 @@
-import { ClusterKey as ONEUPTIME_SECRET } from '../Config';
+import { ClusterKey as ONEUPTIME_SECRET } from '../EnvironmentConfig';
 import {
     ExpressRequest,
     ExpressResponse,

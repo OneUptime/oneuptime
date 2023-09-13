@@ -17,6 +17,7 @@ import API from '../../Utils/API/API';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { useAsyncEffect } from 'use-async-effect';
+import User from '../../Utils/User';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -113,13 +114,14 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
                 fieldPermissions = accessControl[key]?.read || [];
 
-                if (
+                const hasPermissions: boolean =
                     fieldPermissions &&
                     PermissionHelper.doesPermissionsIntersect(
                         userPermissions,
                         fieldPermissions
-                    )
-                ) {
+                    );
+
+                if (hasPermissions || User.isMasterAdmin()) {
                     fieldsToSet.push({
                         ...field,
                         key: key,

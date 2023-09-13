@@ -2,7 +2,7 @@ import URL from 'Common/Types/API/URL';
 import ObjectID from 'Common/Types/ObjectID';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
-import { DOMAIN, HTTP_PROTOCOL } from 'CommonUI/src/Config';
+import { HOST, HTTP_PROTOCOL } from 'CommonUI/src/Config';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
@@ -22,12 +22,12 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
                         this URL{' '}
                         <Link
                             openInNewTab={true}
-                            to={new URL(HTTP_PROTOCOL, DOMAIN)
+                            to={new URL(HTTP_PROTOCOL, HOST)
                                 .addRoute('/heartbeat')
                                 .addRoute(`/${props.modelId.toString()}`)}
                         >
                             <span>
-                                {new URL(HTTP_PROTOCOL, DOMAIN)
+                                {new URL(HTTP_PROTOCOL, HOST)
                                     .addRoute('/heartbeat')
                                     .addRoute(`/${props.modelId.toString()}`)
                                     .toString()}
