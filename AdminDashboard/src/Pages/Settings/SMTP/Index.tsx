@@ -6,17 +6,20 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import DashboardSideMenu from '../SideMenu';
-import GlobalConfig from 'Model/Models/GlobalConfig';
+import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-
+import { JSONObject } from 'Common/Types/JSON';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import { Green, Red } from 'Common/Types/BrandColors';
 
 const Settings: FunctionComponent = (): ReactElement => {
-
-    const [isInternalSMTPServer, setIsInternalSMTPServer] = React.useState<boolean>(false); 
+    const [emailServerType, setemailServerType] =
+        React.useState<EmailServerType>(EmailServerType.Internal);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -25,32 +28,37 @@ const Settings: FunctionComponent = (): ReactElement => {
     const fetchItem = async () => {
         setIsLoading(true);
 
-        const globalConfig: GlobalConfig | null = await ModelAPI.getItem<GlobalConfig>(GlobalConfig, ObjectID.getZeroObjectID(), {
-            _id: true,
-            useInternalSMTPServer: true 
-        });
+        const globalConfig: GlobalConfig | null =
+            await ModelAPI.getItem<GlobalConfig>(
+                GlobalConfig,
+                ObjectID.getZeroObjectID(),
+                {
+                    _id: true,
+                    emailServerType: true,
+                }
+            );
 
-        if(globalConfig){
-            setIsInternalSMTPServer(globalConfig.useInternalSMTPServer || false);
+        if (globalConfig) {
+            setemailServerType(
+                globalConfig.emailServerType || EmailServerType.Internal
+            );
         }
 
         setIsLoading(false);
-    }
+    };
 
-
-    useEffect(()=>{
-        fetchItem().catch((err: Error)=>{
+    useEffect(() => {
+        fetchItem().catch((err: Error) => {
             setError(err.message);
-        })
+        });
     }, []);
 
-
-    if(isLoading){
-        return <PageLoader isVisible={true} />
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
     }
 
-    if(error){
-        return <ErrorMessage error={error} />
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
 
     return (
@@ -83,24 +91,25 @@ const Settings: FunctionComponent = (): ReactElement => {
             <CardModelDetail
                 name="Internal SMTP Settings"
                 cardProps={{
-                    title: 'Internal SMTP Server',
+                    title: 'Email Server Settings',
                     description:
-                        'If you would like to use Internal SMTP server to send emails, please enable it here. ',
+                        'Pick which email server you would like to use to send emails.',
                 }}
                 isEditable={true}
-                editButtonText="Edit Settings"
-                onSaveSuccess={()=>{
+                editButtonText="Edit Server"
+                onSaveSuccess={() => {
                     window.location.reload();
                 }}
                 formFields={[
                     {
                         field: {
-                            useInternalSMTPServer: true,
+                            emailServerType: true,
                         },
-                        title: 'Use Internal SMTP Server',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                    }
+                        title: 'Email Server Type',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(EmailServerType),
+                        required: true,
+                    },
                 ]}
                 modelDetailProps={{
                     modelType: GlobalConfig,
@@ -108,167 +117,218 @@ const Settings: FunctionComponent = (): ReactElement => {
                     fields: [
                         {
                             field: {
-                                useInternalSMTPServer: true,
+                                emailServerType: true,
                             },
-                            title: 'Use Internal SMTP Server',
-                            placeholder: 'No',
-                            fieldType: FieldType.Boolean,
+                            title: 'Email Server Type',
+                            fieldType: FieldType.Text,
                         },
                     ],
                     modelId: ObjectID.getZeroObjectID(),
                 }}
             />
 
-            {!isInternalSMTPServer ?  <CardModelDetail
-                name="Host Settings"
-                cardProps={{
-                    title: 'Custom Email and SMTP Settings',
-                    description:
-                        'If you have not enabled Internal SMTP server to send emails. Please configure your SMTP server here.',
-                }}
-                isEditable={true}
-                editButtonText="Edit SMTP Config"
-                formSteps={[
-                    {
-                        title: 'SMTP Server',
-                        id: 'server-info',
-                    },
-                    {
-                        title: 'Authentication',
-                        id: 'authentication',
-                    },
-                    {
-                        title: 'Email',
-                        id: 'email-info',
-                    },
-                ]}
-                formFields={[
-                    {
-                        field: {
-                            smtpHost: true,
-                        },
-                        title: 'Hostname',
-                        stepId: 'server-info',
-                        fieldType: FormFieldSchemaType.Hostname,
-                        required: true,
-                        placeholder: 'smtp.server.com',
-                    },
-                    {
-                        field: {
-                            smtpPort: true,
-                        },
-                        title: 'Port',
-                        stepId: 'server-info',
-                        fieldType: FormFieldSchemaType.Port,
-                        required: true,
-                        placeholder: '587',
-                    },
-                    {
-                        field: {
-                            isSMTPSecure: true,
-                        },
-                        title: 'Use SSL / TLS',
-                        stepId: 'server-info',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        description: 'Make email communication secure?',
-                    },
-                    {
-                        field: {
-                            smtpUsername: true,
-                        },
-                        title: 'Username',
-                        stepId: 'authentication',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: false,
-                        placeholder: 'emailuser',
-                    },
-                    {
-                        field: {
-                            smtpPassword: true,
-                        },
-                        title: 'Password',
-                        stepId: 'authentication',
-                        fieldType: FormFieldSchemaType.EncryptedText,
-                        required: false,
-                        placeholder: 'Password',
-                    },
-                    {
-                        field: {
-                            smtpFromEmail: true,
-                        },
-                        title: 'Email From',
-                        stepId: 'email-info',
-                        fieldType: FormFieldSchemaType.Email,
-                        required: true,
+            {emailServerType === EmailServerType.CustomSMTP ? (
+                <CardModelDetail
+                    name="Host Settings"
+                    cardProps={{
+                        title: 'Custom Email and SMTP Settings',
                         description:
-                            'This is the display email your team and customers see, when they receive emails from OneUptime.',
-                        placeholder: 'email@company.com',
-                    },
-                    {
-                        field: {
-                            smtpFromName: true,
+                            'If you have not enabled Internal SMTP server to send emails. Please configure your SMTP server here.',
+                    }}
+                    isEditable={true}
+                    editButtonText="Edit SMTP Config"
+                    formSteps={[
+                        {
+                            title: 'SMTP Server',
+                            id: 'server-info',
                         },
-                        title: 'From Name',
-                        stepId: 'email-info',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        description:
-                            'This is the display name your team and customers see, when they receive emails from OneUptime.',
-                        placeholder: 'Company, Inc.',
-                    },
-                ]}
-                modelDetailProps={{
-                    modelType: GlobalConfig,
-                    id: 'model-detail-global-config',
-                    fields: [
+                        {
+                            title: 'Authentication',
+                            id: 'authentication',
+                        },
+                        {
+                            title: 'Email',
+                            id: 'email-info',
+                        },
+                    ]}
+                    formFields={[
                         {
                             field: {
                                 smtpHost: true,
                             },
-                            title: 'SMTP Host',
-                            placeholder: 'None',
+                            title: 'Hostname',
+                            stepId: 'server-info',
+                            fieldType: FormFieldSchemaType.Hostname,
+                            required: true,
+                            placeholder: 'smtp.server.com',
                         },
                         {
                             field: {
                                 smtpPort: true,
                             },
-                            title: 'SMTP Port',
-                            placeholder: 'None',
-                        },
-                        {
-                            field: {
-                                smtpUsername: true,
-                            },
-                            title: 'SMTP Username',
-                            placeholder: 'None',
-                        },
-                        {
-                            field: {
-                                smtpFromEmail: true,
-                            },
-                            title: 'SMTP Email',
-                            placeholder: 'None',
-                            fieldType: FieldType.Email,
-                        },
-                        {
-                            field: {
-                                smtpFromName: true,
-                            },
-                            title: 'SMTP From Name',
-                            placeholder: 'None',
+                            title: 'Port',
+                            stepId: 'server-info',
+                            fieldType: FormFieldSchemaType.Port,
+                            required: true,
+                            placeholder: '587',
                         },
                         {
                             field: {
                                 isSMTPSecure: true,
                             },
-                            title: 'Use SSL/TLS',
-                            placeholder: 'No',
-                            fieldType: FieldType.Boolean,
+                            title: 'Use SSL / TLS',
+                            stepId: 'server-info',
+                            fieldType: FormFieldSchemaType.Toggle,
+                            description: 'Make email communication secure?',
                         },
-                    ],
-                    modelId: ObjectID.getZeroObjectID(),
-                }}
-            /> : <></>}
+                        {
+                            field: {
+                                smtpUsername: true,
+                            },
+                            title: 'Username',
+                            stepId: 'authentication',
+                            fieldType: FormFieldSchemaType.Text,
+                            required: false,
+                            placeholder: 'emailuser',
+                        },
+                        {
+                            field: {
+                                smtpPassword: true,
+                            },
+                            title: 'Password',
+                            stepId: 'authentication',
+                            fieldType: FormFieldSchemaType.EncryptedText,
+                            required: false,
+                            placeholder: 'Password',
+                        },
+                        {
+                            field: {
+                                smtpFromEmail: true,
+                            },
+                            title: 'Email From',
+                            stepId: 'email-info',
+                            fieldType: FormFieldSchemaType.Email,
+                            required: true,
+                            description:
+                                'This is the display email your team and customers see, when they receive emails from OneUptime.',
+                            placeholder: 'email@company.com',
+                        },
+                        {
+                            field: {
+                                smtpFromName: true,
+                            },
+                            title: 'From Name',
+                            stepId: 'email-info',
+                            fieldType: FormFieldSchemaType.Text,
+                            required: true,
+                            description:
+                                'This is the display name your team and customers see, when they receive emails from OneUptime.',
+                            placeholder: 'Company, Inc.',
+                        },
+                    ]}
+                    modelDetailProps={{
+                        modelType: GlobalConfig,
+                        id: 'model-detail-global-config',
+                        fields: [
+                            {
+                                field: {
+                                    smtpHost: true,
+                                },
+                                title: 'SMTP Host',
+                                placeholder: 'None',
+                            },
+                            {
+                                field: {
+                                    smtpPort: true,
+                                },
+                                title: 'SMTP Port',
+                                placeholder: 'None',
+                            },
+                            {
+                                field: {
+                                    smtpUsername: true,
+                                },
+                                title: 'SMTP Username',
+                                placeholder: 'None',
+                            },
+                            {
+                                field: {
+                                    smtpFromEmail: true,
+                                },
+                                title: 'SMTP Email',
+                                placeholder: 'None',
+                                fieldType: FieldType.Email,
+                            },
+                            {
+                                field: {
+                                    smtpFromName: true,
+                                },
+                                title: 'SMTP From Name',
+                                placeholder: 'None',
+                            },
+                            {
+                                field: {
+                                    isSMTPSecure: true,
+                                },
+                                title: 'Use SSL/TLS',
+                                placeholder: 'No',
+                                fieldType: FieldType.Boolean,
+                            },
+                        ],
+                        modelId: ObjectID.getZeroObjectID(),
+                    }}
+                />
+            ) : (
+                <></>
+            )}
+
+            {emailServerType === EmailServerType.Sendgrid ? (
+                <CardModelDetail
+                    name="Sendgrid Settings"
+                    cardProps={{
+                        title: 'Sendgrid Settings',
+                        description:
+                            'Enter your Sendgrid API key to send emails through Sendgrid.',
+                    }}
+                    isEditable={true}
+                    editButtonText="Edit API Key"
+
+                    formFields={[
+                        {
+                            field: {
+                                sendgridApiKey: true,
+                            },
+                            title: 'Sendgrid API Key',
+                            fieldType: FormFieldSchemaType.Text,
+                            required: false,
+                            placeholder: 'Sendgrid API Key',
+                        }
+                    ]}
+                    modelDetailProps={{
+                        modelType: GlobalConfig,
+                        id: 'model-detail-global-config',
+                        fields: [
+                            {
+                                field: {
+                                    sendgridApiKey: true,
+                                },
+                                title: 'Enable Sendgrid',
+                                placeholder: 'None',
+                                getElement: (item: JSONObject) => {
+                                    if (item['sendgridApiKey']) {
+                                        return <Pill text="Enabled" color={Green} />
+                                    } else {
+                                        return <Pill text="Not Enabled. Please enter the API key." color={Red} />
+                                    }
+                                },
+                            }
+                        ],
+                        modelId: ObjectID.getZeroObjectID(),
+                    }}
+                />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

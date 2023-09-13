@@ -15,6 +15,12 @@ import Phone from 'Common/Types/Phone';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 
+export enum EmailServerType {
+    Internal = 'Internal',
+    Sendgrid = 'Sendgrid',
+    CustomSMTP = 'Custom SMTP',
+}
+
 @TableMetadata({
     tableName: 'GlobalConfig',
     singularName: 'Global Config',
@@ -282,15 +288,32 @@ export default class GlobalConfig extends GlobalConfigModel {
         update: [],
     })
     @TableColumn({
-        type: TableColumnType.Boolean,
-        title: 'Use Internal SMTP Server',
-        description: 'Use Internal SMTP Server to send emails',
+        type: TableColumnType.ShortText,
+        title: 'Email Server Type',
+        description: 'Email Server Type',
     })
     @Column({
-        type: ColumnType.Boolean,
+        type: ColumnType.ShortText,
         nullable: true,
         unique: true,
-        default: true,
     })
-    public useInternalSMTPServer?: boolean = undefined;
+    public emailServerType?: EmailServerType = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ShortText,
+        title: 'Sendgrid API Key',
+        description: 'Sendgrid API Key',
+    })
+    @Column({
+        type: ColumnType.ShortText,
+        nullable: true,
+        unique: true,
+    })
+    public sendgridApiKey?: string = undefined;
 }

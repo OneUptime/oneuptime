@@ -1,5 +1,5 @@
 import DataMigrationBase from './DataMigrationBase';
-import GlobalConfig from 'Model/Models/GlobalConfig';
+import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Hostname from 'Common/Types/API/Hostname';
@@ -16,6 +16,7 @@ export default class AddDefaultGlobalConfig extends DataMigrationBase {
         globalConfig.id = ObjectID.getZeroObjectID();
         globalConfig.host = new Hostname('localhost');
         globalConfig.useHttps = false;
+        globalConfig.emailServerType = EmailServerType.Internal;
 
         await GlobalConfigService.create({
             data: globalConfig,

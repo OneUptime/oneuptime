@@ -286,14 +286,14 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
 
-
-        const useInternalSmtpServer: boolean = (await shouldUseInternalSmtpServer()); 
+        const useInternalSmtpServer: boolean =
+            await shouldUseInternalSmtpServer();
 
         try {
             if (
                 (!options || !options.emailServer) &&
                 SendGridApiKey &&
-                !(useInternalSmtpServer)
+                !useInternalSmtpServer
             ) {
                 SendgridMail.setApiKey(SendGridApiKey);
 

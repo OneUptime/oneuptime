@@ -85,7 +85,6 @@ export const getGlobalSMTPConfig: Function =
         };
     };
 
-
 export const shouldUseInternalSmtpServer: Function =
     async (): Promise<boolean> => {
         const globalConfig: GlobalConfig | null =
@@ -97,7 +96,7 @@ export const shouldUseInternalSmtpServer: Function =
                     isRoot: true,
                 },
                 select: {
-                    useInternalSMTPServer: true
+                    useInternalSMTPServer: true,
                 },
             });
 
