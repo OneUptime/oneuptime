@@ -23,7 +23,7 @@ import {
     InternalSmtpPort,
     InternalSmtpSecure,
     InternalSmtpUsername,
-    SendGridApiKey,
+    getSendgridAPIKey, 
     getEmailServerType,
     getGlobalSMTPConfig,
 } from '../Config';
@@ -295,7 +295,9 @@ export default class MailService {
                 emailServerType === EmailServerType.Sendgrid
             ) {
 
-                if(!SendGridApiKey) {
+                const sendgridAPIKey: string | null = await getSendgridAPIKey();
+
+                if(!sendgridAPIKey) {
                     if (emailLog) {
                         emailLog.status = MailStatus.Error;
                         emailLog.statusMessage =
@@ -312,7 +314,7 @@ export default class MailService {
                     throw new BadDataException("Sendgrid API key not configured");
                 }
 
-                SendgridMail.setApiKey(SendGridApiKey);
+                SendgridMail.setApiKey(sendgridAPIKey);
 
                 const msg: MailDataRequired = {
                     to: mail.toEmail.toString(),

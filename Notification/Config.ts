@@ -107,6 +107,28 @@ export const getEmailServerType: Function =
         return globalConfig.emailServerType || EmailServerType.Internal;
     };
 
+export const getSendgridAPIKey: Function =
+    async (): Promise<string | null> => {
+        const globalConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneBy({
+                query: {
+                    _id: ObjectID.getZeroObjectID().toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    sendgridApiKey: true,
+                },
+            });
+
+        if (!globalConfig) {
+            return null;
+        }
+
+        return globalConfig.sendgridApiKey || null;
+    };
+
 export const getTwilioConfig: Function =
     async (): Promise<TwilioConfig | null> => {
         const globalConfig: GlobalConfig | null =
@@ -155,4 +177,3 @@ export const CallDefaultCostInCentsPerMinute: number = process.env[
     ? parseInt(process.env['CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE'])
     : 0;
 
-export const SendGridApiKey: string = process.env['SENDGRID_API_KEY'] || '';
