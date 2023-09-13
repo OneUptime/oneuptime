@@ -54,7 +54,7 @@ COPY ./CommonServer /usr/src/CommonServer
 
 # Install CommonUI
 
-FROM Base AS commonui
+FROM base AS commonui
 WORKDIR /usr/src/CommonUI
 COPY ./CommonUI/package*.json /usr/src/CommonUI/
 RUN npm install --force
