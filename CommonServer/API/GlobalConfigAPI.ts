@@ -1,7 +1,7 @@
-import Probe from 'Model/Models/Probe';
-import ProbeService, {
-    Service as ProbeServiceType,
-} from '../Services/ProbeService';
+import GlobalConfig from 'Model/Models/GlobalConfig';
+import GlobalConfigService, {
+    Service as GlobalConfigServiceType,
+} from '../Services/GlobalConfigService';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -9,13 +9,11 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
-import GlobalConfigService from '../Services/GlobalConfigService';
 import ObjectID from 'Common/Types/ObjectID';
-import GlobalConfig from 'Model/Models/GlobalConfig';
 
-export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
+export default class GlobalConfigAPI extends BaseAPI<GlobalConfig, GlobalConfigServiceType> {
     public constructor() {
-        super(Probe, ProbeService);
+        super(GlobalConfig, GlobalConfigService);
 
         this.router.get(
             `${new this.entityType().getCrudApiPath()?.toString()}/vars`,
