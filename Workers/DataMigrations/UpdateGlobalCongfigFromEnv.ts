@@ -13,7 +13,7 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
     public override async migrate(): Promise<void> {
         // get all the users with email isVerified true.
 
-        let emailServerType = EmailServerType.Internal;
+        let emailServerType: EmailServerType = EmailServerType.Internal;
 
         if (process.env['USE_INTERNAL_SMTP'] !== 'true') {
             emailServerType = EmailServerType.CustomSMTP;

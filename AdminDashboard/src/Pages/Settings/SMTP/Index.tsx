@@ -25,7 +25,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
     const [error, setError] = React.useState<string>('');
 
-    const fetchItem = async () => {
+    const fetchItem: Function = async (): Promise<void> => {
         setIsLoading(true);
 
         const globalConfig: GlobalConfig | null =
@@ -107,7 +107,10 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Email Server Type',
                         fieldType: FormFieldSchemaType.Dropdown,
-                        dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(EmailServerType),
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                EmailServerType
+                            ),
                         required: true,
                     },
                 ]}
@@ -292,7 +295,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                     }}
                     isEditable={true}
                     editButtonText="Edit API Key"
-
                     formFields={[
                         {
                             field: {
@@ -320,14 +322,14 @@ const Settings: FunctionComponent = (): ReactElement => {
                             fieldType: FormFieldSchemaType.Text,
                             required: true,
                             placeholder: 'Acme, Inc.',
-                        }
+                        },
                     ]}
                     modelDetailProps={{
                         modelType: GlobalConfig,
                         id: 'model-detail-global-config',
                         selectMoreFields: {
                             sendgridFromEmail: true,
-                            sendgridFromName: true
+                            sendgridFromName: true,
                         },
                         fields: [
                             {
@@ -337,19 +339,43 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 title: '',
                                 placeholder: 'None',
                                 getElement: (item: JSONObject) => {
-                                    if (item['sendgridApiKey'] && item['sendgridFromEmail'] && item['sendgridFromName']) {
-                                        return <Pill text="Enabled" color={Green} />
-                                    } else if(!item['sendgridApiKey']) {
-                                        return <Pill text="Not Enabled. Please add the API key." color={Red} />
-                                    } else if(!item['sendgridFromEmail']) {
-                                        return <Pill text="Not Enabled. Please add the From Email." color={Red} />
-                                    } else if(!item['sendgridFromName']) {
-                                        return <Pill text="Not Enabled. Please add the From Name." color={Red} />
+                                    if (
+                                        item['sendgridApiKey'] &&
+                                        item['sendgridFromEmail'] &&
+                                        item['sendgridFromName']
+                                    ) {
+                                        return (
+                                            <Pill
+                                                text="Enabled"
+                                                color={Green}
+                                            />
+                                        );
+                                    } else if (!item['sendgridApiKey']) {
+                                        return (
+                                            <Pill
+                                                text="Not Enabled. Please add the API key."
+                                                color={Red}
+                                            />
+                                        );
+                                    } else if (!item['sendgridFromEmail']) {
+                                        return (
+                                            <Pill
+                                                text="Not Enabled. Please add the From Email."
+                                                color={Red}
+                                            />
+                                        );
+                                    } else if (!item['sendgridFromName']) {
+                                        return (
+                                            <Pill
+                                                text="Not Enabled. Please add the From Name."
+                                                color={Red}
+                                            />
+                                        );
                                     }
 
-                                    return <></>
+                                    return <></>;
                                 },
-                            }
+                            },
                         ],
                         modelId: ObjectID.getZeroObjectID(),
                     }}

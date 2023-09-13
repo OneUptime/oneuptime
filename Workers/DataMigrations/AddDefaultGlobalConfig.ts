@@ -20,7 +20,6 @@ export default class AddDefaultGlobalConfig extends DataMigrationBase {
         globalConfig.sendgridFromName = 'OneUptime';
         globalConfig.smtpFromName = 'OneUptime';
 
-
         await GlobalConfigService.create({
             data: globalConfig,
             props: {

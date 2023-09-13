@@ -281,7 +281,6 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public twilioPhoneNumber?: Phone = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
@@ -299,7 +298,6 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public emailServerType?: EmailServerType = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
@@ -316,7 +314,6 @@ export default class GlobalConfig extends GlobalConfigModel {
         unique: true,
     })
     public sendgridApiKey?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [],

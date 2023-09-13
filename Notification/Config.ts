@@ -111,40 +111,43 @@ export interface SendGridConfig {
     apiKey: string;
     fromName: string;
     fromEmail: Email;
-};
+}
 
+export const getSendgridConfig: Function =
+    async (): Promise<SendGridConfig | null> => {
+        const globalConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneBy({
+                query: {
+                    _id: ObjectID.getZeroObjectID().toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    sendgridApiKey: true,
+                    sendgridFromEmail: true,
+                    sendgridFromName: true,
+                },
+            });
 
-export const getSendgridConfig: Function = async (): Promise<SendGridConfig | null> => {
-    const globalConfig: GlobalConfig | null =
-        await GlobalConfigService.findOneBy({
-            query: {
-                _id: ObjectID.getZeroObjectID().toString(),
-            },
-            props: {
-                isRoot: true,
-            },
-            select: {
-                sendgridApiKey: true,
-                sendgridFromEmail: true, 
-                sendgridFromName: true
-            },
-        });
-
-    if (!globalConfig) {
-        return null;
-    }
-
-    if(globalConfig.sendgridApiKey && globalConfig.sendgridFromEmail && globalConfig.sendgridFromName) {
-        return {
-            apiKey: globalConfig.sendgridApiKey,
-            fromName: globalConfig.sendgridFromName,
-            fromEmail: globalConfig.sendgridFromEmail
+        if (!globalConfig) {
+            return null;
         }
-    }
 
-    return null;
-};
+        if (
+            globalConfig.sendgridApiKey &&
+            globalConfig.sendgridFromEmail &&
+            globalConfig.sendgridFromName
+        ) {
+            return {
+                apiKey: globalConfig.sendgridApiKey,
+                fromName: globalConfig.sendgridFromName,
+                fromEmail: globalConfig.sendgridFromEmail,
+            };
+        }
 
+        return null;
+    };
 
 export const getTwilioConfig: Function =
     async (): Promise<TwilioConfig | null> => {

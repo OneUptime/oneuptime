@@ -295,12 +295,14 @@ export default class MailService {
                 (!options || !options.emailServer) &&
                 emailServerType === EmailServerType.Sendgrid
             ) {
-                const sendgridConfig: SendGridConfig | null = await getSendgridConfig();
+                const sendgridConfig: SendGridConfig | null =
+                    await getSendgridConfig();
 
-                if(!sendgridConfig) {
-                    if(emailLog) {
+                if (!sendgridConfig) {
+                    if (emailLog) {
                         emailLog.status = MailStatus.Error;
-                        emailLog.statusMessage = 'Email is configured to use Sendgrid, but Sendgrid Settings is not configured.';
+                        emailLog.statusMessage =
+                            'Email is configured to use Sendgrid, but Sendgrid Settings is not configured.';
 
                         await EmailLogService.create({
                             data: emailLog,
@@ -332,8 +334,6 @@ export default class MailService {
                     );
                 }
 
-
-
                 if (!sendgridConfig.fromEmail) {
                     if (emailLog) {
                         emailLog.status = MailStatus.Error;
@@ -353,7 +353,7 @@ export default class MailService {
                     );
                 }
 
-                if(!sendgridConfig.fromName) {
+                if (!sendgridConfig.fromName) {
                     if (emailLog) {
                         emailLog.status = MailStatus.Error;
                         emailLog.statusMessage =
@@ -376,7 +376,9 @@ export default class MailService {
 
                 const msg: MailDataRequired = {
                     to: mail.toEmail.toString(),
-                    from: `${(sendgridConfig.fromName || 'OneUptime')} <${sendgridConfig.fromEmail.toString()}>`,
+                    from: `${
+                        sendgridConfig.fromName || 'OneUptime'
+                    } <${sendgridConfig.fromEmail.toString()}>`,
                     subject: mail.subject,
                     html: mail.body,
                 };
