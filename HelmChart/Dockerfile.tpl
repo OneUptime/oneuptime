@@ -1,5 +1,5 @@
 # Pull base image nodejs image.
-FROM node:current-alpine
+FROM node:current-alpine as Base
 USER root
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
@@ -20,7 +20,8 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /usr/src
 
 # Install common
-RUN mkdir /usr/src/Common
+
+FROM Base AS Common
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
@@ -28,7 +29,8 @@ COPY ./Common /usr/src/Common
 
 
 # Install Model
-RUN mkdir /usr/src/Model
+
+FROM Base AS Model
 WORKDIR /usr/src/Model
 COPY ./Model/package*.json /usr/src/Model/
 RUN npm install
@@ -37,15 +39,14 @@ COPY ./Model /usr/src/Model
 
 
 # Install CommonServer
-RUN mkdir /usr/src/CommonServer
+
+FROM Base AS CommonServer
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 
 
-
-RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
