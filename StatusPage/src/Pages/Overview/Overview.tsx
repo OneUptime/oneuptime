@@ -718,7 +718,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 id="overview-empty-state"
                                 icon={IconProp.CheckCircle}
                                 title={'Everything looks great'}
-                                description="Everything is great. Nothig posted on this status page so far."
+                                description="Everything is great. Nothing posted on this status page so far."
                             />
                         )}
                 </div>
