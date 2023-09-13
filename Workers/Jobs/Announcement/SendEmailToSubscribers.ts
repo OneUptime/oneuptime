@@ -7,7 +7,7 @@ import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnou
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import { FileRoute } from 'CommonServer/EnvironmentConfig';
+import { FileRoute } from 'Common/ServiceRoute';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
