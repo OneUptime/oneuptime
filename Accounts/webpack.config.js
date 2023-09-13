@@ -2,7 +2,6 @@ const path = require("path");
 const webpack = require("webpack");
 const dotenv = require('dotenv');
 const express = require('express');
-const axios = require('axios');
 
 const readEnvFile = async (pathToFile) => {
 
@@ -17,8 +16,8 @@ const readEnvFile = async (pathToFile) => {
     return env;
 }
 
-const webpackConfig = async () => {
-    return {
+
+module.exports = {
         entry: "./src/Index.tsx",
         mode: "development",
         output: {
@@ -39,7 +38,7 @@ const webpackConfig = async () => {
             new webpack.DefinePlugin({
                 'process': {
                     'env': {
-                        ...(await readEnvFile('/usr/src/app/dev-env/.env'))
+                        ...readEnvFile('/usr/src/app/dev-env/.env')
                     }
                 }
             }),
@@ -76,8 +75,4 @@ const webpackConfig = async () => {
             }
         },
         devtool: 'eval-source-map',
-    }
-};
-
-
-module.exports = webpackConfig;
+    };
