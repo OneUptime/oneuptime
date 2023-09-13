@@ -1197,30 +1197,47 @@ const ModelTable: <TBaseModel extends BaseModel>(
     ): ReactElement => {
         const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
 
+        let showPlan: boolean = Boolean(
+            BILLING_ENABLED &&
+                plan &&
+                new props.modelType().readBillingPlan &&
+                !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                    new props.modelType().readBillingPlan!,
+                    plan,
+                    getAllEnvVars()
+                )
+        );
+
+        let planName: string = new props.modelType().readBillingPlan!;
+
+        if (props.isCreateable && !showPlan) {
+            // if createable then read create billing permissions.
+            showPlan = Boolean(
+                BILLING_ENABLED &&
+                    plan &&
+                    new props.modelType().createBillingPlan &&
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        new props.modelType().createBillingPlan!,
+                        plan,
+                        getAllEnvVars()
+                    )
+            );
+
+            planName = new props.modelType().createBillingPlan!;
+        }
+
         return (
             <span>
                 {title}
-                {BILLING_ENABLED &&
-                    plan &&
-                    new props.modelType().readBillingPlan &&
-                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-                        new props.modelType().readBillingPlan!,
-                        plan,
-                        getAllEnvVars()
-                    ) && (
-                        <span
-                            style={{
-                                marginLeft: '5px',
-                            }}
-                        >
-                            <Pill
-                                text={`${
-                                    new props.modelType().readBillingPlan
-                                } Plan`}
-                                color={Yellow}
-                            />
-                        </span>
-                    )}
+                {showPlan && (
+                    <span
+                        style={{
+                            marginLeft: '5px',
+                        }}
+                    >
+                        <Pill text={`${planName} Plan`} color={Yellow} />
+                    </span>
+                )}
             </span>
         );
     };

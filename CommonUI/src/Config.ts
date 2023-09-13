@@ -28,7 +28,7 @@ export const getAllEnvVars: Function = (): JSONObject => {
 
 export const env: Function = (key: string): string => {
     const allEnv: JSONObject = getAllEnvVars();
-    return ((allEnv)[key] as string) || '';
+    return (allEnv[key] as string) || '';
 };
 
 export const HTTP_PROTOCOL: Protocol =

@@ -11,7 +11,10 @@ import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
 import ObjectID from 'Common/Types/ObjectID';
 
-export default class GlobalConfigAPI extends BaseAPI<GlobalConfig, GlobalConfigServiceType> {
+export default class GlobalConfigAPI extends BaseAPI<
+    GlobalConfig,
+    GlobalConfigServiceType
+> {
     public constructor() {
         super(GlobalConfig, GlobalConfigService);
 
