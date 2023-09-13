@@ -21,7 +21,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import URL from 'Common/Types/API/URL';
-import { DashboardRoute } from 'CommonServer/EnvironmentConfig';
+import { DashboardRoute } from 'Common/ServiceRoute';
 import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';

@@ -1,4 +1,4 @@
-import { AccountsRoute } from 'CommonServer/EnvironmentConfig';
+import { AccountsRoute } from 'Common/ServiceRoute';
 
 import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 

@@ -1,4 +1,5 @@
-import { EncryptionSecret, FileRoute } from 'CommonServer/EnvironmentConfig';
+import { EncryptionSecret } from 'CommonServer/EnvironmentConfig';
+import { FileRoute } from 'Common/ServiceRoute';
 import Express, {
     ExpressRequest,
     ExpressResponse,
