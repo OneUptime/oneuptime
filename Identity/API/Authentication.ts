@@ -50,7 +50,7 @@ router.post(
                 return Response.sendErrorResponse(
                     req,
                     res,
-                    new BadRequestException('Sign up is disabled.')
+                    new BadRequestException('Sign up is disabled on this OneUptime Server. Please contact your server admin to enable it.')
                 );
             }
 

@@ -24,7 +24,7 @@ import {
     InternalSmtpSecure,
     InternalSmtpUsername,
     SendGridApiKey,
-    ShouldUseInternalSmtp,
+    shouldUseInternalSmtpServer,
     getGlobalSMTPConfig,
 } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
@@ -285,11 +285,15 @@ export default class MailService {
             ? await this.compileEmailBody(mail.templateType, mail.vars)
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
+
+
+        const useInternalSmtpServer: boolean = (await shouldUseInternalSmtpServer()); 
+
         try {
             if (
                 (!options || !options.emailServer) &&
                 SendGridApiKey &&
-                !ShouldUseInternalSmtp
+                !(useInternalSmtpServer)
             ) {
                 SendgridMail.setApiKey(SendGridApiKey);
 
@@ -327,7 +331,7 @@ export default class MailService {
                 return;
             }
 
-            if ((!options || !options.emailServer) && !ShouldUseInternalSmtp) {
+            if ((!options || !options.emailServer) && !useInternalSmtpServer) {
                 if (!options) {
                     options = {};
                 }
@@ -342,7 +346,7 @@ export default class MailService {
                 options.emailServer = globalEmailServer;
             }
 
-            if (ShouldUseInternalSmtp && (!options || !options.emailServer)) {
+            if (useInternalSmtpServer && (!options || !options.emailServer)) {
                 if (!options) {
                     options = {};
                 }

@@ -274,4 +274,23 @@ export default class GlobalConfig extends GlobalConfigModel {
         transformer: Phone.getDatabaseTransformer(),
     })
     public twilioPhoneNumber?: Phone = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        title: 'Use Internal SMTP Server',
+        description: 'Use Internal SMTP Server to send emails',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: true,
+        unique: true,
+        default: true,
+    })
+    public useInternalSMTPServer?: boolean = undefined;
 }

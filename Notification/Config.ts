@@ -8,9 +8,6 @@ import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Phone from 'Common/Types/Phone';
 import EmailServer from 'Common/Types/Email/EmailServer';
 
-export const ShouldUseInternalSmtp: boolean =
-    process.env['USE_INTERNAL_SMTP'] === 'true';
-
 export const InternalSmtpUsername: string =
     process.env['INTERNAL_SMTP_USERNAME'] || '';
 
@@ -86,6 +83,29 @@ export const getGlobalSMTPConfig: Function =
             fromEmail: globalConfig.smtpFromEmail,
             fromName: globalConfig.smtpFromName,
         };
+    };
+
+
+export const shouldUseInternalSmtpServer: Function =
+    async (): Promise<boolean> => {
+        const globalConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneBy({
+                query: {
+                    _id: ObjectID.getZeroObjectID().toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    useInternalSMTPServer: true
+                },
+            });
+
+        if (!globalConfig) {
+            return false;
+        }
+
+        return globalConfig.useInternalSMTPServer || false;
     };
 
 export const getTwilioConfig: Function =

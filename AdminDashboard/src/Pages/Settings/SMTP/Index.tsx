@@ -2,15 +2,57 @@ import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import DashboardSideMenu from '../SideMenu';
 import GlobalConfig from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+
 
 const Settings: FunctionComponent = (): ReactElement => {
+
+    const [isInternalSMTPServer, setIsInternalSMTPServer] = React.useState<boolean>(false); 
+
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+    const [error, setError] = React.useState<string>('');
+
+    const fetchItem = async () => {
+        setIsLoading(true);
+
+        const globalConfig: GlobalConfig | null = await ModelAPI.getItem<GlobalConfig>(GlobalConfig, ObjectID.getZeroObjectID(), {
+            _id: true,
+            useInternalSMTPServer: true 
+        });
+
+        if(globalConfig){
+            setIsInternalSMTPServer(globalConfig.useInternalSMTPServer || false);
+        }
+
+        setIsLoading(false);
+    }
+
+
+    useEffect(()=>{
+        fetchItem().catch((err: Error)=>{
+            setError(err.message);
+        })
+    }, []);
+
+
+    if(isLoading){
+        return <PageLoader isVisible={true} />
+    }
+
+    if(error){
+        return <ErrorMessage error={error} />
+    }
+
     return (
         <Page
             title={'Admin Settings'}
@@ -37,12 +79,52 @@ const Settings: FunctionComponent = (): ReactElement => {
             sideMenu={<DashboardSideMenu />}
         >
             {/* Project Settings View  */}
+
             <CardModelDetail
+                name="Internal SMTP Settings"
+                cardProps={{
+                    title: 'Internal SMTP Server',
+                    description:
+                        'If you would like to use Internal SMTP server to send emails, please enable it here. ',
+                }}
+                isEditable={true}
+                editButtonText="Edit Settings"
+                onSaveSuccess={()=>{
+                    window.location.reload();
+                }}
+                formFields={[
+                    {
+                        field: {
+                            useInternalSMTPServer: true,
+                        },
+                        title: 'Use Internal SMTP Server',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                    }
+                ]}
+                modelDetailProps={{
+                    modelType: GlobalConfig,
+                    id: 'model-detail-global-config',
+                    fields: [
+                        {
+                            field: {
+                                useInternalSMTPServer: true,
+                            },
+                            title: 'Use Internal SMTP Server',
+                            placeholder: 'No',
+                            fieldType: FieldType.Boolean,
+                        },
+                    ],
+                    modelId: ObjectID.getZeroObjectID(),
+                }}
+            />
+
+            {!isInternalSMTPServer ?  <CardModelDetail
                 name="Host Settings"
                 cardProps={{
-                    title: 'Email and SMTP Settings',
+                    title: 'Custom Email and SMTP Settings',
                     description:
-                        'Email and SMTP Settings. We will use this SMTP server to send all the emails.',
+                        'If you have not enabled Internal SMTP server to send emails. Please configure your SMTP server here.',
                 }}
                 isEditable={true}
                 editButtonText="Edit SMTP Config"
@@ -175,7 +257,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                             title: 'SMTP From Name',
                             placeholder: 'None',
                         },
-
                         {
                             field: {
                                 isSMTPSecure: true,
@@ -187,7 +268,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                     ],
                     modelId: ObjectID.getZeroObjectID(),
                 }}
-            />
+            /> : <></>}
         </Page>
     );
 };

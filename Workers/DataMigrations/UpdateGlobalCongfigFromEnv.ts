@@ -37,6 +37,8 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
                     '',
                 smtpFromName: process.env['SMTP_FROM_NAME'] || '',
 
+                useInternalSMTPServer: process.env['USE_INTERNAL_SMTP'] === 'true',
+
                 // diable signup
                 disableSignup: process.env['DISABLE_SIGNUP'] === 'true',
             },
