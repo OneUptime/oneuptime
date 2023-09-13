@@ -14,12 +14,6 @@ const readEnvFile = async (pathToFile) => {
         env[key] = JSON.stringify(parsed[key]);
     }
 
-    env['HOST'] = 'localhost' // use localhost for dev. 
-    env['USE_HTTPS'] = true; 
-
-    // Ping API and get respojse. 
-    const response = await axios.get(`http://localhost/api/`);
-
     return env;
 }
 

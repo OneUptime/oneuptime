@@ -13,9 +13,6 @@ const readEnvFile = (pathToFile) => {
         env[key] = JSON.stringify(parsed[key]);
     }
 
-    env['HOST'] = 'localhost' // use localhost for dev. 
-    env['USE_HTTPS'] = true; 
-
     return env;
 }
 
