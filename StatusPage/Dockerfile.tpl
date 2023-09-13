@@ -45,7 +45,7 @@ COPY ./Model /usr/src/Model
 
 # Install CommonServer
 
-FROM Base AS commonserver
+FROM base AS commonserver
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
