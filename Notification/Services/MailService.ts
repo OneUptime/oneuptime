@@ -24,7 +24,7 @@ import {
     InternalSmtpSecure,
     InternalSmtpUsername,
     SendGridApiKey,
-    shouldUseInternalSmtpServer,
+    getEmailServerType,
     getGlobalSMTPConfig,
 } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
@@ -34,6 +34,7 @@ import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificati
 import EmailLog from 'Model/Models/EmailLog';
 import MailStatus from 'Common/Types/Mail/MailStatus';
 import EmailLogService from 'CommonServer/Services/EmailLogService';
+import { EmailServerType } from 'Model/Models/GlobalConfig';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -286,15 +287,31 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
 
-        const useInternalSmtpServer: boolean =
-            await shouldUseInternalSmtpServer();
+       const emailServerType: EmailServerType = await getEmailServerType();
 
         try {
             if (
                 (!options || !options.emailServer) &&
-                SendGridApiKey &&
-                !useInternalSmtpServer
+                emailServerType === EmailServerType.Sendgrid
             ) {
+
+                if(!SendGridApiKey) {
+                    if (emailLog) {
+                        emailLog.status = MailStatus.Error;
+                        emailLog.statusMessage =
+                            'Email is configured to use Sendgrid, but Sendgrid API key is not configured.';
+    
+                        await EmailLogService.create({
+                            data: emailLog,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+
+                    throw new BadDataException("Sendgrid API key not configured");
+                }
+
                 SendgridMail.setApiKey(SendGridApiKey);
 
                 const msg: MailDataRequired = {
@@ -331,7 +348,7 @@ export default class MailService {
                 return;
             }
 
-            if ((!options || !options.emailServer) && !useInternalSmtpServer) {
+            if ((!options || !options.emailServer) && emailServerType === EmailServerType.CustomSMTP) {
                 if (!options) {
                     options = {};
                 }
@@ -340,13 +357,27 @@ export default class MailService {
                     await this.getGlobalSmtpSettings();
 
                 if (!globalEmailServer) {
+
+                    if (emailLog) {
+                        emailLog.status = MailStatus.Error;
+                        emailLog.statusMessage =
+                            'Email is configured to use SMTP, but SMTP settings are not configured.';
+    
+                        await EmailLogService.create({
+                            data: emailLog,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+
                     throw new BadDataException('Global SMTP Config not found');
                 }
 
                 options.emailServer = globalEmailServer;
             }
 
-            if (useInternalSmtpServer && (!options || !options.emailServer)) {
+            if (emailServerType === EmailServerType.Internal && (!options || !options.emailServer)) {
                 if (!options) {
                     options = {};
                 }

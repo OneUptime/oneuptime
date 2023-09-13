@@ -1,4 +1,4 @@
-import GlobalConfig from 'Model/Models/GlobalConfig';
+import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 import Hostname from 'Common/Types/API/Hostname';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -85,8 +85,8 @@ export const getGlobalSMTPConfig: Function =
         };
     };
 
-export const shouldUseInternalSmtpServer: Function =
-    async (): Promise<boolean> => {
+export const getEmailServerType: Function =
+    async (): Promise<EmailServerType> => {
         const globalConfig: GlobalConfig | null =
             await GlobalConfigService.findOneBy({
                 query: {
@@ -96,15 +96,15 @@ export const shouldUseInternalSmtpServer: Function =
                     isRoot: true,
                 },
                 select: {
-                    useInternalSMTPServer: true,
+                    emailServerType: true,
                 },
             });
 
         if (!globalConfig) {
-            return false;
+            return EmailServerType.Internal;
         }
 
-        return globalConfig.useInternalSMTPServer || false;
+        return globalConfig.emailServerType || EmailServerType.Internal;
     };
 
 export const getTwilioConfig: Function =
