@@ -396,7 +396,7 @@ services:
             PORT: ${API_DOCS_PORT}
 
 
-    nginx:
+    ingress:
         depends_on:
             - identity
             - accounts

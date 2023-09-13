@@ -144,11 +144,11 @@ services:
             service: api-reference
 
 
-    nginx:
+    ingress:
        image:  oneuptime/nginx:${APP_TAG}
        extends:
             file: ./docker-compose.base.yml
-            service: nginx
+            service: ingress
 
 volumes:
     postgres:

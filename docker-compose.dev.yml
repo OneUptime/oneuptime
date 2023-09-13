@@ -450,14 +450,14 @@ services:
             dockerfile: ./ApiReference/Dockerfile
 
 
-    nginx:
+    ingress:
         build:
             network: host
             context: .
             dockerfile: ./Nginx/Dockerfile
         extends:
             file: ./docker-compose.base.yml
-            service: nginx
+            service: ingress
 
 volumes:
     postgres:
