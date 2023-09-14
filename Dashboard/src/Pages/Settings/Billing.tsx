@@ -394,7 +394,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
                     {reseller && (
                         <Card
-                            title={`You have purchased this project from ${reseller.name}`}
+                            title={`You have purchased this plan from ${reseller.name}`}
                             description={`If you would like to change the plan, please contact ${reseller.name} at ${reseller.description}`}
                             buttons={
                                 reseller.changePlanLink

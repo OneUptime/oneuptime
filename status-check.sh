@@ -50,6 +50,10 @@ echo "Checking Link Shortener Status..."
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/l/status)" != "200" ]]; do sleep 5; done'
 echo "Link Shortener Server is up ✔️"
 
+echo "Checking Admin Dashboard Server Status..."
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/admin/status)" != "200" ]]; do sleep 5; done'
+echo "Admin Dashboard Server is up ✔️"
+
 echo "⌛️ OneUptime is up!"
 echo ""
 echo "🎉🎉🎉  Done! 🎉🎉🎉"
