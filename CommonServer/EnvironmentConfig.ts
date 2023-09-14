@@ -63,47 +63,43 @@ export const ClusterKey: ObjectID = new ObjectID(
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
 export const RealtimeHostname: Hostname = Hostname.fromString(
-    process.env['REALTIME_HOSTNAME'] || 'realtime'
+    'realtime:3300'
 );
 
 export const NotificationHostname: Hostname = Hostname.fromString(
-    process.env['NOTIFICATION_HOSTNAME'] || 'notification'
+    'notification:3191'
 );
 
 export const WorkerHostname: Hostname = Hostname.fromString(
-    process.env['WORKER_HOSTNAME'] || 'worker'
+    'worker:3452'
 );
 
 export const LinkShortenerHostname: Route = new Route(
-    process.env['LINK_SHORTENER_HOSTNAME'] || 'link-shortener'
+   'link-shortener:3521'
 );
 
 export const WorkflowHostname: Hostname = Hostname.fromString(
-    process.env['WORKFLOW_HOSTNAME'] || 'workflow'
+   'workflow:3099'
 );
 
 export const DashboardApiHostname: Hostname = Hostname.fromString(
-    process.env['DASHBOARD_API_HOSTNAME'] || 'dashboard-api'
+    'dashboard-api:3002'
 );
 
 export const ProbeApiHostname: Hostname = Hostname.fromString(
-    process.env['PROBE_API_HOSTNAME'] || 'probe-api'
-);
-
-export const DataIngestorHostname: Hostname = Hostname.fromString(
-    process.env['DATA_INGESTOR_HOSTNAME'] || 'daat-ingestor'
+   'probe-api:3400'
 );
 
 export const AccountsHostname: Hostname = Hostname.fromString(
-    process.env['ACCOUNTS_HOSTNAME'] || 'accounts'
+    'accounts:3003'
 );
 
 export const HomeHostname: Hostname = Hostname.fromString(
-    process.env['HOME_HOSTNAME'] || 'home'
+   'home:1444'
 );
 
 export const DashboardHostname: Hostname = Hostname.fromString(
-    process.env['DASHBOARD_HOSTNAME'] || 'dashboard'
+   'dashboard:3000'
 );
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
