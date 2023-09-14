@@ -62,45 +62,28 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
-export const RealtimeHostname: Hostname = Hostname.fromString(
-    'realtime:3300'
-);
+export const RealtimeHostname: Hostname = Hostname.fromString('realtime:3300');
 
-export const NotificationHostname: Hostname = Hostname.fromString(
-    'notification:3191'
-);
+export const NotificationHostname: Hostname =
+    Hostname.fromString('notification:3191');
 
-export const WorkerHostname: Hostname = Hostname.fromString(
-    'worker:3452'
-);
+export const WorkerHostname: Hostname = Hostname.fromString('worker:3452');
 
-export const LinkShortenerHostname: Route = new Route(
-   'link-shortener:3521'
-);
+export const LinkShortenerHostname: Route = new Route('link-shortener:3521');
 
-export const WorkflowHostname: Hostname = Hostname.fromString(
-   'workflow:3099'
-);
+export const WorkflowHostname: Hostname = Hostname.fromString('workflow:3099');
 
-export const DashboardApiHostname: Hostname = Hostname.fromString(
-    'dashboard-api:3002'
-);
+export const DashboardApiHostname: Hostname =
+    Hostname.fromString('dashboard-api:3002');
 
-export const ProbeApiHostname: Hostname = Hostname.fromString(
-   'probe-api:3400'
-);
+export const ProbeApiHostname: Hostname = Hostname.fromString('probe-api:3400');
 
-export const AccountsHostname: Hostname = Hostname.fromString(
-    'accounts:3003'
-);
+export const AccountsHostname: Hostname = Hostname.fromString('accounts:3003');
 
-export const HomeHostname: Hostname = Hostname.fromString(
-   'home:1444'
-);
+export const HomeHostname: Hostname = Hostname.fromString('home:1444');
 
-export const DashboardHostname: Hostname = Hostname.fromString(
-   'dashboard:3000'
-);
+export const DashboardHostname: Hostname =
+    Hostname.fromString('dashboard:3000');
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
 
