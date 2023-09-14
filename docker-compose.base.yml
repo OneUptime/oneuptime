@@ -133,7 +133,6 @@ services:
             INTERNAL_SMTP_HOST: ${INTERNAL_SMTP_HOST}
             INTERNAL_SMTP_PORT: ${INTERNAL_SMTP_PORT}
             INTERNAL_SMTP_IS_SECURE: ${INTERNAL_SMTP_IS_SECURE}
-            USE_INTERNAL_SMTP: ${USE_INTERNAL_SMTP}
         depends_on:
             - haraka
         
