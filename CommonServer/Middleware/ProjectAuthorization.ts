@@ -16,6 +16,8 @@ import { UserTenantAccessPermission } from 'Common/Types/Permission';
 import Dictionary from 'Common/Types/Dictionary';
 import QueryHelper from '../Types/Database/QueryHelper';
 import GlobalConfigService from '../Services/GlobalConfigService';
+import User from 'Model/Models/User';
+import UserService from '../Services/UserService';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -136,6 +138,35 @@ export default class ProjectMiddleware {
 
                 if (masterKeyGlobalConfig) {
                     (req as OneUptimeRequest).userType = UserType.MasterAdmin;
+
+                    // get master admin user
+
+                    const user: User | null = await UserService.findOneBy({
+                        query: {
+                            isMasterAdmin: true
+                        },
+                        select: {
+                            _id: true,
+                            email: true,
+                            name: true
+                        },
+                        props: {
+                            isRoot: true
+                        }
+                    });
+
+                    if (!user) {
+                        throw new BadDataException('Master Admin user not found. Please make sure you have created a master admin user.');
+                    }
+
+
+                    (req as OneUptimeRequest).userAuthorization = {
+                        userId: user.id!,
+                        isMasterAdmin: true,
+                        email: user.email!,
+                        name: user.name!
+                    };
+
                     return next();
                 }
             }
