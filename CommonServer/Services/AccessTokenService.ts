@@ -84,7 +84,7 @@ export class AccessTokenService extends BaseService {
                 Permission.Public,
                 Permission.User,
                 Permission.CurrentUser,
-                Permission.ProjectOwner
+                Permission.ProjectOwner,
             ],
             _type: 'UserGlobalAccessPermission',
         };
@@ -93,7 +93,6 @@ export class AccessTokenService extends BaseService {
     public async getMasterApiTenantAccessPermission(
         projectId: ObjectID
     ): Promise<UserTenantAccessPermission> {
-        
         const userPermissions: Array<UserPermission> = [];
 
         userPermissions.push({
@@ -109,7 +108,6 @@ export class AccessTokenService extends BaseService {
 
         return permission;
     }
-
 
     public async getApiTenantAccessPermission(
         projectId: ObjectID,

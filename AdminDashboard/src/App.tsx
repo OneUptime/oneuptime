@@ -108,10 +108,7 @@ const App: () => JSX.Element = () => {
                 />
 
                 <PageRoute
-                    path={
-                        RouteMap[PageMap.SETTINGS_API_KEY]?.toString() ||
-                        ''
-                    }
+                    path={RouteMap[PageMap.SETTINGS_API_KEY]?.toString() || ''}
                     element={<SettingsAPIKey />}
                 />
             </Routes>

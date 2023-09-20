@@ -95,8 +95,8 @@ app.use(setDefaultHeaders);
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
  */
 
-app.use(ExpressJson({ limit: '50mb' }));
-app.use(ExpressUrlEncoded({ limit: '50mb' }));
+app.use(ExpressJson({ limit: '50mb', extended: true }));
+app.use(ExpressUrlEncoded({ limit: '50mb', extended: true }));
 
 app.use(logRequest);
 

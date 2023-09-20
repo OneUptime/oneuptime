@@ -27,7 +27,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
 @EnableDocumentation({
-    isMasterAdminApiDocs: true
+    isMasterAdminApiDocs: true,
 })
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({

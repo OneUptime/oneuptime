@@ -277,10 +277,8 @@ export default class Response {
             listData.limit = new PositiveNumber(
                 parseInt(oneUptimeRequest.query['limit'].toString())
             );
-        }else{
-            listData.limit = new PositiveNumber(
-                DEFAULT_LIMIT
-            );
+        } else {
+            listData.limit = new PositiveNumber(DEFAULT_LIMIT);
         }
 
         if (oneUptimeRequest.query['output-type'] === 'csv') {

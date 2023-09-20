@@ -1,4 +1,3 @@
-
 import React, {
     FunctionComponent,
     ReactElement,
@@ -11,26 +10,21 @@ import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
+    readonly?: boolean | undefined;
     initialValue?: undefined | ObjectID;
     onChange?: undefined | ((value: ObjectID) => void);
     value?: ObjectID | undefined;
-    readOnly?: boolean | undefined;
     disabled?: boolean | undefined;
     dataTestId?: string | undefined;
     tabIndex?: number | undefined;
     onEnterPress?: (() => void) | undefined;
     error?: string | undefined;
-
 }
 
 const IDGenerator: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const [value, setValue] = useState<ObjectID | null>(null);
-
-
 
     useEffect(() => {
         if (props.initialValue) {
@@ -55,14 +49,21 @@ const IDGenerator: FunctionComponent<ComponentProps> = (
     return (
         <>
             <>
-                <div className='flex'>
-                    {value && <Input value={value.toString()} />}
-                    <div className='mt-2'>
-                        <Button icon={IconProp.Refresh} buttonStyle={ButtonStyleType.NORMAL} disabled={props.disabled} title={value ? 'Regenerate' :'Generate'} onClick={() => {
-                            const generatedID: ObjectID = ObjectID.generate();
-                            setValue(generatedID);
-                            props.onChange && props.onChange(generatedID);
-                        }} />
+                <div className="flex" data-testid={props.dataTestId}>
+                    {value && <Input readOnly={props.readonly} tabIndex={props.tabIndex} onEnterPress={props.onEnterPress}  value={value.toString()} />}
+                    <div className="mt-2">
+                        <Button
+                            icon={IconProp.Refresh}
+                            buttonStyle={ButtonStyleType.NORMAL}
+                            disabled={props.disabled || props.readonly}
+                            title={value ? 'Regenerate' : 'Generate'}
+                            onClick={() => {
+                                const generatedID: ObjectID =
+                                    ObjectID.generate();
+                                setValue(generatedID);
+                                props.onChange && props.onChange(generatedID);
+                            }}
+                        />
                     </div>
                 </div>
             </>

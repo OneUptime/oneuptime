@@ -18,6 +18,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import GlobalConfigService from '../Services/GlobalConfigService';
 import User from 'Model/Models/User';
 import UserService from '../Services/UserService';
+import GlobalConfig from 'Model/Models/GlobalConfig';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -60,7 +61,6 @@ export default class ProjectMiddleware {
         _res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-
         try {
             const tenantId: ObjectID | null = this.getProjectId(req);
 
@@ -108,7 +108,8 @@ export default class ProjectMiddleware {
                         );
 
                     if (userTenantAccessPermission) {
-                        (req as OneUptimeRequest).userTenantAccessPermission = {};
+                        (req as OneUptimeRequest).userTenantAccessPermission =
+                            {};
                         (
                             (req as OneUptimeRequest)
                                 .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
@@ -120,21 +121,21 @@ export default class ProjectMiddleware {
             }
 
             if (!apiKeyModel) {
-                // check master key. 
-                const masterKeyGlobalConfig = await GlobalConfigService.findOneBy({
-                    query: {
-                        _id: ObjectID.getZeroObjectID().toString(),
-                        isMasterApiKeyEnabled: true,
-                        masterApiKey: apiKey
-                    },
-                    props: {
-                        isRoot: true
-                    },
-                    select: {
-                        _id: true
-
-                    }
-                });
+                // check master key.
+                const masterKeyGlobalConfig: GlobalConfig | null =
+                    await GlobalConfigService.findOneBy({
+                        query: {
+                            _id: ObjectID.getZeroObjectID().toString(),
+                            isMasterApiKeyEnabled: true,
+                            masterApiKey: apiKey,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                        select: {
+                            _id: true,
+                        },
+                    });
 
                 if (masterKeyGlobalConfig) {
                     (req as OneUptimeRequest).userType = UserType.MasterAdmin;
@@ -143,42 +144,42 @@ export default class ProjectMiddleware {
 
                     const user: User | null = await UserService.findOneBy({
                         query: {
-                            isMasterAdmin: true
+                            isMasterAdmin: true,
                         },
                         select: {
                             _id: true,
                             email: true,
-                            name: true
+                            name: true,
                         },
                         props: {
-                            isRoot: true
-                        }
+                            isRoot: true,
+                        },
                     });
 
                     if (!user) {
-                        throw new BadDataException('Master Admin user not found. Please make sure you have created a master admin user.');
+                        throw new BadDataException(
+                            'Master Admin user not found. Please make sure you have created a master admin user.'
+                        );
                     }
-
 
                     (req as OneUptimeRequest).userAuthorization = {
                         userId: user.id!,
                         isMasterAdmin: true,
                         email: user.email!,
-                        name: user.name!
+                        name: user.name!,
                     };
 
                     return next();
                 }
             }
 
-
-
             if (!tenantId) {
-                throw new BadDataException('ProjectID not found in the request header.');
+                throw new BadDataException(
+                    'ProjectID not found in the request header.'
+                );
             }
 
             throw new BadDataException('Invalid Project ID or API Key');
-
         } catch (err) {
             next(err);
         }

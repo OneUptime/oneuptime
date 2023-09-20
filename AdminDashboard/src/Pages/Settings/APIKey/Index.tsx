@@ -73,7 +73,8 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 masterApiKey: true,
                             },
                             title: 'Master API Key',
-                            description: 'This API key has root access to all the resources in all the projects on OneUptime.',
+                            description:
+                                'This API key has root access to all the resources in all the projects on OneUptime.',
                             fieldType: FieldType.HiddenText,
                             opts: {
                                 isCopyable: true,
@@ -85,7 +86,8 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 isMasterApiKeyEnabled: true,
                             },
                             title: 'Enabled',
-                            description: 'Enable or disable the master API key. If disabled, all requests using this key will fail.',
+                            description:
+                                'Enable or disable the master API key. If disabled, all requests using this key will fail.',
                             fieldType: FieldType.Boolean,
                             placeholder: 'Not Enabled',
                         },

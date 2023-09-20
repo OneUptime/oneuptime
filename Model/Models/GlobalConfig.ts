@@ -348,7 +348,6 @@ export default class GlobalConfig extends GlobalConfigModel {
     })
     public isMasterApiKeyEnabled?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
@@ -357,7 +356,8 @@ export default class GlobalConfig extends GlobalConfigModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'Master API Key',
-        description: 'This API key has root access to all the resources in all the projects on OneUptime.',
+        description:
+            'This API key has root access to all the resources in all the projects on OneUptime.',
     })
     @Column({
         type: ColumnType.ObjectID,

@@ -19,7 +19,10 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
-import { DEFAULT_LIMIT, LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import {
+    DEFAULT_LIMIT,
+    LIMIT_PER_PROJECT,
+} from 'Common/Types/Database/LimitMax';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../EnvironmentConfig';
