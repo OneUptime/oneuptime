@@ -1,6 +1,7 @@
 version: '3.7'
 
 x-common-variables: &common-variables
+    HOST: ${HOST}
     NODE_ENV: ${ENVIRONMENT}
     BILLING_ENABLED: ${BILLING_ENABLED}
     BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
@@ -107,7 +108,7 @@ services:
             - clickhouse:/var/lib/clickhouse/
 
     postgres:
-        image: postgres:latest
+        image: postgres:15
         restart: always
         environment: 
             POSTGRES_USER: ${DATABASE_USERNAME}

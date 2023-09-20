@@ -33,7 +33,6 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
                 twilioPhoneNumber: process.env['TWILIO_PHONE_NUMBER'] || '',
 
                 // Update host
-                host: process.env['DOMAIN'] || 'localhost',
                 useHttps: process.env['HTTP_PROTOCOL'] === 'https',
 
                 // Update SMTP

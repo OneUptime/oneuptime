@@ -49,20 +49,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                 formFields={[
                     {
                         field: {
-                            host: true,
-                        },
-                        title: 'Host',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        description:
-                            'IP address or Hostname of this server instance.',
-                        placeholder: 'oneuptime.yourcompany.com',
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                    {
-                        field: {
                             useHttps: true,
                         },
                         title: 'Use HTTPs',
@@ -76,15 +62,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                     modelType: GlobalConfig,
                     id: 'model-detail-global-config',
                     fields: [
-                        {
-                            field: {
-                                host: true,
-                            },
-                            title: 'Host',
-                            placeholder: 'None',
-                            description:
-                                'IP address or Hostname of this server instance.',
-                        },
                         {
                             field: {
                                 useHttps: true,

@@ -30,7 +30,6 @@ export default class GlobalConfigAPI extends BaseAPI<
                         await GlobalConfigService.findOneById({
                             id: ObjectID.getZeroObjectID(),
                             select: {
-                                host: true,
                                 useHttps: true,
                             },
                             props: {
@@ -39,7 +38,6 @@ export default class GlobalConfigAPI extends BaseAPI<
                         });
 
                     return Response.sendJsonObjectResponse(req, res, {
-                        HOST: globalConfig?.host?.toString() || 'localhost',
                         USE_HTTPS:
                             globalConfig?.useHttps?.toString() || 'false',
                     });

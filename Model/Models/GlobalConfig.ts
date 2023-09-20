@@ -39,25 +39,6 @@ export enum EmailServerType {
     update: [],
 })
 export default class GlobalConfig extends GlobalConfigModel {
-    @ColumnAccessControl({
-        create: [],
-        read: [],
-        update: [],
-    })
-    @TableColumn({
-        type: TableColumnType.ShortText,
-        title: 'Host',
-        description:
-            'Server Hostname or an IP address where OneUptime is hosted on.',
-    })
-    @Column({
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
-        nullable: true,
-        unique: true,
-        transformer: Hostname.getDatabaseTransformer(),
-    })
-    public host?: Hostname = undefined;
 
     @ColumnAccessControl({
         create: [],
