@@ -75,6 +75,42 @@ export class AccessTokenService extends BaseService {
         };
     }
 
+    public async getMasterKeyApiGlobalPermission(
+        projectId: ObjectID
+    ): Promise<UserGlobalAccessPermission> {
+        return {
+            projectIds: [projectId],
+            globalPermissions: [
+                Permission.Public,
+                Permission.User,
+                Permission.CurrentUser,
+                Permission.ProjectOwner
+            ],
+            _type: 'UserGlobalAccessPermission',
+        };
+    }
+
+    public async getMasterApiTenantAccessPermission(
+        projectId: ObjectID
+    ): Promise<UserTenantAccessPermission> {
+        
+        const userPermissions: Array<UserPermission> = [];
+
+        userPermissions.push({
+            permission: Permission.ProjectOwner,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        const permission: UserTenantAccessPermission =
+            this.getDefaultUserTenantAccessPermission(projectId);
+
+        permission.permissions = permission.permissions.concat(userPermissions);
+
+        return permission;
+    }
+
+
     public async getApiTenantAccessPermission(
         projectId: ObjectID,
         apiKeyId: ObjectID

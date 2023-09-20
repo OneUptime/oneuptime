@@ -16,6 +16,7 @@ import { UserTenantAccessPermission } from 'Common/Types/Permission';
 import Dictionary from 'Common/Types/Dictionary';
 import Response from '../Utils/Response';
 import QueryHelper from '../Types/Database/QueryHelper';
+import GlobalConfigService from '../Services/GlobalConfigService';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -83,6 +84,51 @@ export default class ProjectMiddleware {
             },
             props: { isRoot: true },
         });
+
+        if(!apiKeyModel) {
+            // check master key. 
+            const masterKeyGlobalConfig = await GlobalConfigService.findOneBy({
+                query: {
+                    _id: ObjectID.getZeroObjectID().toString(),
+                    isMasterApiKeyEnabled: true, 
+                    masterApiKey: apiKey
+                },
+                props: {
+                    isRoot: true
+                },
+                select: {
+                    _id: true 
+
+                }
+            });
+
+            if(masterKeyGlobalConfig){
+                (req as OneUptimeRequest).userType = UserType.API;
+                // TODO: Add API key permissions.
+                // (req as OneUptimeRequest).permissions =
+                //     apiKeyModel.permissions || [];
+                (req as OneUptimeRequest).tenantId = tenantId;
+                (req as OneUptimeRequest).userGlobalAccessPermission =
+                    await AccessTokenService.getMasterKeyApiGlobalPermission(
+                        tenantId
+                    );
+    
+                const userTenantAccessPermission: UserTenantAccessPermission | null =
+                    await AccessTokenService.getMasterApiTenantAccessPermission(
+                        tenantId
+                    );
+    
+                if (userTenantAccessPermission) {
+                    (req as OneUptimeRequest).userTenantAccessPermission = {};
+                    (
+                        (req as OneUptimeRequest)
+                            .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
+                    )[tenantId.toString()] = userTenantAccessPermission;
+    
+                    return next();
+                }
+            }
+        }
 
         if (apiKeyModel) {
             (req as OneUptimeRequest).userType = UserType.API;
