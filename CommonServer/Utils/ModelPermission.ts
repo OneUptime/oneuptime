@@ -54,6 +54,16 @@ export default class ModelPermission {
         query: Query<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
+
+        if(props.isRoot){
+            query = await this.addTenantScopeToQueryAsRoot(
+                modelType,
+                query,
+                props
+            );
+        }
+
+
         if (!props.isRoot) {
             this.checkModelLevelPermissions(
                 modelType,
@@ -264,6 +274,14 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
         const model: BaseModel = new modelType();
+
+        if(props.isRoot){
+            query = await this.addTenantScopeToQueryAsRoot(
+                modelType,
+                query,
+                props
+            );
+        }
 
         if (!props.isRoot) {
             //check if the user is logged in.
@@ -803,6 +821,26 @@ export default class ModelPermission {
             }
         }
     }
+
+    private static async addTenantScopeToQueryAsRoot<TBaseModel extends BaseModel>(
+        modelType: { new (): TBaseModel },
+        query: Query<TBaseModel>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<Query<TBaseModel>> {
+        const model: BaseModel = new modelType();
+
+        const tenantColumn: string | null = model.getTenantColumn();
+
+      
+
+        // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
+        if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
+            (query as any)[tenantColumn] = props.tenantId;
+        } 
+
+        return query;
+    }
+
 
     private static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },

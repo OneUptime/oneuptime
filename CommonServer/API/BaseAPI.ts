@@ -19,7 +19,7 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import { DEFAULT_LIMIT, LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../EnvironmentConfig';
@@ -283,7 +283,7 @@ export default class BaseAPI<
 
         const limit: PositiveNumber = req.query['limit']
             ? new PositiveNumber(req.query['limit'] as string)
-            : new PositiveNumber(10);
+            : new PositiveNumber(DEFAULT_LIMIT);
 
         if (limit.toNumber() > LIMIT_PER_PROJECT) {
             throw new BadRequestException(

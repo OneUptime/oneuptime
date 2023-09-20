@@ -17,6 +17,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import FileModel from 'Common/Models/FileModel';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusCode from 'Common/Types/API/StatusCode';
+import { DEFAULT_LIMIT } from 'Common/Types/Database/LimitMax';
 
 export default class Response {
     private static logResponse(
@@ -275,6 +276,10 @@ export default class Response {
         if (oneUptimeRequest.query['limit']) {
             listData.limit = new PositiveNumber(
                 parseInt(oneUptimeRequest.query['limit'].toString())
+            );
+        }else{
+            listData.limit = new PositiveNumber(
+                DEFAULT_LIMIT
             );
         }
 
