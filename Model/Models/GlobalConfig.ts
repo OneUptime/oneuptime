@@ -14,6 +14,7 @@ import Email from 'Common/Types/Email';
 import Phone from 'Common/Types/Phone';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
+import ObjectID from 'Common/Types/ObjectID';
 
 export enum EmailServerType {
     Internal = 'Internal',
@@ -328,4 +329,41 @@ export default class GlobalConfig extends GlobalConfigModel {
         unique: true,
     })
     public sendgridFromName?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Boolean,
+        title: 'Is Master API Key Enabled',
+        description: 'Is Master API Key Enabled?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: true,
+        unique: true,
+        default: false,
+    })
+    public isMasterApiKeyEnabled?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Master API Key',
+        description: 'This API key has root access to all the resources in all the projects on OneUptime.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        unique: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public masterApiKey?: ObjectID = undefined;
 }

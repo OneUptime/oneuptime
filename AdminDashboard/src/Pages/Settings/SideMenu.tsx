@@ -63,6 +63,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.Signal}
                 />
             </SideMenuSection>
+            <SideMenuSection title="API and Integrations">
+                <SideMenuItem
+                    link={{
+                        title: 'API Key',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_API_KEY] as Route
+                        ),
+                    }}
+                    icon={IconProp.Code}
+                />
+            </SideMenuSection>
         </SideMenu>
     );
 };

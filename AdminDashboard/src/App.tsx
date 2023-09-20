@@ -24,6 +24,7 @@ import SettingsEmail from './Pages/Settings/SMTP/Index';
 import SettingsCallSMS from './Pages/Settings/CallSMS/Index';
 import SettingsProbes from './Pages/Settings/Probes/Index';
 import SettingsAuthentication from './Pages/Settings/Authentication/Index';
+import SettingsAPIKey from './Pages/Settings/APIKey/Index';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -104,6 +105,14 @@ const App: () => JSX.Element = () => {
                         ''
                     }
                     element={<SettingsAuthentication />}
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.SETTINGS_API_KEY]?.toString() ||
+                        ''
+                    }
+                    element={<SettingsAPIKey />}
                 />
             </Routes>
         </MasterPage>
