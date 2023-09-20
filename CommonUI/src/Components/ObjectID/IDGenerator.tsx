@@ -50,7 +50,14 @@ const IDGenerator: FunctionComponent<ComponentProps> = (
         <>
             <>
                 <div className="flex" data-testid={props.dataTestId}>
-                    {value && <Input readOnly={props.readonly} tabIndex={props.tabIndex} onEnterPress={props.onEnterPress}  value={value.toString()} />}
+                    {value && (
+                        <Input
+                            readOnly={props.readonly}
+                            tabIndex={props.tabIndex}
+                            onEnterPress={props.onEnterPress}
+                            value={value.toString()}
+                        />
+                    )}
                     <div className="mt-2">
                         <Button
                             icon={IconProp.Refresh}
