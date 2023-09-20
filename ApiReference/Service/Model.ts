@@ -229,6 +229,8 @@ export default class ServiceHandler {
             DashboardApiRoute.toString() +
             currentResource.model.crudApiPath?.toString();
 
+        pageData.isMasterAdminApiDocs = currentResource.model.isMasterAdminApiDocs;
+
         return res.render('pages/index', {
             page: page,
             resources: Resources,

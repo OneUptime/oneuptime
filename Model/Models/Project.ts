@@ -25,7 +25,12 @@ import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
 import Reseller from './Reseller';
 import ResellerPlan from './ResellerPlan';
+import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
 
+
+@EnableDocumentation({
+    isMasterAdminApiDocs: true
+})
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
 @TableAccessControl({

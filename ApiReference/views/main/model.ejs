@@ -9,8 +9,12 @@
 
 
       <h2>Permissions</h2>
+
+      <% if(!pageData.isMasterAdminApiDocs){ %>
        <p class="lead"> Your API Token needs permissions to create, update, read or delete this resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. </p>
-      
+     
+
+
    
        <h3 id="consuming-webhooks" >
          Read Permissions
@@ -137,6 +141,12 @@
           </div>
       
        </div>
+
+       <% } %>
+
+       <% if(pageData.isMasterAdminApiDocs){ %>
+         <p>This API can only be accessed through a Master API Token. You can create one on the Admin Dashboard.</p>
+         <% } %>
 
 
       <h2 id="the-contact-model" class="scroll-mt-24">

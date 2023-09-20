@@ -2,6 +2,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import Models from 'Model/Models/Index';
 import ArrayUtil from 'Common/Types/ArrayUtil';
 import Dictionary from 'Common/Types/Dictionary';
+import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 
 export interface ModelDocumentation {
     name: string;
@@ -15,7 +16,13 @@ export default class ResourceUtil {
         const resources: Array<ModelDocumentation> = Models.filter(
             (model: typeof BaseModel) => {
                 const modelInstance: BaseModel = new model();
-                return modelInstance.enableDocumentation;
+                let showDocs: boolean = modelInstance.enableDocumentation;
+
+                if (modelInstance.isMasterAdminApiDocs && IsBillingEnabled) {
+                    showDocs = false;
+                }
+
+                return showDocs;
             }
         )
             .map((model: typeof BaseModel) => {

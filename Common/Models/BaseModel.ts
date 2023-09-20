@@ -110,6 +110,7 @@ export default class BaseModel extends BaseEntity {
     public enableWorkflowOn!: EnableWorkflowOn;
 
     public enableDocumentation!: boolean;
+    public isMasterAdminApiDocs!: boolean;
 
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
