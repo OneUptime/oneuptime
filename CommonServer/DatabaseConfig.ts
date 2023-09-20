@@ -31,8 +31,8 @@ export default class DatabaseConfig {
     }
 
     public static async getHost(): Promise<Hostname> {
-        return (
-            Promise.resolve(new Hostname(process.env['HOST'] || 'localhost'))
+        return Promise.resolve(
+            new Hostname(process.env['HOST'] || 'localhost')
         );
     }
 

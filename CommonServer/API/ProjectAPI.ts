@@ -45,7 +45,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                             query: {
                                 userId: (req as OneUptimeRequest)
                                     .userAuthorization!.userId!,
-                                hasAcceptedInvitation: true
+                                hasAcceptedInvitation: true,
                             },
                             select: {
                                 project: {
