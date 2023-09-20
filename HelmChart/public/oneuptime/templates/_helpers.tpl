@@ -1,44 +1,62 @@
-{{/* vim: set filetype=mustache: */}}
-
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "oneuptime.mongodbConnectionString" -}}
-{{ printf "mongodb://%s:%s@%s-%s.%s-%s.%s.%s:%s/%s" $.Values.mongo.oneuptimeDbUsername $.Values.mongo.oneuptimeDbPassword  $.Release.Name "mongo-standalone-0" $.Release.Name "mongo-standalone" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongo.databaseName }}
-{{- end -}}
+{{- define "oneuptime.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
 
-{{- define "oneuptime.internalSmtpServer" -}}
-{{ printf "%s-haraka.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "oneuptime.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
 
-{{- define "oneuptime.redisHost" -}}
-{{ printf "%s-redis-master.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "oneuptime.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
 
-{{- define "oneuptime.backendHost" -}}
-{{ printf "%s-backend.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
+{{/*
+Common labels
+*/}}
+{{- define "oneuptime.labels" -}}
+helm.sh/chart: {{ include "oneuptime.chart" . }}
+{{ include "oneuptime.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
 
-{{- define "oneuptime.oneuptimeHost" -}}
-{{ printf "%s-backend.%s" $.Values.oneuptime.host }}
-{{- end -}}
+{{/*
+Selector labels
+*/}}
+{{- define "oneuptime.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "oneuptime.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
 
-{{- define "oneuptime.serverUrl" -}}
-{{ printf "http://%s-backend.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
-
-{{- define "oneuptime.probeApiUrl" -}}
-{{ printf "http://%s-ProbeAPI.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
-
-{{- define "oneuptime.scriptRunnerUrl" -}}
-{{ printf "http://%s-script.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
-
-{{- define "oneuptime.dataIngestorUrl" -}}
-{{ printf "http://%s-ingestor.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
-
-{{- define "oneuptime.realtimeUrl" -}}
-{{ printf "http://%s-realtime.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
-{{- end -}}
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "oneuptime.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "oneuptime.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
