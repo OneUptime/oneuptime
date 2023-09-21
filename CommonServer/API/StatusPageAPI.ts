@@ -15,7 +15,7 @@ import Response from '../Utils/Response';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageFooterLinkService from '../Services/StatusPageFooterLinkService';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import StatusPageHeaderLinkService from '../Services/StatusPageHeaderLinkService';
 import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
@@ -553,7 +553,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     createdAt: SortOrder.Ascending,
                                 },
                                 skip: 0,
-                                limit: LIMIT_PER_PROJECT,
+                                limit: LIMIT_MAX,
                                 props: {
                                     isRoot: true,
                                 },

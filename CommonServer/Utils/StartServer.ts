@@ -105,8 +105,6 @@ const init: Function = async (
     port?: Port,
     isFrontendApp?: boolean
 ): Promise<ExpressApplication> => {
-
-
     logger.info(`App Version: ${AppVersion.toString()}`);
 
     await Express.launchApplication(appName, port);
