@@ -101,7 +101,6 @@ export default class ApiMonitor {
         }
 
         try {
-
             debugger;
 
             logger.info(
@@ -132,21 +131,20 @@ export default class ApiMonitor {
                 );
             }
 
-            if(result.statusCode >= 500 && result.statusCode < 600) {
-                // implement retry, just to be sure server is down. 
+            if (result.statusCode >= 500 && result.statusCode < 600) {
+                // implement retry, just to be sure server is down.
                 if (!options) {
                     options = {};
                 }
-    
+
                 if (!options.currentRetryCount) {
                     options.currentRetryCount = 0; // default value
                 }
-    
+
                 if (options.currentRetryCount < (options.retry || 5)) {
                     options.currentRetryCount++;
                     return await this.ping(url, options);
                 }
-
             }
 
             const endTime: [number, number] = process.hrtime(startTime);

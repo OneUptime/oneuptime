@@ -7,7 +7,6 @@ import {
     NextFunction,
 } from '../../Utils/Express';
 import ApiKeyService from '../../Services/ApiKeyService';
-import Response from '../../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from '../../Types/Database/QueryHelper';
@@ -179,13 +178,15 @@ describe('ProjectMiddleware', () => {
                 .spyOn(ProjectMiddleware, 'getProjectId')
                 .mockReturnValueOnce(null);
 
-            await  ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
+            await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
                 req,
                 res,
                 next
             );
 
-            expect(next).toHaveBeenCalledWith(new BadDataException('ProjectId not found in the request'));
+            expect(next).toHaveBeenCalledWith(
+                new BadDataException('ProjectId not found in the request')
+            );
 
             expect(spyGetProjectId).toHaveBeenCalledWith(req);
         });
@@ -195,13 +196,15 @@ describe('ProjectMiddleware', () => {
                 .spyOn(ProjectMiddleware, 'getApiKey')
                 .mockReturnValueOnce(null);
 
-            await  ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
+            await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
                 req,
                 res,
                 next
-            )
+            );
 
-            expect(next).toHaveBeenCalledWith(new BadDataException('ApiKey not found in the request'));
+            expect(next).toHaveBeenCalledWith(
+                new BadDataException('ApiKey not found in the request')
+            );
 
             expect(spyGetApiKey).toHaveBeenCalledWith(req);
         });
@@ -235,12 +238,12 @@ describe('ProjectMiddleware', () => {
                 props: { isRoot: true },
             });
 
-            expect(next).toHaveBeenCalledWith(new BadDataException('Invalid Project ID or API Key'));
+            expect(next).toHaveBeenCalledWith(
+                new BadDataException('Invalid Project ID or API Key')
+            );
         });
 
         test('should call Response.sendErrorResponse when apiKeyModel is not null but getApiTenantAccessPermission returned null', async () => {
-           
-
             jest.spyOn(ApiKeyService, 'findOneBy').mockResolvedValue(
                 mockedApiModel
             );
@@ -256,7 +259,9 @@ describe('ProjectMiddleware', () => {
 
             expect(spyGetApiTenantAccessPermission).toHaveBeenCalled();
             // check first param of next
-            expect(next).toHaveBeenCalledWith(new BadDataException('Invalid Project ID or API Key'));
+            expect(next).toHaveBeenCalledWith(
+                new BadDataException('Invalid Project ID or API Key')
+            );
         });
 
         test("should call function 'next' when apiKeyModel is not null and getApiTenantAccessPermission returned userTenantAccessPermission", async () => {
