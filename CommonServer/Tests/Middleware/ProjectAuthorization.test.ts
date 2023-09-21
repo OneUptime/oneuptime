@@ -1,3 +1,4 @@
+import '../TestingUtils/Init';
 import ObjectID from 'Common/Types/ObjectID';
 import ProjectMiddleware from '../../Middleware/ProjectAuthorization';
 import {
@@ -13,6 +14,7 @@ import QueryHelper from '../../Types/Database/QueryHelper';
 import ApiKey from 'Model/Models/ApiKey';
 import AccessTokenService from '../../Services/AccessTokenService';
 import { UserTenantAccessPermission } from 'Common/Types/Permission';
+import Database from '../TestingUtils/Database';
 
 jest.mock('../../Services/ApiKeyService');
 jest.mock('../../Services/AccessTokenService');
@@ -21,6 +23,16 @@ type ObjectIdOrNull = ObjectID | null;
 
 describe('ProjectMiddleware', () => {
     const mockedObjectId: ObjectID = ObjectID.generate();
+
+    let database!: Database;
+    beforeEach(async () => {
+        database = new Database();
+        await database.createAndConnect();
+    });
+
+    afterEach(async () => {
+        await database.disconnectAndDropDatabase();
+    });
 
     describe('getProjectId', () => {
         describe("should return value when tenantid is passed in the request's", () => {
