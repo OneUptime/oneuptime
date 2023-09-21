@@ -101,7 +101,6 @@ export default class ApiMonitor {
         }
 
         try {
-            debugger;
 
             logger.info(
                 `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
