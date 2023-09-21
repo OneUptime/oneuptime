@@ -70,6 +70,37 @@ export default class PingMonitor {
         return false;
     }
 
+
+    public static async retry(host: Hostname | IPv4 | IPv6 | URL, currentPingResponse: PingResponse | null,
+        pingOptions?: PingOptions): Promise<PingResponse | null> {
+
+        if (!pingOptions) {
+            pingOptions = {};
+        }
+
+        if (!pingOptions.currentRetryCount) {
+            pingOptions.currentRetryCount = 0;
+        }
+
+        if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+            pingOptions.currentRetryCount++;
+            return await this.ping(host, pingOptions);
+        } else {
+            // check if the probe is online.
+            if (!pingOptions.isOnlineCheckRequest) {
+                if (!(await PingMonitor.isProbeOnline())) {
+                    logger.error(
+                        `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${res}`
+                    );
+                    return null;
+                }
+            }
+        }
+
+        return currentPingResponse;
+
+    }
+
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
         pingOptions?: PingOptions
@@ -102,41 +133,28 @@ export default class PingMonitor {
             );
             logger.info(res);
 
-            if (!res.alive) {
-                // retry. 
 
-                if (!pingOptions) {
-                    pingOptions = {};
-                }
-
-                if (!pingOptions.currentRetryCount) {
-                    pingOptions.currentRetryCount = 0;
-                }
-
-                if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
-                    pingOptions.currentRetryCount++;
-                    return await this.ping(host, pingOptions);
-                } else {
-                    // check if the probe is online.
-                    if (!pingOptions.isOnlineCheckRequest) {
-                        if (!(await PingMonitor.isProbeOnline())) {
-                            logger.error(
-                                `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${res}`
-                            );
-                            return null;
-                        }
-                    }
-                }
-            }
-
-            return {
+            const currentPingResponse: PingResponse = {
                 isOnline: res.alive,
                 responseTimeInMS: res.time
                     ? new PositiveNumber(Math.ceil(res.time as any))
                     : undefined,
                 failureCause: '',
             };
+
+            if (!res.alive) {
+                // retry. 
+                return this.retry(host, currentPingResponse, pingOptions);
+            }
+
+            return currentPingResponse;
         } catch (err: unknown) {
+
+            let currentPingResponse: PingResponse | null = {
+                isOnline: false,
+                failureCause: (err as any).toString(),
+            };
+
             logger.info(
                 `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} error: `
             );
@@ -144,15 +162,6 @@ export default class PingMonitor {
 
             if (!pingOptions) {
                 pingOptions = {};
-            }
-
-            if (!pingOptions.currentRetryCount) {
-                pingOptions.currentRetryCount = 0;
-            }
-
-            if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
-                pingOptions.currentRetryCount++;
-                return await this.ping(host, pingOptions);
             }
 
             // check if timeout exceeded and if yes, return null
@@ -163,23 +172,12 @@ export default class PingMonitor {
                 logger.info(
                     `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                 );
-                return null;
+                currentPingResponse = null;
             }
 
-            // check if the probe is online.
-            if (!pingOptions.isOnlineCheckRequest) {
-                if (!(await PingMonitor.isProbeOnline())) {
-                    logger.error(
-                        `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
-                    );
-                    return null;
-                }
-            }
+            // retry.
+            return this.retry(host, currentPingResponse, pingOptions);
 
-            return {
-                isOnline: false,
-                failureCause: (err as any).toString(),
-            };
         }
     }
 }
