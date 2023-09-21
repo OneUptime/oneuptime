@@ -104,7 +104,9 @@ export default class WebsiteMonitor {
 
         try {
             logger.info(
-                `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${options.currentRetryCount}`
+                `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
+                    options.currentRetryCount
+                }`
             );
 
             let startTime: [number, number] = process.hrtime();

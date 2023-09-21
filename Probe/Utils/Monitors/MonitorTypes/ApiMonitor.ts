@@ -102,7 +102,9 @@ export default class ApiMonitor {
 
         try {
             logger.info(
-                `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${options.currentRetryCount}`
+                `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
+                    options.currentRetryCount
+                }`
             );
 
             let startTime: [number, number] = process.hrtime();

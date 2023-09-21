@@ -85,7 +85,9 @@ export default class PingMonitor {
         }
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry: ${pingOptions?.currentRetryCount}`
+            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry: ${
+                pingOptions?.currentRetryCount
+            }`
         );
 
         try {
@@ -103,8 +105,10 @@ export default class PingMonitor {
             );
             logger.info(res);
 
-            if(!res.alive) {
-                throw new UnableToReachServer(`Unable to reach host ${hostAddress}. Monitor ID: ${pingOptions?.monitorId?.toString()}`);
+            if (!res.alive) {
+                throw new UnableToReachServer(
+                    `Unable to reach host ${hostAddress}. Monitor ID: ${pingOptions?.monitorId?.toString()}`
+                );
             }
 
             return {
