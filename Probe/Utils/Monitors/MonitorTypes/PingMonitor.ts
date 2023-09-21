@@ -84,7 +84,7 @@ export default class PingMonitor {
         }
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}`
+            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry Count: ${pingOptions?.currentRetryCount}`
         );
 
         try {
@@ -101,6 +101,33 @@ export default class PingMonitor {
                 `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} success: `
             );
             logger.info(res);
+
+            if (!res.alive) {
+                // retry. 
+
+                if (!pingOptions) {
+                    pingOptions = {};
+                }
+
+                if (!pingOptions.currentRetryCount) {
+                    pingOptions.currentRetryCount = 0;
+                }
+
+                if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+                    pingOptions.currentRetryCount++;
+                    return await this.ping(host, pingOptions);
+                } else {
+                    // check if the probe is online.
+                    if (!pingOptions.isOnlineCheckRequest) {
+                        if (!(await PingMonitor.isProbeOnline())) {
+                            logger.error(
+                                `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${res}`
+                            );
+                            return null;
+                        }
+                    }
+                }
+            }
 
             return {
                 isOnline: res.alive,
