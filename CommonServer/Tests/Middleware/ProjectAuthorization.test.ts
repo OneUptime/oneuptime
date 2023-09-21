@@ -179,13 +179,13 @@ describe('ProjectMiddleware', () => {
                 .spyOn(ProjectMiddleware, 'getProjectId')
                 .mockReturnValueOnce(null);
 
-            await expect(
-                ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
-                    req,
-                    res,
-                    next
-                )
-            ).rejects.toThrowError('ProjectId not found in the request');
+            await  ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
+                req,
+                res,
+                next
+            );
+
+            expect(next).toHaveBeenCalledWith(new BadDataException('ProjectId not found in the request'));
 
             expect(spyGetProjectId).toHaveBeenCalledWith(req);
         });
@@ -195,13 +195,13 @@ describe('ProjectMiddleware', () => {
                 .spyOn(ProjectMiddleware, 'getApiKey')
                 .mockReturnValueOnce(null);
 
-            await expect(
-                ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
-                    req,
-                    res,
-                    next
-                )
-            ).rejects.toThrowError('ApiKey not found in the request');
+            await  ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
+                req,
+                res,
+                next
+            )
+
+            expect(next).toHaveBeenCalledWith(new BadDataException('ApiKey not found in the request'));
 
             expect(spyGetApiKey).toHaveBeenCalledWith(req);
         });
@@ -210,9 +210,6 @@ describe('ProjectMiddleware', () => {
             const spyFindOneBy: jest.SpyInstance = jest
                 .spyOn(ApiKeyService, 'findOneBy')
                 .mockResolvedValue(null);
-            const spySendErrorResponse: jest.SpyInstance = jest
-                .spyOn(Response, 'sendErrorResponse')
-                .mockImplementation(jest.fn);
 
             jest.spyOn(QueryHelper, 'greaterThan').mockImplementation(
                 jest.fn()
@@ -238,17 +235,11 @@ describe('ProjectMiddleware', () => {
                 props: { isRoot: true },
             });
 
-            expect(spySendErrorResponse).toHaveBeenCalledWith(
-                req,
-                res,
-                new BadDataException('Invalid Project ID or API Key')
-            );
+            expect(next).toHaveBeenCalledWith(new BadDataException('Invalid Project ID or API Key'));
         });
 
         test('should call Response.sendErrorResponse when apiKeyModel is not null but getApiTenantAccessPermission returned null', async () => {
-            const spySendErrorResponse: jest.SpyInstance = jest
-                .spyOn(Response, 'sendErrorResponse')
-                .mockImplementation(jest.fn);
+           
 
             jest.spyOn(ApiKeyService, 'findOneBy').mockResolvedValue(
                 mockedApiModel
@@ -264,11 +255,8 @@ describe('ProjectMiddleware', () => {
             );
 
             expect(spyGetApiTenantAccessPermission).toHaveBeenCalled();
-            expect(spySendErrorResponse).toHaveBeenCalledWith(
-                req,
-                res,
-                new BadDataException('Invalid Project ID or API Key')
-            );
+            // check first param of next
+            expect(next).toHaveBeenCalledWith(new BadDataException('Invalid Project ID or API Key'));
         });
 
         test("should call function 'next' when apiKeyModel is not null and getApiTenantAccessPermission returned userTenantAccessPermission", async () => {
