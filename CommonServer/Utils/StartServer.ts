@@ -28,7 +28,7 @@ import Response from './Response';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
-import { DashboardApiHostname } from '../EnvironmentConfig';
+import { AppVersion, DashboardApiHostname } from '../EnvironmentConfig';
 import { DashboardApiRoute } from 'Common/ServiceRoute';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -105,6 +105,10 @@ const init: Function = async (
     port?: Port,
     isFrontendApp?: boolean
 ): Promise<ExpressApplication> => {
+
+
+    logger.info(`App Version: ${AppVersion.toString()}`);
+
     await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
