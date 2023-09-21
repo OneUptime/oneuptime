@@ -85,7 +85,7 @@ export default class PingMonitor {
         }
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}`
+            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry: ${pingOptions?.currentRetryCount}`
         );
 
         try {
