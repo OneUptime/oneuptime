@@ -158,11 +158,15 @@ describe('ProjectMiddleware', () => {
     describe('isValidProjectIdAndApiKeyMiddleware', () => {
         const req: ExpressRequest = {} as ExpressRequest;
         const res: ExpressResponse = {} as ExpressResponse;
-        const next: NextFunction = jest.fn();
+        let next: NextFunction = jest.fn();
 
         const mockedApiModel: ApiKey = {
             id: mockedObjectId,
         } as ApiKey;
+
+        beforeEach(() => {
+            next = jest.fn();
+        });
 
         beforeAll(() => {
             jest.spyOn(ProjectMiddleware, 'getProjectId').mockReturnValue(
