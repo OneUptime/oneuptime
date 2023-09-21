@@ -23,15 +23,7 @@ type ObjectIdOrNull = ObjectID | null;
 describe('ProjectMiddleware', () => {
     const mockedObjectId: ObjectID = ObjectID.generate();
 
-    let database!: Database;
-    beforeEach(async () => {
-        database = new Database();
-        await database.createAndConnect();
-    });
 
-    afterEach(async () => {
-        await database.disconnectAndDropDatabase();
-    });
 
     describe('getProjectId', () => {
         describe("should return value when tenantid is passed in the request's", () => {
@@ -164,8 +156,16 @@ describe('ProjectMiddleware', () => {
             id: mockedObjectId,
         } as ApiKey;
 
-        beforeEach(() => {
+        let database!: Database;
+
+        beforeEach(async () => {
             next = jest.fn();
+            database = new Database();
+            await database.createAndConnect();
+        });
+
+        afterEach(async () => {
+            await database.disconnectAndDropDatabase();
         });
 
         beforeAll(() => {
@@ -189,7 +189,7 @@ describe('ProjectMiddleware', () => {
             );
 
             expect(next).toHaveBeenCalledWith(
-                new BadDataException('ProjectId not found in the request')
+                new BadDataException('ProjectID not found in the request header.')
             );
 
             expect(spyGetProjectId).toHaveBeenCalledWith(req);
