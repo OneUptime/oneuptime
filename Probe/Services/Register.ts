@@ -16,18 +16,28 @@ import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 export default class Register {
     public static async registerProbe(): Promise<void> {
         if (HasClusterKey) {
-            const resullt: HTTPResponse<JSONObject> = await API.post(
-                URL.fromString(PROBE_API_URL.toString()).addRoute('/register'),
+
+            const probeRegistrationUrl: URL = URL.fromString(PROBE_API_URL.toString()).addRoute('/register');
+
+            logger.info("Registering Probe...");
+            logger.info("Sending request to: "+probeRegistrationUrl.toString());
+
+            const result: HTTPResponse<JSONObject> = await API.post(
+                probeRegistrationUrl,
                 {
                     probeKey: PROBE_KEY,
                     probeName: PROBE_NAME,
                     probeDescription: PROBE_DESCRIPTION,
                     clusterKey: ClusterKey.toString(),
                 }
-            );
+            )
 
-            if (resullt.isSuccess()) {
-                const probeId: string = resullt.data['_id'] as string;
+            if (result.isSuccess()) {
+
+                logger.info("Probe Registered");
+                
+                const probeId: string = result.data['_id'] as string;
+                
                 LocalCache.setString('PROBE', 'PROBE_ID', probeId as string);
             }
         } else {

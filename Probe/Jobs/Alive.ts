@@ -15,7 +15,15 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
-        if (!LocalCache.getString('PROBE', 'PROBE_ID')) {
+
+        logger.info("Checking if probe is alive...");
+
+        const probeId: string | undefined = LocalCache.getString('PROBE', 'PROBE_ID');
+
+        logger.info("Probe ID: "+probeId.toString());
+
+
+        if (!probeId) {
             logger.warn(
                 'Probe is not registered yet. Skipping alive check. Trying to register probe again...'
             );
