@@ -24,7 +24,7 @@ export const AccountsRoute: Route = new Route('/accounts');
 
 export const WorkflowRoute: Route = new Route('/workflow');
 
-export const ApiReferenceRoute: Route = new Route('/api-reference');
+export const ApiReferenceRoute: Route = new Route('/reference');
 
 export const AdminDashboardRoute: Route = new Route('/admin');
 
