@@ -8,6 +8,7 @@ import { AxiosError } from 'axios';
 import logger from 'CommonServer/Utils/Logger';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import ObjectID from 'Common/Types/ObjectID';
+import Sleep from 'Common/Types/Sleep';
 
 export interface ProbeWebsiteResponse {
     url: URL;
@@ -160,6 +161,7 @@ export default class WebsiteMonitor {
 
             if (options.currentRetryCount < (options.retry || 5)) {
                 options.currentRetryCount++;
+                await Sleep.sleep(1000);
                 return await this.ping(url, options);
             }
 

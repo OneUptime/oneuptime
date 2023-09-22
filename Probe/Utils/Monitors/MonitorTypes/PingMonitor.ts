@@ -7,6 +7,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import logger from 'CommonServer/Utils/Logger';
 import ping from 'ping';
 import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
+import Sleep from 'Common/Types/Sleep';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {
@@ -134,6 +135,7 @@ export default class PingMonitor {
 
             if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
                 pingOptions.currentRetryCount++;
+                await Sleep.sleep(1000);
                 return await this.ping(host, pingOptions);
             }
 

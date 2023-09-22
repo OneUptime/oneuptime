@@ -9,6 +9,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import logger from 'CommonServer/Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
+import Sleep from 'Common/Types/Sleep';
 
 export interface APIResponse {
     url: URL;
@@ -141,6 +142,7 @@ export default class ApiMonitor {
 
                 if (options.currentRetryCount < (options.retry || 5)) {
                     options.currentRetryCount++;
+                    await Sleep.sleep(1000);
                     return await this.ping(url, options);
                 }
             }
@@ -182,6 +184,7 @@ export default class ApiMonitor {
 
             if (options.currentRetryCount < (options.retry || 5)) {
                 options.currentRetryCount++;
+                await Sleep.sleep(1000);
                 return await this.ping(url, options);
             }
 
