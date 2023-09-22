@@ -553,7 +553,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     createdAt: SortOrder.Ascending,
                                 },
                                 skip: 0,
-                                limit: LIMIT_MAX, // This can be optimized. 
+                                limit: LIMIT_MAX, // This can be optimized.
                                 props: {
                                     isRoot: true,
                                 },

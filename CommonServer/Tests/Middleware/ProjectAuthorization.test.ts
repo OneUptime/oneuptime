@@ -24,8 +24,6 @@ type ObjectIdOrNull = ObjectID | null;
 describe('ProjectMiddleware', () => {
     const mockedObjectId: ObjectID = ObjectID.generate();
 
-
-
     describe('getProjectId', () => {
         describe("should return value when tenantid is passed in the request's", () => {
             const reqFields: string[] = ['params', 'query', 'headers'];
@@ -106,7 +104,6 @@ describe('ProjectMiddleware', () => {
             const result: boolean = ProjectMiddleware.hasApiKey(req);
 
             expect(result).toStrictEqual(true);
-            
         });
 
         test('should return false when getApiKey returns null', () => {
@@ -115,7 +112,6 @@ describe('ProjectMiddleware', () => {
             const result: boolean = ProjectMiddleware.hasApiKey(req);
 
             expect(result).toStrictEqual(false);
-           
         });
     });
 
@@ -127,7 +123,6 @@ describe('ProjectMiddleware', () => {
             const result: boolean = ProjectMiddleware.hasProjectID(req);
 
             expect(result).toStrictEqual(true);
-            
         });
 
         test('should return false when getProjectId returns null', () => {
@@ -136,7 +131,6 @@ describe('ProjectMiddleware', () => {
             const result: boolean = ProjectMiddleware.hasProjectID(req);
 
             expect(result).toStrictEqual(false);
-            
         });
     });
 
@@ -157,7 +151,9 @@ describe('ProjectMiddleware', () => {
             database = new Database();
             await database.createAndConnect();
 
-            if(req.headers === undefined) req.headers = {};
+            if (req.headers === undefined) {
+                req.headers = {};
+            }
 
             req.headers['tenantid'] = mockedObjectId.toString();
             req.headers['apikey'] = mockedObjectId.toString();
@@ -167,10 +163,7 @@ describe('ProjectMiddleware', () => {
             await database.disconnectAndDropDatabase();
         });
 
-       
-
         test('should throw BadDataException when getProjectId returns null', async () => {
-            
             const spyFindOneBy: jest.SpyInstance = jest
                 .spyOn(GlobalConfigService, 'findOneBy')
                 .mockResolvedValue(null);
@@ -199,7 +192,9 @@ describe('ProjectMiddleware', () => {
             });
 
             expect(next).toHaveBeenCalledWith(
-                new BadDataException('ProjectID not found in the request header.')
+                new BadDataException(
+                    'ProjectID not found in the request header.'
+                )
             );
         });
 
