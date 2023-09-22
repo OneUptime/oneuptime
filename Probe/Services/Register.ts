@@ -22,7 +22,7 @@ export default class Register {
 
         const maxRetry: number = 10;
 
-        const retryIntervalInSeconds: number = 15;
+        const retryIntervalInSeconds: number = 30;
 
         while (currentRetry < maxRetry) {
             try {
@@ -32,7 +32,7 @@ export default class Register {
                 break;
             } catch (error) {
                 logger.error(
-                    `Failed to register probe. Retrying after 15 seconds...`
+                    `Failed to register probe. Retrying after ${retryIntervalInSeconds} seconds...`
                 );
                 logger.error(error);
                 currentRetry++;
