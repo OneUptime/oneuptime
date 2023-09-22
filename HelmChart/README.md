@@ -115,8 +115,8 @@ $ helm install oneuptime-release oneuptime/oneuptime
 #### Using source code
 
 ```bash
-$ git clone
-$ cd helm-charts/oneuptime
+$ git clone https://github.com/OneUptime/oneuptime
+$ cd HelmChart/public/oneuptime
 $ helm install oneuptime-release .
 ```
 
