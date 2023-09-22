@@ -1,70 +1,74 @@
-# Default values for oneuptime.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+
+# Please change this to the domain name / IP where OneUtpime server is hosted on. 
+host: localhost
+
+# You can safely ignore values below this line. 
+# ------------------------------------------------
 
 replicaCount: 1
 
 image:
   registry: docker.io
   repository: oneuptime
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: release
-
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
-podAnnotations: {}
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-service:
-  type: ClusterIP
-  port: 80
-
-
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
 
-nodeSelector: {}
 
-tolerations: []
+nodeEnvironment: production
 
-affinity: {}
+billing: 
+  enabled: false
+  publicKey: 
+  privateKey: 
+  smsDefaultValueInCents: 
+  callDefaultValueInCentsPerMinute: 
+
+disableAutomaticIncidentsCreation: 
+
+subscriptionPlan: 
+  basic: 
+  growth: 
+  scale: 
+  enterprise: 
+
+meteredPlan: 
+  activeMonitoring: 
+
+analytics: 
+  host:
+  key: 
+
+
+incidents:
+  disableAutomaticCreation: 
+
+statusPage: 
+  cNameRecord: 
+
 
 port: 
   home: 1444
+  dashboardApi: 3002
+  apiDocs: 1445
+  workflow: 3099
+  linkShortener: 3521
+  alert: 3088
+  probeApi: 3400
+  probe: 3500
+  testServer: 3800
+  file: 3125
+  identity: 3087
+  notificaiton: 3191
+  realtime: 3300
+  workers: 3452
+  accounts: 3003
+  statusPage: 3105
+  dashboard: 3009
+  adminDashboard: 3158

@@ -89,6 +89,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ printf "%s-%s" $.Release.Name "home"  }}
-  targetCPUUtilizationPercentage: {{ $.Values.autoscaling.averageCpuUtilization }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoscaling.targetCPUUtilizationPercentage }}
+  targetMemoryUtilizationPercentage: {{ $.Values.autoscaling.targetMemoryUtilizationPercentage }}
 ---
 {{- end }}
