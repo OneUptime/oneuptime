@@ -24,6 +24,7 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Query from 'CommonServer/Types/Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import logger from 'CommonServer/Utils/Logger';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -247,13 +248,24 @@ router.post(
                     continue;
                 }
 
+                let nextPing: Date = OneUptimeDate.addRemoveMinutes(
+                    OneUptimeDate.getCurrentDate(),
+                    1
+                );
+
+                try {
+                    nextPing = CronTab.getNextExecutionTime(
+                        monitorProbe?.monitor?.monitoringInterval as string
+                    );
+                } catch (err) {
+                    logger.error(err);
+                }
+
                 await MonitorProbeService.updateOneById({
                     id: monitorProbe.id!,
                     data: {
                         lastPingAt: OneUptimeDate.getCurrentDate(),
-                        nextPingAt: CronTab.getNextExecutionTime(
-                            monitorProbe?.monitor?.monitoringInterval as string
-                        ),
+                        nextPingAt: nextPing,
                     },
                     props: {
                         isRoot: true,

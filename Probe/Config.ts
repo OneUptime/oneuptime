@@ -7,7 +7,17 @@ if (!process.env['PROBE_API_URL']) {
     process.exit();
 }
 
-export const PROBE_API_URL: URL = URL.fromString(process.env['PROBE_API_URL']);
+export let PROBE_API_URL: URL = URL.fromString(process.env['PROBE_API_URL']);
+
+// If probe api does not have the path. Add it.
+if (
+    !PROBE_API_URL.toString().endsWith('probe-api') &&
+    !PROBE_API_URL.toString().endsWith('probe-api/')
+) {
+    PROBE_API_URL = URL.fromString(
+        PROBE_API_URL.addRoute('/probe-api').toString()
+    );
+}
 
 export const PROBE_NAME: string | null = process.env['PROBE_NAME'] || null;
 
