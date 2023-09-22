@@ -15,13 +15,14 @@ RunCron(
         runOnStartup: false,
     },
     async () => {
+        logger.info('Checking if probe is alive...');
 
-        logger.info("Checking if probe is alive...");
+        const probeId: string | undefined = LocalCache.getString(
+            'PROBE',
+            'PROBE_ID'
+        );
 
-        const probeId: string | undefined = LocalCache.getString('PROBE', 'PROBE_ID');
-
-        logger.info("Probe ID: "+probeId.toString());
-
+        logger.info('Probe ID: ' + probeId.toString());
 
         if (!probeId) {
             logger.warn(

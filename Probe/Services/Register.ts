@@ -16,11 +16,14 @@ import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 export default class Register {
     public static async registerProbe(): Promise<void> {
         if (HasClusterKey) {
+            const probeRegistrationUrl: URL = URL.fromString(
+                PROBE_API_URL.toString()
+            ).addRoute('/register');
 
-            const probeRegistrationUrl: URL = URL.fromString(PROBE_API_URL.toString()).addRoute('/register');
-
-            logger.info("Registering Probe...");
-            logger.info("Sending request to: "+probeRegistrationUrl.toString());
+            logger.info('Registering Probe...');
+            logger.info(
+                'Sending request to: ' + probeRegistrationUrl.toString()
+            );
 
             const result: HTTPResponse<JSONObject> = await API.post(
                 probeRegistrationUrl,
@@ -30,14 +33,13 @@ export default class Register {
                     probeDescription: PROBE_DESCRIPTION,
                     clusterKey: ClusterKey.toString(),
                 }
-            )
+            );
 
             if (result.isSuccess()) {
+                logger.info('Probe Registered');
 
-                logger.info("Probe Registered");
-                
                 const probeId: string = result.data['_id'] as string;
-                
+
                 LocalCache.setString('PROBE', 'PROBE_ID', probeId as string);
             }
         } else {
@@ -62,9 +64,10 @@ export default class Register {
             );
         }
 
-        logger.info(`Probe ID: ${LocalCache.getString(
-            'PROBE',
-            'PROBE_ID'
-        ) || 'Unknown'}`);
+        logger.info(
+            `Probe ID: ${
+                LocalCache.getString('PROBE', 'PROBE_ID') || 'Unknown'
+            }`
+        );
     }
 }
