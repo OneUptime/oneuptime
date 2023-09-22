@@ -11,11 +11,11 @@ This chart bootstraps a [OneUptime](https://oneuptime.com) deployment on a [Kube
 
 ## Installing the Chart
 
-To install the chart with the release name `my-release`:
+To install the chart with the release name `oneuptime-release`:
 
 ```bash
-$ helm repo add oneuptime https://oneuptime.github.io/helm-charts
-$ helm install my-release oneuptime/oneuptime
+$ helm repo add oneuptime https://oneuptime.com/helm-charts
+$ helm install oneuptime-release oneuptime/oneuptime
 ```
 
 These commands deploy OneUptime on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
@@ -24,10 +24,10 @@ These commands deploy OneUptime on the Kubernetes cluster in the default configu
 
 ## Uninstalling the Chart
 
-To uninstall/delete the `my-release` deployment:
+To uninstall/delete the `oneuptime-release` deployment:
 
 ```bash
-$ helm delete my-release
+$ helm delete oneuptime-release
 ```
 
 The command removes all the Kubernetes components associated with the chart and deletes the release.
@@ -73,7 +73,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```bash
-$ helm install my-release \
+$ helm install oneuptime-release \
   --set service.type=LoadBalancer \
     oneuptime/oneuptime
 ```
@@ -83,7 +83,7 @@ The above command sets the OneUptime service type to `LoadBalancer`.
 Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example,
 
 ```bash
-$ helm install my-release -f values.yaml oneuptime/oneuptime
+$ helm install oneuptime-release -f values.yaml oneuptime/oneuptime
 ```
 
 > **Tip**: You can use the default [values.yaml](values.yaml)
@@ -109,7 +109,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 ```bash
 
 $ helm repo add oneuptime https://oneuptime.github.io/helm-charts
-$ helm install my-release oneuptime/oneuptime
+$ helm install oneuptime-release oneuptime/oneuptime
 ```
 
 #### Using source code
@@ -117,7 +117,7 @@ $ helm install my-release oneuptime/oneuptime
 ```bash
 $ git clone
 $ cd helm-charts/oneuptime
-$ helm install my-release .
+$ helm install oneuptime-release .
 ```
 
 ## Persistence
@@ -127,7 +127,7 @@ The [OneUptime](https://oneuptime.com) image stores the OneUptime data and confi
 By default a PersistentVolumeClaim is created and mounted into that directory. In order to disable this functionality you can change the values.yaml to disable persistence.
 
 ```bash
-$ helm install my-release \
+$ helm install oneuptime-release \
   --set persistence.enabled=false \
     oneuptime/oneuptime
 ```
