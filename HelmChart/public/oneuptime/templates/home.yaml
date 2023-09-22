@@ -93,6 +93,7 @@ apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ printf "%s-%s" $.Release.Name "home"  }}
+  namespace: {{ $.Release.Namespace }}
 spec:
   maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
   minReplicas: {{ $.Values.autoScaler.minReplicas }}
