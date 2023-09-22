@@ -51,5 +51,10 @@ export default class Register {
                 PROBE_ID.toString() as string
             );
         }
+
+        logger.info(`Probe ID: ${LocalCache.getString(
+            'PROBE',
+            'PROBE_ID'
+        ) || 'Unknown'}`);
     }
 }
