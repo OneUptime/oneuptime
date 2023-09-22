@@ -3,7 +3,15 @@
 
 ### Installation
 
-Read the [installation guide](https://microk8s.io/docs) for more details.
+Install Microk8s: Read the [installation guide](https://microk8s.io/docs) for more details.
+Install Helm
+
+Run 
+
+```
+sudo microk8s kubectl config view --raw > ~/.kube/config
+```
+
 
 ### Unistallation
 
