@@ -12,9 +12,36 @@ import logger from 'CommonServer/Utils/Logger';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONObject } from 'Common/Types/JSON';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
+import Sleep from 'Common/Types/Sleep';
 
 export default class Register {
     public static async registerProbe(): Promise<void> {
+        // register probe with 5 retry and 15 seocnd interval between each retry.
+
+        let currentRetry: number = 0;
+
+        const maxRetry: number = 10;
+
+        const retryIntervalInSeconds: number = 15;
+
+        while (currentRetry < maxRetry) {
+            try {
+                logger.info(`Registering probe. Attempt: ${currentRetry + 1}`);
+                await Register._registerProbe();
+                logger.info(`Probe registered successfully.`);
+                break;
+            } catch (error) {
+                logger.error(
+                    `Failed to register probe. Retrying after 15 seconds...`
+                );
+                logger.error(error);
+                currentRetry++;
+                await Sleep.sleep(retryIntervalInSeconds * 1000);
+            }
+        }
+    }
+
+    private static async _registerProbe(): Promise<void> {
         if (HasClusterKey) {
             const probeRegistrationUrl: URL = URL.fromString(
                 PROBE_API_URL.toString()
