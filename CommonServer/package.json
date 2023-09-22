@@ -6,7 +6,7 @@
     "scripts": {
         "compile": "tsc",
         "test": "jest --detectOpenHandles",
-        "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
+        "debug:test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd CommonServer && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
     },
     "author": "",
     "license": "MIT",
