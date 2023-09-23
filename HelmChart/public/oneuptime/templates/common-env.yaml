@@ -1,4 +1,4 @@
-{{- define "mychart.labels" }}
+{{- define "oneuptime.commonEnv" }}
   - name: HOST
     value: {{ $.Values.host }}
   - name: NODE_ENV
