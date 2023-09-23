@@ -40,7 +40,7 @@ If you need advanced features, such as API Access, Advances Workflows, or Advanc
 
 - Install on Kubernetes with Helm (recommended for production) (coming soon)
 - [Install with Docker Compose](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/DockerCompose.md) (hobby install, not recommended for production use)
-- [Install OneUptime for local development](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/Development.md)
+- [Install for local development](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/Development.md)
 
 ## Philosophy
 
