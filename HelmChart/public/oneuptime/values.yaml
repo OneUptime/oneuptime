@@ -50,8 +50,42 @@ incidents:
   disableAutomaticCreation: 
 
 statusPage: 
-  cNameRecord: 
+  cnameRecord: 
 
+secrets: 
+  oneuptime: please-change-this
+  encryption: please-change-this
+
+clickhouse: 
+  user: 
+  pasword: 
+  database: 
+  host: 
+  port: 
+
+postgres: 
+  port: 
+  host: 
+  username: 
+  password: 
+  database: 
+
+  # Advanced and optional options. 
+  sslCa: 
+  sslKey: 
+  sslCert: 
+  sslRejectUnauthorized: 
+
+redis: 
+  username: 
+  password: 
+  host: 
+  port:
+  database: 
+
+  # Advanced and optional options. 
+  tlsCa: 
+  tlsSentinelMode: 
 
 port: 
   home: 1444

@@ -1,62 +1,42 @@
-{{/*
-Expand the name of the chart.
-*/}}
-{{- define "oneuptime.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- define "oneuptime.env.common" }}
+- name: HOST
+  value: {{ $.Values.host }}
+- name: NODE_ENV
+  value: {{ $.Values.nodeEnvironment }}
+- name: BILLING_ENABLED
+  value: {{ $.Values.billing.enabled }}
+- name: BILLING_PUBLIC_KEY
+  value: {{ $.Values.billing.publicKey }}
+- name: SUBSCRIPTION_PLAN_BASIC
+  value: {{ $.Values.subscriptionPlan.basic }}
+- name: SUBSCRIPTION_PLAN_GROWTH
+  value: {{ $.Values.subscriptionPlan.growth }}
+- name: SUBSCRIPTION_PLAN_SCALE
+  value: {{ $.Values.subscriptionPlan.scale }}
+- name: SUBSCRIPTION_PLAN_ENTERPRISE
+  value: {{ $.Values.subscriptionPlan.enterprise }}
+- name: METERED_PLAN_ACTIVE_MONITORING
+  value: {{ $.Values.meteredPlan.activeMonitoring }}
+- name: ANALYTICS_KEY
+  value: {{ $.Values.analytics.key }}
+- name: ANALYTICS_HOST
+  value: {{ $.Values.analytics.host }}
 {{- end }}
 
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "oneuptime.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
+
+
+{{- define "oneuptime.env.commonUi" }}
+- name: IS_SERVER
+  value: false
+- name: STATUS_PAGE_CNAME_RECORD
+  value: {{ $.Values.statusPage.cnameRecord }}
 {{- end }}
 
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
-{{- define "oneuptime.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-{{- end }}
 
-{{/*
-Common labels
-*/}}
-{{- define "oneuptime.labels" -}}
-helm.sh/chart: {{ include "oneuptime.chart" . }}
-{{ include "oneuptime.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end }}
-
-{{/*
-Selector labels
-*/}}
-{{- define "oneuptime.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "oneuptime.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "oneuptime.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "oneuptime.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
+{{- define "oneuptime.env.commonServer" }}
+- name: ONEUPTIME_SECRET
+  value: {{ $.Values.secrets.oneuptime }}
+- name: CLICKHOUSE_USER
+  value: {{ $.Values.clickhouse.user }}
+  
 {{- end }}

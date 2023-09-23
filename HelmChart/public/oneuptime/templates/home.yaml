@@ -28,7 +28,7 @@ spec:
                     limits:
                       cpu: 500m  
                   env:
-                      {{- template "oneuptime.commonEnv" }}
+                      {{- include "oneuptime.env.common" . | nindent 22 }}
                       - name: NODE_NAME
                         valueFrom:
                           fieldRef:
