@@ -965,6 +965,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
                 ? { deleteBy, carryForward: [] }
                 : await this.onBeforeDelete(deleteBy);
+
             const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
             const carryForward: any = onDelete.carryForward;

@@ -1,6 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Incident';
-import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
@@ -19,13 +23,20 @@ import Typeof from 'Common/Types/Typeof';
 import URL from 'Common/Types/API/URL';
 import User from 'Model/Models/User';
 import TeamMemberService from './TeamMemberService';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import UserService from './UserService';
 import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusService from './MonitorStatusService';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import QueryHelper from '../Types/Database/QueryHelper';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import MonitorStatusTimelineService from './MonitorStatusTimelineService';
+import DeleteBy from '../Types/Database/DeleteBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -409,6 +420,177 @@ export class Service extends DatabaseService<Model> {
         }
 
         return onUpdate;
+    }
+
+    public async doesMonitorHasMoreActiveManualIncidents(
+        monitorId: ObjectID,
+        proojectId: ObjectID
+    ): Promise<boolean> {
+        const resolvedState: IncidentState | null =
+            await IncidentStateService.findOneBy({
+                query: {
+                    projectId: proojectId,
+                    isResolvedState: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                    order: true,
+                },
+            });
+
+        const incidentCount: PositiveNumber = await this.countBy({
+            query: {
+                monitors: QueryHelper.inRelationArray([monitorId]),
+                currentIncidentState: {
+                    order: QueryHelper.lessThan(resolvedState?.order!),
+                },
+                isCreatedAutomatically: false,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return incidentCount.toNumber() > 0;
+    }
+
+    public async markMonitorsActiveForMonitoring(
+        projectId: ObjectID,
+        monitors: Array<Monitor>
+    ): Promise<void> {
+        // resolve all the monitors.
+
+        if (monitors.length > 0) {
+            // get resolved monitor state.
+            const resolvedMonitorState: MonitorStatus | null =
+                await MonitorStatusService.findOneBy({
+                    query: {
+                        projectId: projectId!,
+                        isOperationalState: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    select: {
+                        _id: true,
+                    },
+                });
+
+            if (resolvedMonitorState) {
+                for (const monitor of monitors) {
+                    //check state of the monitor.
+
+                    const doesMonitorHasMoreActiveManualIncidents: boolean =
+                        await this.doesMonitorHasMoreActiveManualIncidents(
+                            monitor.id!,
+                            projectId!
+                        );
+
+                    if (doesMonitorHasMoreActiveManualIncidents) {
+                        continue;
+                    }
+
+                    await MonitorService.updateOneById({
+                        id: monitor.id!,
+                        data: {
+                            disableActiveMonitoringBecauseOfManualIncident:
+                                false,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+
+                    const latestState: MonitorStatusTimeline | null =
+                        await MonitorStatusTimelineService.findOneBy({
+                            query: {
+                                monitorId: monitor.id!,
+                                projectId: projectId!,
+                            },
+                            select: {
+                                _id: true,
+                                monitorStatusId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending,
+                            },
+                        });
+
+                    if (
+                        latestState &&
+                        latestState.monitorStatusId?.toString() ===
+                            resolvedMonitorState.id!.toString()
+                    ) {
+                        // already on this state. Skip.
+                        continue;
+                    }
+
+                    const monitorStatusTimeline: MonitorStatusTimeline =
+                        new MonitorStatusTimeline();
+                    monitorStatusTimeline.monitorId = monitor.id!;
+                    monitorStatusTimeline.projectId = projectId!;
+                    monitorStatusTimeline.monitorStatusId =
+                        resolvedMonitorState.id!;
+
+                    await MonitorStatusTimelineService.create({
+                        data: monitorStatusTimeline,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+                }
+            }
+        }
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        const incidents: Array<Model> = await this.findBy({
+            query: deleteBy.query,
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+                projectId: true,
+                monitors: {
+                    _id: true,
+                },
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return {
+            deleteBy,
+            carryForward: {
+                incidents: incidents,
+            },
+        };
+    }
+
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _itemIdsBeforeDelete: ObjectID[]
+    ): Promise<OnDelete<Model>> {
+        if (onDelete.carryForward && onDelete.carryForward.incidents) {
+            for (const incident of onDelete.carryForward.incidents) {
+                if (incident.monitors && incident.monitors.length > 0) {
+                    await this.markMonitorsActiveForMonitoring(
+                        incident.projectId!,
+                        incident.monitors
+                    );
+                }
+            }
+        }
+
+        return onDelete;
     }
 
     public async changeIncidentState(
