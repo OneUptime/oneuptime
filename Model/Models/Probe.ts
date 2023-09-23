@@ -19,7 +19,15 @@ import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import File from './File';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Free,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Free,
+})
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/probe'))
