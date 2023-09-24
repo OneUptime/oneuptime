@@ -1,0 +1,14 @@
+# OneUptime statusPage Service
+{{- $statusPageDeploymentArgs :=dict "ServiceName" "status-page" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $statusPageDeploymentArgs }}
+---
+
+# OneUptime statusPage Service
+{{- $statusPageServiceArgs := dict "ServiceName" "status-page" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $statusPageServiceArgs }}
+---
+
+# OneUptime statusPage Service
+{{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $statusPageAutoScalerArgs }}
+---

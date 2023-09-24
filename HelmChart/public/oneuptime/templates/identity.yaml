@@ -1,0 +1,14 @@
+# OneUptime identity Service
+{{- $identityDeploymentArgs :=dict "ServiceName" "identity" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $identityDeploymentArgs }}
+---
+
+# OneUptime identity Service
+{{- $identityServiceArgs := dict "ServiceName" "identity" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $identityServiceArgs }}
+---
+
+# OneUptime identity Service
+{{- $identityAutoScalerArgs := dict "ServiceName" "identity" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $identityAutoScalerArgs }}
+---

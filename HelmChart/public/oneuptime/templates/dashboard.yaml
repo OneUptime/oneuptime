@@ -1,0 +1,14 @@
+# OneUptime dashboard Service
+{{- $dashboardDeploymentArgs :=dict "ServiceName" "dashboard" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $dashboardDeploymentArgs }}
+---
+
+# OneUptime dashboard Service
+{{- $dashboardServiceArgs := dict "ServiceName" "dashboard" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $dashboardServiceArgs }}
+---
+
+# OneUptime dashboard Service
+{{- $dashboardAutoScalerArgs := dict "ServiceName" "dashboard" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $dashboardAutoScalerArgs }}
+---

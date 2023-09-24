@@ -1,0 +1,14 @@
+# OneUptime probe Service
+{{- $probeDeploymentArgs :=dict "ServiceName" "probe" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $probeDeploymentArgs }}
+---
+
+# OneUptime probe Service
+{{- $probeServiceArgs := dict "ServiceName" "probe" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $probeServiceArgs }}
+---
+
+# OneUptime probe Service
+{{- $probeAutoScalerArgs := dict "ServiceName" "probe" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
+---

@@ -13,6 +13,8 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
       - name: Install Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash

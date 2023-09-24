@@ -1,0 +1,14 @@
+# OneUptime testServer Service
+{{- $testServerDeploymentArgs :=dict "ServiceName" "test-server" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $testServerDeploymentArgs }}
+---
+
+# OneUptime testServer Service
+{{- $testServerServiceArgs := dict "ServiceName" "test-server" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $testServerServiceArgs }}
+---
+
+# OneUptime testServer Service
+{{- $testServerAutoScalerArgs := dict "ServiceName" "test-server" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $testServerAutoScalerArgs }}
+---
