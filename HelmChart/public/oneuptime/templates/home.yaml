@@ -1,56 +1,14 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: {{ printf "%s-%s" $.Release.Name "home"  }}
-    namespace: {{ $.Release.Namespace }}
-    labels:
-        app: {{ printf "%s-%s" $.Release.Name "home"  }}
-        app.kubernetes.io/part-of: oneuptime
-        app.kubernetes.io/managed-by: Helm
-spec:
-    selector:
-        matchLabels:
-            app: {{ printf "%s-%s" $.Release.Name "home"  }}
-    replicas: {{ $.Values.replicaCount }}
-    template:
-        metadata:
-            labels:
-                app: {{ printf "%s-%s" $.Release.Name "home"  }}
-        spec:
-            containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "home" .Values.image.tag }}
-                  name: {{ printf "%s-%s" $.Release.Name "home"  }}
-                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
-                  env:
-                      {{- include "oneuptime.env.common" . | nindent 22 }}
-                      {{- include "oneuptime.env.commonUi" . | nindent 22 }}
-                      {{- include "oneuptime.env.pod" . | nindent 22 }}
-                  ports:
-                      - containerPort: {{ $.Values.port.home }}
-                        hostPort: {{ $.Values.port.home }}
-                        name: {{ printf "%s-%s" $.Release.Name "home"  }}
-            restartPolicy: {{ $.Values.image.restartPolicy }}
-
----
 # OneUptime home Service
-{{- $serviceArgs := dict "ServiceName" "home" "Port" "1444" "ReleaseName" $.Release.Name "Namespace" $.Release.Namespace -}}
-{{- include "oneuptime.service.clusterIP" $serviceArgs -}}
+{{- $homeDeploymentArgs :=dict "ServiceName" "home" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $homeDeploymentArgs }}
 ---
 
-{{- if .Values.autoscaling.enabled }}
-apiVersion: autoscaling/v1
-kind: HorizontalPodautoscaling
-metadata:
-  name: {{ printf "%s-%s" $.Release.Name "home"  }}
-  namespace: {{ $.Release.Namespace }}
-spec:
-  maxReplicas: {{ $.Values.autoscaling.maxReplicas }}
-  minReplicas: {{ $.Values.autoscaling.minReplicas }}
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: {{ printf "%s-%s" $.Release.Name "home"  }}
-  targetCPUUtilizationPercentage: {{ $.Values.autoscaling.targetCPUUtilizationPercentage }}
-  targetMemoryUtilizationPercentage: {{ $.Values.autoscaling.targetMemoryUtilizationPercentage }}
+# OneUptime home Service
+{{- $homeServiceArgs := dict "ServiceName" "home" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $homeServiceArgs }}
 ---
-{{- end }}
+
+# OneUptime home Service
+{{- $homeAutoScalerArgs := dict "ServiceName" "home" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $homeAutoScalerArgs }}
+---

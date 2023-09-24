@@ -4,7 +4,7 @@
 - name: NODE_ENV
   value: {{ $.Values.nodeEnvironment }}
 - name: BILLING_ENABLED
-  value: {{ $.Values.billing.enabled }}
+  value: {{ $.Values.billing.enabled | squote }}
 - name: BILLING_PUBLIC_KEY
   value: {{ $.Values.billing.publicKey }}
 - name: SUBSCRIPTION_PLAN_BASIC
@@ -29,7 +29,7 @@
 
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
-  value: false
+  value: "false"
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
 {{- end }}
@@ -37,7 +37,7 @@
 
 {{- define "oneuptime.env.commonServer" }}
 - name: IS_SERVER
-  value: true
+  value: "true"
 
 - name: ONEUPTIME_SECRET
   value: {{ $.Values.secrets.oneuptime }}
@@ -89,16 +89,12 @@
 - name: POSTGRES_SSL_REJECT_UNAUTHORIZED
   value: {{ $.Values.postgres.sslRejectUnauthorized }}
 
-- name: BILLING_ENABLED
-  value: {{ $.Values.billing.enabled }}
-- name: BILLING_PUBLIC_KEY
-  value: {{ $.Values.billing.publicKey }}
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
 
 
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
-  value: {{ $.Values.incidents.disableAutomaticCreation }}
+  value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}
@@ -122,21 +118,91 @@
 
 
 
-{{- define "oneuptime.service.clusterIP" }}
+{{- define "oneuptime.service" }}
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
+        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
-    namespace: {{ $.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
         - port: {{ $.Port }}
           targetPort: {{ $.Port }}
     selector:
-        app: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
+        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
     type: ClusterIP
+{{- end }}
+
+
+{{- define "oneuptime.deployment" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+    namespace: {{ $.Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+    replicas: {{ $.Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+                  env:
+                      {{- include "oneuptime.env.common" . | nindent 22 }}
+                  ports:
+                      - containerPort: {{ $.Port }}
+                        hostPort: {{ $.Port }}
+                        name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
+{{- end }}
+
+
+
+{{- define "oneuptime.autoscaler" }}
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
 {{- end }}
