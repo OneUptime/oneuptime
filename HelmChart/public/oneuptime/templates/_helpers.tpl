@@ -23,43 +23,9 @@
   value: {{ $.Values.analytics.host }}
 {{- end }}
 
-{{- define "oneuptime.service.clusterIP" }}
-apiVersion: v1
-kind: Service
-metadata:
-    labels:
-        app: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
-        app.kubernetes.io/part-of: oneuptime
-        app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
-    namespace: {{ $.Namespace }}
-spec:
-    ports:
-        - port: {{ $.Port }}
-          targetPort: {{ $.Port }}
-    selector:
-        app: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
-    type: ClusterIP
-{{- end }}
 
-{{- define "oneuptime.env.pod" }}
-- name: NODE_NAME
-  valueFrom:
-    fieldRef:
-      fieldPath: spec.nodeName
-- name: POD_NAME
-  valueFrom:
-    fieldRef:
-      fieldPath: metadata.name
-- name: POD_NAMESPACE
-  valueFrom:
-    fieldRef:
-      fieldPath: metadata.namespace
-- name: POD_IP
-  valueFrom:
-    fieldRef:
-      fieldPath: status.podIP
-{{- end }}
+
+
 
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
@@ -133,4 +99,44 @@ spec:
 
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation }}
+{{- end }}
+
+{{- define "oneuptime.env.pod" }}
+- name: NODE_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: spec.nodeName
+- name: POD_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.name
+- name: POD_NAMESPACE
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.namespace
+- name: POD_IP
+  valueFrom:
+    fieldRef:
+      fieldPath: status.podIP
+{{- end }}
+
+
+
+{{- define "oneuptime.service.clusterIP" }}
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
+    namespace: {{ $.Namespace }}
+spec:
+    ports:
+        - port: {{ $.Port }}
+          targetPort: {{ $.Port }}
+    selector:
+        app: {{ printf "%s-%s" $.ReleaseName $.ServiceName  }}
+    type: ClusterIP
 {{- end }}

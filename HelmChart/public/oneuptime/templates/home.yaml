@@ -22,9 +22,9 @@ spec:
                   name: {{ printf "%s-%s" $.Release.Name "home"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   env:
-                      {{- include "oneuptime.env.common" . | nindent 22 -}}
-                      {{- include "oneuptime.env.commonUi" . | nindent 22 -}}
-                      {{- include "oneuptime.env.pod" . | nindent 22 -}}
+                      {{- include "oneuptime.env.common" . | nindent 22 }}
+                      {{- include "oneuptime.env.commonUi" . | nindent 22 }}
+                      {{- include "oneuptime.env.pod" . | nindent 22 }}
                   ports:
                       - containerPort: {{ $.Values.port.home }}
                         hostPort: {{ $.Values.port.home }}
