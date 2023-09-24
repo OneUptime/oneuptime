@@ -1,10 +1,10 @@
 # OneUptime apiReference Service
-{{- $apiReferenceDeploymentArgs :=dict "ServiceName" "api-reference" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $apiReferenceDeploymentArgs :=dict "ServiceName" "api-reference" "Port" $.Values.port.apiReference "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.deployment" $apiReferenceDeploymentArgs }}
 ---
 
 # OneUptime apiReference Service
-{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Port" $.Values.port.apiReference "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $apiReferenceServiceArgs }}
 ---
 

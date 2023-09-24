@@ -1,10 +1,10 @@
 # OneUptime notification Service
-{{- $notificationDeploymentArgs :=dict "ServiceName" "notification" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $notificationDeploymentArgs :=dict "ServiceName" "notification" "Port" $.Values.port.notification "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.deployment" $notificationDeploymentArgs }}
 ---
 
 # OneUptime notification Service
-{{- $notificationServiceArgs := dict "ServiceName" "notification" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $notificationServiceArgs := dict "ServiceName" "notification" "Port" $.Values.port.notification "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $notificationServiceArgs }}
 ---
 

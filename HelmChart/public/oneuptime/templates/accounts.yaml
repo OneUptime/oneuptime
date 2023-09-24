@@ -1,10 +1,10 @@
 # OneUptime accounts Service
-{{- $accountsDeploymentArgs :=dict "ServiceName" "accounts" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $accountsDeploymentArgs :=dict "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.deployment" $accountsDeploymentArgs }}
 ---
 
 # OneUptime accounts Service
-{{- $accountsServiceArgs := dict "ServiceName" "accounts" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $accountsServiceArgs := dict "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $accountsServiceArgs }}
 ---
 

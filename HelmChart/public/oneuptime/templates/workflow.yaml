@@ -1,10 +1,10 @@
 # OneUptime workflow Service
-{{- $workflowDeploymentArgs :=dict "ServiceName" "workflow" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $workflowDeploymentArgs :=dict "ServiceName" "workflow" "Port" $.Values.port.workflow "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.deployment" $workflowDeploymentArgs }}
 ---
 
 # OneUptime workflow Service
-{{- $workflowServiceArgs := dict "ServiceName" "workflow" "Port" "1444" "Release" $.Release "Values" $.Values -}}
+{{- $workflowServiceArgs := dict "ServiceName" "workflow" "Port" $.Values.port.workflow "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $workflowServiceArgs }}
 ---
 
