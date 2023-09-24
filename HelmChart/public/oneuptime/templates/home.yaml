@@ -1,4 +1,3 @@
-############-----HOME----#############################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,15 +21,10 @@ spec:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "home" .Values.image.tag }}
                   name: {{ printf "%s-%s" $.Release.Name "home"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
-                  resources:
-                    requests:
-                      cpu: 250m
-                    limits:
-                      cpu: 500m  
                   env:
-                      {{- include "oneuptime.env.common" . | nindent 22 }}
-                      {{- include "oneuptime.env.commonUi" . | nindent 22 }}
-                      {{- include "oneuptime.env.pod" . | nindent 22 }}
+                      {{- include "oneuptime.env.common" . | nindent 22 -}}
+                      {{- include "oneuptime.env.commonUi" . | nindent 22 -}}
+                      {{- include "oneuptime.env.pod" . | nindent 22 -}}
                   ports:
                       - containerPort: {{ $.Values.port.home }}
                         hostPort: {{ $.Values.port.home }}
@@ -39,25 +33,9 @@ spec:
 
 ---
 # OneUptime home Service
-apiVersion: v1
-kind: Service
-metadata:
-    labels:
-        app: {{ printf "%s-%s" $.Release.Name "home"  }}
-        app.kubernetes.io/part-of: oneuptime
-        app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.Release.Name "home"  }}
-    namespace: {{ $.Release.Namespace }}
-spec:
-    ports:
-        - port: {{ $.Values.port.home }}
-          targetPort: {{ $.Values.port.home }}
-    selector:
-        app: {{ printf "%s-%s" $.Release.Name "home"  }}
-    type: ClusterIP
+{{- $serviceArgs := dict "ServiceName" "home" "Port" "1444" "ReleaseName" $.Release.Name "Namespace" $.Release.Namespace -}}
+{{- include "oneuptime.service.clusterIP" $serviceArgs -}}
 ---
-###########################################
-
 
 {{- if .Values.autoscaling.enabled }}
 apiVersion: autoscaling/v1

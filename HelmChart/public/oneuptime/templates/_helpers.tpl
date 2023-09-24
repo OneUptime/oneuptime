@@ -23,6 +23,24 @@
   value: {{ $.Values.analytics.host }}
 {{- end }}
 
+{{- define "oneuptime.service.clusterIP" }}
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .ReleaseName .ServiceName  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .ReleaseName .ServiceName  }}
+    namespace: {{ .Namespace }}
+spec:
+    ports:
+        - port: {{ .Port }}
+          targetPort: {{ .Port }}
+    selector:
+        app: {{ printf "%s-%s" .ReleaseName .ServiceName  }}
+    type: ClusterIP
+{{- end }}
 
 {{- define "oneuptime.env.pod" }}
 - name: NODE_NAME

@@ -20,7 +20,6 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
-
 nodeEnvironment: production
 
 billing: 
