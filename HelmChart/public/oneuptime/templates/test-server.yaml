@@ -1,11 +1,12 @@
 # OneUptime testServer Service
-{{- $testServerDeploymentArgs :=dict "ServiceName" "test-server" "Port" $.Values.port.testServer "Release" $.Release "Values" $.Values -}}
+{{- $testServerEnv := dict "PORT"  $.Values.port.testServer -}}
+{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Port" $.Values.port.testServer "Release" $.Release "Values" $.Values "Env" $testServerEnv -}}
 {{- include "oneuptime.deployment" $testServerDeploymentArgs }}
 ---
 
 # OneUptime testServer Service
-{{- $testServerEnv := dict "PORT"  $.Values.port.testServer -}}
-{{- $testServerServiceArgs := dict "IsUI" true "ServiceName" "test-server" "Port" $.Values.port.testServer "Release" $.Release "Values" $.Values "Env" $testServerEnv -}}
+
+{{- $testServerServiceArgs := dict "ServiceName" "test-server" "Port" $.Values.port.testServer "Release" $.Release "Values" $.Values  -}}
 {{- include "oneuptime.service" $testServerServiceArgs }}
 ---
 

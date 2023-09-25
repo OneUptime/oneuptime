@@ -1,11 +1,12 @@
 # OneUptime dashboard Service
-{{- $dashboardDeploymentArgs :=dict "ServiceName" "dashboard" "Port" $.Values.port.dashboard "Release" $.Release "Values" $.Values -}}
+{{- $dashboardEnv := dict "PORT"  $.Values.port.dashboard -}}
+{{- $dashboardDeploymentArgs :=dict "IsUI" true "ServiceName" "dashboard" "Port" $.Values.port.dashboard "Release" $.Release "Values" $.Values "Env" $dashboardEnv -}}
 {{- include "oneuptime.deployment" $dashboardDeploymentArgs }}
 ---
 
 # OneUptime dashboard Service
-{{- $dashboardEnv := dict "PORT"  $.Values.port.dashboard -}}
-{{- $dashboardServiceArgs := dict "IsUI" true "ServiceName" "dashboard" "Port" $.Values.port.dashboard "Release" $.Release "Values" $.Values "Env" $dashboardEnv -}}
+
+{{- $dashboardServiceArgs := dict "ServiceName" "dashboard" "Port" $.Values.port.dashboard "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $dashboardServiceArgs }}
 ---
 

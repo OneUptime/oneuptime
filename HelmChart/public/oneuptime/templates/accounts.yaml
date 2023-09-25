@@ -1,11 +1,12 @@
 # OneUptime accounts Service
-{{- $accountsDeploymentArgs :=dict "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values -}}
+{{- $accountsEnv := dict "PORT"  $.Values.port.accounts -}}
+{{- $accountsDeploymentArgs :=dict "IsUI" true "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values "Env" $accountsEnv -}}
 {{- include "oneuptime.deployment" $accountsDeploymentArgs }}
 ---
 
 # OneUptime accounts Service
-{{- $accountsEnv := dict "PORT"  $.Values.port.accounts -}}
-{{- $accountsServiceArgs := dict "IsUI" true "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values "Env" $accountsEnv -}}
+
+{{- $accountsServiceArgs := dict "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $accountsServiceArgs }}
 ---
 

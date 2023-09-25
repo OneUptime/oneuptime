@@ -1,11 +1,12 @@
 # OneUptime home Service
-{{- $homeDeploymentArgs :=dict "ServiceName" "home" "Port" $.Values.port.home "Release" $.Release "Values" $.Values -}}
+{{- $homeEnv := dict "PORT"  $.Values.port.home -}}
+{{- $homeDeploymentArgs :=dict "IsUI" true  "ServiceName" "home" "Port" $.Values.port.home "Release" $.Release "Values" $.Values "Env" $homeEnv -}}
 {{- include "oneuptime.deployment" $homeDeploymentArgs }}
 ---
 
 # OneUptime home Service
-{{- $homeEnv := dict "PORT"  $.Values.port.home -}}
-{{- $homeServiceArgs := dict "IsUI" true "ServiceName" "home" "Port" $.Values.port.home "Release" $.Release "Values" $.Values "Env" $homeEnv -}}
+
+{{- $homeServiceArgs := dict "ServiceName" "home" "Port" $.Values.port.home "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $homeServiceArgs }}
 ---
 

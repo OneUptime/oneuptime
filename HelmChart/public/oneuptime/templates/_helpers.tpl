@@ -156,7 +156,7 @@ spec:
             {{- if $.IsUI }}
             {{- include "oneuptime.env.commonUi" . | nindent 12 }}
             {{- end }}
-            {{- if eq $.IsServer  }}
+            {{- if $.IsServer  }}
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- end }}
             {{- if $.Env }}

@@ -1,11 +1,12 @@
 # OneUptime probeApi Service
-{{- $probeApiDeploymentArgs :=dict "ServiceName" "probe-api" "Port" $.Values.port.probeApi "Release" $.Release "Values" $.Values -}}
+{{- $probeApiEnv := dict "PORT"  $.Values.port.probeApi -}}
+{{- $probeApiDeploymentArgs :=dict "IsServer" true "ServiceName" "probe-api" "Port" $.Values.port.probeApi "Release" $.Release "Values" $.Values "Env" $probeApiEnv -}}
 {{- include "oneuptime.deployment" $probeApiDeploymentArgs }}
 ---
 
 # OneUptime probeApi Service
-{{- $probeApiEnv := dict "PORT"  $.Values.port.probeApi -}}
-{{- $probeApiServiceArgs := dict "IsServer" true "ServiceName" "probe-api" "Port" $.Values.port.probeApi "Release" $.Release "Values" $.Values "Env" $probeApiEnv -}}
+
+{{- $probeApiServiceArgs := dict "ServiceName" "probe-api" "Port" $.Values.port.probeApi "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $probeApiServiceArgs }}
 ---
 
