@@ -1,5 +1,5 @@
 global:
-  storageClass: please-add-storage-class
+  storageClass: microk8s-hostpath
 
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
@@ -16,12 +16,20 @@ postgressql:
     password: please-change-this
     database: oneuptimedb
   architecture: standalone
+  primary:
+    persistence:
+      size: 25Gi
+  readReplicas: 
+    persistence:
+      size: 25Gi
 
 clickhouse: 
   shards: 1
   replicaCount: 1
   zookeeper: 
     enabled: false
+  persistence: 
+    size: 25Gi
   auth: 
     username: oneuptime
     password: please-change-this
@@ -30,6 +38,12 @@ redis:
   architecture: standalone
   auth:
     password: please-change-this
+  master:
+    persistence:
+      size: 25Gi
+  replica:
+    persistence:
+      size: 25Gi
   
 
 image:
