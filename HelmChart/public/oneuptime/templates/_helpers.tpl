@@ -67,9 +67,9 @@
   value: {{ $.Values.redis.user }}
 
 - name: POSTGRES_HOST
-  value: postgres
+  value: {{ include "postgresql.v1.primary.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
 - name: POSTGRES_PORT 
-  value: {{ printf "5432" | squote }}
+  value: {{ include "postgresql.v1.service.port" . }}
 - name: POSTGRES_USER
   value: {{ $.Values.postgressql.auth.username }}
 - name: POSTGRES_PASSWORD 
@@ -152,12 +152,12 @@ spec:
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
-            {{- include "oneuptime.env.common" . | nindent 22 }}
+            {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- if $.IsUI }}
-            {{- include "oneuptime.env.commonUi" . | nindent 22 }}
+            {{- include "oneuptime.env.commonUi" . | nindent 12 }}
             {{- end }}
-            {{- if $.IsServer }}
-            {{- include "oneuptime.env.commonServer" . | nindent 22 }}
+            {{- if eq $.IsServer  }}
+            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- end }}
             {{- if $.Env }}
             {{- range $key, $val := $.Env }}
