@@ -4,7 +4,7 @@
 ---
 
 # OneUptime statusPage Service
-{{- $statusPageServiceArgs := dict "ServiceName" "status-page" "Port" $.Values.port.statusPage "Release" $.Release "Values" $.Values -}}
+{{- $statusPageServiceArgs := dict "IsUI" true "ServiceName" "status-page" "Port" $.Values.port.statusPage "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $statusPageServiceArgs }}
 ---
 

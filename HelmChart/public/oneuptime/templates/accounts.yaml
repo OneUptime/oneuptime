@@ -4,7 +4,7 @@
 ---
 
 # OneUptime accounts Service
-{{- $accountsServiceArgs := dict "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values -}}
+{{- $accountsServiceArgs := dict "IsUI" true "ServiceName" "accounts" "Port" $.Values.port.accounts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $accountsServiceArgs }}
 ---
 

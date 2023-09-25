@@ -4,7 +4,7 @@
 ---
 
 # OneUptime linkShortener Service
-{{- $linkShortenerServiceArgs := dict "ServiceName" "link-shortener" "Port" $.Values.port.linkShortener "Release" $.Release "Values" $.Values -}}
+{{- $linkShortenerServiceArgs := dict "IsServer" true "ServiceName" "link-shortener" "Port" $.Values.port.linkShortener "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $linkShortenerServiceArgs }}
 ---
 

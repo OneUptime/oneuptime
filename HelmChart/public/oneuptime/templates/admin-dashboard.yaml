@@ -4,7 +4,7 @@
 ---
 
 # OneUptime adminDashboard Service
-{{- $adminDashboardServiceArgs := dict "ServiceName" "admin-dashboard" "Port" $.Values.port.adminDashboard "Release" $.Release "Values" $.Values -}}
+{{- $adminDashboardServiceArgs := dict "IsUI" true "ServiceName" "admin-dashboard" "Port" $.Values.port.adminDashboard "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $adminDashboardServiceArgs }}
 ---
 
