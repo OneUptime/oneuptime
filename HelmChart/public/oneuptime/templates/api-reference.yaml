@@ -4,7 +4,8 @@
 ---
 
 # OneUptime apiReference Service
-{{- $apiReferenceServiceArgs := dict "IsUI" true "ServiceName" "api-reference" "Port" $.Values.port.apiReference "Release" $.Release "Values" $.Values -}}
+{{- $apiReferenceEnv := dict "PORT"  $.Values.port.apiReference -}}
+{{- $apiReferenceServiceArgs := dict "IsUI" true "ServiceName" "api-reference" "Port" $.Values.port.apiReference "Release" $.Release "Values" $.Values "Env" $apiReferenceEnv -}}
 {{- include "oneuptime.service" $apiReferenceServiceArgs }}
 ---
 

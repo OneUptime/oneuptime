@@ -4,7 +4,8 @@
 ---
 
 # OneUptime workers Service
-{{- $workersServiceArgs := dict "IsServer" true "ServiceName" "workers" "Port" $.Values.port.workers "Release" $.Release "Values" $.Values -}}
+{{- $workersEnv := dict "PORT"  $.Values.port.workers -}}
+{{- $workersServiceArgs := dict "IsServer" true "ServiceName" "workers" "Port" $.Values.port.workers "Release" $.Release "Values" $.Values "Env" $workersEnv -}}
 {{- include "oneuptime.service" $workersServiceArgs }}
 ---
 

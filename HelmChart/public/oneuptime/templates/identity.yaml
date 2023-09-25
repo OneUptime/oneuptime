@@ -4,7 +4,8 @@
 ---
 
 # OneUptime identity Service
-{{- $identityServiceArgs := dict "IsServer" true "ServiceName" "identity" "Port" $.Values.port.identity "Release" $.Release "Values" $.Values -}}
+{{- $identityEnv := dict "PORT"  $.Values.port.identity -}}
+{{- $identityServiceArgs := dict "IsServer" true "ServiceName" "identity" "Port" $.Values.port.identity "Release" $.Release "Values" $.Values "Env" $identityEnv -}}
 {{- include "oneuptime.service" $identityServiceArgs }}
 ---
 

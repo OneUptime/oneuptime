@@ -4,7 +4,8 @@
 ---
 
 # OneUptime home Service
-{{- $homeServiceArgs := dict "IsUI" true "ServiceName" "home" "Port" $.Values.port.home "Release" $.Release "Values" $.Values -}}
+{{- $homeEnv := dict "PORT"  $.Values.port.home -}}
+{{- $homeServiceArgs := dict "IsUI" true "ServiceName" "home" "Port" $.Values.port.home "Release" $.Release "Values" $.Values "Env" $homeEnv -}}
 {{- include "oneuptime.service" $homeServiceArgs }}
 ---
 

@@ -4,7 +4,8 @@
 ---
 
 # OneUptime probe Service
-{{- $probeServiceArgs := dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values -}}
+{{- $probeEnv := dict "PORT"  $.Values.port.probe -}}
+{{- $probeServiceArgs := dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values "Env" $probeEnv -}}
 {{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
