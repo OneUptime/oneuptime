@@ -51,14 +51,14 @@
 - name: CLICKHOUSE_HOST
   value: {{ $.Values.clickhouse.host }}
 - name: CLICKHOUSE_PORT
-  value: {{ $.Values.clickhouse.port }}
+  value: {{ printf "8123" | squote}}
 - name: CLICKHOUSE_DATABASE
   value: {{ $.Values.clickhouse.database }}
 
 - name: REDIS_HOST
   value: {{ $.Values.redis.host }}
 - name: REDIS_PORT
-  value: {{ $.Values.redis.port }}
+  value: {{ printf "6379" | squote}}
 - name: REDIS_PASSWORD
   value: {{ $.Values.redis.password }}
 - name: REDIS_DB
@@ -67,9 +67,9 @@
   value: {{ $.Values.redis.user }}
 
 - name: POSTGRES_HOST
-  value: {{ include "postgresql.v1.primary.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.cluster.local
 - name: POSTGRES_PORT 
-  value: {{ include "postgresql.v1.service.port" . }}
+  value: {{ printf "5432" | squote}}
 - name: POSTGRES_USER
   value: {{ $.Values.postgressql.auth.username }}
 - name: POSTGRES_PASSWORD 
