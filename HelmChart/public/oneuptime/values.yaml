@@ -74,6 +74,8 @@ internalSmtp:
   sendingDomain: 
   dkimPrivateKey: 
   dkimPublicKey: 
+  email: 
+  name: 
 
 incidents:
   disableAutomaticCreation: false
@@ -105,3 +107,5 @@ port:
   statusPage: 3105
   dashboard: 3009
   adminDashboard: 3158
+  nginx: 80
+  haraka: 2525

@@ -4,7 +4,8 @@
 ---
 
 # OneUptime notification Service
-{{- $notificationServiceArgs := dict "ServiceName" "notification" "Port" $.Values.port.notification "Release" $.Release "Values" $.Values -}}
+{{- $notificationEnv := dict "PORT" $.Values.port.notification "SMS_DEFAULT_COST_IN_CENTS" $.Values.billing.smsDefaultValueInCents "CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callDefaultValueInCentsPerMinute "INTERNAL_SMTP_EMAIL" $.Values.internalSmtp.email "INTERNAL_SMTP_PASSWORD" $.Values.internalSmtp.password -}}
+{{- $notificationServiceArgs := dict "ServiceName" "notification" "Port" $.Values.port.notification "Release" $.Release "Values" $.Values "Env" $notificationEnv -}}
 {{- include "oneuptime.service" $notificationServiceArgs }}
 ---
 
