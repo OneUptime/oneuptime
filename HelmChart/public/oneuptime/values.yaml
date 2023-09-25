@@ -7,6 +7,24 @@ host: localhost
 
 replicaCount: 1
 
+postgressql: 
+  auth: 
+    username: oneuptime
+    password: please-change-this
+    database: oneuptime
+  architecture: standalone
+
+clickhouse: 
+  auth: 
+    username: oneuptime
+    password: please-change-this
+
+redis: 
+  architecture: standalone
+  auth:
+    password: please-change-this
+  
+
 image:
   registry: docker.io
   repository: oneuptime
@@ -62,29 +80,6 @@ clickhouse:
   host: 
   port: 
 
-postgres: 
-  port: 
-  host: 
-  user: 
-  password: 
-  database: 
-
-  # Advanced and optional options. 
-  sslCa: 
-  sslKey: 
-  sslCert: 
-  sslRejectUnauthorized: 
-
-redis: 
-  user: 
-  password: 
-  host: 
-  port:
-  database: 
-
-  # Advanced and optional options. 
-  tlsCa: 
-  tlsSentinelMode: 
 
 port: 
   home: 1444
