@@ -69,6 +69,11 @@ analytics:
   host:
   key: 
 
+internalSmtp: 
+  password: 
+  sendingDomain: 
+  dkimPrivateKey: 
+  dkimPublicKey: 
 
 incidents:
   disableAutomaticCreation: false

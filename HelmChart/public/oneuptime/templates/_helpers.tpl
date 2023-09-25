@@ -165,6 +165,9 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             {{- include "oneuptime.env.common" . | nindent 22 }}
+            {{- if $.Env }}
+            
+            {{- end }}
           ports:
             - containerPort: {{ $.Port }}
               hostPort: {{ $.Port }}
