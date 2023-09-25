@@ -29,7 +29,7 @@
 
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
-  value: "false"
+  value: {{ printf "false" | squote }}
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
 {{- end }}
@@ -37,7 +37,7 @@
 
 {{- define "oneuptime.env.commonServer" }}
 - name: IS_SERVER
-  value: "true"
+  value: {{ printf "true" | squote }}
 
 - name: ONEUPTIME_SECRET
   value: {{ $.Values.secrets.oneuptime }}
@@ -65,30 +65,18 @@
   value: {{ $.Values.redis.database }}
 - name: REDIS_USERNAME
   value: {{ $.Values.redis.user }}
-- name: REDIS_TLS_CA
-  value: {{ $.Values.redis.tlsCa }}
-- name: REDIS_TLS_SENTINEL_MODE
-  value: {{ $.Values.redis.tlsSentinelMode }}
 
 - name: POSTGRES_HOST
-  value: {{ $.Values.postgres.host }}
+  value: postgres
 - name: POSTGRES_PORT 
-  value: {{ $.Values.postgres.port }}
+  value: {{ printf "5432" | squote }}
 - name: POSTGRES_USER
-  value: {{ $.Values.postgres.user }}
+  value: {{ $.Values.postgressql.auth.username }}
 - name: POSTGRES_PASSWORD 
-  value: {{ $.Values.postgres.password }}
+  value: {{ $.Values.postgressql.auth.password }}
 - name: POSTGRES_DATABASE 
-  value: {{ $.Values.postgres.database }}
-- name: POSTGRES_SSL_CA 
-  value: {{ $.Values.postgres.sslCa }}
-- name: POSTGRES_SSL_CERT
-  value: {{ $.Values.postgres.sslCert }}
-- name: POSTGRES_SSL_KEY
-  value: {{ $.Values.postgres.sslKey }}
-- name: POSTGRES_SSL_REJECT_UNAUTHORIZED
-  value: {{ $.Values.postgres.sslRejectUnauthorized }}
-
+  value: {{ $.Values.postgressql.auth.database }}
+  
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
 

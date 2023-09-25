@@ -14,7 +14,7 @@ postgressql:
   auth: 
     username: oneuptime
     password: please-change-this
-    database: oneuptime
+    database: oneuptimedb
   architecture: standalone
 
 clickhouse: 
