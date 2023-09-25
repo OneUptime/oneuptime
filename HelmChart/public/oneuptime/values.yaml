@@ -1,3 +1,6 @@
+global:
+  storageClass: please-add-storage-class
+
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
 host: localhost
@@ -15,6 +18,10 @@ postgressql:
   architecture: standalone
 
 clickhouse: 
+  shards: 1
+  replicaCount: 1
+  zookeeper: 
+    enabled: false
   auth: 
     username: oneuptime
     password: please-change-this
@@ -72,13 +79,6 @@ statusPage:
 secrets: 
   oneuptime: please-change-this
   encryption: please-change-this
-
-clickhouse: 
-  user: 
-  pasword: 
-  database: 
-  host: 
-  port: 
 
 
 port: 

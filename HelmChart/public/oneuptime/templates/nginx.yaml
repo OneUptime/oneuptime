@@ -1,0 +1,14 @@
+# OneUptime nginx Service
+{{- $nginxDeploymentArgs :=dict "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $nginxDeploymentArgs }}
+---
+
+# OneUptime nginx Service
+{{- $nginxServiceArgs := dict "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $nginxServiceArgs }}
+---
+
+# OneUptime nginx Service
+{{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
+---

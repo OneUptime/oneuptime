@@ -1,0 +1,14 @@
+# OneUptime haraka Service
+{{- $harakaDeploymentArgs :=dict "ServiceName" "haraka" "Port" $.Values.port.haraka "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.deployment" $harakaDeploymentArgs }}
+---
+
+# OneUptime haraka Service
+{{- $harakaServiceArgs := dict "ServiceName" "haraka" "Port" $.Values.port.haraka "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $harakaServiceArgs }}
+---
+
+# OneUptime haraka Service
+{{- $harakaAutoScalerArgs := dict "ServiceName" "haraka" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $harakaAutoScalerArgs }}
+---
