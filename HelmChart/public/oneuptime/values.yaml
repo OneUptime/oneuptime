@@ -98,7 +98,7 @@ port:
   testServer: 3800
   file: 3125
   identity: 3087
-  notificaiton: 3191
+  notification: 3191
   realtime: 3300
   workers: 3452
   accounts: 3003

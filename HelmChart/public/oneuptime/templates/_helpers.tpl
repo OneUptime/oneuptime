@@ -122,19 +122,20 @@
 apiVersion: v1
 kind: Service
 metadata:
-    labels:
-        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-        app.kubernetes.io/part-of: oneuptime
-        app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-    namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+  name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  namespace: {{ $.Release.Namespace }}
 spec:
-    ports:
-        - port: {{ $.Port }}
-          targetPort: {{ $.Port }}
-    selector:
-        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-    type: ClusterIP
+  ports:
+    - port: {{ $.Port }}
+      targetPort: {{ $.Port }}
+      name: port
+  selector:
+      app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  type: ClusterIP
 {{- end }}
 
 
@@ -142,33 +143,34 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-    namespace: {{ $.Release.Namespace }}
-    labels:
-        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-        app.kubernetes.io/part-of: oneuptime
-        app.kubernetes.io/managed-by: Helm
+  name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
 spec:
-    selector:
-        matchLabels:
-            app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-    replicas: {{ $.Values.replicaCount }}
-    template:
-        metadata:
-            labels:
-                app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-        spec:
-            containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
-                  name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
-                  env:
-                      {{- include "oneuptime.env.common" . | nindent 22 }}
-                  ports:
-                      - containerPort: {{ $.Port }}
-                        hostPort: {{ $.Port }}
-                        name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-            restartPolicy: {{ $.Values.image.restartPolicy }}
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  replicas: {{ $.Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+    spec:
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 22 }}
+          ports:
+            - containerPort: {{ $.Port }}
+              hostPort: {{ $.Port }}
+              protocol: TCP
+              name: http
+      restartPolicy: {{ $.Values.image.restartPolicy }}
 {{- end }}
 
 
