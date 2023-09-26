@@ -1,5 +1,5 @@
 global:
-  storageClass: microk8s-hostpath
+  storageClass: 
 
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 

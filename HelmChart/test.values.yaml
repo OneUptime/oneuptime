@@ -1,0 +1,6 @@
+global:
+  storageClass: microk8s-hostpath
+
+image: 
+  tag: test
+
