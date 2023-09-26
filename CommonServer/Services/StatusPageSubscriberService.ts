@@ -6,7 +6,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageService from './StatusPageService';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { FileRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
@@ -175,7 +175,7 @@ export class Service extends DatabaseService<Model> {
                 subscriberWebhook: true,
             },
             skip: 0,
-            limit: LIMIT_PER_PROJECT,
+            limit: LIMIT_MAX,
             props: props,
         });
     }
