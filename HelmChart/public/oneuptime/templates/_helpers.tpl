@@ -162,7 +162,7 @@ spec:
             {{- if $.Env }}
             {{- range $key, $val := $.Env }}
             - name: {{ $key }}
-              value: {{ $val }}
+              value: {{ $val | squote }}
             {{- end }}
             {{- end }}
           ports:
