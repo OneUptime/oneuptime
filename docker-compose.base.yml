@@ -68,7 +68,7 @@ x-common-server-variables: &common-server-variables
     SERVER_FILE_HOSTNAME: file
     SERVER_HOME_HOSTNAME: home
     SERVER_IDENTITY_HOSTNAME: identity
-    SERVER_NOTIFICATION_HOSTNAME: hostname
+    SERVER_NOTIFICATION_HOSTNAME: notification
     SERVER_WORKERS_HOSTNAME: workers
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
