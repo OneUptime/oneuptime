@@ -66,15 +66,15 @@
 - name: REDIS_USERNAME
   value: {{ $.Values.redis.user }}
 
-- name: POSTGRES_HOST
+- name: DATABASE_HOST
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.cluster.local
-- name: POSTGRES_PORT 
+- name: DATABASE_PORT 
   value: {{ printf "5432" | squote}}
-- name: POSTGRES_USER
+- name: DATABASE_USER
   value: {{ $.Values.postgressql.auth.username }}
-- name: POSTGRES_PASSWORD 
+- name: DATABASE_PASSWORD 
   value: {{ $.Values.postgressql.auth.password }}
-- name: POSTGRES_DATABASE 
+- name: DATABASE_DATABASE 
   value: {{ $.Values.postgressql.auth.database }}
   
 - name: BILLING_PRIVATE_KEY
