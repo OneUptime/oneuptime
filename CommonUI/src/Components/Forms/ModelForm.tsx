@@ -118,7 +118,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && hasPermissionOnField(key)) {
+            if (key && (hasPermissionOnField(key) || field.forceShow)) {
                 (select as Dictionary<boolean>)[key] = true;
             }
         }
