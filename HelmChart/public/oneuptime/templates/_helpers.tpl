@@ -79,13 +79,111 @@
 - name: DATABASE_DATABASE 
   value: {{ $.Values.postgresql.auth.database }}
 
-
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
 
-
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
+
+- name: SERVER_ACCOUNTS_HOSTNAME
+  value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_DASHBOARD_API_HOSTNAME
+  value: {{ $.Release.Name }}-dashboard-api.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_WORKFLOW_HOSTNAME
+  value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_LINK_SHORTENER_HOSTNAME
+  value: {{ $.Release.Name }}-link-shortener.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_PROBE_API_HOSTNAME
+  value: {{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_TEST_SERVER_HOSTNAME
+  value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_FILE_HOSTNAME
+  value: {{ $.Release.Name }}-file.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_HOME_HOSTNAME
+  value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_IDENTITY_HOSTNAME
+  value: {{ $.Release.Name }}-identity.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_NOTIFICATION_HOSTNAME
+  value: {{ $.Release.Name }}-notification.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_WORKERS_HOSTNAME
+  value: {{ $.Release.Name }}-workers.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_STATUS_PAGE_HOSTNAME
+  value: {{ $.Release.Name }}-status-page.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_DASHBOARD_HOSTNAME
+  value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_ADMIN_DASHBOARD_HOSTNAME
+  value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: SERVER_API_REFERENCE_HOSTNAME
+  value: {{ $.Release.Name }}-api-reference.{{ $.Release.Namespace }}.svc.cluster.local
+
+- name: DASHBOARD_API_PORT
+  value: {{ $.Values.port.dashboardApi | squote }}
+
+- name: API_REFERENCE_PORT
+  value: {{ $.Values.port.apiReference | squote }}
+
+- name: WORKFLOW_PORT
+  value: {{ $.Values.port.workflow | squote }}
+
+- name: LINK_SHORTENER_PORT
+  value: {{ $.Values.port.linkShortener | squote }}
+
+- name: ALERT_PORT
+  value: {{ $.Values.port.alert | squote }}
+
+- name: PROBE_API_PORT
+  value: {{ $.Values.port.probeApi | squote }}
+
+- name: PROBE_PORT
+  value: {{ $.Values.port.probe | squote }}
+
+- name: TEST_SERVER_PORT
+  value: {{ $.Values.port.testServer | squote }}
+
+- name: FILE_PORT
+  value: {{ $.Values.port.file | squote }}
+
+- name: HOME_PORT
+  value: {{ $.Values.port.home | squote }}
+
+- name: IDENTITY_PORT
+  value: {{ $.Values.port.identity | squote }}
+
+- name: NOTIFICATION_PORT
+  value: {{ $.Values.port.notification | squote }}
+
+- name: REALTIME_PORT
+  value: {{ $.Values.port.realtime | squote }}
+
+- name: WORKERS_PORT
+  value: {{ $.Values.port.workers | squote }}
+
+- name: ACCOUNTS_PORT
+  value: {{ $.Values.port.accounts | squote }}
+
+- name: STATUS_PAGE_PORT
+  value: {{ $.Values.port.statusPage | squote }}
+
+- name: DASHBOARD_PORT
+  value: {{ $.Values.port.dashboard | squote }}
+
+- name: ADMIN_DASHBOARD_PORT
+  value: {{ $.Values.port.adminDashboard | squote }}
+
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}
