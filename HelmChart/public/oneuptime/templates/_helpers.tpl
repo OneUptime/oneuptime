@@ -210,7 +210,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-  replicas: {{ $.Values.replicaCount }}
+  replicas: {{ $.Values.deployment.replicaCount }}
   template:
     metadata:
       labels:
