@@ -1,59 +1,59 @@
 upstream accounts {
-    server accounts:3003 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_ACCOUNTS_HOSTNAME}:${ACCOUNTS_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream identity {
-    server identity:3087 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_IDENTITY_HOSTNAME}:${IDENTITY_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 upstream file {
-    server file:3125 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_FILE_HOSTNAME}:${FILE_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 upstream dashboard-api {
-    server dashboard-api:3002 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_DASHBAORD_API_HOSTNAME}:${DASHBOARD_API_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 upstream workflow {
-    server workflow:3099 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_WORKFLOW_HOSTNAME}:${WORKFLOW_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 
 upstream link-shortener {
-    server link-shortener:3521 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_LINK_SHORTENER_HOSTNAME}:${LINK_SHORTENER_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 
 upstream api-reference {
-    server api-reference:1445 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_API_REFERENCE_HOSTNAME}:${API_REFERENCE_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 upstream probe-api {
-    server probe-api:3400 weight=10 max_fails=3 fail_timeout=30s; 
+    server ${SERVER_PROBE_API_HOSTNAME}:${PROBE_API_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 upstream dashboard {
-    server dashboard:3009 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_DASHBOARD_HOSTNAME}:${DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream admin-dashboard {
-    server admin-dashboard:3158 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_ADMIN_DASHBOARD_HOSTNAME}:${ADMIN_DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream status-page {
-    server status-page:3105 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_STATUS_PAGE_HOSTNAME}:${STATUS_PAGE_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream home {
-    server home:1444 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_HOME_HOSTNAME}:${HOME_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream workers {
-    server workers:3452 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_WORKERS_HOSTNAME}:${WORKERS_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream notification {
-    server notification:3191 weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_NOTIFICATION_HOSTNAME}:${NOTIFICATION_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 
