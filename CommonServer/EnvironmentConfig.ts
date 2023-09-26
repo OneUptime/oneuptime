@@ -1,7 +1,6 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
-import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 
@@ -74,7 +73,7 @@ export const WorkerHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_WORKERS_HOSTNAME']}:${process.env['WORKERS_PORT']}`
 );
 
-export const LinkShortenerHostname: Route = Hostname.fromString(
+export const LinkShortenerHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_LINK_SHORTENER_HOSTNAME']}:${process.env['LINK_SHORTENER_PORT']}`
 );
 
