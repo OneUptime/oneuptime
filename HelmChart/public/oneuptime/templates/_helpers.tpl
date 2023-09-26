@@ -55,28 +55,32 @@
 - name: CLICKHOUSE_DATABASE
   value: {{ $.Values.clickhouse.database }}
 
+- name: PROBE_API_URL
+  value: {{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
+
 - name: REDIS_HOST
-  value: {{ $.Values.redis.host }}
+  value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.cluster.local
 - name: REDIS_PORT
   value: {{ printf "6379" | squote}}
 - name: REDIS_PASSWORD
   value: {{ $.Values.redis.password }}
 - name: REDIS_DB
-  value: {{ $.Values.redis.database }}
+  value: {{ printf "0" | squote}}
 - name: REDIS_USERNAME
-  value: {{ $.Values.redis.user }}
+  value: default
 
 - name: DATABASE_HOST
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.cluster.local
 - name: DATABASE_PORT 
   value: {{ printf "5432" | squote}}
-- name: DATABASE_USER
-  value: {{ $.Values.postgressql.auth.username }}
+- name: DATABASE_USERNAME
+  value: {{ $.Values.postgresql.auth.username }}
 - name: DATABASE_PASSWORD 
-  value: {{ $.Values.postgressql.auth.password }}
+  value: {{ $.Values.postgresql.auth.password }}
 - name: DATABASE_DATABASE 
-  value: {{ $.Values.postgressql.auth.database }}
-  
+  value: {{ $.Values.postgresql.auth.database }}
+
+
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
 

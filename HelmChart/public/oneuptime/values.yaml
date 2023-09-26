@@ -10,7 +10,7 @@ host: localhost
 
 replicaCount: 1
 
-postgressql: 
+postgresql: 
   auth: 
     username: oneuptime
     password: please-change-this
