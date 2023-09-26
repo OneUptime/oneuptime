@@ -13,15 +13,11 @@ export const InternalSmtpUsername: string = 'oneuptime';
 export const InternalSmtpPassword: string =
     process.env['INTERNAL_SMTP_PASSWORD'] || '';
 
-export const InternalSmtpHost: Hostname = new Hostname(
-    'haraka'
-);
+export const InternalSmtpHost: Hostname = new Hostname('haraka');
 
-export const InternalSmtpPort: Port = new Port(
-    2525
-);
+export const InternalSmtpPort: Port = new Port(2525);
 
-export const InternalSmtpSecure: boolean = false; 
+export const InternalSmtpSecure: boolean = false;
 
 export const InternalSmtpEmail: Email = new Email(
     process.env['INTERNAL_SMTP_EMAIL'] || 'noreply@oneuptime.com'
