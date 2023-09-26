@@ -1,5 +1,5 @@
 # OneUptime probe Service
-{{- $probeEnv := dict "PORT"  $.Values.port.probe -}}
+{{- $probeEnv := dict "PORT"  $.Values.port.probe "PROBE_API_URL" (include "oneuptime.env.probe-api-url" .)  -}}
 {{- $probeDeploymentArgs :=dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values "Env" $probeEnv -}}
 {{- include "oneuptime.deployment" $probeDeploymentArgs }}
 ---

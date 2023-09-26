@@ -24,7 +24,9 @@
 {{- end }}
 
 
-
+{{- define "oneuptime.env.probe-api-url" }}
+{{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
+{{- end}}
 
 
 {{- define "oneuptime.env.commonUi" }}
@@ -54,9 +56,6 @@
   value: {{ printf "8123" | squote}}
 - name: CLICKHOUSE_DATABASE
   value: {{ $.Values.clickhouse.database }}
-
-- name: PROBE_API_URL
-  value: {{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
 
 - name: REDIS_HOST
   value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.cluster.local
