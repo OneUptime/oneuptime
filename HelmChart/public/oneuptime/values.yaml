@@ -1,3 +1,6 @@
+global:
+  storageClass: microk8s-hostpath
+
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
 host: localhost
@@ -6,6 +9,42 @@ host: localhost
 # ------------------------------------------------
 
 replicaCount: 1
+
+postgresql: 
+  auth: 
+    username: oneuptime
+    password: please-change-this
+    database: oneuptimedb
+  architecture: standalone
+  primary:
+    persistence:
+      size: 25Gi
+  readReplicas: 
+    persistence:
+      size: 25Gi
+
+clickhouse: 
+  shards: 1
+  replicaCount: 1
+  zookeeper: 
+    enabled: false
+  persistence: 
+    size: 25Gi
+  auth: 
+    username: oneuptime
+    password: please-change-this
+
+redis: 
+  architecture: standalone
+  auth:
+    password: please-change-this
+  master:
+    persistence:
+      size: 25Gi
+  replica:
+    persistence:
+      size: 25Gi
+  
 
 image:
   registry: docker.io
@@ -19,7 +58,6 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
-
 
 nodeEnvironment: production
 
@@ -45,18 +83,29 @@ analytics:
   host:
   key: 
 
+internalSmtp: 
+  password: 
+  sendingDomain: 
+  dkimPrivateKey: 
+  dkimPublicKey: 
+  email: 
+  name: 
 
 incidents:
-  disableAutomaticCreation: 
+  disableAutomaticCreation: false
 
 statusPage: 
-  cNameRecord: 
+  cnameRecord: 
+
+secrets: 
+  oneuptime: please-change-this
+  encryption: please-change-this
 
 
 port: 
   home: 1444
   dashboardApi: 3002
-  apiDocs: 1445
+  apiReference: 1445
   workflow: 3099
   linkShortener: 3521
   alert: 3088
@@ -65,10 +114,12 @@ port:
   testServer: 3800
   file: 3125
   identity: 3087
-  notificaiton: 3191
+  notification: 3191
   realtime: 3300
   workers: 3452
   accounts: 3003
   statusPage: 3105
   dashboard: 3009
   adminDashboard: 3158
+  nginx: 80
+  haraka: 2525

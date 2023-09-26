@@ -20,6 +20,8 @@ export default class Hostname extends DatabaseProperty {
     }
 
     public set hostname(value: string) {
+        value = value.trim();
+
         if (Hostname.isValid(value)) {
             this._route = value;
         } else {

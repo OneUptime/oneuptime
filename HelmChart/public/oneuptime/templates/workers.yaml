@@ -1,0 +1,16 @@
+# OneUptime workers Service
+{{- $workersEnv := dict "PORT"  $.Values.port.workers -}}
+{{- $workersDeploymentArgs :=dict "IsServer" true "ServiceName" "workers" "Port" $.Values.port.workers "Release" $.Release "Values" $.Values "Env" $workersEnv -}}
+{{- include "oneuptime.deployment" $workersDeploymentArgs }}
+---
+
+# OneUptime workers Service
+
+{{- $workersServiceArgs := dict "ServiceName" "workers" "Port" $.Values.port.workers "Release" $.Release "Values" $.Values  -}}
+{{- include "oneuptime.service" $workersServiceArgs }}
+---
+
+# OneUptime workers Service
+{{- $workersAutoScalerArgs := dict "ServiceName" "workers" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $workersAutoScalerArgs }}
+---

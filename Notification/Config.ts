@@ -8,22 +8,16 @@ import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Phone from 'Common/Types/Phone';
 import EmailServer from 'Common/Types/Email/EmailServer';
 
-export const InternalSmtpUsername: string =
-    process.env['INTERNAL_SMTP_USERNAME'] || '';
+export const InternalSmtpUsername: string = 'oneuptime';
 
 export const InternalSmtpPassword: string =
     process.env['INTERNAL_SMTP_PASSWORD'] || '';
 
-export const InternalSmtpHost: Hostname = new Hostname(
-    process.env['INTERNAL_SMTP_HOST'] || ''
-);
+export const InternalSmtpHost: Hostname = new Hostname('haraka');
 
-export const InternalSmtpPort: Port = new Port(
-    parseInt(process.env['INTERNAL_SMTP_PORT'] || '25')
-);
+export const InternalSmtpPort: Port = new Port(2525);
 
-export const InternalSmtpSecure: boolean =
-    process.env['INTERNAL_SMTP_IS_SECURE'] === 'true';
+export const InternalSmtpSecure: boolean = false;
 
 export const InternalSmtpEmail: Email = new Email(
     process.env['INTERNAL_SMTP_EMAIL'] || 'noreply@oneuptime.com'

@@ -1,0 +1,16 @@
+# OneUptime probe Service
+{{- $probeEnv := dict "PORT"  $.Values.port.probe "PROBE_API_URL" (include "oneuptime.env.probe-api-url" .)  -}}
+{{- $probeDeploymentArgs :=dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values "Env" $probeEnv -}}
+{{- include "oneuptime.deployment" $probeDeploymentArgs }}
+---
+
+# OneUptime probe Service
+
+{{- $probeServiceArgs := dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $probeServiceArgs }}
+---
+
+# OneUptime probe Service
+{{- $probeAutoScalerArgs := dict "ServiceName" "probe" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
+---

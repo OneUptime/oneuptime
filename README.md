@@ -1,12 +1,6 @@
-<p align="center">
-  <img width="300" alt="oneuptimelogo" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/public/img/OneUptimePNG/7.png">
-</p>
-<p align="center">
-  <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
-  <a href='https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ'><img alt="Join Slack Community" src="https://img.shields.io/badge/slack%20community-join-blue"/></a>
-  <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/oneuptime/backend"/>
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oneuptime/app"/>
-</p>
+<!-- markdownlint-disable MD033 -->
+<h1 align="center"><img alt="oneuptime logo" width=75% src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/public/img/OneUptimePNG/7.png"/></h1>
+<!-- markdownlint-enable MD033 -->
 
 **OneUptime: The Complete Open-Source Observability Platform**
 
@@ -33,7 +27,6 @@ OneUptime Cloud is the easiest and fastest way to monitor your website uptime an
 By using OneUptime Cloud, you also support the development of OneUptime open source project, which is a powerful and flexible tool for website monitoring. You can find more information about OneUptime open source project on [GitHub](##Philosophy). The code of OneUptime is completely open source, which means you can access, modify, and distribute it freely. You can also contribute to the project by reporting issues, suggesting features, or submitting pull requests.
 
 If you need advanced features, such as API Access, Advances Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
-
 
 
 ## Installation

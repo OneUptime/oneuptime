@@ -1,0 +1,16 @@
+# OneUptime dashboardApi Service
+{{- $dashboardApiEnv := dict "PORT"  $.Values.port.dashboardApi -}}
+{{- $dashboardApiDeploymentArgs :=dict "IsServer" true "ServiceName" "dashboard-api" "Port" $.Values.port.dashboardApi "Release" $.Release "Values" $.Values "Env" $dashboardApiEnv -}}
+{{- include "oneuptime.deployment" $dashboardApiDeploymentArgs }}
+---
+
+# OneUptime dashboardApi Service
+
+{{- $dashboardApiServiceArgs := dict "ServiceName" "dashboard-api" "Port" $.Values.port.dashboardApi "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $dashboardApiServiceArgs }}
+---
+
+# OneUptime dashboardApi Service
+{{- $dashboardApiAutoScalerArgs := dict "ServiceName" "dashboard-api" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $dashboardApiAutoScalerArgs }}
+---

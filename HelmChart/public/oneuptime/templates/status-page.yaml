@@ -1,0 +1,16 @@
+# OneUptime statusPage Service
+{{- $statusPageEnv := dict "PORT"  $.Values.port.statusPage -}}
+{{- $statusPageDeploymentArgs :=dict "IsUI" true "ServiceName" "status-page" "Port" $.Values.port.statusPage "Release" $.Release "Values" $.Values "Env" $statusPageEnv -}}
+{{- include "oneuptime.deployment" $statusPageDeploymentArgs }}
+---
+
+# OneUptime statusPage Service
+
+{{- $statusPageServiceArgs := dict "ServiceName" "status-page" "Port" $.Values.port.statusPage "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $statusPageServiceArgs }}
+---
+
+# OneUptime statusPage Service
+{{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $statusPageAutoScalerArgs }}
+---
