@@ -1,16 +1,16 @@
 # OneUptime file Deployment
 {{- $fileEnv := dict "PORT"  $.Values.port.file -}}
-{{- $fileDeploymentArgs :=dict "IsServer" true "ServiceName" "dashboard-api" "Port" $.Values.port.file "Release" $.Release "Values" $.Values "Env" $fileEnv -}}
+{{- $fileDeploymentArgs :=dict "IsServer" true "ServiceName" "file" "Port" $.Values.port.file "Release" $.Release "Values" $.Values "Env" $fileEnv -}}
 {{- include "oneuptime.deployment" $fileDeploymentArgs }}
 ---
 
 # OneUptime file Service
 
-{{- $fileServiceArgs := dict "ServiceName" "dashboard-api" "Port" $.Values.port.file "Release" $.Release "Values" $.Values -}}
+{{- $fileServiceArgs := dict "ServiceName" "file" "Port" $.Values.port.file "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $fileServiceArgs }}
 ---
 
 # OneUptime file Service
-{{- $fileAutoScalerArgs := dict "ServiceName" "dashboard-api" "Release" $.Release "Values" $.Values -}}
+{{- $fileAutoScalerArgs := dict "ServiceName" "file" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $fileAutoScalerArgs }}
 ---
