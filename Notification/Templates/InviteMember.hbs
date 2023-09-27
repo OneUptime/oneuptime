@@ -4,12 +4,24 @@
 
 {{> EmailTitle title=(concat "You have been invited to " projectName) }}
 
-{{> InfoBlock info="Please click on the 'Go to dashboard' button below to see all your invitations and manage them."}}
+{{#ifCond isNewUser "true"}}
+{{> InfoBlock info="Please sign up to a new account to accept this invitation"}}
 
-{{> ButtonBlock buttonUrl=dashboardUrl buttonText="Go to Dashboard"}}
+{{> ButtonBlock buttonUrl=registerLink buttonText="Sign up to a new account"}}
 
 {{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=dashboardUrl}}
+{{> InfoBlock info=registerLink}}
+{{/ifCond}}
+
+{{#ifCond isNewUser "false"}}
+{{> InfoBlock info="Please sign in to your account to see all your invitations and manage them."}}
+
+{{> ButtonBlock buttonUrl=signInLink buttonText="Sign in to OneUptime"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=signInLink}}
+{{/ifCond}}
+
 
 {{> InfoBlock info="If you have not signed up to OneUptime so far. You'll be redirected to the account sign up page to sign up first."}}
 

@@ -16,7 +16,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
 import { IsBillingEnabled } from '../EnvironmentConfig';
-import { DashboardRoute } from 'Common/ServiceRoute';
+import { AccountsRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
@@ -78,7 +78,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 isRoot: true,
             });
 
+            let isNewUser: boolean = false;
+
             if (!user) {
+                isNewUser = true;
                 user = await UserService.createByEmail(email, {
                     isRoot: true,
                 });
@@ -106,11 +109,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                         toEmail: email,
                         templateType: EmailTemplateType.InviteMember,
                         vars: {
-                            dashboardUrl: new URL(
+                            signInLink: URL.fromString(new URL(
                                 httpProtocol,
                                 host,
-                                DashboardRoute
-                            ).toString(),
+                                AccountsRoute
+                            ).toString()).toString(),
+                            registerLink: URL.fromString(new URL(
+                                httpProtocol,
+                                host,
+                                AccountsRoute
+                            ).toString()).addRoute("/register").addQueryParam("email", email.toString()).toString(),
+                            isNewUser: isNewUser.toString(),
                             projectName: project.name!,
                             homeUrl: new URL(httpProtocol, host).toString(),
                         },
