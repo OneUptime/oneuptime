@@ -1,16 +1,21 @@
+{{- range $key, $val := $.Values.probes }}
+
 # OneUptime probe Deployment
-{{- $probeEnv := dict "PORT"  $.Values.port.probe "PROBE_API_URL" (include "oneuptime.env.probe-api-url" .)  -}}
-{{- $probeDeploymentArgs :=dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values "Env" $probeEnv -}}
+{{- $probeEnv := dict "PORT"  $.Values.port.probe "PROBE_API_URL" (include "oneuptime.env.probe-api-url" $) "PROBE_NAME" $val.name "PROBE_DESCRIPTION" $val.description "PROBE_MONITORING_WORKERS" $val.monitoringWorkers  "PROBE_KEY" $val.key "PROBE_MONITOR_FETCH_LIMIT" $val.monitorFetchLimit  -}}
+{{- $probeDeploymentArgs :=dict "ServiceName" (printf "probe-%s" $key) "Port" $.Values.port.probe "Release" $.Release "Values" $.Values "Env" $probeEnv -}}
 {{- include "oneuptime.deployment" $probeDeploymentArgs }}
 ---
 
 # OneUptime probe Service
 
-{{- $probeServiceArgs := dict "ServiceName" "probe" "Port" $.Values.port.probe "Release" $.Release "Values" $.Values -}}
+{{- $probeServiceArgs := dict "ServiceName" (printf "probe-%s" $key) "Port" $.Values.port.probe "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
 # OneUptime probe autoscaler
-{{- $probeAutoScalerArgs := dict "ServiceName" "probe" "Release" $.Release "Values" $.Values -}}
+{{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
 ---
+
+{{- end }}
+
