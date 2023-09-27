@@ -21,70 +21,6 @@
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
   value: {{ $.Values.analytics.host }}
-{{- end }}
-
-
-{{- define "oneuptime.env.probe-api-url" }}
-{{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
-{{- end}}
-
-
-{{- define "oneuptime.env.commonUi" }}
-- name: IS_SERVER
-  value: {{ printf "false" | squote }}
-- name: STATUS_PAGE_CNAME_RECORD
-  value: {{ $.Values.statusPage.cnameRecord }}
-{{- end }}
-
-
-{{- define "oneuptime.env.commonServer" }}
-- name: IS_SERVER
-  value: {{ printf "true" | squote }}
-
-- name: ONEUPTIME_SECRET
-  value: {{ $.Values.secrets.oneuptime }}
-- name: ENCRYPTION_SECRET
-  value: {{ $.Values.secrets.encryption }}
-
-- name: CLICKHOUSE_USER
-  value: {{ $.Values.clickhouse.user }}
-- name: CLICKHOUSE_PASSWORD
-  value: {{ $.Values.clickhouse.password }}
-- name: CLICKHOUSE_HOST
-  value: {{ $.Values.clickhouse.host }}
-- name: CLICKHOUSE_PORT
-  value: {{ printf "8123" | squote}}
-- name: CLICKHOUSE_DATABASE
-  value: {{ $.Values.clickhouse.database }}
-
-- name: REDIS_HOST
-  value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.cluster.local
-- name: REDIS_PORT
-  value: {{ printf "6379" | squote}}
-- name: REDIS_PASSWORD
-  value: {{ $.Values.redis.password }}
-- name: REDIS_DB
-  value: {{ printf "0" | squote}}
-- name: REDIS_USERNAME
-  value: default
-
-- name: DATABASE_HOST
-  value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.cluster.local
-- name: DATABASE_PORT 
-  value: {{ printf "5432" | squote}}
-- name: DATABASE_USERNAME
-  value: {{ $.Values.postgresql.auth.username }}
-- name: DATABASE_PASSWORD 
-  value: {{ $.Values.postgresql.auth.password }}
-- name: DATABASE_DATABASE 
-  value: {{ $.Values.postgresql.auth.database }}
-
-- name: BILLING_PRIVATE_KEY
-  value: {{ $.Values.billing.privateKey }}
-
-- name: DISABLE_AUTOMATIC_INCIDENT_CREATION
-  value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
-
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_DASHBOARD_API_HOSTNAME
@@ -152,6 +88,70 @@
   value: {{ $.Values.port.dashboard | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.port.adminDashboard | squote }}
+{{- end }}
+
+
+{{- define "oneuptime.env.probe-api-url" }}
+{{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
+{{- end}}
+
+
+{{- define "oneuptime.env.commonUi" }}
+- name: IS_SERVER
+  value: {{ printf "false" | squote }}
+- name: STATUS_PAGE_CNAME_RECORD
+  value: {{ $.Values.statusPage.cnameRecord }}
+{{- end }}
+
+
+{{- define "oneuptime.env.commonServer" }}
+- name: IS_SERVER
+  value: {{ printf "true" | squote }}
+
+- name: ONEUPTIME_SECRET
+  value: {{ $.Values.secrets.oneuptime }}
+- name: ENCRYPTION_SECRET
+  value: {{ $.Values.secrets.encryption }}
+
+- name: CLICKHOUSE_USER
+  value: {{ $.Values.clickhouse.user }}
+- name: CLICKHOUSE_PASSWORD
+  value: {{ $.Values.clickhouse.password }}
+- name: CLICKHOUSE_HOST
+  value: {{ $.Values.clickhouse.host }}
+- name: CLICKHOUSE_PORT
+  value: {{ printf "8123" | squote}}
+- name: CLICKHOUSE_DATABASE
+  value: {{ $.Values.clickhouse.database }}
+
+- name: REDIS_HOST
+  value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.cluster.local
+- name: REDIS_PORT
+  value: {{ printf "6379" | squote}}
+- name: REDIS_PASSWORD
+  value: {{ $.Values.redis.password }}
+- name: REDIS_DB
+  value: {{ printf "0" | squote}}
+- name: REDIS_USERNAME
+  value: default
+
+- name: DATABASE_HOST
+  value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.cluster.local
+- name: DATABASE_PORT 
+  value: {{ printf "5432" | squote}}
+- name: DATABASE_USERNAME
+  value: {{ $.Values.postgresql.auth.username }}
+- name: DATABASE_PASSWORD 
+  value: {{ $.Values.postgresql.auth.password }}
+- name: DATABASE_DATABASE 
+  value: {{ $.Values.postgresql.auth.database }}
+
+- name: BILLING_PRIVATE_KEY
+  value: {{ $.Values.billing.privateKey }}
+
+- name: DISABLE_AUTOMATIC_INCIDENT_CREATION
+  value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
+
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}
