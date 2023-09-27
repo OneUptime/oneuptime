@@ -250,11 +250,13 @@ spec:
               value: {{ $val | squote }}
             {{- end }}
             {{- end }}
+          {{- if $.Port }}
           ports:
             - containerPort: {{ $.Port }}
               hostPort: {{ $.Port }}
               protocol: TCP
               name: http
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 {{- end }}
 

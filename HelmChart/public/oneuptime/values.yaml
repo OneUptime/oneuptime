@@ -132,7 +132,6 @@ port:
   linkShortener: 3521
   alert: 3088
   probeApi: 3400
-  probe: 3500
   testServer: 3800
   file: 3125
   identity: 3087
