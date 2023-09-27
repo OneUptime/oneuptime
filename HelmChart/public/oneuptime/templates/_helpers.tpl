@@ -192,7 +192,11 @@ spec:
       name: port
   selector:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  {{- if $.ServiceType }}
+  type: {{ $.ServiceType }}
+  {{- else }}
   type: ClusterIP
+  {{- end}}
 {{- end }}
 
 
@@ -216,6 +220,14 @@ spec:
       labels:
         app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
     spec:
+      {{- if $.Volumes }}
+      volumes:
+      {{- range $key, $val := $.Volumes }}
+        - name: {{ $key }}
+          persistentVolumeClaim:
+            claimName: {{ $val }}
+      {{- end }}
+      {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
@@ -276,4 +288,19 @@ spec:
           averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
 {{- end }}
+{{- end }}
+
+
+{{- define "oneuptime.pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $.Name  }}
+spec:
+  accessModes:
+    - ReadWriteMany # Use this for shared access
+  storageClassName: {{ $.Values.global.storageClass }}
+  resources:
+    requests:
+      storage: {{ $.Storage }}
 {{- end }}

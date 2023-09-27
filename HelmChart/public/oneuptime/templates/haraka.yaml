@@ -1,4 +1,4 @@
-# OneUptime haraka Service
+# OneUptime haraka Deployment
 {{- $harakaEnv := dict "SMTP_USERNAME" "oneuptime" "SMTP_PASSWORD" $.Values.internalSmtp.password "DKIM_SELECTOR" "oneuptime" "DOMAIN" $.Values.internalSmtp.sendingDomain "DKIM_PRIVATE_KEY" $.Values.internalSmtp.dkimPrivateKey "DKIM_PUBLIC_KEY" $.Values.internalSmtp.dkimPublicKey -}}
 {{- $harakaDeploymentArgs :=dict "ServiceName" "haraka" "Port" $.Values.port.haraka "Release" $.Release "Values" $.Values "Env" $harakaEnv -}}
 {{- include "oneuptime.deployment" $harakaDeploymentArgs }}

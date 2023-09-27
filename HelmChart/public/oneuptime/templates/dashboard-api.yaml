@@ -1,4 +1,4 @@
-# OneUptime dashboardApi Service
+# OneUptime dashboardApi Deployment
 {{- $dashboardApiEnv := dict "PORT"  $.Values.port.dashboardApi -}}
 {{- $dashboardApiDeploymentArgs :=dict "IsServer" true "ServiceName" "dashboard-api" "Port" $.Values.port.dashboardApi "Release" $.Release "Values" $.Values "Env" $dashboardApiEnv -}}
 {{- include "oneuptime.deployment" $dashboardApiDeploymentArgs }}

@@ -1,4 +1,4 @@
-# OneUptime testServer Service
+# OneUptime testServer Deployment
 {{- $testServerEnv := dict "PORT"  $.Values.port.testServer -}}
 {{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Port" $.Values.port.testServer "Release" $.Release "Values" $.Values "Env" $testServerEnv -}}
 {{- include "oneuptime.deployment" $testServerDeploymentArgs }}

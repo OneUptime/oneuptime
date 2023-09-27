@@ -8,12 +8,16 @@ host: localhost
 # You can safely ignore values below this line. 
 # ------------------------------------------------
 
+volume: 
+  certs: 
+    storage: 1Gi
+
 deployment: 
   replicaCount: 1
 
 ingress:
-  serviceAccount: 
-    type: NodePort
+  service: 
+    type: LoadBalancer
 
 postgresql: 
   auth: 
