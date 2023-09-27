@@ -186,6 +186,7 @@ router.post(
             const alreadySavedUser: StatusPagePrivateUser | null =
                 await StatusPagePrivateUserService.findOneBy({
                     query: {
+                        statusPageId: new ObjectID(data['statusPageId'].toString()),
                         resetPasswordToken:
                             (user.resetPasswordToken as string) || '',
                     },
@@ -339,7 +340,7 @@ router.post(
 
             const alreadySavedUser: StatusPagePrivateUser | null =
                 await StatusPagePrivateUserService.findOneBy({
-                    query: { email: user.email!, password: user.password! },
+                    query: { email: user.email!, password: user.password!, statusPageId: user.statusPageId! },
                     select: {
                         _id: true,
                         password: true,
