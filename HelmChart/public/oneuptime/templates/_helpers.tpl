@@ -229,7 +229,11 @@ spec:
       {{- end }}
       {{- end }}
       containers:
+        {{- if $.ImageName }}
+        - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ImageName .Values.image.tag }}
+        {{- else }}
         - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
+        {{- end}}
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
