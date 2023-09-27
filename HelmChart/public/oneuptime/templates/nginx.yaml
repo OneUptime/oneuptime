@@ -1,14 +1,15 @@
 # OneUptime nginx Service
-{{- $nginxDeploymentArgs :=dict "IsServer" true "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
+{{- $nginxVolumes := dict "certs" (printf "%s-%s" $.Release.Name "certs") }}
+{{- $nginxDeploymentArgs :=dict "IsServer" true "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "Volumes" $nginxVolumes -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
 ---
 
 # OneUptime nginx Service
-{{- $nginxServiceArgs := dict "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
+{{- $nginxServiceArgs := dict "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
 {{- include "oneuptime.service" $nginxServiceArgs }}
 ---
 
-# OneUptime nginx Service
+# OneUptime nginx autoscaler
 {{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
 ---

@@ -8,12 +8,16 @@ host: localhost
 # You can safely ignore values below this line. 
 # ------------------------------------------------
 
+volume: 
+  certs: 
+    storage: 1Gi
+
 deployment: 
   replicaCount: 1
 
 ingress:
-  serviceAccount: 
-    type: NodePort
+  service: 
+    type: LoadBalancer
 
 postgresql: 
   auth: 
@@ -107,12 +111,14 @@ secrets:
   encryption: please-change-this
 
 probes: 
-  - name: "Probe 1"
+  one: 
+    name: "Probe 1"
     description: "Probe 1"
     key: please-change-this
     monitoringWorkers: 3
     monitorFetchLimit: 10
-  - name: "Probe 2"
+  two: 
+    name: "Probe 2"
     description: "Probe 2"
     key: please-change-this
     monitoringWorkers: 3

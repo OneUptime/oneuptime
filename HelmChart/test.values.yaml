@@ -4,3 +4,6 @@ global:
 image: 
   tag: test
 
+ingress:
+  service: 
+    type: NodePort

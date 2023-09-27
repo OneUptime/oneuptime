@@ -1,0 +1,5 @@
+# OneUptime Certs PVC
+
+{{- $certsPvcArgs := dict "Name" "certs" "Release" $.Release "Values" $.Values "Storage" $.Values.volume.certs.storage  -}}
+{{- include "oneuptime.pvc" $certsPvcArgs }}
+---

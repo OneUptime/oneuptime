@@ -1,4 +1,4 @@
-# OneUptime linkShortener Service
+# OneUptime linkShortener Deployment
 {{- $linkShortenerEnv := dict "PORT"  $.Values.port.linkShortener -}}
 {{- $linkShortenerDeploymentArgs :=dict "IsServer" true "ServiceName" "link-shortener" "Port" $.Values.port.linkShortener "Release" $.Release "Values" $.Values "Env" $linkShortenerEnv -}}
 {{- include "oneuptime.deployment" $linkShortenerDeploymentArgs }}
@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $linkShortenerServiceArgs }}
 ---
 
-# OneUptime linkShortener Service
+# OneUptime linkShortener autoscaler
 {{- $linkShortenerAutoScalerArgs := dict "ServiceName" "link-shortener" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $linkShortenerAutoScalerArgs }}
 ---

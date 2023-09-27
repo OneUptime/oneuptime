@@ -1,4 +1,4 @@
-# OneUptime adminDashboard Service
+# OneUptime adminDashboard Deployment
 {{- $adminDashboardEnv := dict "PORT"  $.Values.port.adminDashboard -}}
 {{- $adminDashboardDeploymentArgs :=dict "IsUI" true  "ServiceName" "admin-dashboard" "Port" $.Values.port.adminDashboard "Release" $.Release "Values" $.Values "Env" $adminDashboardEnv -}}
 {{- include "oneuptime.deployment" $adminDashboardDeploymentArgs }}
@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $adminDashboardServiceArgs }}
 ---
 
-# OneUptime adminDashboard Service
+# OneUptime adminDashboard autoscaler
 {{- $adminDashboardAutoScalerArgs := dict "ServiceName" "admin-dashboard" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $adminDashboardAutoScalerArgs }}
 ---

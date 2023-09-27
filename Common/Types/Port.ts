@@ -37,7 +37,7 @@ export default class Port extends DatabaseProperty {
     public static isValid(port: number | string | PositiveNumber): boolean {
         if (typeof port === Typeof.String) {
             try {
-                port = Number.parseInt(port.toString(), 10);
+                port = Number.parseInt(port.toString().trim(), 10);
             } catch (error) {
                 return false;
             }
