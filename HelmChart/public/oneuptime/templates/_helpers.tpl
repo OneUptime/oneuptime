@@ -256,6 +256,12 @@ spec:
               hostPort: {{ $.Port }}
               protocol: TCP
               name: http
+              {{- if $.isHTTPSPortEnabled }}
+            - containerPort: 443
+              hostPort: 443
+              protocol: TCP
+              name: https
+              {{- end }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 {{- end }}

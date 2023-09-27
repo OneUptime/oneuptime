@@ -5,7 +5,7 @@
 ---
 
 # OneUptime nginx Service
-{{- $nginxServiceArgs := dict "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
+{{- $nginxServiceArgs := dict "ServiceName" "nginx" "isHTTPSPortEnabled" true "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
 {{- include "oneuptime.service" $nginxServiceArgs }}
 ---
 
