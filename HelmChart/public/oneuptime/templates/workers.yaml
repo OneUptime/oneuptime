@@ -13,7 +13,7 @@
 {{- include "oneuptime.service" $workersServiceArgs }}
 ---
 
-# OneUptime workers Service
+# OneUptime workers autoscaler
 {{- $workersAutoScalerArgs := dict "ServiceName" "workers" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $workersAutoScalerArgs }}
 ---

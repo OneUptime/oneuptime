@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $fileServiceArgs }}
 ---
 
-# OneUptime file Service
+# OneUptime file autoscaler
 {{- $fileAutoScalerArgs := dict "ServiceName" "file" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $fileAutoScalerArgs }}
 ---

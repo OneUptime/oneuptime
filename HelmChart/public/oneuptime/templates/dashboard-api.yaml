@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $dashboardApiServiceArgs }}
 ---
 
-# OneUptime dashboardApi Service
+# OneUptime dashboardApi autoscaler
 {{- $dashboardApiAutoScalerArgs := dict "ServiceName" "dashboard-api" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $dashboardApiAutoScalerArgs }}
 ---

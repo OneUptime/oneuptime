@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $harakaServiceArgs }}
 ---
 
-# OneUptime haraka Service
+# OneUptime haraka autoscaler
 {{- $harakaAutoScalerArgs := dict "ServiceName" "haraka" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $harakaAutoScalerArgs }}
 ---

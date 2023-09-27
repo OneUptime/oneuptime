@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $adminDashboardServiceArgs }}
 ---
 
-# OneUptime adminDashboard Service
+# OneUptime adminDashboard autoscaler
 {{- $adminDashboardAutoScalerArgs := dict "ServiceName" "admin-dashboard" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $adminDashboardAutoScalerArgs }}
 ---

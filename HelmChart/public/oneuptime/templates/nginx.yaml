@@ -9,7 +9,7 @@
 {{- include "oneuptime.service" $nginxServiceArgs }}
 ---
 
-# OneUptime nginx Service
+# OneUptime nginx autoscaler
 {{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
 ---

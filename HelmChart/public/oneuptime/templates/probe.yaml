@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
-# OneUptime probe Service
+# OneUptime probe autoscaler
 {{- $probeAutoScalerArgs := dict "ServiceName" "probe" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
 ---

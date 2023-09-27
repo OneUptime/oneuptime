@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $apiReferenceServiceArgs }}
 ---
 
-# OneUptime apiReference Service
+# OneUptime apiReference autoscaler
 {{- $apiReferenceAutoScalerArgs := dict "ServiceName" "api-reference" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $apiReferenceAutoScalerArgs }}
 ---

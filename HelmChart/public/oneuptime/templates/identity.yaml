@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $identityServiceArgs }}
 ---
 
-# OneUptime identity Service
+# OneUptime identity autoscaler
 {{- $identityAutoScalerArgs := dict "ServiceName" "identity" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $identityAutoScalerArgs }}
 ---

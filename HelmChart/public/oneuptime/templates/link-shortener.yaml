@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $linkShortenerServiceArgs }}
 ---
 
-# OneUptime linkShortener Service
+# OneUptime linkShortener autoscaler
 {{- $linkShortenerAutoScalerArgs := dict "ServiceName" "link-shortener" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $linkShortenerAutoScalerArgs }}
 ---

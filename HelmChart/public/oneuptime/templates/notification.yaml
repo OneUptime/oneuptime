@@ -9,7 +9,7 @@
 {{- include "oneuptime.service" $notificationServiceArgs }}
 ---
 
-# OneUptime notification Service
+# OneUptime notification autoscaler
 {{- $notificationAutoScalerArgs := dict "ServiceName" "notification" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $notificationAutoScalerArgs }}
 ---

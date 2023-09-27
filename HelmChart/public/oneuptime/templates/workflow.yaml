@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $workflowServiceArgs }}
 ---
 
-# OneUptime workflow Service
+# OneUptime workflow autoscaler
 {{- $workflowAutoScalerArgs := dict "ServiceName" "workflow" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $workflowAutoScalerArgs }}
 ---

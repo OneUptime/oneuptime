@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $homeServiceArgs }}
 ---
 
-# OneUptime home Service
+# OneUptime home autoscaler
 {{- $homeAutoScalerArgs := dict "ServiceName" "home" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $homeAutoScalerArgs }}
 ---

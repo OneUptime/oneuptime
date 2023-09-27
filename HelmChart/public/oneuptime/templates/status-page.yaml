@@ -10,7 +10,7 @@
 {{- include "oneuptime.service" $statusPageServiceArgs }}
 ---
 
-# OneUptime statusPage Service
+# OneUptime statusPage autoscaler
 {{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $statusPageAutoScalerArgs }}
 ---
