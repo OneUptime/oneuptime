@@ -129,7 +129,7 @@
 - name: REDIS_PORT
   value: {{ printf "6379" | squote}}
 - name: REDIS_PASSWORD
-  value: {{ $.Values.redis.password }}
+  value: {{ $.Values.redis.auth.password }}
 - name: REDIS_DB
   value: {{ printf "0" | squote}}
 - name: REDIS_USERNAME
