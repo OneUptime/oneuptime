@@ -109,16 +109,23 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                         toEmail: email,
                         templateType: EmailTemplateType.InviteMember,
                         vars: {
-                            signInLink: URL.fromString(new URL(
-                                httpProtocol,
-                                host,
-                                AccountsRoute
-                            ).toString()).toString(),
-                            registerLink: URL.fromString(new URL(
-                                httpProtocol,
-                                host,
-                                AccountsRoute
-                            ).toString()).addRoute("/register").addQueryParam("email", email.toString()).toString(),
+                            signInLink: URL.fromString(
+                                new URL(
+                                    httpProtocol,
+                                    host,
+                                    AccountsRoute
+                                ).toString()
+                            ).toString(),
+                            registerLink: URL.fromString(
+                                new URL(
+                                    httpProtocol,
+                                    host,
+                                    AccountsRoute
+                                ).toString()
+                            )
+                                .addRoute('/register')
+                                .addQueryParam('email', email.toString())
+                                .toString(),
                             isNewUser: isNewUser.toString(),
                             projectName: project.name!,
                             homeUrl: new URL(httpProtocol, host).toString(),
