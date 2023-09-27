@@ -1,5 +1,5 @@
 global:
-  storageClass: microk8s-hostpath
+  storageClass: 
 
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
@@ -8,7 +8,12 @@ host: localhost
 # You can safely ignore values below this line. 
 # ------------------------------------------------
 
-replicaCount: 1
+deployment: 
+  replicaCount: 1
+
+ingress:
+  serviceAccount: 
+    type: NodePort
 
 postgresql: 
   auth: 
@@ -101,6 +106,17 @@ secrets:
   oneuptime: please-change-this
   encryption: please-change-this
 
+probes: 
+  - name: "Probe 1"
+    description: "Probe 1"
+    key: please-change-this
+    monitoringWorkers: 3
+    monitorFetchLimit: 10
+  - name: "Probe 2"
+    description: "Probe 2"
+    key: please-change-this
+    monitoringWorkers: 3
+    monitorFetchLimit: 10
 
 port: 
   home: 1444

@@ -1,5 +1,5 @@
 # OneUptime nginx Service
-{{- $nginxDeploymentArgs :=dict "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
+{{- $nginxDeploymentArgs :=dict "IsServer" true "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
 ---
 

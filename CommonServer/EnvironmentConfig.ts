@@ -1,7 +1,6 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
-import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 
@@ -62,28 +61,45 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
-export const RealtimeHostname: Hostname = Hostname.fromString('realtime:3300');
+export const RealtimeHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_REALTIME_HOSTNAME']}:${process.env['REALTIME_PORT']}`
+);
 
-export const NotificationHostname: Hostname =
-    Hostname.fromString('notification:3191');
+export const NotificationHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_NOTIFICATION_HOSTNAME']}:${process.env['NOTIFICATION_PORT']}`
+);
 
-export const WorkerHostname: Hostname = Hostname.fromString('worker:3452');
+export const WorkerHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_WORKERS_HOSTNAME']}:${process.env['WORKERS_PORT']}`
+);
 
-export const LinkShortenerHostname: Route = new Route('link-shortener:3521');
+export const LinkShortenerHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_LINK_SHORTENER_HOSTNAME']}:${process.env['LINK_SHORTENER_PORT']}`
+);
 
-export const WorkflowHostname: Hostname = Hostname.fromString('workflow:3099');
+export const WorkflowHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_WORKFLOW_HOSTNAME']}:${process.env['WORKFLOW_PORT']}`
+);
 
-export const DashboardApiHostname: Hostname =
-    Hostname.fromString('dashboard-api:3002');
+export const DashboardApiHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_DASHBOARD_API_HOSTNAME']}:${process.env['DASHBOARD_API_PORT']}`
+);
 
-export const ProbeApiHostname: Hostname = Hostname.fromString('probe-api:3400');
+export const ProbeApiHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_PROBE_API_HOSTNAME']}:${process.env['PROBE_API_PORT']}`
+);
 
-export const AccountsHostname: Hostname = Hostname.fromString('accounts:3003');
+export const AccountsHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_ACCOUNTS_HOSTNAME']}:${process.env['ACCOUNTS_PORT']}`
+);
 
-export const HomeHostname: Hostname = Hostname.fromString('home:1444');
+export const HomeHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_HOME_HOSTNAME']}:${process.env['HOME_PORT']}`
+);
 
-export const DashboardHostname: Hostname =
-    Hostname.fromString('dashboard:3000');
+export const DashboardHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_DASHBOARD_HOSTNAME']}:${process.env['DASHBOARD_PORT']}`
+);
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
 
