@@ -16,4 +16,4 @@ RUN apk add bash
 
 COPY ./Tests .
 
-CMD ["/start.sh"]
+CMD ["bash start.sh"]
