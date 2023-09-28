@@ -1,0 +1,34 @@
+
+name: Helm Chart Release
+on:
+  pull_request: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+
+jobs:
+  helm-chart-docker-image-deploy:
+    runs-on: ubuntu-latest
+    env: 
+        CI_COMMIT_MESSAGE: Continuous Integration Build Artifacts
+        CI_COMMIT_AUTHOR: Continuous Integration
+    steps:
+      - name: Install Helm 
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+         
+      - name: Build and Package Helm chart
+        run: |
+          cd HelmChart/public
+          helm package oneuptime --version 7.0.1 --app-version 7.0.1 
+          helm repo index .
+          cd .. 
+          git clone https://github.com/OneUptime/helm-chart.git
+          cp -r ./public/* ./helm-chart
+          cd helm-chart
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "username@users.noreply.github.com"
+          git add .
+          git commit -a -m "Helm Chart Release 7.0.1"
+          git push origin master
+
