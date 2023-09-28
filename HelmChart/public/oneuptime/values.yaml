@@ -60,6 +60,7 @@ image:
   repository: oneuptime
   pullPolicy: Always
   tag: release
+  restartPolicy: Always
 
 autoscaling:
   enabled: false
