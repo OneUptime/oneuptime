@@ -118,7 +118,8 @@ export default class ApiMonitor {
                 );
 
             if (
-                (result.statusCode === 404 || result.statusCode === 403) &&
+                result.statusCode >= 400 &&
+                result.statusCode < 600 &&
                 requestType === HTTPMethod.HEAD
             ) {
                 startTime = process.hrtime();
