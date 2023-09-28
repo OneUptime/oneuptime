@@ -21,7 +21,7 @@ export default abstract class LoginUtil {
         UserUtil.setAccessToken(token);
         UserUtil.setEmail(user.email as Email);
         UserUtil.setUserId(user.id as ObjectID);
-        UserUtil.setName(user.name as Name);
+        UserUtil.setName(user.name || new Name(''));
         UserUtil.setIsMasterAdmin(user.isMasterAdmin as boolean);
 
         Analytics.userAuth(user.email!);

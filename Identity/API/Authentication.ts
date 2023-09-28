@@ -230,7 +230,7 @@ router.post(
                 },
             });
 
-            if (alreadySavedUser) {
+            if (alreadySavedUser && alreadySavedUser.password) {
                 const token: string = ObjectID.generate().toString();
                 await UserService.updateOneBy({
                     query: {
@@ -274,7 +274,7 @@ router.post(
                 req,
                 res,
                 new BadDataException(
-                    `No user is registered with ${user.email?.toString()}`
+                    `No user is registered with ${user.email?.toString()}. Please sign up for a new account.`
                 )
             );
         } catch (err) {

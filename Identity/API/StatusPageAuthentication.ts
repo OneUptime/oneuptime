@@ -38,6 +38,10 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
+            if (!data['email']) {
+                throw new BadDataException('Email is required.');
+            }
+
             const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
                 data as JSONObject,
                 StatusPagePrivateUser
@@ -164,7 +168,13 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body['data'];
+            const data: JSONObject = JSONFunctions.deserialize(
+                req.body['data']
+            );
+
+            if (!data['statusPageId']) {
+                throw new BadDataException('Status Page ID is required.');
+            }
 
             const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
                 data as JSONObject,
@@ -176,6 +186,9 @@ router.post(
             const alreadySavedUser: StatusPagePrivateUser | null =
                 await StatusPagePrivateUserService.findOneBy({
                     query: {
+                        statusPageId: new ObjectID(
+                            data['statusPageId'].toString()
+                        ),
                         resetPasswordToken:
                             (user.resetPasswordToken as string) || '',
                     },
@@ -207,7 +220,7 @@ router.post(
 
             const statusPage: StatusPage | null =
                 await StatusPageService.findOneById({
-                    id: new ObjectID(data['statusPageId'] as string),
+                    id: new ObjectID(data['statusPageId'].toString()),
                     props: {
                         isRoot: true,
                         ignoreHooks: true,
@@ -329,7 +342,11 @@ router.post(
 
             const alreadySavedUser: StatusPagePrivateUser | null =
                 await StatusPagePrivateUserService.findOneBy({
-                    query: { email: user.email!, password: user.password! },
+                    query: {
+                        email: user.email!,
+                        password: user.password!,
+                        statusPageId: user.statusPageId!,
+                    },
                     select: {
                         _id: true,
                         password: true,

@@ -110,6 +110,9 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                         ?.toString()
                                         .replace('/', '')
                                         .toString() || '';
+
+                                item.statusPageId =
+                                    StatusPageUtil.getStatusPageId()!;
                                 return Promise.resolve(item);
                             }}
                             showAsColumns={1}

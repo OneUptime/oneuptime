@@ -14,10 +14,42 @@ import { FileRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import CreateBy from '../Types/Database/CreateBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+    }
+
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
+        // check if this user is already invited.
+        if (createBy.data.statusPageId && createBy.data.email) {
+            const statusPageUser: Model | null = await this.findOneBy({
+                query: {
+                    email: createBy.data.email,
+                    statusPageId: createBy.data.statusPageId,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+            if (statusPageUser) {
+                throw new BadDataException(
+                    'This user is already invited to this status page.'
+                );
+            }
+        }
+
+        return {
+            createBy: createBy,
+            carryForward: null,
+        };
     }
 
     protected override async onCreateSuccess(

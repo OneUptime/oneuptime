@@ -78,6 +78,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
 init().catch((err: Error) => {
     logger.error(err);
+    process.exit(1);
 });
 
 export default app;

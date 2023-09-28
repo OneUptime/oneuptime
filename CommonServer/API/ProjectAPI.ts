@@ -12,10 +12,10 @@ import {
 } from '../Utils/Express';
 import TeamMemberService from '../Services/TeamMemberService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Response from '../Utils/Response';
 import TeamMember from 'Model/Models/TeamMember';
+import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
     public constructor() {
@@ -35,7 +35,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             ) => {
                 try {
                     if (!(req as OneUptimeRequest).userAuthorization?.userId) {
-                        throw new NotAuthorizedException(
+                        throw new NotAuthenticatedException(
                             'User should be logged in to access this API'
                         );
                     }
