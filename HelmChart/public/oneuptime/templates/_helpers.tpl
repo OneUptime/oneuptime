@@ -263,7 +263,7 @@ spec:
               {{- if $.isHTTPSPortEnabled }}
             - containerPort: 443
               protocol: TCP
-              name: http
+              name: https
               {{- end }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
