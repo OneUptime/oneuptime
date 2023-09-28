@@ -24,6 +24,7 @@ jobs:
       - name: Build and Package Helm chart
         run: |
           cd HelmChart/public
+          helm lint oneuptime
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
           helm repo index .
           cd .. 
