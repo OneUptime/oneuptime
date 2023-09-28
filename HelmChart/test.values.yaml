@@ -1,3 +1,5 @@
+host: k.oneuptime.com
+
 global:
   storageClass: microk8s-hostpath
 

@@ -22,7 +22,7 @@ ingress:
 postgresql: 
   auth: 
     username: oneuptime
-    password: please-change-this
+    password: please-change-this-to-random-value
     database: oneuptimedb
   architecture: standalone
   primary:
@@ -41,12 +41,12 @@ clickhouse:
     size: 25Gi
   auth: 
     username: oneuptime
-    password: please-change-this
+    password: please-change-this-to-random-value
 
 redis: 
   architecture: standalone
   auth:
-    password: please-change-this
+    password: please-change-this-to-random-value
   master:
     persistence:
       size: 25Gi
@@ -107,20 +107,20 @@ statusPage:
   cnameRecord: 
 
 secrets: 
-  oneuptime: please-change-this
-  encryption: please-change-this
+  oneuptime: please-change-this-to-random-value
+  encryption: please-change-this-to-random-value
 
 probes: 
   one: 
     name: "Probe 1"
     description: "Probe 1"
-    key: please-change-this
+    key: please-change-this-to-random-value
     monitoringWorkers: 3
     monitorFetchLimit: 10
   two: 
     name: "Probe 2"
     description: "Probe 2"
-    key: please-change-this
+    key: please-change-this-to-random-value
     monitoringWorkers: 3
     monitorFetchLimit: 10
 
@@ -132,7 +132,6 @@ port:
   linkShortener: 3521
   alert: 3088
   probeApi: 3400
-  probe: 3500
   testServer: 3800
   file: 3125
   identity: 3087
