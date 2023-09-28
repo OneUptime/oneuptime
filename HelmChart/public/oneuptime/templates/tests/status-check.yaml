@@ -1,0 +1,13 @@
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: {{ printf "%s-%s" $.Release.Name "status-check"  }}
+#   annotations:
+#     "helm.sh/hook": test
+# spec:
+#   containers:
+#     - name: wget
+#       image: busybox
+#       command: ['/bin/sh']
+#       args: ["-c", "scripts/status-check.sh", "{{ $.Release.Name }}-nginx.{{ $.Release.Namespace }}.svc.cluster.local"]
+#   restartPolicy: Never

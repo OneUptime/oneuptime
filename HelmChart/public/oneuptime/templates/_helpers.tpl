@@ -114,11 +114,11 @@
   value: {{ $.Values.secrets.encryption }}
 
 - name: CLICKHOUSE_USER
-  value: {{ $.Values.clickhouse.user }}
+  value: {{ $.Values.clickhouse.auth.user }}
 - name: CLICKHOUSE_PASSWORD
-  value: {{ $.Values.clickhouse.password }}
+  value: {{ $.Values.clickhouse.auth.password }}
 - name: CLICKHOUSE_HOST
-  value: {{ $.Values.clickhouse.host }}
+  value: {{ $.Release.Name }}-clickhouse.{{ $.Release.Namespace }}.svc.cluster.local
 - name: CLICKHOUSE_PORT
   value: {{ printf "8123" | squote}}
 - name: CLICKHOUSE_DATABASE
@@ -190,6 +190,11 @@ spec:
     - port: {{ $.Port }}
       targetPort: {{ $.Port }}
       name: port
+    {{- if $.isHTTPSPortEnabled }}
+    - port: 443
+      targetPort: 443
+      name: https
+    {{- end }}
   selector:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   {{- if $.ServiceType }}
@@ -253,14 +258,12 @@ spec:
           {{- if $.Port }}
           ports:
             - containerPort: {{ $.Port }}
-              hostPort: {{ $.Port }}
               protocol: TCP
               name: http
               {{- if $.isHTTPSPortEnabled }}
             - containerPort: 443
-              hostPort: 443
               protocol: TCP
-              name: https
+              name: http
               {{- end }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
