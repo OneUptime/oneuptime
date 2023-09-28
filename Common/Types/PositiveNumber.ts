@@ -12,7 +12,10 @@ export default class PositiveNumber {
 
     public constructor(positiveNumber: number | string) {
         if (typeof positiveNumber === Typeof.String) {
-            positiveNumber = Number.parseInt(positiveNumber.toString().trim(), 10);
+            positiveNumber = Number.parseInt(
+                positiveNumber.toString().trim(),
+                10
+            );
             if (isNaN(positiveNumber)) {
                 throw new BadDataException(`Invalid number: ${positiveNumber}`);
             }
