@@ -27,7 +27,7 @@ jobs:
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
           helm repo index .
           cd .. 
-          git clone https://github.com/OneUptime/helm-chart.git
+          git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/OneUptime/helm-chart.git
           cp -r ./public/* ./helm-chart
           cd helm-chart
           git config --unset-all http.https://github.com/.extraheader
@@ -35,5 +35,5 @@ jobs:
           git config --global user.email "username@users.noreply.github.com"
           git add -A
           git commit -m "Helm Chart Release 7.0.1"
-          git push origin master
+          git push
 
