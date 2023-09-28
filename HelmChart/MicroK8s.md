@@ -19,6 +19,16 @@ sudo microk8s kubectl config view --raw > ~/.kube/config
 microk8s uninstall
 ```
 
+### Addons
+
+```
+
+# Enable Metal LB
+
+microk8s enable metallb:192.168.0.105-192.168.0.111
+```
+
+
 ### Common Issues
 
 - launch failed: instance "microk8s-vm" already exists (on MacOS)
@@ -30,6 +40,8 @@ multipass purge
 # reinstall
 microk8s install
 microk8s status --wait-ready
+
+
 ```
 
 

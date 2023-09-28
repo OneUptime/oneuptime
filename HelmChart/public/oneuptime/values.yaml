@@ -18,6 +18,7 @@ deployment:
 ingress:
   service: 
     type: LoadBalancer
+    loadBalancerIP: 
 
 postgresql: 
   auth: 

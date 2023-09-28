@@ -186,6 +186,9 @@ metadata:
   name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   namespace: {{ $.Release.Namespace }}
 spec:
+  {{- if $.LoadBalancerIP }}
+  loadBalancerIP: {{ $.LoadBalancerIP }}
+  {{- end }}
   ports:
     - port: {{ $.Port }}
       targetPort: {{ $.Port }}

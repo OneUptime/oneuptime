@@ -34,3 +34,10 @@ helm install oneuptime ./HelmChart/public/oneuptime -f ./HelmChart/public/oneupt
 ```
 helm test oneuptime
 ```
+
+
+### Package Helm Charts
+
+```
+helm package ./HelmChart/public/oneuptime
+```
