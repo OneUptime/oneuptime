@@ -1,0 +1,28 @@
+apiVersion: v1
+entries:
+  oneuptime:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2023-09-28T14:41:19.953230292Z"
+    dependencies:
+    - name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 12.12.5
+    - name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 18.1.0
+    - name: clickhouse
+      repository: https://charts.bitnami.com/bitnami
+      version: 4.0.2
+    - name: minio
+      repository: https://charts.bitnami.com/bitnami
+      version: 12.8.9
+    description: OneUptime Helm chart for Kubernetes
+    digest: c327e9cac0bdca9bee838333d05f7db958a51174269a6226bf112837c5e0ac5e
+    icon: https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/public/img/OneUptimePNG/1.png
+    name: oneuptime
+    type: application
+    urls:
+    - oneuptime-0.1.0.tgz
+    version: 0.1.0
+generated: "2023-09-28T14:41:19.933746852Z"

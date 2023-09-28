@@ -1,0 +1,7 @@
+# From https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml 
+
+repositoryID: oneuptime
+owners:
+  - name: OneUptime Helm Team
+    email: artifacthub@oneuptime.com
+
