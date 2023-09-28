@@ -1,0 +1,1 @@
+echo "This is a test container. Please specify a script to test"
