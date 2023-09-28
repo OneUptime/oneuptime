@@ -986,6 +986,17 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Helm 
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Build and Package Helm chart
+        run: |
+          helm package ./HelmChart/public/oneuptime --version 7.0.${{needs.generate-build-number.outputs.build_number}} --app-version 7.0.${{needs.generate-build-number.outputs.build_number}}
+          helm repo index ./HelmChart/public
+
+      - name: Commit these files to the repo. 
+        run: 
+
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
