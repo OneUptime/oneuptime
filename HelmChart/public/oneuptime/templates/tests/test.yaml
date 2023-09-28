@@ -9,5 +9,5 @@ spec:
     - name: oneptime-test
       image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "test" .Values.image.tag }}
       command: ['/bin/sh']
-      args: ["-c", "scripts/status-check.sh", "{{ $.Release.Name }}-nginx.{{ $.Release.Namespace }}.svc.cluster.local"]
+      args: ["-c", "Scripts/status-check.sh", "{{ $.Release.Name }}-nginx.{{ $.Release.Namespace }}.svc.cluster.local"]
   restartPolicy: Never
