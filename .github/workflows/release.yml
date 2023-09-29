@@ -58,7 +58,8 @@ jobs:
         run: |
           cd ..
           echo '${{ secrets.GPG_PRIVATE_KEY }}' > private.key
-          gpg --import private.key
+          gpg --import private.key || true
+          rm private.key
           echo "GPG key imported successfully"
           gpg --export-secret-keys >~/.gnupg/secring.gpg 
           echo "GPG key exported successfully"
