@@ -18,8 +18,6 @@ export const IntegrationRoute: Route = new Route('/integration');
 
 export const NotificationRoute: Route = new Route('/notification');
 
-export const HelmRoute: Route = new Route('/helm-chart');
-
 export const AccountsRoute: Route = new Route('/accounts');
 
 export const WorkflowRoute: Route = new Route('/workflow');

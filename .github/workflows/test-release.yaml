@@ -35,7 +35,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -96,7 +96,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -157,7 +157,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -218,7 +218,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -279,7 +279,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -340,7 +340,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -403,7 +403,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -464,7 +464,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -525,7 +525,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -586,7 +586,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -647,7 +647,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -708,7 +708,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -769,7 +769,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -830,7 +830,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -891,7 +891,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -936,66 +936,6 @@ jobs:
             GIT_SHA=${{ github.sha }}
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
-  helm-chart-docker-image-deploy:
-    needs: generate-build-number
-    runs-on: ubuntu-latest
-    steps:
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/helm-chart
-            ghcr.io/oneuptime/helm-chart
-          tags: |
-            type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
-            
-
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
-
-      # Build and deploy helm-chart.
-
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          file: ./HelmChart/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   haraka-docker-image-deploy:
     needs: generate-build-number
@@ -1013,7 +953,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1074,7 +1014,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1135,7 +1075,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1196,7 +1136,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1257,7 +1197,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1318,7 +1258,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1379,7 +1319,7 @@ jobs:
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
