@@ -124,7 +124,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                                 ).toString()
                             )
                                 .addRoute('/register')
-                                .addQueryParam('email', email.toString())
+                                .addQueryParam('email', email.toString(), true)
                                 .toString(),
                             isNewUser: isNewUser.toString(),
                             projectName: project.name!,

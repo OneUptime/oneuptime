@@ -123,7 +123,7 @@ export default class URL extends DatabaseProperty {
             }
         }
 
-        return encodeURI(urlString);
+        return urlString;
     }
 
     public static fromURL(url: URL): URL {
@@ -131,8 +131,6 @@ export default class URL extends DatabaseProperty {
     }
 
     public static fromString(url: string): URL {
-        url = decodeURI(url);
-
         let protocol: Protocol = Protocol.HTTPS;
 
         if (url.startsWith('https://')) {
@@ -211,7 +209,15 @@ export default class URL extends DatabaseProperty {
         return this;
     }
 
-    public addQueryParam(paramName: string, value: string): URL {
+    public addQueryParam(
+        paramName: string,
+        value: string,
+        encode?: boolean | undefined
+    ): URL {
+        if (encode) {
+            value = encodeURIComponent(value);
+        }
+
         this.params[paramName] = value;
         return this;
     }
