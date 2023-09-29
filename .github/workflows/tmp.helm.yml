@@ -30,6 +30,8 @@ jobs:
           cd oneuptime/HelmChart/public
           helm lint oneuptime
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
+          echo "Helm Chart Package created successfully"
+          echo "Copying the package to helm-chart repo"
           cd ..
           cp -r ./public/* ../../helm-chart
           cd .. && cd .. && cd helm-chart
