@@ -131,7 +131,6 @@ export default class URL extends DatabaseProperty {
     }
 
     public static fromString(url: string): URL {
-
         url = decodeURIComponent(url);
 
         let protocol: Protocol = Protocol.HTTPS;
