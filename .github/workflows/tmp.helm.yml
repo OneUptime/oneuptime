@@ -15,28 +15,27 @@ jobs:
         CI_COMMIT_AUTHOR: Continuous Integration
     steps:
 
+      - name: Install Helm 
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
       - name: Clone Repo  
         run: |
           eval `ssh-agent -s`
           ssh-add - <<< '${{ secrets.HELM_CHART_GITHUB_REPO_DEPLOY_KEY }}'
           git clone git@github.com:OneUptime/helm-chart.git
 
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
-      - name: Install Helm 
-        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-         
       - name: Build and Package Helm chart
         run: |
           cd HelmChart/public
           helm lint oneuptime
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
           cd .. 
-          cp -r ./public/* ./helm-chart
-          cd helm-chart
+          cp -r ./public/* ../helm-chart
+          cd .. && ls && cd helm-chart && ls
           git config --unset-all http.https://github.com/.extraheader
           git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
           git config --global user.email "hello@oneuptime.com"
