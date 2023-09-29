@@ -60,14 +60,14 @@ jobs:
           eval `ssh-agent -s`
           ssh-add - <<< '${{ secrets.HELM_CHART_GITHUB_REPO_DEPLOY_KEY }}'
           git clone git@github.com:OneUptime/helm-chart.git
-          cd oneuptime/HelmChart/public
+          cd oneuptime/HelmChart/Public
           helm lint oneuptime
           helm package oneuptime --version 7.0.${{needs.generate-build-number.outputs.build_number}} --app-version 7.0.${{needs.generate-build-number.outputs.build_number}} 
           echo "Helm Chart Package created successfully"
           cd ..
           ls
           echo "Copying the package to helm-chart repo"
-          cp -r ./public/* ../../helm-chart
+          cp -r ./Public/* ../../helm-chart
           echo "Package copied successfully"
           cd .. && cd .. && cd helm-chart
           echo "Updating helm-chart repo"
