@@ -34,6 +34,9 @@ postgresql:
   auth: 
     password: please-change-this-to-random-value
 
+internalSmtp: 
+  password: please-change-this-to-random-value
+
 clickhouse: 
   auth: 
     password: please-change-this-to-random-value
@@ -131,3 +134,7 @@ We use these charts as dependencies. You dont need to install them separately. P
 | `clickhouse` | Clickhouse database | https://charts.bitnami.com/bitnami |
 | `minio` | Minio | https://charts.bitnami.com/bitnami |
 
+## Contributing
+
+We <3 contributions big and small. 
+https://github.com/OneUptime/helm-chart is the read only release repository. Please direct your contributions here: https://github.com/OneUptime/oneuptime
