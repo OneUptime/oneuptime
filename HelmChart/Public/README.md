@@ -61,7 +61,8 @@ global:
 
 
 ```console
-helm install my-release https://helm-chart.oneuptime.com/oneuptime -f values.yaml
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
 ## Uninstall Helm Chart
