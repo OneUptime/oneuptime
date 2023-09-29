@@ -5,9 +5,6 @@ global:
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
 host: localhost
 
-# You can safely ignore values below this line. 
-# ------------------------------------------------
-
 volume: 
   certs: 
     storage: 1Gi
