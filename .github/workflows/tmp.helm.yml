@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: List directory
-        run: cd .. && ls && cd helm-chart && ls
+        run: ls && cd .. && ls && cd helm-chart && ls
 
       - name: Build and Package Helm chart
         run: |
