@@ -1,6 +1,8 @@
 {{- define "oneuptime.env.common" }}
 - name: HOST
   value: {{ $.Values.host }}
+- name: HTTP_PROTOCOL
+  value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV
   value: {{ $.Values.nodeEnvironment }}
 - name: BILLING_ENABLED

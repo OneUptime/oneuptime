@@ -4,6 +4,7 @@ global:
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
 host: localhost
+httpProtocol: http
 
 volume: 
   certs: 
