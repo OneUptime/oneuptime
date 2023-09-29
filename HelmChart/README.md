@@ -1,4 +1,4 @@
 # Helm Chart for OneUptime
 
-[Read Docs here](HelmChart/public/README.md)
+[Read Docs here](HelmChart/Public/README.md)
 
