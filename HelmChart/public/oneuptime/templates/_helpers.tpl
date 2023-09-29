@@ -185,6 +185,10 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   namespace: {{ $.Release.Namespace }}
+  annotations:
+  {{- if $.IsMetalLbEnabled }}
+    metallb.universe.tf/address-pool: {{ printf "%s-%s" $.Release.Name "metallb-address-pool"  }}
+  {{- end }}
 spec:
   {{- if $.LoadBalancerIP }}
   loadBalancerIP: {{ $.LoadBalancerIP }}

@@ -15,6 +15,13 @@ volume:
 deployment: 
   replicaCount: 1
 
+metalLb: 
+  enabled: true
+  ipAdddressPool: 
+    enabled: true
+    addresses: 
+      - 51.158.55.153/32
+
 ingress:
   service: 
     type: LoadBalancer

@@ -1,0 +1,12 @@
+{{- if $.Values.metalLb.ipAdddressPool.enabled }}
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "metallb-address-pool"  }}
+  namespace: metallb-system
+spec: 
+  addresses:
+  {{- range $.Values.metalLb.ipAdddressPool.addresses }}
+    - {{ . }}
+  {{- end }}
+{{- end}}
