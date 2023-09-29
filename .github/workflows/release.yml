@@ -57,12 +57,17 @@ jobs:
       - name:  Build and Package Helm chart
         run: |
           cd ..
+          echo '${{ secrets.GPG_PRIVATE_KEY }}' > private.key
+          gpg --import private.key
+          echo "GPG key imported successfully"
+          gpg --export-secret-keys >~/.gnupg/secring.gpg 
+          echo "GPG key exported successfully"
           eval `ssh-agent -s`
           ssh-add - <<< '${{ secrets.HELM_CHART_GITHUB_REPO_DEPLOY_KEY }}'
           git clone git@github.com:OneUptime/helm-chart.git
           cd oneuptime/HelmChart/Public
           helm lint oneuptime
-          helm package oneuptime --version 7.0.${{needs.generate-build-number.outputs.build_number}} --app-version 7.0.${{needs.generate-build-number.outputs.build_number}} 
+          helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version 7.0.${{needs.generate-build-number.outputs.build_number}} --app-version 7.0.${{needs.generate-build-number.outputs.build_number}} 
           echo "Helm Chart Package created successfully"
           cd ..
           ls
