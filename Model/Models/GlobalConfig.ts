@@ -40,7 +40,6 @@ export enum EmailServerType {
     update: [],
 })
 export default class GlobalConfig extends GlobalConfigModel {
-
     @ColumnAccessControl({
         create: [],
         read: [],
