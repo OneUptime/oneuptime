@@ -77,30 +77,23 @@ The following table lists the configurable parameters of the OneUptime chart and
 | Parameter | Description | Default | Change Required |
 | --------- | ----------- | ------- | --------------- |
 | `global.storageClass` | Storage class to be used for all persistent volumes | `nil` | ✅ |
- 
 | `host` | Hostname for the ingress | `localhost` | ✅ |
 | `httpProtocol` | If the server is hosted with SSL/TLS cert then change this value to https | `http` | ✅ |
-
 | `image.registry` | Docker image registry | `docker.io` |  |
 | `image.repository` | Docker image repository | `oneuptime` | |
 | `image.tag` | Docker image tag | `release` |
 | `image.pullPolicy` | Docker image pull policy | `IfNotPresent` | |
 | `image.restartPolicy` | Docker image restart policy | `Always` | |
-
 | `secrets.oneuptime` | Secret for OneUptime | `please-change-this-to-random-value` | ✅ |
 | `secrets.encryption` | Secret for Encryption | `please-change-this-to-random-value` | ✅ |
-
 | `autoScaling.enabled` | Enable autoscaling | `false` | |
 | `autoScaling.minReplicas` | Minimum number of replicas | `1` | |
 | `autoScaling.maxReplicas` | Maximum number of replicas | `100` | |
 | `autoScaling.targetCPUUtilizationPercentage` | Target CPU utilization percentage | `80` | |
 | `autoScaling.targetMemoryUtilizationPercentage` | Target memory utilization percentage | `80` | |
-
 | `nodeEnvironment` | Node environment (please dont change this unless you're doing local development) | `production` | |
-
 | `ingress.service.type` | Ingress service type | `LoadBalancer` | |
 | `ingress.service.loadBalancerIP` | Ingress service load balancer IP | `nil` | |
-
 | `deployment.replicaCount` | Number of replicas | `1` | |
 
 
