@@ -1,3 +1,5 @@
+#!/bin/bash
+
 HOST_TO_CHECK="$1"
 
 if [ $# -eq 0 ]; then

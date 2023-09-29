@@ -16,4 +16,6 @@ RUN apk add bash
 
 COPY ./Tests .
 
+RUN chmod -R +x Scripts
+
 CMD ["bash start.sh"]
