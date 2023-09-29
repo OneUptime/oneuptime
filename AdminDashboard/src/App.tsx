@@ -72,12 +72,7 @@ const App: () => JSX.Element = () => {
 
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS]?.toString() || ''}
-                    element={<SettingsHost />}
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_HOST]?.toString() || ''}
-                    element={<SettingsHost />}
+                    element={<SettingsAuthentication />}
                 />
 
                 <PageRoute
