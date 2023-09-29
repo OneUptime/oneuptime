@@ -39,6 +39,47 @@ jobs:
           body: |
             ${{steps.build_changelog.outputs.changelog}}
 
+
+  helm-chart-deploy:
+    runs-on: ubuntu-latest
+    needs: generate-build-number
+    env: 
+        CI_COMMIT_AUTHOR: Continuous Integration
+    steps:
+
+      - name: Install Helm 
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name:  Build and Package Helm chart
+        run: |
+          cd ..
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.HELM_CHART_GITHUB_REPO_DEPLOY_KEY }}'
+          git clone git@github.com:OneUptime/helm-chart.git
+          cd oneuptime/HelmChart/public
+          helm lint oneuptime
+          helm package oneuptime --version 7.0.${{needs.generate-build-number.outputs.build_number}} --app-version 7.0.${{needs.generate-build-number.outputs.build_number}} 
+          echo "Helm Chart Package created successfully"
+          cd ..
+          ls
+          echo "Copying the package to helm-chart repo"
+          cp -r ./public/* ../../helm-chart
+          echo "Package copied successfully"
+          cd .. && cd .. && cd helm-chart
+          echo "Updating helm-chart repo"
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "hello@oneuptime.com"
+          echo "Git config set successfully"
+          echo "Adding the package to helm-chart repo"
+          helm repo index .
+          git add -A
+          git commit -m "Helm Chart Release 7.0.${{needs.generate-build-number.outputs.build_number}}"
+          git push origin master
+
   nginx-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
