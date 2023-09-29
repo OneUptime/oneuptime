@@ -37,9 +37,11 @@ jobs:
           cp -r ./public/* ../../helm-chart
           echo "Package copied successfully"
           cd .. && cd .. && cd helm-chart
-          git config --unset-all http.https://github.com/.extraheader
+          echo "Updating helm-chart repo"
           git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
           git config --global user.email "hello@oneuptime.com"
+          echo "Git config set successfully"
+          echo "Adding the package to helm-chart repo"
           helm repo index .
           git add -A
           git commit -m "Helm Chart Release 7.0.1"
