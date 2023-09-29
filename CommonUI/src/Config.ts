@@ -7,7 +7,6 @@ import {
     DashboardApiRoute,
     DashboardRoute,
     FileRoute,
-    HelmRoute,
     IdentityRoute,
     IntegrationRoute,
     NotificationRoute,
@@ -116,8 +115,6 @@ export const INTEGRATION_URL: URL = new URL(
     INTEGRATION_HOSTNAME,
     IntegrationRoute
 );
-
-export const HELM_URL: URL = new URL(HTTP_PROTOCOL, HELM_HOSTNAME, HelmRoute);
 
 export const API_DOCS_URL: URL = new URL(
     HTTP_PROTOCOL,
