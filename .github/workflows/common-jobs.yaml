@@ -20,7 +20,7 @@ jobs:
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
       - name: Lint Helm Chart 
         run: |
-          helm lint ./HelmChart/public/oneuptime
+          helm lint ./HelmChart/Public/oneuptime
           
   js-lint:
     runs-on: ubuntu-latest
