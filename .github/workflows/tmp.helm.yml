@@ -21,22 +21,18 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - name: Clone Repo  
+      - name:  Build and Package Helm chart
         run: |
           cd ..
           eval `ssh-agent -s`
           ssh-add - <<< '${{ secrets.HELM_CHART_GITHUB_REPO_DEPLOY_KEY }}'
           git clone git@github.com:OneUptime/helm-chart.git
-          ls
-
-      - name: Build and Package Helm chart
-        run: |
           cd oneuptime/HelmChart/public
           helm lint oneuptime
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
           cd ..
           cp -r ./public/* ../../helm-chart
-          cd .. && cd .. && ls && cd helm-chart && ls
+          cd .. && cd .. && cd helm-chart
           git config --unset-all http.https://github.com/.extraheader
           git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
           git config --global user.email "hello@oneuptime.com"
@@ -44,4 +40,5 @@ jobs:
           git add -A
           git commit -m "Helm Chart Release 7.0.1"
           git push origin master
+          
 
