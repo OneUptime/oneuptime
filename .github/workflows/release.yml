@@ -67,7 +67,9 @@ jobs:
           cd ..
           ls
           echo "Copying the package to helm-chart repo"
+          rm -r ../../helm-chart/oneuptime
           cp -r ./Public/* ../../helm-chart
+          cp ./Public/README.md ../../helm-chart/oneuptime/README.md
           echo "Package copied successfully"
           cd .. && cd .. && cd helm-chart
           echo "Updating helm-chart repo"
