@@ -25,7 +25,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
@@ -54,7 +54,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -114,7 +114,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -174,7 +174,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -234,7 +234,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -294,7 +294,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -354,7 +354,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -414,7 +414,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -474,7 +474,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -534,7 +534,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -594,7 +594,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -654,7 +654,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -714,7 +714,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -774,7 +774,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -834,7 +834,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -894,7 +894,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -955,7 +955,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1015,7 +1015,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1076,7 +1076,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1137,7 +1137,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1197,7 +1197,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1257,7 +1257,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -1317,7 +1317,7 @@ jobs:
             type=raw,value=release,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
