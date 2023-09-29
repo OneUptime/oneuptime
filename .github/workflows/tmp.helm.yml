@@ -28,7 +28,7 @@ jobs:
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
           helm repo index .
           cd .. 
-          git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/OneUptime/helm-chart.git
+          git clone https://${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}@github.com/OneUptime/helm-chart.git
           cp -r ./public/* ./helm-chart
           cd helm-chart
           git config --unset-all http.https://github.com/.extraheader
