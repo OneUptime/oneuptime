@@ -37,9 +37,9 @@ export default class DatabaseConfig {
     }
 
     public static async getHttpProtocol(): Promise<Protocol> {
-        return (await DatabaseConfig.getFromGlobalConfig('useHttps'))
+        return Promise.resolve((process.env['HTTP_PROTOCOL'] === 'https')
             ? Protocol.HTTPS
-            : Protocol.HTTP;
+            : Protocol.HTTP);
     }
 
     public static async getAccountsUrl(): Promise<URL> {

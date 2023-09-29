@@ -32,9 +32,6 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
                 twilioAuthToken: process.env['TWILIO_AUTH_TOKEN'] || '',
                 twilioPhoneNumber: process.env['TWILIO_PHONE_NUMBER'] || '',
 
-                // Update host
-                useHttps: process.env['HTTP_PROTOCOL'] === 'https',
-
                 // Update SMTP
                 smtpUsername: process.env['SMTP_USERNAME'] || '',
                 smtpPassword: process.env['SMTP_PASSWORD'] || '',

@@ -31,7 +31,7 @@ export const env: Function = (key: string): string => {
 };
 
 export const HTTP_PROTOCOL: Protocol =
-    env('USE_HTTPS') === 'true' ? Protocol.HTTPS : Protocol.HTTP;
+    env('HTTP_PROTOCOL') === 'https' ? Protocol.HTTPS : Protocol.HTTP;
 
 export const HOST: string = env('HOST') || '';
 

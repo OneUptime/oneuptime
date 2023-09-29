@@ -9,7 +9,7 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
-import ObjectID from 'Common/Types/ObjectID';
+// import ObjectID from 'Common/Types/ObjectID';
 
 export default class GlobalConfigAPI extends BaseAPI<
     GlobalConfig,
@@ -26,20 +26,20 @@ export default class GlobalConfigAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    const globalConfig: GlobalConfig | null =
-                        await GlobalConfigService.findOneById({
-                            id: ObjectID.getZeroObjectID(),
-                            select: {
-                                useHttps: true,
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
+                    // const globalConfig: GlobalConfig | null =
+                    //     await GlobalConfigService.findOneById({
+                    //         id: ObjectID.getZeroObjectID(),
+                    //         select: {
+                    //             useHttps: true,
+                    //         },
+                    //         props: {
+                    //             isRoot: true,
+                    //         },
+                    //     });
 
                     return Response.sendJsonObjectResponse(req, res, {
-                        USE_HTTPS:
-                            globalConfig?.useHttps?.toString() || 'false',
+                        // USE_HTTPS:
+                        //     globalConfig?.useHttps?.toString() || 'false',
                     });
                 } catch (err) {
                     next(err);

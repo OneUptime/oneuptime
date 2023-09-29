@@ -40,23 +40,6 @@ export enum EmailServerType {
     update: [],
 })
 export default class GlobalConfig extends GlobalConfigModel {
-    @ColumnAccessControl({
-        create: [],
-        read: [],
-        update: [],
-    })
-    @TableColumn({
-        type: TableColumnType.Boolean,
-        title: 'Use HTTPS',
-        description: 'Is this server hosted on with SSL/TLS?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        nullable: true,
-        unique: true,
-        default: false,
-    })
-    public useHttps?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],

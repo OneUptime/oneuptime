@@ -2,6 +2,9 @@ version: '3.7'
 
 x-common-variables: &common-variables
     HOST: ${HOST}
+
+    HTTP_PROTOCOL: ${HTTP_PROTOCOL}
+
     NODE_ENV: ${ENVIRONMENT}
     BILLING_ENABLED: ${BILLING_ENABLED}
     BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}

@@ -19,7 +19,6 @@ import Users from './Pages/Users/Index';
 import Logout from './Pages/Logout/Logout';
 
 // Settings Pages.
-import SettingsHost from './Pages/Settings/Host/Index';
 import SettingsEmail from './Pages/Settings/SMTP/Index';
 import SettingsCallSMS from './Pages/Settings/CallSMS/Index';
 import SettingsProbes from './Pages/Settings/Probes/Index';
