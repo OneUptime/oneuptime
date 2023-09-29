@@ -11,7 +11,6 @@ jobs:
   helm-chart-docker-image-deploy:
     runs-on: ubuntu-latest
     env: 
-        CI_COMMIT_MESSAGE: Continuous Integration Build Artifacts
         CI_COMMIT_AUTHOR: Continuous Integration
     steps:
 
@@ -33,8 +32,9 @@ jobs:
           cd HelmChart/public
           helm lint oneuptime
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
-          cp -r ./public/* ../helm-chart
-          cd .. && ls && cd helm-chart && ls
+          cd ..
+          cp -r ./public/* ../../helm-chart
+          cd .. && cd .. && ls && cd helm-chart && ls
           git config --unset-all http.https://github.com/.extraheader
           git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
           git config --global user.email "hello@oneuptime.com"
