@@ -11,8 +11,10 @@ fi
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""
 echo "⏳ Waiting for OneUptime to boot (this will take a few minutes)"
+echo ""
+echo ""
 
-bash $scriptDir/endpoint-status.sh "Basic Check" $HOST_TO_CHECK/
+bash $scriptDir/endpoint-status.sh "Root" $HOST_TO_CHECK/
 
 bash $scriptDir/endpoint-status.sh "Home" $HOST_TO_CHECK/status
 
@@ -41,7 +43,7 @@ bash $scriptDir/endpoint-status.sh "Link Shortener" $HOST_TO_CHECK/l/status
 bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
 
 
-echo "⌛️ OneUptime is up!"
+echo "🚀 OneUptime is up! 🚀"
 echo ""
 echo "🎉🎉🎉  Done! 🎉🎉🎉"
 
