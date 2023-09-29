@@ -1,70 +1,45 @@
 #!/bin/bash
 
+scriptDir=$(dirname -- "$(readlink -f -- "$BASH_SOURCE")")
+
 HOST_TO_CHECK="$1"
 
 if [ $# -eq 0 ]; then
     HOST_TO_CHECK="localhost"
 fi
 
-echo "Basic check in progress..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/)" != "200" ]]; do sleep 5; done"
-echo "Basic checks complete ✔️"
-
-echo "Checking Home Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/status)" != "200" ]]; do sleep 5; done"
-echo "Home Server is up ✔️"
-
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""
 echo "⏳ Waiting for OneUptime to boot (this will take a few minutes)"
 
-echo "Checking API Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/api/status)" != "200" ]]; do sleep 5; done"
-echo "API is up ✔️"
+bash $scriptDir/endpoint-status.sh "Basic Check" $HOST_TO_CHECK/
 
-echo "Checking Dashboard Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/dashboard/status)" != "200" ]]; do sleep 5; done"
-echo "Dashboard is up ✔️"
+bash $scriptDir/endpoint-status.sh "Home" $HOST_TO_CHECK/status
 
-echo "Checking File Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/file/status)" != "200" ]]; do sleep 5; done"
-echo "File server is up ✔️"
+bash $scriptDir/endpoint-status.sh "API" $HOST_TO_CHECK/api/status
 
-echo "Checking Status Page Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/status-page/status)" != "200" ]]; do sleep 5; done"
-echo "Status Page Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Dashboard" $HOST_TO_CHECK/dashboard/status
 
-echo "Checking Accounts Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/accounts/status)" != "200" ]]; do sleep 5; done"
-echo "Accounts Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "File" $HOST_TO_CHECK/file/status
 
-echo "Checking Notification Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/notification/status)" != "200" ]]; do sleep 5; done"
-echo "Notification Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page/status
 
-echo "Checking Worker Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/workers/status)" != "200" ]]; do sleep 5; done"
-echo "Worker Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts/status
 
-echo "Checking Identity Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/identity/status)" != "200" ]]; do sleep 5; done"
-echo "Identity Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Notification" $HOST_TO_CHECK/notification/status
 
-echo "Checking Workflow Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/workflow/status)" != "200" ]]; do sleep 5; done"
-echo "Workflow Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Worker" $HOST_TO_CHECK/workers/status
 
-echo "Checking API Docs Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/reference/status)" != "200" ]]; do sleep 5; done"
-echo "API Docs Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Identity" $HOST_TO_CHECK/identity/status
 
-echo "Checking Link Shortener Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/l/status)" != "200" ]]; do sleep 5; done"
-echo "Link Shortener Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "Workflow" $HOST_TO_CHECK/workflow/status
 
-echo "Checking Admin Dashboard Server Status..."
-bash -c "while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' $HOST_TO_CHECK/admin/status)" != "200" ]]; do sleep 5; done"
-echo "Admin Dashboard Server is up ✔️"
+bash $scriptDir/endpoint-status.sh "API Docs" $HOST_TO_CHECK/reference/status
+
+bash $scriptDir/endpoint-status.sh "Link Shortener" $HOST_TO_CHECK/l/status
+
+bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
+
 
 echo "⌛️ OneUptime is up!"
 echo ""
