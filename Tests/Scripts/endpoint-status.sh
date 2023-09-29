@@ -25,7 +25,7 @@ while [ $retries -lt $max_retries ]; do
     
     # Check if the HTTP status code is 200 (OK)
     if [ $http_status -eq 200 ]; then
-        echo "✅ $name endpoint is up "
+        echo "✅ $name endpoint is up ($endpoint_url)"
         exit 0  # Exit the script with success status
     else
         echo "$name $endpoint_url returned HTTP $http_status, retrying in $retry_interval seconds..."
