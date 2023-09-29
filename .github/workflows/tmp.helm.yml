@@ -31,9 +31,11 @@ jobs:
           helm lint oneuptime
           helm package oneuptime --version 7.0.1 --app-version 7.0.1 
           echo "Helm Chart Package created successfully"
-          echo "Copying the package to helm-chart repo"
           cd ..
+          ls
+          echo "Copying the package to helm-chart repo"
           cp -r ./public/* ../../helm-chart
+          echo "Package copied successfully"
           cd .. && cd .. && cd helm-chart
           git config --unset-all http.https://github.com/.extraheader
           git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
