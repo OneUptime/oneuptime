@@ -11,7 +11,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Host',
                         to: RouteUtil.populateRouteParams(
@@ -19,7 +19,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Globe}
-                />
+                /> */}
                 <SideMenuItem
                     link={{
                         title: 'Authentication',
