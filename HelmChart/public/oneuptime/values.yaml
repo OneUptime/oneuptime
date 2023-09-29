@@ -79,8 +79,6 @@ billing:
   smsDefaultValueInCents: 
   callDefaultValueInCentsPerMinute: 
 
-disableAutomaticIncidentsCreation: 
-
 subscriptionPlan: 
   basic: 
   growth: 
@@ -95,7 +93,7 @@ analytics:
   key: 
 
 internalSmtp: 
-  password: 
+  password: please-change-this-to-random-value
   sendingDomain: 
   dkimPrivateKey: 
   dkimPublicKey: 
