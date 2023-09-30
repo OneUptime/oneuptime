@@ -67,6 +67,7 @@ jobs:
           ssh-add - <<< '${{ secrets.HELM_CHART_GITHUB_REPO_DEPLOY_KEY }}'
           git clone git@github.com:OneUptime/helm-chart.git
           cd oneuptime/HelmChart/Public
+          cp README.md oneuptime/README.md
           helm lint oneuptime
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version 7.0.${{needs.generate-build-number.outputs.build_number}} --app-version 7.0.${{needs.generate-build-number.outputs.build_number}} 
           echo "Helm Chart Package created successfully"
