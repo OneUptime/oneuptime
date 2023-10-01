@@ -8,7 +8,7 @@ One all the pods are running. You can check the service status to see if the IP 
 
 kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx 
 
-You should then be able to access OneUptime cluster that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
+You should then be able to access OneUptime cluster with that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
 
 🚀 OneUptime is up! 🚀
 
