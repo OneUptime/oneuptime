@@ -1,1 +1,20 @@
-OneUptime is installed
+OneUptime is now installed. Please wait for all the services to spin up. 
+
+You can check pod status by using this command: 
+
+kubectl get pods --namespace={{ $.Release.Namespace }}
+
+One all the pods are running. You can check the service status to see if the IP is assigned to the nginx service. 
+
+kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx 
+
+You should then be able to access OneUptime cluster that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
+
+🚀 OneUptime is up! 🚀
+
+
+We would like to hear your feedback to make this product better for you and for other users, please email us at hello@oneuptime.com.
+- If you notice a bug, we will fix it for you.
+- If you need a feature, we will add that to the roadmap and let you know the estimated time to ship.
+- If you are an enterprise customer, we offer dedicated engineering support to build oneupitme features you need to integrate OneUptime for your organization. Please contact us at sales@oneuptime.com
+We would love to hear your feedback. Email: hello@oneuptime.com

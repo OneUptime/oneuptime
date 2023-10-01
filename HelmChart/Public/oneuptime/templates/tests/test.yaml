@@ -7,6 +7,7 @@ metadata:
 spec:
   containers:
     - name: oneptime-test
+      imagePullPolicy: {{ $.Values.image.pullPolicy }}
       image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "test" .Values.image.tag }}
       command: ['/bin/sh']
       args: ["-c", 

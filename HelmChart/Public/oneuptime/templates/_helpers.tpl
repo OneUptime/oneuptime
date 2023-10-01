@@ -185,6 +185,7 @@ metadata:
     app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
   name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   namespace: {{ $.Release.Namespace }}
   annotations:
@@ -224,6 +225,7 @@ metadata:
     app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
 spec:
   selector:
     matchLabels:
@@ -287,6 +289,8 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   namespace: {{ $.Release.Namespace }}
+  labels: 
+    appname: oneuptime
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -320,6 +324,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ printf "%s-%s" $.Release.Name $.Name  }}
+  labels: 
+    appname: oneuptime
 spec:
   accessModes:
     - ReadWriteMany # Use this for shared access
