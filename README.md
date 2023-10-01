@@ -32,8 +32,8 @@ If you need advanced features, such as API Access, Advances Workflows, or Advanc
 ## Installation
 
 - [Install on Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime) (recommended for production)
-- [Install with Docker Compose](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/DockerCompose.md) (hobby install, not recommended for production use)
-- [Install for local development](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/Development.md)
+- [Install with Docker Compose](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/DockerCompose.md) (hobby install, not recommended for production)
+- [Install for Local Development](https://github.com/OneUptime/oneuptime/blob/master/Docs/Installation/Development.md)
 
 ## Philosophy
 

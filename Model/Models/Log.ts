@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';

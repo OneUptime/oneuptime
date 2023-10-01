@@ -2,6 +2,7 @@ import TableColumnType from '../Types/BaseDatabase/TableColumnType';
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
+import { JSONValue } from '../Types/JSON';
 
 export default class AnalyticsDataModel {
     private _tableColumns: Array<AnalyticsTableColumn> = [];
@@ -101,4 +102,65 @@ export default class AnalyticsDataModel {
         this.primaryKeys = data.primaryKeys;
         this.tableColumns = columns;
     }
+
+    public setColumnValue(
+        columnName: string,
+        value: JSONValue
+    ): void {
+        if (this.getTableColumn(columnName)) {
+            return ((this as any)[columnName] = value as any);
+        }
+    }
+
+    public getTableColumn(name: string): AnalyticsTableColumn | null {
+        const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
+            (column: AnalyticsTableColumn) => {
+                return column.key === name;
+            }
+        );
+
+        if (!column) {
+            return null;
+        }
+
+        return column;
+    }
+
+    public getTableColumns(): Array<AnalyticsTableColumn> { 
+        return this.tableColumns;
+    }
+    
+    public getTenantColumn(): AnalyticsTableColumn | null {
+        const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
+            (column: AnalyticsTableColumn) => {
+                return column.isTenantId;
+            }
+        );
+
+        if (!column) {
+            return null;
+        }
+
+        return column;
+    }
+
+    public getRequiredColumns(): Array<AnalyticsTableColumn> {
+        return this.tableColumns.filter((column: AnalyticsTableColumn) => {
+            return column.required;
+        });
+    }
+
+    public isDefaultValueColumn(columnName: string): boolean {
+        const column: AnalyticsTableColumn | null = this.getTableColumn(
+            columnName
+        );
+
+        if (!column) {
+            return false;
+        }
+
+        return column.isDefaultValueColumn;
+    }
+
+
 }

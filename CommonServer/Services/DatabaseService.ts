@@ -53,28 +53,9 @@ import Text from 'Common/Types/Text';
 import logger from '../Utils/Logger';
 import BaseService from './BaseService';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
+import { OnCreate, OnDelete, OnFind, OnUpdate } from '../Types/Database/Hooks';
 
-export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 
-export interface OnCreate<TBaseModel extends BaseModel> {
-    createBy: CreateBy<TBaseModel>;
-    carryForward: any;
-}
-
-export interface OnFind<TBaseModel extends BaseModel> {
-    findBy: FindBy<TBaseModel>;
-    carryForward: any;
-}
-
-export interface OnDelete<TBaseModel extends BaseModel> {
-    deleteBy: DeleteBy<TBaseModel>;
-    carryForward: any;
-}
-
-export interface OnUpdate<TBaseModel extends BaseModel> {
-    updateBy: UpdateBy<TBaseModel>;
-    carryForward: any;
-}
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;
