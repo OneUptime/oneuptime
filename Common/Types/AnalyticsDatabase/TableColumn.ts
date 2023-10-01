@@ -1,3 +1,5 @@
+import { ColumnAccessControl } from '../BaseDatabase/AccessControl';
+import ColumnBillingAccessControl from '../BaseDatabase/ColumnBillingAccessControl';
 import TableColumnType from '../BaseDatabase/TableColumnType';
 
 export default class AnalyticsTableColumn {
@@ -66,6 +68,36 @@ export default class AnalyticsTableColumn {
     public set isDefaultValueColumn(v : boolean) {
         this._isDefaultValueColumn = v;
     }
+
+
+    private _billingAccessControl?: ColumnBillingAccessControl | undefined;
+    public get billingAccessControl(): ColumnBillingAccessControl | undefined {
+        return this._billingAccessControl;
+    }
+    public set billingAccessControl(v: ColumnBillingAccessControl | undefined) {
+        this._billingAccessControl = v;
+    }
+
+    
+    private _allowAccessIfSubscriptionIsUnpaid : boolean = false;
+    public get allowAccessIfSubscriptionIsUnpaid() : boolean {
+        return this._allowAccessIfSubscriptionIsUnpaid;
+    }
+    public set allowAccessIfSubscriptionIsUnpaid(v : boolean) {
+        this._allowAccessIfSubscriptionIsUnpaid = v;
+    }
+
+
+    
+    private _accessControl : ColumnAccessControl | undefined;
+    public get accessControl() : ColumnAccessControl | undefined {
+        return this._accessControl;
+    }
+    public set accessControl(v : ColumnAccessControl | undefined) {
+        this._accessControl = v;
+    }
+    
+    
     
 
     public constructor(data: {
@@ -74,10 +106,14 @@ export default class AnalyticsTableColumn {
         description: string;
         required: boolean;
         type: TableColumnType;
+        billingAccessControl?: ColumnBillingAccessControl | undefined;
         isDefaultValueColumn? : boolean | undefined;
         isTenantId?: boolean | undefined;
+        accessControl?: ColumnAccessControl | undefined;
+        allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
         forceGetDefaultValueOnCreate?: (() =>  Date | string | number | boolean) | undefined;
     }) {
+        this.accessControl = data.accessControl;
         this.key = data.key;
         this.title = data.title;
         this.description = data.description;
@@ -86,5 +122,7 @@ export default class AnalyticsTableColumn {
         this.isTenantId = data.isTenantId || false;
         this.forceGetDefaultValueOnCreate = data.forceGetDefaultValueOnCreate;
         this.isDefaultValueColumn = data.isDefaultValueColumn || false;
+        this.billingAccessControl = data.billingAccessControl;
+        this.allowAccessIfSubscriptionIsUnpaid = data.allowAccessIfSubscriptionIsUnpaid || false;
     }
 }

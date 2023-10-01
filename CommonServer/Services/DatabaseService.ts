@@ -40,7 +40,7 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import ModelPermission, {
     CheckReadPermissionType,
-} from '../Utils/ModelPermission';
+} from '../Types/Database/ModelPermission';
 import Select from '../Types/Database/Select';
 import RelationSelect from '../Types/Database/RelationSelect';
 import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';

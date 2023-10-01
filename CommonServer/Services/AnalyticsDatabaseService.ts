@@ -11,7 +11,7 @@ import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
 import { OnCreate } from '../Types/AnalyticsDatabase/Hooks';
 import Typeof from 'Common/Types/Typeof';
-import ModelPermission from '../Utils/ModelPermission';
+import ModelPermission from '../Types/Database/ModelPermission';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
