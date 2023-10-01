@@ -1,14 +1,11 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Incident';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
+import DatabaseService  from './DatabaseService';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';;
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import IncidentStateTimelineService from './IncidentStateTimelineService';
 import CreateBy from '../Types/Database/CreateBy';

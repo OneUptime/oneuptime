@@ -112,7 +112,7 @@ import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
 import BaseService from './BaseService';
 // import LogService from './LogService';
 import AnalyticsDatabaseService from './AnalyticsDatabaseService';
-import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
 import ResellerService from './ResellerService';
 import ResellerPlanService from './ResellerPlanService';

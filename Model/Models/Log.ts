@@ -8,6 +8,8 @@ export default class Log extends AnalyticsBaseModel {
         super({
             tableName: 'Logs',
             tableEngine: AnalyticsTableEngine.MergeTree,
+            singularName: 'Log',
+            pluralName: 'Logs',
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',

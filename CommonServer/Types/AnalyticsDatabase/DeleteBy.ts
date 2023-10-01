@@ -1,5 +1,5 @@
-import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 
 export default interface DeleteBy<TBaseModel extends AnalyticsBaseModel> {
     data: TBaseModel;

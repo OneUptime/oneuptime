@@ -47,7 +47,7 @@ import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import IncidentStateTimelineService from '../Services/IncidentStateTimelineService';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ScheduledMaintenanceStateTimelineService from '../Services/ScheduledMaintenanceStateTimelineService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import GreenlockChallenge from 'Model/Models/GreenlockChallenge';

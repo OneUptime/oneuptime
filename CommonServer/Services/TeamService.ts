@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Team';
-import DatabaseService, { OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';

@@ -30,7 +30,7 @@ import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
 import Dictionary from 'Common/Types/Dictionary';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 import Typeof from 'Common/Types/Typeof';

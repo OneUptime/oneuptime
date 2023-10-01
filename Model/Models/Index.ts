@@ -117,7 +117,7 @@ import IncidentTemplate from './IncidentTemplate';
 import IncidentTemplateOwnerTeam from './IncidentTemplateOwnerTeam';
 import IncidentTemplateOwnerUser from './IncidentTemplateOwnerUser';
 
-import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
 import Log from './Log';
 import IncidentNoteTemplate from './IncidentNoteTemplate';

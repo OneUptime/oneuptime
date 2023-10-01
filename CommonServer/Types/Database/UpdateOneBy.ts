@@ -1,5 +1,5 @@
 import BaseModel from 'Common/Models/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import Query from './Query';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 
