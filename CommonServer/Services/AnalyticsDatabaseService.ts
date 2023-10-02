@@ -35,17 +35,22 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Query from '../Types/AnalyticsDatabase/Query';
 import Select from '../Types/AnalyticsDatabase/Select';
+import Sort from '../Types/AnalyticsDatabase/Sort';
+import { ExecResult } from '@clickhouse/client';
+import { Stream } from 'node:stream';
+import StreamUtil from '../Utils/Stream';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -66,11 +71,10 @@ export default class AnalyticsDatabaseService<
     }
 
     private async _findBy(
-        findBy: FindBy<TBaseModel>,
-        withDeleted?: boolean | undefined
+        findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
-            
+
 
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
@@ -121,22 +125,16 @@ export default class AnalyticsDatabaseService<
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            let items: Array<TBaseModel> = await this.getRepository().find({
-                skip: onBeforeFind.skip.toNumber(),
-                take: onBeforeFind.limit.toNumber(),
-                where: onBeforeFind.query as any,
-                order: onBeforeFind.sort as any,
-                relations: result.relationSelect as any,
-                select: onBeforeFind.select as any,
-                withDeleted: withDeleted || false,
-            });
+            const dbResult: ExecResult<Stream> = await this.execute(this.toFindStatement(onBeforeFind))
+
+            let jsonItems: Array<JSONObject> = await StreamUtil.toJSONArray(dbResult.stream);
+            let items: Array<TBaseModel> = AnalyticsBaseModel.fromJSONArray<TBaseModel>(this.modelType, jsonItems);
 
             items = this.sanitizeFindByItems(
                 items,
                 onBeforeFind
             );
 
-          
             if (!findBy.props.ignoreHooks) {
                 items = await (
                     await this.onFindSuccess(
@@ -166,14 +164,51 @@ export default class AnalyticsDatabaseService<
     }
 
 
+    public toWhereStatement(query: Query<TBaseModel>): string {
+        let whereStatement: string = '';
+
+        for (const key in query) {
+            const value: any = query[key];
+            whereStatement += `${key} = ${value}`;
+        }
+
+        return whereStatement;
+    }
+
+    public toSortStatemennt(sort: Sort<TBaseModel>): string {
+        let sortStatement: string = '';
+
+        for (const key in sort) {
+            const value: any = sort[key];
+            sortStatement += `${key} ${value}`;
+        }
+
+        return sortStatement;
+    }
+
+    public toSelectStatement(select: Select<TBaseModel>): string {
+        let selectStatement: string = '';
+
+        for (const key in select) {
+            const value: any = select[key];
+            if (value) {
+                selectStatement += `${key}, `;
+            }
+        }
+
+        selectStatement = selectStatement.substring(0, selectStatement.length - 2); // remove last comma.
+
+        return selectStatement;
+    }
+
+
     public toTableCreateStatement(): string {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `CREATE TABLE IF NOT EXISTS ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${this.toColumnsCreateStatement()} 
         )
@@ -215,6 +250,57 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve({ findBy, carryForward: null });
     }
 
+    public toFindStatement(findBy: FindBy<TBaseModel>): string {
+        if (!this.database) {
+            this.useDefaultDatabase();
+        }
+
+        const statement: string = `SELECT ${this.toSelectStatement(findBy.select!)} FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        WHERE ${this.toWhereStatement(findBy.query)}
+        ORDER BY ${this.toSortStatemennt(findBy.sort!)}
+        LIMIT ${findBy.limit}
+        OFFSET ${findBy.skip}
+        `;
+
+        logger.info(`${this.model.tableName} Find Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
+    public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): string {
+        if (!this.database) {
+            this.useDefaultDatabase();
+        }
+
+        const statement: string = `UPDATE ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        SET ${this.toSetStatement(updateBy.data)}
+        WHERE ${this.toWhereStatement(updateBy.query)}
+        `;
+
+        logger.info(`${this.model.tableName} Update Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
+    public toSetStatement(data: TBaseModel): string {
+        let setStatement: string = '';
+
+        for (const column of data.getTableColumns()) {
+            if (data.getColumnValue(column.key) !== undefined) {
+                setStatement += `${column.key} = ${data.getColumnValue(column.key)}, `;
+
+            }
+        }
+
+        setStatement = setStatement.substring(0, setStatement.length - 2); // remove last comma.
+
+        return setStatement;
+    }
+
     public toCreateStatement(data: { item: TBaseModel }): string {
         if (!data.item) {
             throw new BadDataException('Item cannot be null');
@@ -228,9 +314,8 @@ export default class AnalyticsDatabaseService<
             values.push(data.item.getColumnValue(column.key) as string);
         }
 
-        const statement: string = `INSERT INTO ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -267,12 +352,12 @@ export default class AnalyticsDatabaseService<
         this.databaseClient = this.database.getDataSource() as ClickhouseClient;
     }
 
-    public async execute(query: string): Promise<void> {
+    public async execute(query: string): Promise<ExecResult<Stream>> {
         if (!this.databaseClient) {
             this.useDefaultDatabase();
         }
 
-        await this.databaseClient.exec({
+        return await this.databaseClient.exec({
             query: query,
         });
     }
@@ -454,9 +539,8 @@ export default class AnalyticsDatabaseService<
         let columns: string = '';
 
         this.model.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            columns += `${column.key} ${this.toColumnType(column.type)} ${
-                column.required ? 'NOT NULL' : ' NULL'
-            },\n`;
+            columns += `${column.key} ${this.toColumnType(column.type)} ${column.required ? 'NOT NULL' : ' NULL'
+                },\n`;
         });
 
         return columns;

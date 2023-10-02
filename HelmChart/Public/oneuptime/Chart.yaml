@@ -1,6 +1,6 @@
 apiVersion: v2
 name: oneuptime
-description: OneUptime Helm chart for Kubernetes
+description: The Complete Open-Source Observability Platform
 icon: https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/public/img/OneUptimePNG/1.png
 
 # A chart can be either an 'application' or a 'library' chart.

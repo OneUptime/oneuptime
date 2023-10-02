@@ -24,7 +24,7 @@ RUN apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
-RUN pnpm install http-server -g
+RUN npm install http-server -g
 
 RUN mkdir /usr/src
 
