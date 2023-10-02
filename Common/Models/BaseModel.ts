@@ -34,7 +34,7 @@ import {
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
-import { EnableWorkflowOn } from '../Types/Model/EnableWorkflow';
+import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import IconProp from '../Types/Icon/IconProp';
 import Text from '../Types/Text';
 import { getColumnBillingAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnBillingAccessControl';

@@ -1,3 +1,3 @@
 export default class BaseService {
-    public constructor() {}
+    public constructor() {}    
 }

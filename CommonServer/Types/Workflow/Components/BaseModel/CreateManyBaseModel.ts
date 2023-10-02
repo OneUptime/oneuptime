@@ -105,7 +105,7 @@ export default class CreateManyBaseModel<
                         (await this.modelService.create({
                             data: JSONFunctions.fromJSON<TBaseModel>(
                                 (item as JSONObject) || {},
-                                this.modelService.entityType
+                                this.modelService.modelType
                             ) as TBaseModel,
                             props: {
                                 isRoot: true,
@@ -120,7 +120,7 @@ export default class CreateManyBaseModel<
                 returnValues: {
                     models: JSONFunctions.toJSONArray(
                         array,
-                        this.modelService.entityType
+                        this.modelService.modelType
                     ),
                 },
                 executePort: successPort,

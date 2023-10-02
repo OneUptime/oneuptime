@@ -9,9 +9,19 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import logger from '../Utils/Logger';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
-import { OnCreate } from '../Types/AnalyticsDatabase/Hooks';
+import { DatabaseTriggerType, OnCreate } from '../Types/AnalyticsDatabase/Hooks';
 import Typeof from 'Common/Types/Typeof';
-import ModelPermission from '../Types/Database/ModelPermission';
+import ModelPermission from '../Types/AnalyticsDatabase/ModelPermission';
+import ObjectID from 'Common/Types/ObjectID';
+import Exception from 'Common/Types/Exception/Exception';
+import API from 'Common/Utils/API';
+import URL from 'Common/Types/API/URL';
+import Protocol from 'Common/Types/API/Protocol';
+import { WorkflowHostname } from '../EnvironmentConfig';
+import Route from 'Common/Types/API/Route';
+import { WorkflowRoute } from 'Common/ServiceRoute';
+import Text from 'Common/Types/Text';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -62,6 +72,41 @@ export default class AnalyticsDatabaseService<
         return statement;
     }
 
+
+    public toCreateStatement(data: {
+        item: TBaseModel
+    }): string {
+        
+        if(!data.item) {
+            throw new BadDataException('Item cannot be null');
+        }
+
+        const columnNames: Array<string> = [];
+        const values: Array<string> = [];
+
+        for(const column of data.item.getTableColumns()) {
+            columnNames.push(column.key);
+            values.push(data.item.getColumnValue(column.key) as string);
+        }
+
+        const statement: string = `INSERT INTO ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+        ( 
+            ${columnNames.join(', ')}
+        )
+        VALUES
+        (
+            ${values.join(', ')}
+        )
+        `;
+
+        logger.info(`${this.model.tableName} Create Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
     protected generateDefaultValues(data: TBaseModel): TBaseModel {
         const tableColumns: Array<AnalyticsTableColumn> = data.getTableColumns();
 
@@ -90,6 +135,15 @@ export default class AnalyticsDatabaseService<
         });
     }
 
+    protected async onCreateSuccess(
+        _onCreate: OnCreate<TBaseModel>,
+        createdItem: TBaseModel
+    ): Promise<TBaseModel> {
+        // A place holder method used for overriding.
+        return Promise.resolve(createdItem);
+    }
+
+
     protected async onBeforeCreate(
         createBy: CreateBy<TBaseModel>
     ): Promise<OnCreate<TBaseModel>> {
@@ -113,7 +167,7 @@ export default class AnalyticsDatabaseService<
         return await this.onBeforeCreate(createBy);
     }
 
-    public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    public async create(createBy: CreateBy<TBaseModel>): Promise<void> {
 
         const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
             ? { createBy, carryForward: [] }
@@ -142,24 +196,16 @@ export default class AnalyticsDatabaseService<
         // check total items by
 
         ModelPermission.checkCreatePermissions(
-            this.entityType,
+            this.modelType,
             data,
             _createdBy.props
         );
 
         createBy.data = data;
 
-        // check uniqueColumns by:
-        createBy = await this.checkUniqueColumnBy(createBy);
-
-        // serialize.
-        createBy.data = (await this.sanitizeCreateOrUpdate(
-            createBy.data,
-            createBy.props
-        )) as TBaseModel;
 
         try {
-            createBy.data = await this.getRepository().save(createBy.data);
+            await this.execute(this.toCreateStatement({ item: createBy.data }));
 
             if (!createBy.props.ignoreHooks) {
                 createBy.data = await this.onCreateSuccess(
@@ -176,8 +222,8 @@ export default class AnalyticsDatabaseService<
                 let tenantId: ObjectID | undefined = createBy.props.tenantId;
 
                 if (!tenantId && this.getModel().getTenantColumn()) {
-                    tenantId = createBy.data.getValue<ObjectID>(
-                        this.getModel().getTenantColumn()!
+                    tenantId = createBy.data.getColumnValue<ObjectID>(
+                        this.getModel().getTenantColumn()!.key
                     );
                 }
 
@@ -190,11 +236,20 @@ export default class AnalyticsDatabaseService<
                 }
             }
 
-            return createBy.data;
+            
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    protected async getException(error: Exception): Promise<void> {
+        throw error;
+    }
+
+    protected async onCreateError(error: Exception): Promise<Exception> {
+        // A place holder method used for overriding.
+        return Promise.resolve(error);
     }
 
     protected isValid(data: TBaseModel): boolean {
@@ -215,6 +270,36 @@ export default class AnalyticsDatabaseService<
         });
 
         return columns;
+    }
+
+    public async onTrigger(
+        id: ObjectID,
+        projectId: ObjectID,
+        triggerType: DatabaseTriggerType
+    ): Promise<void> {
+        if (this.getModel().enableWorkflowOn) {
+            API.post(
+                new URL(
+                    Protocol.HTTP,
+                    WorkflowHostname,
+                    new Route(
+                        `${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                            this.getModel().tableName!
+                        )}/${triggerType}`
+                    )
+                ),
+                {
+                    data: {
+                        _id: id.toString(),
+                    },
+                },
+                {
+                    ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+                }
+            ).catch((error: Error) => {
+                logger.error(error);
+            });
+        }
     }
 
     protected checkRequiredFields(data: TBaseModel): TBaseModel {
@@ -239,6 +324,11 @@ export default class AnalyticsDatabaseService<
         }
 
         return data;
+    }
+
+
+    public getModel(): TBaseModel {
+        return this.model;
     }
 
 

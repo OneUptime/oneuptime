@@ -53,13 +53,11 @@ import Text from 'Common/Types/Text';
 import logger from '../Utils/Logger';
 import BaseService from './BaseService';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
-import { OnCreate, OnDelete, OnFind, OnUpdate } from '../Types/Database/Hooks';
-
-
+import { DatabaseTriggerType, OnCreate, OnDelete, OnFind, OnUpdate } from '../Types/Database/Hooks';
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;
-    public entityType!: { new (): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
@@ -86,7 +84,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         postgresDatabase?: PostgresDatabase
     ) {
         super();
-        this.entityType = modelType;
+        this.modelType = modelType;
         this.model = new modelType();
         this.modelName = modelType.name;
 
@@ -129,7 +127,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             : PostgresAppInstance.getDataSource();
 
         if (dataSource) {
-            return dataSource.getRepository<TBaseModel>(this.entityType.name);
+            return dataSource.getRepository<TBaseModel>(this.modelType.name);
         }
 
         throw new DatabaseNotConnectedException();
@@ -615,7 +613,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         data = await this.hash(data);
 
         ModelPermission.checkCreatePermissions(
-            this.entityType,
+            this.modelType,
             data,
             _createdBy.props
         );
@@ -830,7 +828,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
             const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
                 await ModelPermission.checkReadPermission(
-                    this.entityType,
+                    this.modelType,
                     query,
                     null,
                     props
@@ -886,7 +884,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
             beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
-                this.entityType,
+                this.modelType,
                 beforeDeleteBy.query,
                 deleteBy.props
             );
@@ -952,7 +950,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const carryForward: any = onDelete.carryForward;
 
             beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
-                this.entityType,
+                this.modelType,
                 beforeDeleteBy.query,
                 deleteBy.props
             );
@@ -1106,7 +1104,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 select: Select<TBaseModel> | null;
                 relationSelect: RelationSelect<TBaseModel> | null;
             } = await ModelPermission.checkReadPermission(
-                this.entityType,
+                this.modelType,
                 onBeforeFind.query,
                 onBeforeFind.select || null,
                 onBeforeFind.props
@@ -1270,7 +1268,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const carryForward: any = onUpdate.carryForward;
 
             beforeUpdateBy.query = await ModelPermission.checkUpdatePermissions(
-                this.entityType,
+                this.modelType,
                 beforeUpdateBy.query,
                 beforeUpdateBy.data,
                 beforeUpdateBy.props

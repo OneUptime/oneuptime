@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserOnCallLogTimeline';
-import DatabaseService, { OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnUpdate } from '../Types/Database/Hooks';
 import ObjectID from 'Common/Types/ObjectID';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import UserOnCallLogService from './UserOnCallLogService';

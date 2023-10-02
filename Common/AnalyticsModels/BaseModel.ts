@@ -6,6 +6,8 @@ import { JSONValue } from '../Types/JSON';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
 import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
+import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
+import ObjectID from '../Types/ObjectID';
 
 
 export default class AnalyticsDataModel {
@@ -20,6 +22,7 @@ export default class AnalyticsDataModel {
         tableBillingAccessControl?: TableBillingAccessControl | undefined;
         accessControl?: TableAccessControl | undefined; 
         primaryKeys: Array<string>; // this should be the subset of tableColumns
+        enableWorkflowOn?: EnableWorkflowOn | undefined;
     }) {
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
@@ -84,8 +87,16 @@ export default class AnalyticsDataModel {
         this.tableBillingAccessControl = data.tableBillingAccessControl;
         this.allowAccessIfSubscriptionIsUnpaid = data.allowAccessIfSubscriptionIsUnpaid || false;
         this.accessControl = data.accessControl;
+        this.enableWorkflowOn = data.enableWorkflowOn;
     }
 
+    private _enableWorkflowOn : EnableWorkflowOn | undefined;
+    public get enableWorkflowOn() : EnableWorkflowOn | undefined {
+        return this._enableWorkflowOn;
+    }
+    public set enableWorkflowOn(v : EnableWorkflowOn | undefined) {
+        this._enableWorkflowOn = v;
+    }
 
     
     private _accessControl : TableAccessControl | undefined;
@@ -181,6 +192,17 @@ export default class AnalyticsDataModel {
         }
     }
 
+    public getColumnValue<T extends JSONValue>(
+        columnName: string
+    ): T | undefined {
+        if (this.getTableColumn(columnName)) {
+            return (this as any)[columnName] as T;
+        }
+
+        return undefined;
+    }
+
+
     public getTableColumn(name: string): AnalyticsTableColumn | null {
         const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
             (column: AnalyticsTableColumn) => {
@@ -245,5 +267,13 @@ export default class AnalyticsDataModel {
         return column.billingAccessControl || null;
     }
 
+
+    public get id(): ObjectID | undefined {
+        return this.getColumnValue("_id") as ObjectID | undefined;
+    }
+    public set id(v : ObjectID | undefined) {
+        this.setColumnValue("_id", v);
+    }
+    
 
 }

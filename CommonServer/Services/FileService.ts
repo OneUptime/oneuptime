@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import File from 'Model/Models/File';
-import DatabaseService, { OnDelete, OnFind, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnDelete, OnFind, OnUpdate } from '../Types/Database/Hooks';
 import FindBy from '../Types/Database/FindBy';
 import DeleteBy from '../Types/Database/DeleteBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
