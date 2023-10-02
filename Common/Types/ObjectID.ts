@@ -17,7 +17,7 @@ export default class ObjectID extends DatabaseProperty {
     public constructor(id: string | ObjectID) {
         super();
 
-        if(id instanceof ObjectID) {
+        if (id instanceof ObjectID) {
             id = id.toString();
         }
 

@@ -384,7 +384,6 @@ export default class AnalyticsDatabaseService<
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
         try {
-        
             const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
                 ? { deleteBy, carryForward: [] }
                 : await this.onBeforeDelete(deleteBy);
@@ -411,15 +410,10 @@ export default class AnalyticsDatabaseService<
                 this.getModel().getTenantColumn()?.key || null;
 
             if (tenantColumnName) {
-                (select as any)[tenantColumnName] =
-                    true;
+                (select as any)[tenantColumnName] = true;
             }
 
-           
-            await this.execute(
-                this.toDeleteStatement(beforeDeleteBy)
-            );
-            
+            await this.execute(this.toDeleteStatement(beforeDeleteBy));
         } catch (error) {
             await this.onDeleteError(error as Exception);
             throw this.getException(error as Exception);
@@ -467,7 +461,6 @@ export default class AnalyticsDatabaseService<
                 beforeUpdateBy.props
             );
 
-
             if (!(updateBy.skip instanceof PositiveNumber)) {
                 beforeUpdateBy.skip = new PositiveNumber(updateBy.skip);
             }
@@ -482,14 +475,10 @@ export default class AnalyticsDatabaseService<
                 this.getModel().getTenantColumn()?.key || null;
 
             if (tenantColumnName) {
-                (select as any)[tenantColumnName] =
-                    true;
+                (select as any)[tenantColumnName] = true;
             }
 
-            await this.execute(
-                this.toUpdateStatement(beforeUpdateBy)
-            );
-
+            await this.execute(this.toUpdateStatement(beforeUpdateBy));
         } catch (error) {
             await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);
