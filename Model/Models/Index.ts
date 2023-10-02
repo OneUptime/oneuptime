@@ -119,7 +119,7 @@ import IncidentTemplateOwnerUser from './IncidentTemplateOwnerUser';
 
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
-import Log from './Log';
+import Log from '../AnalyticsModels/Log';
 import IncidentNoteTemplate from './IncidentNoteTemplate';
 import ScheduledMaintenanceNoteTemplate from './ScheduledMaintenanceNoteTemplate';
 
@@ -241,4 +241,4 @@ export default [
     GlobalConfig,
 ];
 
-export const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [Log];
+
