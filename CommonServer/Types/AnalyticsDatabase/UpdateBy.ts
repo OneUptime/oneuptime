@@ -1,9 +1,11 @@
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import Query from './Query';
+import BaseModel from 'Common/AnalyticsModels/BaseModel';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import UpdateOneBy from './UpdateOneBy';
 
-export default interface UpdateBy<TBaseModel extends AnalyticsBaseModel> {
-    data: TBaseModel;
-    query: Query<TBaseModel>;
-    props: DatabaseCommonInteractionProps;
+interface UpdateBy<TBaseModel extends BaseModel>
+    extends UpdateOneBy<TBaseModel> {
+    limit: PositiveNumber | number;
+    skip: PositiveNumber | number;
 }
+
+export default UpdateBy;

@@ -40,6 +40,9 @@ import { ExecResult } from '@clickhouse/client';
 import { Stream } from 'node:stream';
 import StreamUtil from '../Utils/Stream';
 import { JSONObject } from 'Common/Types/JSON';
+import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
+import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
+import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -334,6 +337,91 @@ export default class AnalyticsDatabaseService<
         logger.info(statement);
 
         return statement;
+    }
+
+    public async findOneBy(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
+        const findBy: FindBy<TBaseModel> = findOneBy as FindBy<TBaseModel>;
+        findBy.limit = new PositiveNumber(1);
+        findBy.skip = new PositiveNumber(0);
+
+        const documents: Array<TBaseModel> = await this._findBy(findBy);
+
+        if (documents && documents[0]) {
+            return documents[0];
+        }
+        return null;
+    }
+
+    public async findOneById(
+        findOneById: FindOneByID<TBaseModel>
+    ): Promise<TBaseModel | null> {
+        if (!findOneById.id) {
+            throw new BadDataException('findOneById.id is required');
+        }
+
+        return await this.findOneBy({
+            query: {
+                _id: findOneById.id,
+            },
+            select: findOneById.select || {},
+            props: findOneById.props,
+        });
+    }
+
+    public async updateOneBy(
+        updateOneBy: UpdateOneBy<TBaseModel>
+    ): Promise<void> {
+        await this._updateBy({ ...updateOneBy, limit: 1, skip: 0 });
+    }
+
+    public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
+        await this._updateBy(updateBy);
+    }
+
+    private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
+        try {
+            const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
+                ? { updateBy, carryForward: [] }
+                : await this.onBeforeUpdate(updateBy);
+
+            const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
+
+            beforeUpdateBy.query = await ModelPermission.checkUpdatePermissions(
+                this.modelType,
+                beforeUpdateBy.query,
+                beforeUpdateBy.data,
+                beforeUpdateBy.props
+            );
+
+
+            if (!(updateBy.skip instanceof PositiveNumber)) {
+                beforeUpdateBy.skip = new PositiveNumber(updateBy.skip);
+            }
+
+            if (!(updateBy.limit instanceof PositiveNumber)) {
+                beforeUpdateBy.limit = new PositiveNumber(updateBy.limit);
+            }
+
+            const select: Select<TBaseModel> = {};
+
+            const tenantColumnName: string | null =
+                this.getModel().getTenantColumn()?.key || null;
+
+            if (tenantColumnName) {
+                (select as any)[tenantColumnName] =
+                    true;
+            }
+
+            await this.execute(
+                this.toUpdateStatement(beforeUpdateBy)
+            );
+
+        } catch (error) {
+            await this.onUpdateError(error as Exception);
+            throw this.getException(error as Exception);
+        }
     }
 
     protected generateDefaultValues(data: TBaseModel): TBaseModel {

@@ -13,7 +13,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Columns from 'Common/Types/Database/Columns';
 import ColumnBillingAccessControl from 'Common/Types/BaseDatabase/ColumnBillingAccessControl';
 import ObjectID from 'Common/Types/ObjectID';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { getAllEnvVars, IsBillingEnabled } from '../../EnvironmentConfig';
 import SubscriptionPlan, {
     PlanSelect,
@@ -62,7 +61,7 @@ export default class ModelPermission {
     public static async checkUpdatePermissions<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
-        data: QueryDeepPartialEntity<TBaseModel>,
+        data: TBaseModel,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
         if (props.isRoot) {
