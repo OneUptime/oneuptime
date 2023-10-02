@@ -468,7 +468,8 @@ export default class ModelPermission {
         requestType: DatabaseRequestType
     ): Columns {
         const model: BaseModel = new modelType();
-        const tableColumns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        const tableColumns: Array<AnalyticsTableColumn> =
+            model.getTableColumns();
 
         const columns: Array<string> = [];
 
