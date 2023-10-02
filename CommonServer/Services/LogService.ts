@@ -1,4 +1,4 @@
-import Log from 'Model/Models/Log';
+import Log from 'Model/AnalyticsModels/Log';
 import AnalyticsDatabaseService from './AnalyticsDatabaseService';
 import ClickhouseDatabase from '../Infrastructure/ClickhouseDatabase';
 
