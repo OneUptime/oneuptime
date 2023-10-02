@@ -1,7 +1,11 @@
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import DeleteOneBy from './DeleteOneBy';
+import BaseModel from 'Common/AnalyticsModels/BaseModel';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
-export default interface DeleteBy<TBaseModel extends AnalyticsBaseModel> {
-    data: TBaseModel;
-    props: DatabaseCommonInteractionProps;
+interface DeleteBy<TBaseModel extends BaseModel>
+    extends DeleteOneBy<TBaseModel> {
+    limit: PositiveNumber | number;
+    skip: PositiveNumber | number;
 }
+
+export default DeleteBy;

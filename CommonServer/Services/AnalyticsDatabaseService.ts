@@ -43,6 +43,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
 import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
 import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
+import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -274,6 +275,23 @@ export default class AnalyticsDatabaseService<
         return statement;
     }
 
+    public toDeleteStatement(deleteBy: DeleteBy<TBaseModel>): string {
+        if (!this.database) {
+            this.useDefaultDatabase();
+        }
+
+        const statement: string = `DELETE FROM ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+        WHERE ${this.toWhereStatement(deleteBy.query)}
+        `;
+
+        logger.info(`${this.model.tableName} Delete Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
     public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): string {
         if (!this.database) {
             this.useDefaultDatabase();
@@ -352,6 +370,60 @@ export default class AnalyticsDatabaseService<
             return documents[0];
         }
         return null;
+    }
+
+    public async deleteOneBy(
+        deleteOneBy: DeleteOneBy<TBaseModel>
+    ): Promise<void> {
+        return await this._deleteBy({ ...deleteOneBy, limit: 1, skip: 0 });
+    }
+
+    public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
+        return await this._deleteBy(deleteBy);
+    }
+
+    private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
+        try {
+        
+            const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
+                ? { deleteBy, carryForward: [] }
+                : await this.onBeforeDelete(deleteBy);
+
+            const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+
+            beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
+                this.modelType,
+                beforeDeleteBy.query,
+                deleteBy.props
+            );
+
+            if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
+                beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
+            }
+
+            if (!(beforeDeleteBy.limit instanceof PositiveNumber)) {
+                beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
+            }
+
+            const select: Select<TBaseModel> = {};
+
+            const tenantColumnName: string | null =
+                this.getModel().getTenantColumn()?.key || null;
+
+            if (tenantColumnName) {
+                (select as any)[tenantColumnName] =
+                    true;
+            }
+
+           
+            await this.execute(
+                this.toDeleteStatement(beforeDeleteBy)
+            );
+            
+        } catch (error) {
+            await this.onDeleteError(error as Exception);
+            throw this.getException(error as Exception);
+        }
     }
 
     public async findOneById(
