@@ -12,6 +12,9 @@ import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
 import {
     DatabaseTriggerType,
     OnCreate,
+    OnDelete,
+    OnFind,
+    OnUpdate,
 } from '../Types/AnalyticsDatabase/Hooks';
 import Typeof from 'Common/Types/Typeof';
 import ModelPermission from '../Types/AnalyticsDatabase/ModelPermission';
@@ -25,6 +28,10 @@ import Route from 'Common/Types/API/Route';
 import { WorkflowRoute } from 'Common/ServiceRoute';
 import Text from 'Common/Types/Text';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import DeleteBy from '../Types/AnalyticsDatabase/DeleteBy';
+import UpdateBy from '../Types/AnalyticsDatabase/UpdateBy';
+import FindBy from '../Types/AnalyticsDatabase/FindBy';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -47,6 +54,118 @@ export default class AnalyticsDatabaseService<
                 this.database.getDataSource() as ClickhouseClient;
         }
     }
+
+
+    public async findBy(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
+        return await this._findBy(findBy);
+    }
+
+    private async _findBy(
+        findBy: FindBy<TBaseModel>,
+        withDeleted?: boolean | undefined
+    ): Promise<Array<TBaseModel>> {
+        try {
+            let automaticallyAddedCreatedAtInSelect: boolean = false;
+
+            if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
+                findBy.sort = {
+                    createdAt: SortOrder.Descending,
+                };
+
+                if (!findBy.select) {
+                    findBy.select = {} as any;
+                }
+
+                if (!(findBy.select as any)['createdAt']) {
+                    (findBy.select as any)['createdAt'] = true;
+                    automaticallyAddedCreatedAtInSelect = true;
+                }
+            }
+
+            const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
+                ? { findBy, carryForward: [] }
+                : await this.onBeforeFind(findBy);
+            const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
+            const carryForward: any = onFind.carryForward;
+
+            if (
+                !onBeforeFind.select ||
+                Object.keys(onBeforeFind.select).length === 0
+            ) {
+                onBeforeFind.select = {} as any;
+            }
+
+            if (!(onBeforeFind.select as any)['_id']) {
+                (onBeforeFind.select as any)['_id'] = true;
+            }
+
+            const result: {
+                query: Query<TBaseModel>;
+                select: Select<TBaseModel> | null;
+                relationSelect: RelationSelect<TBaseModel> | null;
+            } = await ModelPermission.checkReadPermission(
+                this.modelType,
+                onBeforeFind.query,
+                onBeforeFind.select || null,
+                onBeforeFind.props
+            );
+
+            onBeforeFind.query = result.query;
+            onBeforeFind.select = result.select || undefined;
+
+            if (!(onBeforeFind.skip instanceof PositiveNumber)) {
+                onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
+            }
+
+            if (!(onBeforeFind.limit instanceof PositiveNumber)) {
+                onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
+            }
+
+            const items: Array<TBaseModel> = await this.getRepository().find({
+                skip: onBeforeFind.skip.toNumber(),
+                take: onBeforeFind.limit.toNumber(),
+                where: onBeforeFind.query as any,
+                order: onBeforeFind.sort as any,
+                relations: result.relationSelect as any,
+                select: onBeforeFind.select as any,
+                withDeleted: withDeleted || false,
+            });
+
+            let decryptedItems: Array<TBaseModel> = [];
+
+            for (const item of items) {
+                decryptedItems.push(this.decrypt(item));
+            }
+
+            decryptedItems = this.sanitizeFindByItems(
+                decryptedItems,
+                onBeforeFind
+            );
+
+            for (const item of decryptedItems) {
+                if (automaticallyAddedCreatedAtInSelect) {
+                    delete (item as any).createdAt;
+                }
+            }
+
+            if (!findBy.props.ignoreHooks) {
+                decryptedItems = await (
+                    await this.onFindSuccess(
+                        { findBy, carryForward },
+                        decryptedItems
+                    )
+                ).carryForward;
+            }
+
+            return decryptedItems;
+        } catch (error) {
+            await this.onFindError(error as Exception);
+            throw this.getException(error as Exception);
+        }
+    }
+
 
     public toTableCreateStatement(): string {
         if (!this.database) {
@@ -73,6 +192,28 @@ export default class AnalyticsDatabaseService<
         logger.info(statement);
 
         return statement;
+    }
+
+
+    protected async onBeforeDelete(
+        deleteBy: DeleteBy<TBaseModel>
+    ): Promise<OnDelete<TBaseModel>> {
+        // A place holder method used for overriding.
+        return Promise.resolve({ deleteBy, carryForward: null });
+    }
+
+    protected async onBeforeUpdate(
+        updateBy: UpdateBy<TBaseModel>
+    ): Promise<OnUpdate<TBaseModel>> {
+        // A place holder method used for overriding.
+        return Promise.resolve({ updateBy, carryForward: null });
+    }
+
+    protected async onBeforeFind(
+        findBy: FindBy<TBaseModel>
+    ): Promise<OnFind<TBaseModel>> {
+        // A place holder method used for overriding.
+        return Promise.resolve({ findBy, carryForward: null });
     }
 
     public toCreateStatement(data: { item: TBaseModel }): string {
@@ -135,6 +276,57 @@ export default class AnalyticsDatabaseService<
         await this.databaseClient.exec({
             query: query,
         });
+    }
+
+    protected async onUpdateSuccess(
+        onUpdate: OnUpdate<TBaseModel>,
+        _updatedItemIds: Array<ObjectID>
+    ): Promise<OnUpdate<TBaseModel>> {
+        // A place holder method used for overriding.
+        return Promise.resolve(onUpdate);
+    }
+
+    protected async onUpdateError(error: Exception): Promise<Exception> {
+        // A place holder method used for overriding.
+        return Promise.resolve(error);
+    }
+
+    protected async onDeleteSuccess(
+        onDelete: OnDelete<TBaseModel>,
+        _itemIdsBeforeDelete: Array<ObjectID>
+    ): Promise<OnDelete<TBaseModel>> {
+        // A place holder method used for overriding.
+        return Promise.resolve(onDelete);
+    }
+
+    protected async onDeleteError(error: Exception): Promise<Exception> {
+        // A place holder method used for overriding.
+        return Promise.resolve(error);
+    }
+
+    protected async onFindSuccess(
+        onFind: OnFind<TBaseModel>,
+        items: Array<TBaseModel>
+    ): Promise<OnFind<TBaseModel>> {
+        // A place holder method used for overriding.
+        return Promise.resolve({ ...onFind, carryForward: items });
+    }
+
+    protected async onFindError(error: Exception): Promise<Exception> {
+        // A place holder method used for overriding.
+        return Promise.resolve(error);
+    }
+
+    protected async onCountSuccess(
+        count: PositiveNumber
+    ): Promise<PositiveNumber> {
+        // A place holder method used for overriding.
+        return Promise.resolve(count);
+    }
+
+    protected async onCountError(error: Exception): Promise<Exception> {
+        // A place holder method used for overriding.
+        return Promise.resolve(error);
     }
 
     protected async onCreateSuccess(

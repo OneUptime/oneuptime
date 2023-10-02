@@ -8,7 +8,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import UpdateBy from '../Types/Database/UpdateBy';
 import Query from '../Types/Database/Query';
 import PositiveNumber from 'Common/Types/PositiveNumber';

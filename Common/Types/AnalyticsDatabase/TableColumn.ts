@@ -1,9 +1,11 @@
 import { ColumnAccessControl } from '../BaseDatabase/AccessControl';
 import ColumnBillingAccessControl from '../BaseDatabase/ColumnBillingAccessControl';
 import TableColumnType from '../BaseDatabase/TableColumnType';
+import { JSONValue } from '../JSON';
 
 export default class AnalyticsTableColumn {
     private _key: string = 'id';
+   
     public get key(): string {
         return this._key;
     }
@@ -65,13 +67,21 @@ export default class AnalyticsTableColumn {
         this._forceGetDefaultValueOnCreate = v;
     }
 
-    private _isDefaultValueColumn: boolean = false;
+    
+    private _defaultValue : JSONValue | undefined;
+    public get defaultValue() : JSONValue {
+        return this._defaultValue;
+    }
+    public set defaultValue(v : JSONValue) {
+        this._defaultValue = v;
+    }
+    
+
+   
     public get isDefaultValueColumn(): boolean {
-        return this._isDefaultValueColumn;
+        return Boolean(this.defaultValue !== undefined);
     }
-    public set isDefaultValueColumn(v: boolean) {
-        this._isDefaultValueColumn = v;
-    }
+    
 
     private _billingAccessControl?: ColumnBillingAccessControl | undefined;
     public get billingAccessControl(): ColumnBillingAccessControl | undefined {
@@ -102,9 +112,9 @@ export default class AnalyticsTableColumn {
         title: string;
         description: string;
         required: boolean;
+        defaultValue?: JSONValue | undefined;
         type: TableColumnType;
         billingAccessControl?: ColumnBillingAccessControl | undefined;
-        isDefaultValueColumn?: boolean | undefined;
         isTenantId?: boolean | undefined;
         accessControl?: ColumnAccessControl | undefined;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
@@ -120,7 +130,7 @@ export default class AnalyticsTableColumn {
         this.type = data.type;
         this.isTenantId = data.isTenantId || false;
         this.forceGetDefaultValueOnCreate = data.forceGetDefaultValueOnCreate;
-        this.isDefaultValueColumn = data.isDefaultValueColumn || false;
+        this.defaultValue = data.defaultValue;
         this.billingAccessControl = data.billingAccessControl;
         this.allowAccessIfSubscriptionIsUnpaid =
             data.allowAccessIfSubscriptionIsUnpaid || false;

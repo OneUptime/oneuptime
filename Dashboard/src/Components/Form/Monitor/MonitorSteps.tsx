@@ -17,7 +17,7 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import ObjectID from 'Common/Types/ObjectID';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import useAsyncEffect from 'use-async-effect';
 

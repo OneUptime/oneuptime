@@ -9,7 +9,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import UpdateBy from '../Types/Database/UpdateBy';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

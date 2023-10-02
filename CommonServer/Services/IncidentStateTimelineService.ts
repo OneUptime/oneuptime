@@ -8,7 +8,7 @@ import IncidentService from './IncidentService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';

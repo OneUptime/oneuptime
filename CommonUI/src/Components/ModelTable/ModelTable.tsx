@@ -19,7 +19,7 @@ import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { FormType, ModelField } from '../Forms/ModelForm';
 
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';

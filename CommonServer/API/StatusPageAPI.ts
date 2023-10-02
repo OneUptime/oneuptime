@@ -30,7 +30,7 @@ import MonitorStatusService from '../Services/MonitorStatusService';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatusTimelineService from '../Services/MonitorStatusTimelineService';
 import QueryHelper from '../Types/Database/QueryHelper';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import IncidentService from '../Services/IncidentService';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import IncidentPublicNoteService from '../Services/IncidentPublicNoteService';

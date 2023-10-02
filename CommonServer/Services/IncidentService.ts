@@ -25,7 +25,7 @@ import UserService from './UserService';
 import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';

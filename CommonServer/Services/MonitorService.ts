@@ -27,7 +27,7 @@ import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
 
 export class Service extends DatabaseService<Model> {

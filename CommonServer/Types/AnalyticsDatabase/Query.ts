@@ -3,10 +3,6 @@ import { JSONObject, JSONValue } from 'Common/Types/JSON';
 
 export type QueryPropertyOptions = JSONValue | JSONObject;
 
-/**
- * Select find options.
- */
-
 export declare type QueryOptions<Entity> = {
     [P in keyof Entity]?: QueryPropertyOptions;
 };
