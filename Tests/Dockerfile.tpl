@@ -7,7 +7,6 @@ RUN apk add bash && apk add curl
 
 RUN npm config set fetch-retry-maxtimeout 6000000
 RUN npm config set fetch-retry-mintimeout 1000000
-RUN npm install -g pnpm
 
 ARG GIT_SHA
 ARG APP_VERSION

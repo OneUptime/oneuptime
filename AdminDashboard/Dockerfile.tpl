@@ -9,7 +9,6 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 
 RUN npm config set fetch-retry-maxtimeout 6000000
 RUN npm config set fetch-retry-mintimeout 1000000
-RUN npm install -g pnpm
 
 ARG GIT_SHA
 ARG APP_VERSION
@@ -29,20 +28,20 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-RUN pnpm install
+RUN npm install
 COPY ./Common /usr/src/Common
 
 
 WORKDIR /usr/src/Model
 COPY ./Model/package*.json /usr/src/Model/
-RUN pnpm install
+RUN npm install
 COPY ./Model /usr/src/Model
 
 
 
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
-RUN pnpm install
+RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 
 
@@ -52,7 +51,7 @@ COPY ./CommonServer /usr/src/CommonServer
 
 WORKDIR /usr/src/CommonUI
 COPY ./CommonUI/package*.json /usr/src/CommonUI/
-RUN pnpm install --force
+RUN npm install --force
 COPY ./CommonUI /usr/src/CommonUI
 
 
@@ -64,7 +63,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./AdminDashboard/package*.json /usr/src/app/
-RUN pnpm install  
+RUN npm install  
 
 # Expose ports.
 #   - 3158:  AdminDashboard
