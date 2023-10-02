@@ -44,13 +44,13 @@ import { JSONObject } from 'Common/Types/JSON';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -63,7 +63,6 @@ export default class AnalyticsDatabaseService<
         }
     }
 
-
     public async findBy(
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
@@ -74,8 +73,6 @@ export default class AnalyticsDatabaseService<
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
-
-
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
@@ -84,7 +81,6 @@ export default class AnalyticsDatabaseService<
                 if (!findBy.select) {
                     findBy.select = {} as any;
                 }
-
             }
 
             const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
@@ -125,22 +121,24 @@ export default class AnalyticsDatabaseService<
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            const dbResult: ExecResult<Stream> = await this.execute(this.toFindStatement(onBeforeFind))
-
-            let jsonItems: Array<JSONObject> = await StreamUtil.toJSONArray(dbResult.stream);
-            let items: Array<TBaseModel> = AnalyticsBaseModel.fromJSONArray<TBaseModel>(this.modelType, jsonItems);
-
-            items = this.sanitizeFindByItems(
-                items,
-                onBeforeFind
+            const dbResult: ExecResult<Stream> = await this.execute(
+                this.toFindStatement(onBeforeFind)
             );
+
+            const jsonItems: Array<JSONObject> = await StreamUtil.toJSONArray(
+                dbResult.stream
+            );
+            let items: Array<TBaseModel> =
+                AnalyticsBaseModel.fromJSONArray<TBaseModel>(
+                    this.modelType,
+                    jsonItems
+                );
+
+            items = this.sanitizeFindByItems(items, onBeforeFind);
 
             if (!findBy.props.ignoreHooks) {
                 items = await (
-                    await this.onFindSuccess(
-                        { findBy, carryForward },
-                        items
-                    )
+                    await this.onFindSuccess({ findBy, carryForward }, items)
                 ).carryForward;
             }
 
@@ -162,7 +160,6 @@ export default class AnalyticsDatabaseService<
 
         return items;
     }
-
 
     public toWhereStatement(query: Query<TBaseModel>): string {
         let whereStatement: string = '';
@@ -196,19 +193,22 @@ export default class AnalyticsDatabaseService<
             }
         }
 
-        selectStatement = selectStatement.substring(0, selectStatement.length - 2); // remove last comma.
+        selectStatement = selectStatement.substring(
+            0,
+            selectStatement.length - 2
+        ); // remove last comma.
 
         return selectStatement;
     }
-
 
     public toTableCreateStatement(): string {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `CREATE TABLE IF NOT EXISTS ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${this.toColumnsCreateStatement()} 
         )
@@ -227,7 +227,6 @@ export default class AnalyticsDatabaseService<
 
         return statement;
     }
-
 
     protected async onBeforeDelete(
         deleteBy: DeleteBy<TBaseModel>
@@ -255,8 +254,11 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `SELECT ${this.toSelectStatement(findBy.select!)} FROM ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `SELECT ${this.toSelectStatement(
+            findBy.select!
+        )} FROM ${this.database.getDatasourceOptions().database}.${
+            this.model.tableName
+        } 
         WHERE ${this.toWhereStatement(findBy.query)}
         ORDER BY ${this.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit}
@@ -274,8 +276,9 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `UPDATE ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `UPDATE ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         SET ${this.toSetStatement(updateBy.data)}
         WHERE ${this.toWhereStatement(updateBy.query)}
         `;
@@ -291,8 +294,9 @@ export default class AnalyticsDatabaseService<
 
         for (const column of data.getTableColumns()) {
             if (data.getColumnValue(column.key) !== undefined) {
-                setStatement += `${column.key} = ${data.getColumnValue(column.key)}, `;
-
+                setStatement += `${column.key} = ${data.getColumnValue(
+                    column.key
+                )}, `;
             }
         }
 
@@ -314,8 +318,9 @@ export default class AnalyticsDatabaseService<
             values.push(data.item.getColumnValue(column.key) as string);
         }
 
-        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -539,8 +544,9 @@ export default class AnalyticsDatabaseService<
         let columns: string = '';
 
         this.model.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            columns += `${column.key} ${this.toColumnType(column.type)} ${column.required ? 'NOT NULL' : ' NULL'
-                },\n`;
+            columns += `${column.key} ${this.toColumnType(column.type)} ${
+                column.required ? 'NOT NULL' : ' NULL'
+            },\n`;
         });
 
         return columns;

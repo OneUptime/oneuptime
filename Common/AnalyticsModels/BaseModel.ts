@@ -274,13 +274,12 @@ export default class AnalyticsDataModel {
         this.setColumnValue('updatedAt', v);
     }
 
-
     public fromJSON(json: JSONObject): AnalyticsDataModel {
-        for(const key in json) {
+        for (const key in json) {
             this.setColumnValue(key, json[key]);
         }
 
-        return this; 
+        return this;
     }
 
     public toJSON(): JSONObject {
@@ -293,8 +292,10 @@ export default class AnalyticsDataModel {
         return json;
     }
 
-
-    public static fromJSONArray<TBaseModel extends AnalyticsDataModel>( modelType: { new (): AnalyticsDataModel }, jsonArray: Array<JSONObject>): Array<TBaseModel> {
+    public static fromJSONArray<TBaseModel extends AnalyticsDataModel>(
+        modelType: { new (): AnalyticsDataModel },
+        jsonArray: Array<JSONObject>
+    ): Array<TBaseModel> {
         const models: Array<AnalyticsDataModel> = [];
 
         jsonArray.forEach((json: JSONObject) => {
@@ -306,7 +307,9 @@ export default class AnalyticsDataModel {
         return models as Array<TBaseModel>;
     }
 
-    public static toJSONArray(models: Array<AnalyticsDataModel>): Array<JSONObject> {
+    public static toJSONArray(
+        models: Array<AnalyticsDataModel>
+    ): Array<JSONObject> {
         const json: Array<JSONObject> = [];
 
         models.forEach((model: AnalyticsDataModel) => {

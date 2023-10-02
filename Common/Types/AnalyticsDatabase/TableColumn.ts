@@ -5,7 +5,7 @@ import { JSONValue } from '../JSON';
 
 export default class AnalyticsTableColumn {
     private _key: string = 'id';
-   
+
     public get key(): string {
         return this._key;
     }
@@ -67,21 +67,17 @@ export default class AnalyticsTableColumn {
         this._forceGetDefaultValueOnCreate = v;
     }
 
-    
-    private _defaultValue : JSONValue | undefined;
-    public get defaultValue() : JSONValue {
+    private _defaultValue: JSONValue | undefined;
+    public get defaultValue(): JSONValue {
         return this._defaultValue;
     }
-    public set defaultValue(v : JSONValue) {
+    public set defaultValue(v: JSONValue) {
         this._defaultValue = v;
     }
-    
 
-   
     public get isDefaultValueColumn(): boolean {
         return Boolean(this.defaultValue !== undefined);
     }
-    
 
     private _billingAccessControl?: ColumnBillingAccessControl | undefined;
     public get billingAccessControl(): ColumnBillingAccessControl | undefined {

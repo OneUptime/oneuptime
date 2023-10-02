@@ -1021,15 +1021,15 @@ const init: () => Promise<void> = async (): Promise<void> => {
         );
 
         // add a log statement
-        const log: Log = new Log(); 
+        const log: Log = new Log();
         log.severity = 'info';
         log.message = 'App Initialized';
         log.timestamp = new Date();
-        LogService.create({
+        await LogService.create({
             data: log,
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
     } catch (err) {
         logger.error('App Init Failed:');
