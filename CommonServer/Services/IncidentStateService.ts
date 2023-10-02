@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/IncidentState';
-import DatabaseService  from './DatabaseService';
-import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';;
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ObjectID from 'Common/Types/ObjectID';

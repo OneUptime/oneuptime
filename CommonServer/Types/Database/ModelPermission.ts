@@ -13,9 +13,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import QueryHelper from './QueryHelper';
 import Columns from 'Common/Types/Database/Columns';
 import Dictionary from 'Common/Types/Dictionary';
-import {
-    ColumnAccessControl,
-} from 'Common/Types/BaseDatabase/AccessControl';
+import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import RelationSelect from './RelationSelect';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
@@ -658,11 +656,12 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps
     ): void {
         const model: BaseModel = new modelType();
-        const userPermissions: Array<Permission> = DatabaseCommonInteractionPropsUtil.getUserPermissions(
-            props
-        ).map((i: UserPermission) => {
-            return i.permission;
-        });
+        const userPermissions: Array<Permission> =
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props).map(
+                (i: UserPermission) => {
+                    return i.permission;
+                }
+            );
 
         const excludedColumnNames: Array<string> =
             ModelPermission.getExcludedColumnNames();

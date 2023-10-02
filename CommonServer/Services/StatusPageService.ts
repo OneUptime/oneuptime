@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService'
-import { OnCreate } from '../Types/Database/Hooks';;
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';

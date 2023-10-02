@@ -53,7 +53,13 @@ import Text from 'Common/Types/Text';
 import logger from '../Utils/Logger';
 import BaseService from './BaseService';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
-import { DatabaseTriggerType, OnCreate, OnDelete, OnFind, OnUpdate } from '../Types/Database/Hooks';
+import {
+    DatabaseTriggerType,
+    OnCreate,
+    OnDelete,
+    OnFind,
+    OnUpdate,
+} from '../Types/Database/Hooks';
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;

@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import DatabaseService from './DatabaseService';
-;
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';;
+
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
 import MonitorService from './MonitorService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DeleteBy from '../Types/Database/DeleteBy';

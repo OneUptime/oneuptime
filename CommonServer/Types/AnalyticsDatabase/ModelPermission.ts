@@ -23,7 +23,6 @@ import UserType from 'Common/Types/UserType';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 
-
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
     select: Select<TBaseModel> | null;
@@ -134,10 +133,11 @@ export default class ModelPermission {
         const excludedColumnNames: Array<string> =
             ModelPermission.getExcludedColumnNames();
 
-        const tableColumns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        const tableColumns: Array<AnalyticsTableColumn> =
+            model.getTableColumns();
 
         for (const column of tableColumns) {
-            const key = column.key;
+            const key: string = column.key;
             if ((data as any)[key] === undefined) {
                 continue;
             }
@@ -146,10 +146,7 @@ export default class ModelPermission {
                 continue;
             }
 
-
-            if (
-                !permissionColumns.columns.includes(key)
-            ) {
+            if (!permissionColumns.columns.includes(key)) {
                 if (
                     requestType === DatabaseRequestType.Create &&
                     column.forceGetDefaultValueOnCreate
@@ -162,17 +159,10 @@ export default class ModelPermission {
                 );
             }
 
+            const billingAccessControl: ColumnBillingAccessControl | null =
+                model.getColumnBillingAccessControl(key);
 
-            const billingAccessControl: ColumnBillingAccessControl | null = model.getColumnBillingAccessControl(key);
-
-            if (
-                IsBillingEnabled &&
-                props.currentPlan &&
-                billingAccessControl
-                
-            ) {
-                
-
+            if (IsBillingEnabled && props.currentPlan && billingAccessControl) {
                 if (
                     requestType === DatabaseRequestType.Create &&
                     billingAccessControl.create
@@ -239,7 +229,6 @@ export default class ModelPermission {
         select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
-       
         if (props.isRoot) {
             query = await this.addTenantScopeToQueryAsRoot(
                 modelType,
@@ -287,28 +276,20 @@ export default class ModelPermission {
 
         query = this.serializeQuery(query);
 
-        
-
         if (select) {
             const result: {
                 select: Select<TBaseModel>;
-               
             } = this.sanitizeSelect(select);
             select = result.select;
-            
         }
 
         return { query, select };
     }
 
     private static serializeQuery<TBaseModel extends BaseModel>(
-       
         query: Query<TBaseModel>
     ): Query<TBaseModel> {
-        
-
         query = query as Query<TBaseModel>;
-
 
         return query;
     }
@@ -318,11 +299,8 @@ export default class ModelPermission {
     ): {
         select: Select<TBaseModel>;
     } {
-
         return { select };
     }
-
-    
 
     private static getExcludedColumnNames(): string[] {
         const returnArr: Array<string> = [
@@ -353,7 +331,8 @@ export default class ModelPermission {
                 DatabaseRequestType.Read
             );
 
-        const tableColumns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        const tableColumns: Array<AnalyticsTableColumn> =
+            model.getTableColumns();
 
         const excludedColumnNames: Array<string> =
             ModelPermission.getExcludedColumnNames();
@@ -366,7 +345,6 @@ export default class ModelPermission {
             }
 
             if (!canReadOnTheseColumns.columns.includes(key)) {
-
                 const column: AnalyticsTableColumn | undefined =
                     tableColumns.find((item: AnalyticsTableColumn) => {
                         return item.key === key;
@@ -396,7 +374,8 @@ export default class ModelPermission {
     ): Promise<Query<TBaseModel>> {
         const model: BaseModel = new modelType();
 
-        const tenantColumn: string | null = model.getTenantColumn()?.key || null;
+        const tenantColumn: string | null =
+            model.getTenantColumn()?.key || null;
 
         // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
         if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
@@ -414,8 +393,8 @@ export default class ModelPermission {
     ): Promise<Query<TBaseModel>> {
         const model: BaseModel = new modelType();
 
-        const tenantColumn: string | null = model.getTenantColumn()?.key || null;
-
+        const tenantColumn: string | null =
+            model.getTenantColumn()?.key || null;
 
         // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
         if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
@@ -489,7 +468,7 @@ export default class ModelPermission {
         requestType: DatabaseRequestType
     ): Columns {
         const model: BaseModel = new modelType();
-        const tableColumns = model.getTableColumns();
+        const tableColumns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
         const columns: Array<string> = [];
 
@@ -549,7 +528,8 @@ export default class ModelPermission {
                 DatabaseRequestType.Read
             );
 
-        const tableColumns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        const tableColumns: Array<AnalyticsTableColumn> =
+            model.getTableColumns();
 
         const excludedColumnNames: Array<string> =
             ModelPermission.getExcludedColumnNames();
@@ -560,7 +540,10 @@ export default class ModelPermission {
             }
 
             if (!canReadOnTheseColumns.columns.includes(key)) {
-                const column: AnalyticsTableColumn | undefined = tableColumns.find((column)=> column.key === key);
+                const column: AnalyticsTableColumn | undefined =
+                    tableColumns.find((column: AnalyticsTableColumn) => {
+                        return column.key === key;
+                    });
                 if (!column) {
                     throw new BadDataException(
                         `Invalid select clause. Cannot select on "${key}". This column does not exist on ${
@@ -744,7 +727,10 @@ export default class ModelPermission {
                 }
             }
 
-            if (type === DatabaseRequestType.Read && model.tableBillingAccessControl?.read) {
+            if (
+                type === DatabaseRequestType.Read &&
+                model.tableBillingAccessControl?.read
+            ) {
                 if (
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         model.tableBillingAccessControl?.read,
@@ -761,6 +747,4 @@ export default class ModelPermission {
             }
         }
     }
-
-    
 }

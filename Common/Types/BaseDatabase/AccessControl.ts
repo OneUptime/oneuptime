@@ -9,4 +9,3 @@ export interface ColumnAccessControl {
 export interface TableAccessControl extends ColumnAccessControl {
     delete: Array<Permission>;
 }
-

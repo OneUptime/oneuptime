@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageSubscriber';
-import DatabaseService from './DatabaseService'
-import { OnCreate } from '../Types/Database/Hooks';;
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageService from './StatusPageService';

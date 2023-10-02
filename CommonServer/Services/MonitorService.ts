@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Monitor';
-import DatabaseService  from './DatabaseService';
+import DatabaseService from './DatabaseService';
 import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import MonitorStatus from 'Model/Models/MonitorStatus';

@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPagePrivateUser';
-import DatabaseService from './DatabaseService'
-import { OnCreate } from '../Types/Database/Hooks';;
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from './StatusPageService';
 import ObjectID from 'Common/Types/ObjectID';

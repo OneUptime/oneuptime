@@ -1,4 +1,4 @@
-import { PlanSelect } from "../Billing/SubscriptionPlan";
+import { PlanSelect } from '../Billing/SubscriptionPlan';
 
 export default interface TableBillingAccessControl {
     create: PlanSelect;
@@ -6,4 +6,3 @@ export default interface TableBillingAccessControl {
     update: PlanSelect;
     delete: PlanSelect;
 }
-

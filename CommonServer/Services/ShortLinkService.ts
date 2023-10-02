@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ShortLink';
-import DatabaseService from './DatabaseService'
-import { OnCreate } from '../Types/Database/Hooks';;
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';

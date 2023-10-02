@@ -9,9 +9,7 @@ import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 
-
 export default class AnalyticsDataModel {
-
     public constructor(data: {
         tableName: string;
         singularName: string;
@@ -20,7 +18,7 @@ export default class AnalyticsDataModel {
         tableColumns: Array<AnalyticsTableColumn>;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
         tableBillingAccessControl?: TableBillingAccessControl | undefined;
-        accessControl?: TableAccessControl | undefined; 
+        accessControl?: TableAccessControl | undefined;
         primaryKeys: Array<string>; // this should be the subset of tableColumns
         enableWorkflowOn?: EnableWorkflowOn | undefined;
     }) {
@@ -85,29 +83,27 @@ export default class AnalyticsDataModel {
         this.singularName = data.singularName;
         this.pluralName = data.pluralName;
         this.tableBillingAccessControl = data.tableBillingAccessControl;
-        this.allowAccessIfSubscriptionIsUnpaid = data.allowAccessIfSubscriptionIsUnpaid || false;
+        this.allowAccessIfSubscriptionIsUnpaid =
+            data.allowAccessIfSubscriptionIsUnpaid || false;
         this.accessControl = data.accessControl;
         this.enableWorkflowOn = data.enableWorkflowOn;
     }
 
-    private _enableWorkflowOn : EnableWorkflowOn | undefined;
-    public get enableWorkflowOn() : EnableWorkflowOn | undefined {
+    private _enableWorkflowOn: EnableWorkflowOn | undefined;
+    public get enableWorkflowOn(): EnableWorkflowOn | undefined {
         return this._enableWorkflowOn;
     }
-    public set enableWorkflowOn(v : EnableWorkflowOn | undefined) {
+    public set enableWorkflowOn(v: EnableWorkflowOn | undefined) {
         this._enableWorkflowOn = v;
     }
 
-    
-    private _accessControl : TableAccessControl | undefined;
-    public get accessControl() : TableAccessControl | undefined {
+    private _accessControl: TableAccessControl | undefined;
+    public get accessControl(): TableAccessControl | undefined {
         return this._accessControl;
     }
-    public set accessControl(v : TableAccessControl | undefined) {
+    public set accessControl(v: TableAccessControl | undefined) {
         this._accessControl = v;
     }
-    
-
 
     private _tableColumns: Array<AnalyticsTableColumn> = [];
     public get tableColumns(): Array<AnalyticsTableColumn> {
@@ -141,52 +137,43 @@ export default class AnalyticsDataModel {
         this._primaryKeys = v;
     }
 
-
-    
-    private _singularName : string = '';
-    public get singularName() : string {
+    private _singularName: string = '';
+    public get singularName(): string {
         return this._singularName;
     }
-    public set singularName(v : string) {
+    public set singularName(v: string) {
         this._singularName = v;
     }
 
-
-    
-    private _pluralName : string = '';
-    public get pluralName() : string {
+    private _pluralName: string = '';
+    public get pluralName(): string {
         return this._pluralName;
     }
-    public set pluralName(v : string) {
+    public set pluralName(v: string) {
         this._pluralName = v;
     }
 
-    
-    private _tableBillingAccessControl : TableBillingAccessControl | undefined;
-    public get tableBillingAccessControl() : TableBillingAccessControl | undefined {
+    private _tableBillingAccessControl: TableBillingAccessControl | undefined;
+    public get tableBillingAccessControl():
+        | TableBillingAccessControl
+        | undefined {
         return this._tableBillingAccessControl;
     }
-    public set tableBillingAccessControl(v : TableBillingAccessControl | undefined) {
+    public set tableBillingAccessControl(
+        v: TableBillingAccessControl | undefined
+    ) {
         this._tableBillingAccessControl = v;
     }
 
-    
-    private _allowAccessIfSubscriptionIsUnpaid : boolean = false;
-    public get allowAccessIfSubscriptionIsUnpaid() : boolean  {
+    private _allowAccessIfSubscriptionIsUnpaid: boolean = false;
+    public get allowAccessIfSubscriptionIsUnpaid(): boolean {
         return this._allowAccessIfSubscriptionIsUnpaid;
     }
-    public set allowAccessIfSubscriptionIsUnpaid(v : boolean ) {
+    public set allowAccessIfSubscriptionIsUnpaid(v: boolean) {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
-    
-    
-    
 
-  
-    public setColumnValue(
-        columnName: string,
-        value: JSONValue
-    ): void {
+    public setColumnValue(columnName: string, value: JSONValue): void {
         if (this.getTableColumn(columnName)) {
             return ((this as any)[columnName] = value as any);
         }
@@ -202,7 +189,6 @@ export default class AnalyticsDataModel {
         return undefined;
     }
 
-
     public getTableColumn(name: string): AnalyticsTableColumn | null {
         const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
             (column: AnalyticsTableColumn) => {
@@ -217,10 +203,10 @@ export default class AnalyticsDataModel {
         return column;
     }
 
-    public getTableColumns(): Array<AnalyticsTableColumn> { 
+    public getTableColumns(): Array<AnalyticsTableColumn> {
         return this.tableColumns;
     }
-    
+
     public getTenantColumn(): AnalyticsTableColumn | null {
         const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
             (column: AnalyticsTableColumn) => {
@@ -242,9 +228,8 @@ export default class AnalyticsDataModel {
     }
 
     public isDefaultValueColumn(columnName: string): boolean {
-        const column: AnalyticsTableColumn | null = this.getTableColumn(
-            columnName
-        );
+        const column: AnalyticsTableColumn | null =
+            this.getTableColumn(columnName);
 
         if (!column) {
             return false;
@@ -256,9 +241,8 @@ export default class AnalyticsDataModel {
     public getColumnBillingAccessControl(
         columnName: string
     ): ColumnBillingAccessControl | null {
-        const column: AnalyticsTableColumn | null = this.getTableColumn(
-            columnName
-        );
+        const column: AnalyticsTableColumn | null =
+            this.getTableColumn(columnName);
 
         if (!column) {
             return null;
@@ -267,13 +251,10 @@ export default class AnalyticsDataModel {
         return column.billingAccessControl || null;
     }
 
-
     public get id(): ObjectID | undefined {
-        return this.getColumnValue("_id") as ObjectID | undefined;
+        return this.getColumnValue('_id') as ObjectID | undefined;
     }
-    public set id(v : ObjectID | undefined) {
-        this.setColumnValue("_id", v);
+    public set id(v: ObjectID | undefined) {
+        this.setColumnValue('_id', v);
     }
-    
-
 }

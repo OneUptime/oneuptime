@@ -35,15 +35,13 @@ export default class AnalyticsTableColumn {
         this._required = v;
     }
 
-    
-    private _isTenantId : boolean = false;
-    public get isTenantId() : boolean {
+    private _isTenantId: boolean = false;
+    public get isTenantId(): boolean {
         return this._isTenantId;
     }
-    public set isTenantId(v : boolean) {
+    public set isTenantId(v: boolean) {
         this._isTenantId = v;
     }
-    
 
     private _type: TableColumnType = TableColumnType.ShortText;
     public get type(): TableColumnType {
@@ -52,23 +50,28 @@ export default class AnalyticsTableColumn {
     public set type(v: TableColumnType) {
         this._type = v;
     }
-    
-    private _forceGetDefaultValueOnCreate?: (() =>  Date | string | number | boolean) | undefined;
-    public get forceGetDefaultValueOnCreate(): (() =>  Date | string | number | boolean) | undefined {
+
+    private _forceGetDefaultValueOnCreate?:
+        | (() => Date | string | number | boolean)
+        | undefined;
+    public get forceGetDefaultValueOnCreate():
+        | (() => Date | string | number | boolean)
+        | undefined {
         return this._forceGetDefaultValueOnCreate;
     }
-    public set forceGetDefaultValueOnCreate(v: (() =>  Date | string | number | boolean) | undefined) {
+    public set forceGetDefaultValueOnCreate(
+        v: (() => Date | string | number | boolean) | undefined
+    ) {
         this._forceGetDefaultValueOnCreate = v;
     }
 
-    private _isDefaultValueColumn : boolean = false;
-    public get isDefaultValueColumn() : boolean {
+    private _isDefaultValueColumn: boolean = false;
+    public get isDefaultValueColumn(): boolean {
         return this._isDefaultValueColumn;
     }
-    public set isDefaultValueColumn(v : boolean) {
+    public set isDefaultValueColumn(v: boolean) {
         this._isDefaultValueColumn = v;
     }
-
 
     private _billingAccessControl?: ColumnBillingAccessControl | undefined;
     public get billingAccessControl(): ColumnBillingAccessControl | undefined {
@@ -78,27 +81,21 @@ export default class AnalyticsTableColumn {
         this._billingAccessControl = v;
     }
 
-    
-    private _allowAccessIfSubscriptionIsUnpaid : boolean = false;
-    public get allowAccessIfSubscriptionIsUnpaid() : boolean {
+    private _allowAccessIfSubscriptionIsUnpaid: boolean = false;
+    public get allowAccessIfSubscriptionIsUnpaid(): boolean {
         return this._allowAccessIfSubscriptionIsUnpaid;
     }
-    public set allowAccessIfSubscriptionIsUnpaid(v : boolean) {
+    public set allowAccessIfSubscriptionIsUnpaid(v: boolean) {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
 
-
-    
-    private _accessControl : ColumnAccessControl | undefined;
-    public get accessControl() : ColumnAccessControl | undefined {
+    private _accessControl: ColumnAccessControl | undefined;
+    public get accessControl(): ColumnAccessControl | undefined {
         return this._accessControl;
     }
-    public set accessControl(v : ColumnAccessControl | undefined) {
+    public set accessControl(v: ColumnAccessControl | undefined) {
         this._accessControl = v;
     }
-    
-    
-    
 
     public constructor(data: {
         key: string;
@@ -107,11 +104,13 @@ export default class AnalyticsTableColumn {
         required: boolean;
         type: TableColumnType;
         billingAccessControl?: ColumnBillingAccessControl | undefined;
-        isDefaultValueColumn? : boolean | undefined;
+        isDefaultValueColumn?: boolean | undefined;
         isTenantId?: boolean | undefined;
         accessControl?: ColumnAccessControl | undefined;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
-        forceGetDefaultValueOnCreate?: (() =>  Date | string | number | boolean) | undefined;
+        forceGetDefaultValueOnCreate?:
+            | (() => Date | string | number | boolean)
+            | undefined;
     }) {
         this.accessControl = data.accessControl;
         this.key = data.key;
@@ -123,6 +122,7 @@ export default class AnalyticsTableColumn {
         this.forceGetDefaultValueOnCreate = data.forceGetDefaultValueOnCreate;
         this.isDefaultValueColumn = data.isDefaultValueColumn || false;
         this.billingAccessControl = data.billingAccessControl;
-        this.allowAccessIfSubscriptionIsUnpaid = data.allowAccessIfSubscriptionIsUnpaid || false;
+        this.allowAccessIfSubscriptionIsUnpaid =
+            data.allowAccessIfSubscriptionIsUnpaid || false;
     }
 }

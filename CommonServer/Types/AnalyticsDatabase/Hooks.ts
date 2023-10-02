@@ -1,8 +1,8 @@
-import BaseModel from "Common/AnalyticsModels/BaseModel";
-import CreateBy from "./CreateBy";
-import DeleteBy from "./DeleteBy";
-import FindBy from "./FindBy";
-import UpdateBy from "./UpdateBy";
+import BaseModel from 'Common/AnalyticsModels/BaseModel';
+import CreateBy from './CreateBy';
+import DeleteBy from './DeleteBy';
+import FindBy from './FindBy';
+import UpdateBy from './UpdateBy';
 
 export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 

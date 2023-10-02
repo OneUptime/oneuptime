@@ -117,9 +117,6 @@ import IncidentTemplate from './IncidentTemplate';
 import IncidentTemplateOwnerTeam from './IncidentTemplateOwnerTeam';
 import IncidentTemplateOwnerUser from './IncidentTemplateOwnerUser';
 
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-
-import Log from '../AnalyticsModels/Log';
 import IncidentNoteTemplate from './IncidentNoteTemplate';
 import ScheduledMaintenanceNoteTemplate from './ScheduledMaintenanceNoteTemplate';
 
@@ -240,5 +237,3 @@ export default [
 
     GlobalConfig,
 ];
-
-

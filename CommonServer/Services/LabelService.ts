@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Label';
-import DatabaseService from './DatabaseService'
-import { OnCreate } from '../Types/Database/Hooks';;
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import QueryHelper from '../Types/Database/QueryHelper';
 import BadDataException from 'Common/Types/Exception/BadDataException';

@@ -9,7 +9,10 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import logger from '../Utils/Logger';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
-import { DatabaseTriggerType, OnCreate } from '../Types/AnalyticsDatabase/Hooks';
+import {
+    DatabaseTriggerType,
+    OnCreate,
+} from '../Types/AnalyticsDatabase/Hooks';
 import Typeof from 'Common/Types/Typeof';
 import ModelPermission from '../Types/AnalyticsDatabase/ModelPermission';
 import ObjectID from 'Common/Types/ObjectID';
@@ -72,19 +75,15 @@ export default class AnalyticsDatabaseService<
         return statement;
     }
 
-
-    public toCreateStatement(data: {
-        item: TBaseModel
-    }): string {
-        
-        if(!data.item) {
+    public toCreateStatement(data: { item: TBaseModel }): string {
+        if (!data.item) {
             throw new BadDataException('Item cannot be null');
         }
 
         const columnNames: Array<string> = [];
         const values: Array<string> = [];
 
-        for(const column of data.item.getTableColumns()) {
+        for (const column of data.item.getTableColumns()) {
             columnNames.push(column.key);
             values.push(data.item.getColumnValue(column.key) as string);
         }
@@ -108,12 +107,15 @@ export default class AnalyticsDatabaseService<
     }
 
     protected generateDefaultValues(data: TBaseModel): TBaseModel {
-        const tableColumns: Array<AnalyticsTableColumn> = data.getTableColumns();
+        const tableColumns: Array<AnalyticsTableColumn> =
+            data.getTableColumns();
 
         for (const column of tableColumns) {
-           
             if (column.forceGetDefaultValueOnCreate) {
-                data.setColumnValue(column.key, column.forceGetDefaultValueOnCreate());
+                data.setColumnValue(
+                    column.key,
+                    column.forceGetDefaultValueOnCreate()
+                );
             }
         }
 
@@ -143,7 +145,6 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve(createdItem);
     }
 
-
     protected async onBeforeCreate(
         createBy: CreateBy<TBaseModel>
     ): Promise<OnCreate<TBaseModel>> {
@@ -158,7 +159,8 @@ export default class AnalyticsDatabaseService<
         createBy: CreateBy<TBaseModel>
     ): Promise<OnCreate<TBaseModel>> {
         // Private method that runs before create.
-        const projectIdColumn: string | null = this.model.getTenantColumn()?.key || null;
+        const projectIdColumn: string | null =
+            this.model.getTenantColumn()?.key || null;
 
         if (projectIdColumn && createBy.props.tenantId) {
             (createBy.data as any)[projectIdColumn] = createBy.props.tenantId;
@@ -168,19 +170,19 @@ export default class AnalyticsDatabaseService<
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<void> {
-
         const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
             ? { createBy, carryForward: [] }
             : await this._onBeforeCreate(createBy);
 
-        let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
+        const _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
 
         const carryForward: any = onCreate.carryForward;
 
         let data: TBaseModel = _createdBy.data;
 
         // add tenantId if present.
-        const tenantColumnName: string | null = data.getTenantColumn()?.key || null;
+        const tenantColumnName: string | null =
+            data.getTenantColumn()?.key || null;
 
         if (tenantColumnName && _createdBy.props.tenantId) {
             data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
@@ -202,7 +204,6 @@ export default class AnalyticsDatabaseService<
         );
 
         createBy.data = data;
-
 
         try {
             await this.execute(this.toCreateStatement({ item: createBy.data }));
@@ -235,8 +236,6 @@ export default class AnalyticsDatabaseService<
                     );
                 }
             }
-
-            
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
@@ -326,12 +325,9 @@ export default class AnalyticsDatabaseService<
         return data;
     }
 
-
     public getModel(): TBaseModel {
         return this.model;
     }
-
-
 
     public toColumnType(type: TableColumnType): string {
         if (type === TableColumnType.ShortText) {

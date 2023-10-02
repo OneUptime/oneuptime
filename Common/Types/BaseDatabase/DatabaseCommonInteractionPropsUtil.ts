@@ -1,7 +1,4 @@
-
-import Permission, {
-    UserPermission
-} from '../Permission';
+import Permission, { UserPermission } from '../Permission';
 import DatabaseCommonInteractionProps from './DatabaseCommonInteractionProps';
 
 export default class DatabaseCommonInteractionPropsUtil {

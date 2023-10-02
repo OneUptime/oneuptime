@@ -1,8 +1,8 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import DatabaseService from './DatabaseService';
-;
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';;
+
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ScheduledMaintenanceService from './ScheduledMaintenanceService';
 import DeleteBy from '../Types/Database/DeleteBy';

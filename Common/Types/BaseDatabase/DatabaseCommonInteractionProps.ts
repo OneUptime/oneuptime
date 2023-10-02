@@ -11,8 +11,8 @@ export default interface DatabaseCommonInteractionProps {
     userId?: ObjectID | undefined;
     userGlobalAccessPermission?: UserGlobalAccessPermission | undefined;
     userTenantAccessPermission?:
-    | Dictionary<UserTenantAccessPermission> // tenantId <-> UserTenantAccessPermission
-    | undefined;
+        | Dictionary<UserTenantAccessPermission> // tenantId <-> UserTenantAccessPermission
+        | undefined;
     userType?: UserType | undefined;
     tenantId?: ObjectID | undefined;
     isRoot?: boolean | undefined;
@@ -21,4 +21,3 @@ export default interface DatabaseCommonInteractionProps {
     currentPlan?: PlanSelect | undefined;
     isSubscriptionUnpaid?: boolean | undefined;
 }
-
