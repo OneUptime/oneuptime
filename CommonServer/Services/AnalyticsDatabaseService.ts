@@ -32,6 +32,9 @@ import DeleteBy from '../Types/AnalyticsDatabase/DeleteBy';
 import UpdateBy from '../Types/AnalyticsDatabase/UpdateBy';
 import FindBy from '../Types/AnalyticsDatabase/FindBy';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Query from '../Types/AnalyticsDatabase/Query';
+import Select from '../Types/AnalyticsDatabase/Select';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -67,7 +70,7 @@ export default class AnalyticsDatabaseService<
         withDeleted?: boolean | undefined
     ): Promise<Array<TBaseModel>> {
         try {
-            let automaticallyAddedCreatedAtInSelect: boolean = false;
+            
 
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
@@ -78,10 +81,6 @@ export default class AnalyticsDatabaseService<
                     findBy.select = {} as any;
                 }
 
-                if (!(findBy.select as any)['createdAt']) {
-                    (findBy.select as any)['createdAt'] = true;
-                    automaticallyAddedCreatedAtInSelect = true;
-                }
             }
 
             const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
@@ -104,7 +103,6 @@ export default class AnalyticsDatabaseService<
             const result: {
                 query: Query<TBaseModel>;
                 select: Select<TBaseModel> | null;
-                relationSelect: RelationSelect<TBaseModel> | null;
             } = await ModelPermission.checkReadPermission(
                 this.modelType,
                 onBeforeFind.query,
@@ -123,7 +121,7 @@ export default class AnalyticsDatabaseService<
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            const items: Array<TBaseModel> = await this.getRepository().find({
+            let items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
@@ -133,37 +131,38 @@ export default class AnalyticsDatabaseService<
                 withDeleted: withDeleted || false,
             });
 
-            let decryptedItems: Array<TBaseModel> = [];
-
-            for (const item of items) {
-                decryptedItems.push(this.decrypt(item));
-            }
-
-            decryptedItems = this.sanitizeFindByItems(
-                decryptedItems,
+            items = this.sanitizeFindByItems(
+                items,
                 onBeforeFind
             );
 
-            for (const item of decryptedItems) {
-                if (automaticallyAddedCreatedAtInSelect) {
-                    delete (item as any).createdAt;
-                }
-            }
-
+          
             if (!findBy.props.ignoreHooks) {
-                decryptedItems = await (
+                items = await (
                     await this.onFindSuccess(
                         { findBy, carryForward },
-                        decryptedItems
+                        items
                     )
                 ).carryForward;
             }
 
-            return decryptedItems;
+            return items;
         } catch (error) {
             await this.onFindError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private sanitizeFindByItems(
+        items: Array<TBaseModel>,
+        findBy: FindBy<TBaseModel>
+    ): Array<TBaseModel> {
+        // if there's no select then there's nothing to do.
+        if (!findBy.select) {
+            return items;
+        }
+
+        return items;
     }
 
 

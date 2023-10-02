@@ -1,7 +1,9 @@
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import BaseModel from 'Common/AnalyticsModels/BaseModel';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import FindOneBy from './FindOneBy';
 
-export default interface FindBy<TBaseModel extends AnalyticsBaseModel> {
-    data: TBaseModel;
-    props: DatabaseCommonInteractionProps;
+export default interface FindBy<TBaseModel extends BaseModel>
+    extends FindOneBy<TBaseModel> {
+    limit: PositiveNumber | number;
+    skip: PositiveNumber | number;
 }

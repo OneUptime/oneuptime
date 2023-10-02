@@ -257,4 +257,20 @@ export default class AnalyticsDataModel {
     public set id(v: ObjectID | undefined) {
         this.setColumnValue('_id', v);
     }
+
+    public get createdAt(): Date | undefined {
+        return this.getColumnValue('createdAt') as Date | undefined;
+    }
+
+    public set createdAt(v: Date | undefined) {
+        this.setColumnValue('createdAt', v);
+    }
+
+    public get updatedAt(): Date | undefined {
+        return this.getColumnValue('updatedAt') as Date | undefined;
+    }
+
+    public set updatedAt(v: Date | undefined) {
+        this.setColumnValue('updatedAt', v);
+    }
 }
