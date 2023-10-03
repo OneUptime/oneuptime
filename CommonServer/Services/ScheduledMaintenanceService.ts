@@ -1,10 +1,11 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ScheduledMaintenance';
-import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnUpdate } from '../Types/Database/Hooks';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ScheduledMaintenanceStateTimelineService from './ScheduledMaintenanceStateTimelineService';
 import CreateBy from '../Types/Database/CreateBy';
@@ -20,7 +21,7 @@ import ScheduledMaintenanceOwnerTeam from 'Model/Models/ScheduledMaintenanceOwne
 import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
 
 export class Service extends DatabaseService<Model> {

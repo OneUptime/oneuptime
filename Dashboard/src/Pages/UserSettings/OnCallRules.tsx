@@ -30,7 +30,7 @@ import NotifyAfterDropdownOptions from '../../Components/NotificationRule/Notify
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 
 const Settings: FunctionComponent<PageComponentProps> = (

@@ -15,7 +15,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import BaseModel from 'Common/Models/BaseModel';
 import Workflow from './Workflow';
 import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
-import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 
 @EnableDocumentation()
 @TenantColumn('projectId')

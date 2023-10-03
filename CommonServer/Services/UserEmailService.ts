@@ -1,6 +1,8 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserEmail';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from '../Utils/Logger';

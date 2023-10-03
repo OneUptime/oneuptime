@@ -1,6 +1,6 @@
-import { BillingAccessControl } from './AccessControl';
+import TableBillingAccessControl from '../../BaseDatabase/TableBillingAccessControl';
 
-export default (accessControl: BillingAccessControl) => {
+export default (accessControl: TableBillingAccessControl) => {
     return (ctr: Function) => {
         if (accessControl.create) {
             ctr.prototype.createBillingPlan = accessControl.create;

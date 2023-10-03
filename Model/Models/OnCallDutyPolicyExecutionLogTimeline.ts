@@ -14,7 +14,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
-import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import OnCallDutyPolicyExecutionLog from './OnCallDutyPolicyExecutionLog';
 import Team from './Team';

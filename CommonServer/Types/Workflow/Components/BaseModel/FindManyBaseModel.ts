@@ -174,7 +174,7 @@ export default class FindManyBaseModel<
                 returnValues: {
                     models: JSONFunctions.toJSONArray(
                         models,
-                        this.modelService.entityType
+                        this.modelService.modelType
                     ),
                 },
                 executePort: successPort,

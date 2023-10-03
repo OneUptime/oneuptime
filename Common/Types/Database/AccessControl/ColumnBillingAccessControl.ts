@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import BaseModel from '../../../Models/BaseModel';
 import Dictionary from '../../Dictionary';
 import { ReflectionMetadataType } from '../../Reflection';
-import { ColumnBillingAccessControl } from './AccessControl';
+import ColumnBillingAccessControl from '../../BaseDatabase/ColumnBillingAccessControl';
 
 const accessControlSymbol: Symbol = Symbol('ColumnBillingAccessControl');
 

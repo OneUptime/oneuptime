@@ -22,7 +22,7 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import StatusPage from './StatusPage';
-import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 
 @EnableDocumentation()
 @TableBillingAccessControl({

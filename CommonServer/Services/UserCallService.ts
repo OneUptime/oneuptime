@@ -1,6 +1,8 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserCall';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import ProjectService from './ProjectService';
 import Project from 'Model/Models/Project';

@@ -21,7 +21,7 @@ import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import ObjectID from 'Common/Types/ObjectID';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Query from 'CommonServer/Types/Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import logger from 'CommonServer/Utils/Logger';

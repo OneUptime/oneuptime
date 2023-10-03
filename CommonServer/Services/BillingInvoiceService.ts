@@ -1,7 +1,8 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/BillingInvoice';
-import DatabaseService, { OnFind } from './DatabaseService';
+import DatabaseService from './DatabaseService';
 import FindBy from '../Types/Database/FindBy';
+import { OnFind } from '../Types/Database/Hooks';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
