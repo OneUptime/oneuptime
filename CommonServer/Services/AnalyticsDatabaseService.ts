@@ -658,7 +658,7 @@ export default class AnalyticsDatabaseService<
         return await this.onBeforeCreate(createBy);
     }
 
-    public async create(createBy: CreateBy<TBaseModel>): Promise<void> {
+    public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
         const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
             ? { createBy, carryForward: [] }
             : await this._onBeforeCreate(createBy);
@@ -728,6 +728,9 @@ export default class AnalyticsDatabaseService<
                     );
                 }
             }
+
+            return createBy.data;
+
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);

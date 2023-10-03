@@ -1,4 +1,3 @@
-import { JSONObject } from 'Common/Types/JSON';
 import { Stream } from 'stream';
 
 export default class StreamUtil {
@@ -20,29 +19,10 @@ export default class StreamUtil {
         });
     }
 
-    public static async toJSONArray(
-        stream: Stream
-    ): Promise<Array<JSONObject>> {
-        const text = await this.convertStreamToText(stream);
-        return JSON.parse(text);
-    }
-
     public static async toStringArray(
         stream: Stream
     ): Promise<Array<string>> {
-        return new Promise<Array<string>>(
-            (resolve: Function, reject: Function) => {
-                const data: Array<string> = [];
-                stream.on('data', (chunk: any) => {
-                    data.push(chunk);
-                });
-                stream.on('end', () => {
-                    resolve(data);
-                });
-                stream.on('error', (err: Error) => {
-                    reject(err);
-                });
-            }
-        );
+        const text: string = await StreamUtil.convertStreamToText(stream);
+        return text.split('\n');
     }
 }
