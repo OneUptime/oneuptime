@@ -2,6 +2,7 @@ import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class Log extends AnalyticsBaseModel {
     public constructor() {
@@ -76,19 +77,19 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('log', v);
     }
 
-    public get sourceId(): string | undefined {
-        return this.getColumnValue('sourceId') as string | undefined;
+    public get sourceId(): ObjectID | undefined {
+        return this.getColumnValue('sourceId') as ObjectID | undefined;
     }
 
-    public set sourceId(v: string | undefined) {
+    public set sourceId(v: ObjectID | undefined) {
         this.setColumnValue('sourceId', v);
     }
 
-    public get projectId(): string | undefined {
-        return this.getColumnValue('projectId') as string | undefined;
+    public get projectId(): ObjectID | undefined {
+        return this.getColumnValue('projectId') as ObjectID | undefined;
     }
 
-    public set projectId(v: string | undefined) {
+    public set projectId(v: ObjectID | undefined) {
         this.setColumnValue('projectId', v);
     }
 

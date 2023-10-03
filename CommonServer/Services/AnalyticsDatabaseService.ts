@@ -39,32 +39,36 @@ import Sort from '../Types/AnalyticsDatabase/Sort';
 import { ExecResult } from '@clickhouse/client';
 import { Stream } from 'node:stream';
 import StreamUtil from '../Utils/Stream';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
 import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
 import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
 import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
         this.modelType = data.modelType;
         this.model = new this.modelType();
         if (data.database) {
-            this.database = data.database;
-            this.databaseClient =
-                this.database.getDataSource() as ClickhouseClient;
+            this.database = data.database; // used for testing.
+        } else {
+            this.database = ClickhouseAppInstance; // default database 
         }
+
+        this.databaseClient =
+            this.database.getDataSource() as ClickhouseClient;
     }
 
     public async findBy(
@@ -125,13 +129,18 @@ export default class AnalyticsDatabaseService<
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
+            const findStatement: { statement: string, columns: Array<string> } = this.toFindStatement(onBeforeFind);
+
             const dbResult: ExecResult<Stream> = await this.execute(
-                this.toFindStatement(onBeforeFind)
+                findStatement.statement
             );
 
-            const jsonItems: Array<JSONObject> = await StreamUtil.toJSONArray(
+            const strResult: string = await StreamUtil.convertStreamToText(
                 dbResult.stream
             );
+
+            const jsonItems: Array<JSONObject> = this.convertSelectReturnedDataToJson(strResult, findStatement.columns);
+
             let items: Array<TBaseModel> =
                 AnalyticsBaseModel.fromJSONArray<TBaseModel>(
                     this.modelType,
@@ -153,6 +162,31 @@ export default class AnalyticsDatabaseService<
         }
     }
 
+
+    private convertSelectReturnedDataToJson(strResult: string, columns: string[]): JSONObject[] {
+        const jsonItems: Array<JSONObject> = [];
+
+        const rows = strResult.split('\n');
+
+        for (const row of rows) {
+
+            if (!row) {
+                continue;
+            }
+
+            const jsonItem: JSONObject = {};
+            const values = row.split('\t');
+
+            for (let i = 0; i < columns.length; i++) {
+                jsonItem[columns[i]!] = values[i];
+            }
+
+            jsonItems.push(jsonItem);
+        }
+
+        return jsonItems;
+    }
+
     private sanitizeFindByItems(
         items: Array<TBaseModel>,
         findBy: FindBy<TBaseModel>
@@ -170,8 +204,17 @@ export default class AnalyticsDatabaseService<
 
         for (const key in query) {
             const value: any = query[key];
-            whereStatement += `${key} = ${value}`;
+            const tableColumn = this.model.getTableColumn(key);
+
+            if (!tableColumn) {
+                throw new BadDataException(`Unknown column: ${key}`);
+            }
+
+            whereStatement += `${key} = ${this.sanitizeValue(value, tableColumn)} AND`
         }
+
+        // remove last AND.
+        whereStatement = whereStatement.substring(0, whereStatement.length - 4);
 
         return whereStatement;
     }
@@ -187,12 +230,14 @@ export default class AnalyticsDatabaseService<
         return sortStatement;
     }
 
-    public toSelectStatement(select: Select<TBaseModel>): string {
+    public toSelectStatement(select: Select<TBaseModel>): { statement: string, columns: Array<string> } {
         let selectStatement: string = '';
+        let columns: Array<string> = [];
 
         for (const key in select) {
             const value: any = select[key];
             if (value) {
+                columns.push(key);
                 selectStatement += `${key}, `;
             }
         }
@@ -202,7 +247,10 @@ export default class AnalyticsDatabaseService<
             selectStatement.length - 2
         ); // remove last comma.
 
-        return selectStatement;
+        return {
+            columns: columns,
+            statement: selectStatement,
+        };
     }
 
     public toTableCreateStatement(): string {
@@ -210,9 +258,8 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `CREATE TABLE IF NOT EXISTS ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${this.toColumnsCreateStatement()} 
         )
@@ -253,17 +300,16 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve({ findBy, carryForward: null });
     }
 
-    public toFindStatement(findBy: FindBy<TBaseModel>): string {
+    public toFindStatement(findBy: FindBy<TBaseModel>): { statement: string, columns: Array<string> } {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        const statement: string = `SELECT ${this.toSelectStatement(
-            findBy.select!
-        )} FROM ${this.database.getDatasourceOptions().database}.${
-            this.model.tableName
-        } 
-        WHERE ${this.toWhereStatement(findBy.query)}
+        const select: { statement: string, columns: Array<string> } = this.toSelectStatement(findBy.select!);
+
+        const statement: string = `SELECT ${select.statement} FROM ${this.database.getDatasourceOptions().database}.${this.model.tableName
+            } 
+        ${Object.keys(findBy.query).length > 0 ? 'WHERE' : ''} ${this.toWhereStatement(findBy.query)}
         ORDER BY ${this.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit}
         OFFSET ${findBy.skip}
@@ -272,7 +318,7 @@ export default class AnalyticsDatabaseService<
         logger.info(`${this.model.tableName} Find Statement`);
         logger.info(statement);
 
-        return statement;
+        return { statement, columns: select.columns };
     }
 
     public toDeleteStatement(deleteBy: DeleteBy<TBaseModel>): string {
@@ -280,9 +326,8 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `DELETE FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `DELETE FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         WHERE ${this.toWhereStatement(deleteBy.query)}
         `;
 
@@ -297,9 +342,8 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `UPDATE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `UPDATE ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         SET ${this.toSetStatement(updateBy.data)}
         WHERE ${this.toWhereStatement(updateBy.query)}
         `;
@@ -315,9 +359,7 @@ export default class AnalyticsDatabaseService<
 
         for (const column of data.getTableColumns()) {
             if (data.getColumnValue(column.key) !== undefined) {
-                setStatement += `${column.key} = ${data.getColumnValue(
-                    column.key
-                )}, `;
+                setStatement += `${column.key} = ${this.sanitizeValue(data.getColumnValue(column.key), column)}, `;
             }
         }
 
@@ -332,16 +374,18 @@ export default class AnalyticsDatabaseService<
         }
 
         const columnNames: Array<string> = [];
-        const values: Array<string> = [];
+        const values: Array<string | number | boolean | Date> = [];
 
         for (const column of data.item.getTableColumns()) {
             columnNames.push(column.key);
-            values.push(data.item.getColumnValue(column.key) as string);
+
+            let value = this.sanitizeValue(data.item.getColumnValue(column.key), column);
+
+            values.push(value as string | number | boolean | Date);
         }
 
-        const statement: string = `INSERT INTO ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -355,6 +399,21 @@ export default class AnalyticsDatabaseService<
         logger.info(statement);
 
         return statement;
+    }
+
+    private sanitizeValue(value: JSONValue, column: AnalyticsTableColumn): JSONValue {
+        if (column.type === TableColumnType.ObjectID ||
+            column.type === TableColumnType.LongText ||
+            column.type === TableColumnType.VeryLongText ||
+            column.type === TableColumnType.ShortText) {
+            value = `'${value?.toString()}'`;
+        }
+
+        if (column.type === TableColumnType.Date && value instanceof Date) {
+            value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(value as Date)}')`;
+        }
+
+        return value;
     }
 
     public async findOneBy(
@@ -618,6 +677,7 @@ export default class AnalyticsDatabaseService<
             data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
         }
 
+        data = this.sanitizeCreate(data);
         data = this.generateDefaultValues(data);
         data = this.checkRequiredFields(data);
 
@@ -634,6 +694,8 @@ export default class AnalyticsDatabaseService<
         );
 
         createBy.data = data;
+
+
 
         try {
             await this.execute(this.toCreateStatement({ item: createBy.data }));
@@ -672,6 +734,18 @@ export default class AnalyticsDatabaseService<
         }
     }
 
+    private sanitizeCreate<TBaseModel extends AnalyticsBaseModel>(data: TBaseModel): TBaseModel {
+
+        if (!data.id) {
+            data.id = ObjectID.generate();
+        }
+
+        data.createdAt = OneUptimeDate.getCurrentDate();
+        data.updatedAt = OneUptimeDate.getCurrentDate();
+
+        return data;
+    }
+
     protected async getException(error: Exception): Promise<void> {
         throw error;
     }
@@ -693,9 +767,8 @@ export default class AnalyticsDatabaseService<
         let columns: string = '';
 
         this.model.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            columns += `${column.key} ${this.toColumnType(column.type)} ${
-                column.required ? 'NOT NULL' : ' NULL'
-            },\n`;
+            columns += `${column.key} ${this.toColumnType(column.type)} ${column.required ? 'NOT NULL' : ' NULL'
+                },\n`;
         });
 
         return columns;

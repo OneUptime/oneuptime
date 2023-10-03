@@ -1021,16 +1021,36 @@ const init: () => Promise<void> = async (): Promise<void> => {
         );
 
         // add a log statement
-        const log: Log = new Log();
-        log.severity = 'info';
-        log.message = 'App Initialized';
-        log.timestamp = new Date();
-        await LogService.create({
-            data: log,
-            props: {
-                isRoot: true,
+        debugger;
+        // const log: Log = new Log();
+        // log.severity = 'info';
+        // log.message = 'App Initialized';
+        // log.timestamp = new Date();
+        // log.projectId = ObjectID.generate();
+        // log.sourceId = ObjectID.generate();
+        // await LogService.create({
+        //     data: log,
+        //     props: {
+        //         isRoot: true,
+        //     },
+        // });
+
+        const logs: Array<Log> = await LogService.findBy({
+            query: {
+
+            }, 
+            skip: 0, 
+            limit: 100,
+            select: {
+                message: true, 
             },
+            props: {
+                isRoot: true
+            }
         });
+
+        logger.info(logs);
+
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

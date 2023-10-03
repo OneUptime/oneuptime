@@ -8,8 +8,12 @@ import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessC
 import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
+import OneUptimeDate from '../Types/Date';
 
 export default class AnalyticsDataModel {
+
+    private data: JSONObject = {};   
+
     public constructor(data: {
         tableName: string;
         singularName: string;
@@ -174,8 +178,26 @@ export default class AnalyticsDataModel {
     }
 
     public setColumnValue(columnName: string, value: JSONValue): void {
-        if (this.getTableColumn(columnName)) {
-            return ((this as any)[columnName] = value as any);
+        
+        const column: AnalyticsTableColumn | null = this.getTableColumn(columnName);
+
+        if (column) {
+
+            if(column.type === TableColumnType.ObjectID && typeof value === 'string') {
+                value = new ObjectID(value);
+            }
+
+            if(column.type === TableColumnType.Date && typeof value === 'string') {
+                value = OneUptimeDate.fromString(value);
+            }
+
+            if(column.type === TableColumnType.JSON && typeof value === 'string') {
+                value = JSON.parse(value);
+            }
+
+            return (this.data[columnName] = value as any);
+        }else{
+            throw new BadDataException('Column ' + columnName + ' does not exist');
         }
     }
 
@@ -183,7 +205,7 @@ export default class AnalyticsDataModel {
         columnName: string
     ): T | undefined {
         if (this.getTableColumn(columnName)) {
-            return (this as any)[columnName] as T;
+            return this.data[columnName] as T;
         }
 
         return undefined;
