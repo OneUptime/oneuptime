@@ -379,9 +379,6 @@ import UserNotificationSettingService, {
     Service as UserNotificationSettingServiceType,
 } from 'CommonServer/Services/UserNotificationSettingService';
 
-import Log from 'Model/AnalyticsModels/Log';
-import LogService from 'CommonServer/Services/LogService';
-
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -1019,38 +1016,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
         await ClickhouseAppInstance.connect(
             ClickhouseAppInstance.getDatasourceOptions()
         );
-
-        // add a log statement
-        debugger;
-        // const log: Log = new Log();
-        // log.severity = 'info';
-        // log.message = 'App Initialized';
-        // log.timestamp = new Date();
-        // log.projectId = ObjectID.generate();
-        // log.sourceId = ObjectID.generate();
-        // await LogService.create({
-        //     data: log,
-        //     props: {
-        //         isRoot: true,
-        //     },
-        // });
-
-        const logs: Array<Log> = await LogService.findBy({
-            query: {
-
-            }, 
-            skip: 0, 
-            limit: 100,
-            select: {
-                message: true, 
-            },
-            props: {
-                isRoot: true
-            }
-        });
-
-        logger.info(logs);
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

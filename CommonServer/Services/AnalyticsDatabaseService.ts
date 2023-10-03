@@ -42,20 +42,18 @@ import StreamUtil from '../Utils/Stream';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
 import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
-import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
-import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
 import OneUptimeDate from 'Common/Types/Date';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -64,11 +62,10 @@ export default class AnalyticsDatabaseService<
         if (data.database) {
             this.database = data.database; // used for testing.
         } else {
-            this.database = ClickhouseAppInstance; // default database 
+            this.database = ClickhouseAppInstance; // default database
         }
 
-        this.databaseClient =
-            this.database.getDataSource() as ClickhouseClient;
+        this.databaseClient = this.database.getDataSource() as ClickhouseClient;
     }
 
     public async findBy(
@@ -129,7 +126,8 @@ export default class AnalyticsDatabaseService<
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            const findStatement: { statement: string, columns: Array<string> } = this.toFindStatement(onBeforeFind);
+            const findStatement: { statement: string; columns: Array<string> } =
+                this.toFindStatement(onBeforeFind);
 
             const dbResult: ExecResult<Stream> = await this.execute(
                 findStatement.statement
@@ -139,7 +137,11 @@ export default class AnalyticsDatabaseService<
                 dbResult.stream
             );
 
-            const jsonItems: Array<JSONObject> = this.convertSelectReturnedDataToJson(strResult, findStatement.columns);
+            const jsonItems: Array<JSONObject> =
+                this.convertSelectReturnedDataToJson(
+                    strResult,
+                    findStatement.columns
+                );
 
             let items: Array<TBaseModel> =
                 AnalyticsBaseModel.fromJSONArray<TBaseModel>(
@@ -162,22 +164,23 @@ export default class AnalyticsDatabaseService<
         }
     }
 
-
-    private convertSelectReturnedDataToJson(strResult: string, columns: string[]): JSONObject[] {
+    private convertSelectReturnedDataToJson(
+        strResult: string,
+        columns: string[]
+    ): JSONObject[] {
         const jsonItems: Array<JSONObject> = [];
 
-        const rows = strResult.split('\n');
+        const rows: Array<string> = strResult.split('\n');
 
         for (const row of rows) {
-
             if (!row) {
                 continue;
             }
 
             const jsonItem: JSONObject = {};
-            const values = row.split('\t');
+            const values: Array<string> = row.split('\t');
 
-            for (let i = 0; i < columns.length; i++) {
+            for (let i: number = 0; i < columns.length; i++) {
                 jsonItem[columns[i]!] = values[i];
             }
 
@@ -204,13 +207,17 @@ export default class AnalyticsDatabaseService<
 
         for (const key in query) {
             const value: any = query[key];
-            const tableColumn = this.model.getTableColumn(key);
+            const tableColumn: AnalyticsTableColumn | null =
+                this.model.getTableColumn(key);
 
             if (!tableColumn) {
                 throw new BadDataException(`Unknown column: ${key}`);
             }
 
-            whereStatement += `${key} = ${this.sanitizeValue(value, tableColumn)} AND`
+            whereStatement += `${key} = ${this.sanitizeValue(
+                value,
+                tableColumn
+            )} AND`;
         }
 
         // remove last AND.
@@ -230,9 +237,12 @@ export default class AnalyticsDatabaseService<
         return sortStatement;
     }
 
-    public toSelectStatement(select: Select<TBaseModel>): { statement: string, columns: Array<string> } {
+    public toSelectStatement(select: Select<TBaseModel>): {
+        statement: string;
+        columns: Array<string>;
+    } {
         let selectStatement: string = '';
-        let columns: Array<string> = [];
+        const columns: Array<string> = [];
 
         for (const key in select) {
             const value: any = select[key];
@@ -258,8 +268,9 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `CREATE TABLE IF NOT EXISTS ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${this.toColumnsCreateStatement()} 
         )
@@ -300,16 +311,23 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve({ findBy, carryForward: null });
     }
 
-    public toFindStatement(findBy: FindBy<TBaseModel>): { statement: string, columns: Array<string> } {
+    public toFindStatement(findBy: FindBy<TBaseModel>): {
+        statement: string;
+        columns: Array<string>;
+    } {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        const select: { statement: string, columns: Array<string> } = this.toSelectStatement(findBy.select!);
+        const select: { statement: string; columns: Array<string> } =
+            this.toSelectStatement(findBy.select!);
 
-        const statement: string = `SELECT ${select.statement} FROM ${this.database.getDatasourceOptions().database}.${this.model.tableName
-            } 
-        ${Object.keys(findBy.query).length > 0 ? 'WHERE' : ''} ${this.toWhereStatement(findBy.query)}
+        const statement: string = `SELECT ${select.statement} FROM ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+        ${
+            Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
+        } ${this.toWhereStatement(findBy.query)}
         ORDER BY ${this.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit}
         OFFSET ${findBy.skip}
@@ -326,9 +344,12 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `DELETE FROM ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
-        WHERE ${this.toWhereStatement(deleteBy.query)}
+        const statement: string = `ALTER TABLE ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+            DELETE ${
+                Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+            } ${this.toWhereStatement(deleteBy.query)}
         `;
 
         logger.info(`${this.model.tableName} Delete Statement`);
@@ -342,10 +363,13 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `UPDATE ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
-        SET ${this.toSetStatement(updateBy.data)}
-        WHERE ${this.toWhereStatement(updateBy.query)}
+        const statement: string = `ALTER TABLE ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+        UPDATE ${this.toSetStatement(updateBy.data)}
+        ${
+            Object.keys(updateBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+        } ${this.toWhereStatement(updateBy.query)}
         `;
 
         logger.info(`${this.model.tableName} Update Statement`);
@@ -359,7 +383,10 @@ export default class AnalyticsDatabaseService<
 
         for (const column of data.getTableColumns()) {
             if (data.getColumnValue(column.key) !== undefined) {
-                setStatement += `${column.key} = ${this.sanitizeValue(data.getColumnValue(column.key), column)}, `;
+                setStatement += `${column.key} = ${this.sanitizeValue(
+                    data.getColumnValue(column.key),
+                    column
+                )}, `;
             }
         }
 
@@ -379,13 +406,17 @@ export default class AnalyticsDatabaseService<
         for (const column of data.item.getTableColumns()) {
             columnNames.push(column.key);
 
-            let value = this.sanitizeValue(data.item.getColumnValue(column.key), column);
+            const value: JSONValue = this.sanitizeValue(
+                data.item.getColumnValue(column.key),
+                column
+            );
 
             values.push(value as string | number | boolean | Date);
         }
 
-        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -401,16 +432,23 @@ export default class AnalyticsDatabaseService<
         return statement;
     }
 
-    private sanitizeValue(value: JSONValue, column: AnalyticsTableColumn): JSONValue {
-        if (column.type === TableColumnType.ObjectID ||
+    private sanitizeValue(
+        value: JSONValue,
+        column: AnalyticsTableColumn
+    ): JSONValue {
+        if (
+            column.type === TableColumnType.ObjectID ||
             column.type === TableColumnType.LongText ||
             column.type === TableColumnType.VeryLongText ||
-            column.type === TableColumnType.ShortText) {
+            column.type === TableColumnType.ShortText
+        ) {
             value = `'${value?.toString()}'`;
         }
 
         if (column.type === TableColumnType.Date && value instanceof Date) {
-            value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(value as Date)}')`;
+            value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
+                value as Date
+            )}')`;
         }
 
         return value;
@@ -431,12 +469,6 @@ export default class AnalyticsDatabaseService<
         return null;
     }
 
-    public async deleteOneBy(
-        deleteOneBy: DeleteOneBy<TBaseModel>
-    ): Promise<void> {
-        return await this._deleteBy({ ...deleteOneBy, limit: 1, skip: 0 });
-    }
-
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
         return await this._deleteBy(deleteBy);
     }
@@ -454,14 +486,6 @@ export default class AnalyticsDatabaseService<
                 beforeDeleteBy.query,
                 deleteBy.props
             );
-
-            if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
-                beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
-            }
-
-            if (!(beforeDeleteBy.limit instanceof PositiveNumber)) {
-                beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
-            }
 
             const select: Select<TBaseModel> = {};
 
@@ -495,12 +519,6 @@ export default class AnalyticsDatabaseService<
         });
     }
 
-    public async updateOneBy(
-        updateOneBy: UpdateOneBy<TBaseModel>
-    ): Promise<void> {
-        await this._updateBy({ ...updateOneBy, limit: 1, skip: 0 });
-    }
-
     public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
         await this._updateBy(updateBy);
     }
@@ -519,14 +537,6 @@ export default class AnalyticsDatabaseService<
                 beforeUpdateBy.data,
                 beforeUpdateBy.props
             );
-
-            if (!(updateBy.skip instanceof PositiveNumber)) {
-                beforeUpdateBy.skip = new PositiveNumber(updateBy.skip);
-            }
-
-            if (!(updateBy.limit instanceof PositiveNumber)) {
-                beforeUpdateBy.limit = new PositiveNumber(updateBy.limit);
-            }
 
             const select: Select<TBaseModel> = {};
 
@@ -695,8 +705,6 @@ export default class AnalyticsDatabaseService<
 
         createBy.data = data;
 
-
-
         try {
             await this.execute(this.toCreateStatement({ item: createBy.data }));
 
@@ -730,15 +738,15 @@ export default class AnalyticsDatabaseService<
             }
 
             return createBy.data;
-
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
     }
 
-    private sanitizeCreate<TBaseModel extends AnalyticsBaseModel>(data: TBaseModel): TBaseModel {
-
+    private sanitizeCreate<TBaseModel extends AnalyticsBaseModel>(
+        data: TBaseModel
+    ): TBaseModel {
         if (!data.id) {
             data.id = ObjectID.generate();
         }
@@ -770,8 +778,9 @@ export default class AnalyticsDatabaseService<
         let columns: string = '';
 
         this.model.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            columns += `${column.key} ${this.toColumnType(column.type)} ${column.required ? 'NOT NULL' : ' NULL'
-                },\n`;
+            columns += `${column.key} ${this.toColumnType(column.type)} ${
+                column.required ? 'NOT NULL' : ' NULL'
+            },\n`;
         });
 
         return columns;

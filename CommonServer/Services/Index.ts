@@ -232,8 +232,6 @@ const services: Array<BaseService> = [
 
 export const AnalyticsServices: Array<
     AnalyticsDatabaseService<AnalyticsBaseModel>
-> = [
-    LogService
-];
+> = [LogService];
 
 export default services;
