@@ -15,7 +15,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';

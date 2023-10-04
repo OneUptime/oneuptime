@@ -1,11 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnFind,
-    OnUpdate,
-} from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnUpdate, OnDelete, OnFind } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';

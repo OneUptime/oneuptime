@@ -14,7 +14,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

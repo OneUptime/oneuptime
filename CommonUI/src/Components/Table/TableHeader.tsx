@@ -3,7 +3,7 @@ import Column from './Types/Column';
 import Columns from './Types/Columns';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import FieldType from '../Types/FieldType';
 
 export interface ComponentProps {

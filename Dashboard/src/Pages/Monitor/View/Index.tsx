@@ -23,7 +23,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import useAsyncEffect from 'use-async-effect';
 import InBetween from 'Common/Types/Database/InBetween';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import JSONFunctions from 'Common/Types/JSONFunctions';

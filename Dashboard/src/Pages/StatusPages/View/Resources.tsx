@@ -16,7 +16,7 @@ import StatusPageResource from 'Model/Models/StatusPageResource';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
 import { JSONObject } from 'Common/Types/JSON';

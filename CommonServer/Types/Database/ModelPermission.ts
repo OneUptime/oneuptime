@@ -1,23 +1,20 @@
-import DatabaseRequestType from '../Types/Database/DatabaseRequestType';
+import DatabaseRequestType from '../BaseDatabase/DatabaseRequestType';
 import Permission, {
     PermissionHelper,
     UserPermission,
 } from 'Common/Types/Permission';
 import BaseModel from 'Common/Models/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import PaymentRequiredException from 'Common/Types/Exception/PaymentRequiredException';
-import Query from '../Types/Database/Query';
-import Select from '../Types/Database/Select';
+import Query from './Query';
+import Select from './Select';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import QueryHelper from '../Types/Database/QueryHelper';
+import QueryHelper from './QueryHelper';
 import Columns from 'Common/Types/Database/Columns';
 import Dictionary from 'Common/Types/Dictionary';
-import {
-    ColumnAccessControl,
-    ColumnBillingAccessControl,
-} from 'Common/Types/Database/AccessControl/AccessControl';
-import RelationSelect from '../Types/Database/RelationSelect';
+import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
+import RelationSelect from './RelationSelect';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
@@ -35,12 +32,14 @@ import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import { getAllEnvVars, IsBillingEnabled } from '../EnvironmentConfig';
+import { getAllEnvVars, IsBillingEnabled } from '../../EnvironmentConfig';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 import UserType from 'Common/Types/UserType';
+import ColumnBillingAccessControl from 'Common/Types/BaseDatabase/ColumnBillingAccessControl';
+import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -142,7 +141,7 @@ export default class ModelPermission {
     ): void {
         const model: BaseModel = new modelType();
         const userPermissions: Array<UserPermission> =
-            this.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
 
         const permissionColumns: Columns = this.getModelColumnsByPermissions(
             modelType,
@@ -150,8 +149,8 @@ export default class ModelPermission {
             requestType
         );
 
-        const excludedColumns: Array<string> =
-            ModelPermission.getExcludedColumns();
+        const excludedColumnNames: Array<string> =
+            ModelPermission.getExcludedColumnNames();
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
@@ -160,7 +159,7 @@ export default class ModelPermission {
                 continue;
             }
 
-            if (excludedColumns.includes(key)) {
+            if (excludedColumnNames.includes(key)) {
                 continue;
             }
 
@@ -565,7 +564,7 @@ export default class ModelPermission {
         let labelIds: Array<ObjectID> = [];
 
         const userPermissions: Array<UserPermission> =
-            this.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
 
         const nonAccessControlPermissionPermission: Array<Permission> =
             PermissionHelper.getNonAccessControlPermissions(userPermissions);
@@ -657,14 +656,15 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps
     ): void {
         const model: BaseModel = new modelType();
-        const userPermissions: Array<Permission> = this.getUserPermissions(
-            props
-        ).map((i: UserPermission) => {
-            return i.permission;
-        });
+        const userPermissions: Array<Permission> =
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props).map(
+                (i: UserPermission) => {
+                    return i.permission;
+                }
+            );
 
-        const excludedColumns: Array<string> =
-            ModelPermission.getExcludedColumns();
+        const excludedColumnNames: Array<string> =
+            ModelPermission.getExcludedColumnNames();
 
         for (const key in select) {
             if (typeof (select as JSONObject)[key] === Typeof.Object) {
@@ -710,7 +710,7 @@ export default class ModelPermission {
 
                         if (
                             !getRelatedTableColumnMetadata.canReadOnRelationQuery &&
-                            !excludedColumns.includes(innerKey)
+                            !excludedColumnNames.includes(innerKey)
                         ) {
                             throw new BadDataException(
                                 `Column ${innerKey} on ${relatedModel.singularName} does not support read on relation query.`
@@ -761,7 +761,7 @@ export default class ModelPermission {
         }
     }
 
-    private static getExcludedColumns(): string[] {
+    private static getExcludedColumnNames(): string[] {
         const returnArr: Array<string> = [
             '_id',
             'createdAt',
@@ -781,7 +781,7 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         const userPermissions: Array<UserPermission> =
-            this.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
 
         const canReadOnTheseColumns: Columns =
             this.getModelColumnsByPermissions(
@@ -792,13 +792,13 @@ export default class ModelPermission {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        const excludedColumns: Array<string> =
-            ModelPermission.getExcludedColumns();
+        const excludedColumnNames: Array<string> =
+            ModelPermission.getExcludedColumnNames();
 
         // Now we need to check all columns.
 
         for (const key in query) {
-            if (excludedColumns.includes(key)) {
+            if (excludedColumnNames.includes(key)) {
                 continue;
             }
 
@@ -985,7 +985,7 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         const userPermissions: Array<UserPermission> =
-            this.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
 
         const canReadOnTheseColumns: Columns =
             this.getModelColumnsByPermissions(
@@ -996,11 +996,11 @@ export default class ModelPermission {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        const excludedColumns: Array<string> =
-            ModelPermission.getExcludedColumns();
+        const excludedColumnNames: Array<string> =
+            ModelPermission.getExcludedColumnNames();
 
         for (const key in select) {
-            if (excludedColumns.includes(key)) {
+            if (excludedColumnNames.includes(key)) {
                 continue;
             }
 
@@ -1095,7 +1095,7 @@ export default class ModelPermission {
 
         // 2nd CHECK: Does user have access to CRUD data on this model.
         const userPermissions: Array<UserPermission> =
-            this.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
         const modelPermissions: Array<Permission> = this.getModelPermissions(
             modelType,
             type
@@ -1206,74 +1206,5 @@ export default class ModelPermission {
                 }
             }
         }
-    }
-
-    private static getUserPermissions(
-        props: DatabaseCommonInteractionProps
-    ): Array<UserPermission> {
-        // Check first if the user has Global Permissions.
-        // Global permissions includes all the tenantId user has access to.
-        // and it includes all the global permissions that applies to all the tenant, like PUBLIC.
-        if (!props.userGlobalAccessPermission) {
-            props.userGlobalAccessPermission = {
-                globalPermissions: [Permission.Public],
-                projectIds: [],
-                _type: 'UserGlobalAccessPermission',
-            };
-        }
-
-        // If the PUBLIC Permission is not found in global permissions, include it.
-        if (
-            props.userGlobalAccessPermission &&
-            !props.userGlobalAccessPermission.globalPermissions.includes(
-                Permission.Public
-            )
-        ) {
-            props.userGlobalAccessPermission.globalPermissions.push(
-                Permission.Public
-            ); // add public permission if not already.
-        }
-
-        // If the CurrentUser Permission is not found in global permissions, include it.
-        if (
-            props.userId &&
-            props.userGlobalAccessPermission &&
-            !props.userGlobalAccessPermission.globalPermissions.includes(
-                Permission.CurrentUser
-            )
-        ) {
-            props.userGlobalAccessPermission.globalPermissions.push(
-                Permission.CurrentUser
-            );
-        }
-
-        let userPermissions: Array<UserPermission> = [];
-
-        // Include global permission in userPermissions.
-
-        if (props.userGlobalAccessPermission) {
-            /// take global permissions.
-            userPermissions =
-                props.userGlobalAccessPermission.globalPermissions.map(
-                    (permission: Permission) => {
-                        return {
-                            permission: permission,
-                            labelIds: [],
-                            _type: 'UserPermission',
-                        };
-                    }
-                );
-        }
-
-        if (props.tenantId && props.userTenantAccessPermission) {
-            // Include Tenant Permission in userPermissions.
-            userPermissions = [
-                ...userPermissions,
-                ...(props.userTenantAccessPermission[props.tenantId.toString()]
-                    ?.permissions || []),
-            ];
-        }
-
-        return userPermissions;
     }
 }

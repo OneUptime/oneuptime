@@ -44,13 +44,13 @@ if [[ ! $(which git) ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
       if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
-        sudo apt install -y git
+        sudo apt install -y git curl
       elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
-        sudo dnf install git -y
+        sudo dnf install git curl -y
       fi
     fi
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install git
+        brew install git curl
     fi
 fi
 

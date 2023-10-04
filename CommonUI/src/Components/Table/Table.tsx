@@ -4,7 +4,7 @@ import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
 import Pagination from '../Pagination/Pagination';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';

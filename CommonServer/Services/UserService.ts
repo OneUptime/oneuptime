@@ -1,7 +1,8 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/User';
-import DatabaseService, { OnUpdate } from './DatabaseService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseService from './DatabaseService';
+import { OnUpdate } from '../Types/Database/Hooks';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
 import MailService from './MailService';

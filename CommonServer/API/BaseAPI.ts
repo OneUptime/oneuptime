@@ -15,7 +15,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import CreateBy from '../Types/Database/CreateBy';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';

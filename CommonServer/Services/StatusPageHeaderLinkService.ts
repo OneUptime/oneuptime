@@ -1,10 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageHeaderLink';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Query from '../Types/Database/Query';
@@ -14,7 +11,7 @@ import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
 import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

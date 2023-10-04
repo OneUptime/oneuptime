@@ -1,10 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/TeamPermission';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import TeamMemberService from './TeamMemberService';

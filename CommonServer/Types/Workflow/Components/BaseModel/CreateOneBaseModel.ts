@@ -99,7 +99,7 @@ export default class CreateOneBaseModel<
             const model: TBaseModel = (await this.modelService.create({
                 data: JSONFunctions.fromJSON<TBaseModel>(
                     (args['json'] as JSONObject) || {},
-                    this.modelService.entityType
+                    this.modelService.modelType
                 ) as TBaseModel,
                 props: {
                     isRoot: true,
@@ -111,7 +111,7 @@ export default class CreateOneBaseModel<
                 returnValues: {
                     model: JSONFunctions.toJSON(
                         model,
-                        this.modelService.entityType
+                        this.modelService.modelType
                     ),
                 },
                 executePort: successPort,

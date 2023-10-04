@@ -22,7 +22,7 @@ import Permission, {
     UserPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import FileModel from 'Common/Models/FileModel';

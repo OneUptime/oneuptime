@@ -15,13 +15,13 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
+import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from './StatusPage';
 import Monitor from './Monitor';
 import StatusPageGroup from './StatusPageGroup';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
-import EnableDocumentation from 'Common/Types/Model/EnableDocumentation';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')

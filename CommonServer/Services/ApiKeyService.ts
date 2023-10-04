@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ApiKey';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import ObjectID from 'Common/Types/ObjectID';
 

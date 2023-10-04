@@ -30,7 +30,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from '../../Services/IncidentSeverityService';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';

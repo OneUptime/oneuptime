@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/UserOnCallLog';
-import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnUpdate } from '../Types/Database/Hooks';
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import UserNotificationRuleService from './UserNotificationRuleService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
