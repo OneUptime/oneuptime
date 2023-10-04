@@ -39,6 +39,16 @@ export default class ClickhouseDatabase {
             const connectToDatabase: Function =
                 async (): Promise<ClickhouseClient> => {
                     try {
+                        const defaultDbClient: ClickhouseClient = createClient({
+                            ...dataSourceOptions,
+                            database: 'default',
+                        });
+                        await defaultDbClient.exec({
+                            query: `CREATE DATABASE IF NOT EXISTS ${dataSourceOptions.database}`,
+                        });
+
+                        await defaultDbClient.close();
+
                         const clickhouseClient: ClickhouseClient =
                             createClient(dataSourceOptions);
                         this.dataSource = clickhouseClient;
