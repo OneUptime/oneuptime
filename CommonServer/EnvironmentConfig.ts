@@ -62,43 +62,61 @@ export const ClusterKey: ObjectID = new ObjectID(
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
 export const RealtimeHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_REALTIME_HOSTNAME']}:${process.env['REALTIME_PORT']}`
+    `${process.env['SERVER_REALTIME_HOSTNAME']}:${
+        process.env['REALTIME_PORT'] || 80
+    }`
 );
 
 export const NotificationHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_NOTIFICATION_HOSTNAME']}:${process.env['NOTIFICATION_PORT']}`
+    `${process.env['SERVER_NOTIFICATION_HOSTNAME']}:${
+        process.env['NOTIFICATION_PORT'] || 80
+    }`
 );
 
 export const WorkerHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_WORKERS_HOSTNAME']}:${process.env['WORKERS_PORT']}`
+    `${process.env['SERVER_WORKERS_HOSTNAME']}:${
+        process.env['WORKERS_PORT'] || 80
+    }`
 );
 
 export const LinkShortenerHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_LINK_SHORTENER_HOSTNAME']}:${process.env['LINK_SHORTENER_PORT']}`
+    `${process.env['SERVER_LINK_SHORTENER_HOSTNAME']}:${
+        process.env['LINK_SHORTENER_PORT'] || 80
+    }`
 );
 
 export const WorkflowHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_WORKFLOW_HOSTNAME']}:${process.env['WORKFLOW_PORT']}`
+    `${process.env['SERVER_WORKFLOW_HOSTNAME']}:${
+        process.env['WORKFLOW_PORT'] || 80
+    }`
 );
 
 export const DashboardApiHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_DASHBOARD_API_HOSTNAME']}:${process.env['DASHBOARD_API_PORT']}`
+    `${process.env['SERVER_DASHBOARD_API_HOSTNAME']}:${
+        process.env['DASHBOARD_API_PORT'] || 80
+    }`
 );
 
 export const ProbeApiHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_PROBE_API_HOSTNAME']}:${process.env['PROBE_API_PORT']}`
+    `${process.env['SERVER_PROBE_API_HOSTNAME']}:${
+        process.env['PROBE_API_PORT'] || 80
+    }`
 );
 
 export const AccountsHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_ACCOUNTS_HOSTNAME']}:${process.env['ACCOUNTS_PORT']}`
+    `${process.env['SERVER_ACCOUNTS_HOSTNAME']}:${
+        process.env['ACCOUNTS_PORT'] || 80
+    }`
 );
 
 export const HomeHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_HOME_HOSTNAME']}:${process.env['HOME_PORT']}`
+    `${process.env['SERVER_HOME_HOSTNAME']}:${process.env['HOME_PORT'] || 80}`
 );
 
 export const DashboardHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_DASHBOARD_HOSTNAME']}:${process.env['DASHBOARD_PORT']}`
+    `${process.env['SERVER_DASHBOARD_HOSTNAME']}:${
+        process.env['DASHBOARD_PORT'] || 80
+    }`
 );
 
 export const Env: string = process.env['NODE_ENV'] || 'production';
