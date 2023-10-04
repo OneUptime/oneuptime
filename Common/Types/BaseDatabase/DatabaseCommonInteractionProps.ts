@@ -20,4 +20,5 @@ export default interface DatabaseCommonInteractionProps {
     ignoreHooks?: boolean | undefined;
     currentPlan?: PlanSelect | undefined;
     isSubscriptionUnpaid?: boolean | undefined;
+    isMasterAdmin?: boolean | undefined;
 }

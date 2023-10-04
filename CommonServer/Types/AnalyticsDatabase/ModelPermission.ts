@@ -33,7 +33,7 @@ export default class ModelPermission {
         query: Query<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
-        if (props.isRoot) {
+        if (props.isRoot || props.isMasterAdmin) {
             query = await this.addTenantScopeToQueryAsRoot(
                 modelType,
                 query,
@@ -41,7 +41,7 @@ export default class ModelPermission {
             );
         }
 
-        if (!props.isRoot) {
+        if (!props.isRoot && !props.isMasterAdmin) {
             this.checkModelLevelPermissions(
                 modelType,
                 props,
@@ -64,7 +64,7 @@ export default class ModelPermission {
         data: TBaseModel,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
-        if (props.isRoot) {
+        if (props.isRoot|| props.isMasterAdmin) {
             return query;
         }
 
@@ -95,7 +95,7 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps
     ): void {
         // If system is making this query then let the query run!
-        if (props.isRoot) {
+        if (props.isRoot || props.isMasterAdmin) {
             return;
         }
 
@@ -228,7 +228,7 @@ export default class ModelPermission {
         select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
-        if (props.isRoot) {
+        if (props.isRoot|| props.isMasterAdmin) {
             query = await this.addTenantScopeToQueryAsRoot(
                 modelType,
                 query,
@@ -236,7 +236,7 @@ export default class ModelPermission {
             );
         }
 
-        if (!props.isRoot) {
+        if (!props.isRoot && !props.isMasterAdmin) {
             //check if the user is logged in.
             this.checkIfUserIsLoggedIn(
                 modelType,

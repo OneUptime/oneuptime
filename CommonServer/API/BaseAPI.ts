@@ -268,7 +268,7 @@ export default class BaseAPI<
         // check for root permissions.
 
         if (props.userType === UserType.MasterAdmin) {
-            props.isRoot = true;
+            props.isMasterAdmin = true;
         }
 
         return props;
