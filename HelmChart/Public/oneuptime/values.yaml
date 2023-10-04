@@ -48,6 +48,9 @@ clickhouse:
   auth: 
     username: oneuptime
     password: please-change-this-to-random-value
+  initdbScripts: 
+    db-init.sql: |
+      CREATE DATABASE oneuptime;
 
 redis: 
   architecture: standalone

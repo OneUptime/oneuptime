@@ -111,12 +111,18 @@
   value: {{ printf "true" | squote }}
 
 - name: ONEUPTIME_SECRET
-  value: {{ $.Values.secrets.oneuptime }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
+      key: oneuptime-secret
 - name: ENCRYPTION_SECRET
-  value: {{ $.Values.secrets.encryption }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
+      key: encryption-secret
 
 - name: CLICKHOUSE_USER
-  value: {{ $.Values.clickhouse.auth.user }}
+  value: {{ $.Values.clickhouse.auth.username }}
 - name: CLICKHOUSE_PASSWORD
   value: {{ $.Values.clickhouse.auth.password }}
 - name: CLICKHOUSE_HOST
@@ -124,7 +130,7 @@
 - name: CLICKHOUSE_PORT
   value: {{ printf "8123" | squote}}
 - name: CLICKHOUSE_DATABASE
-  value: {{ $.Values.clickhouse.database }}
+  value: {{ printf "oneuptime" | squote}}
 
 - name: REDIS_HOST
   value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.cluster.local
@@ -241,7 +247,7 @@ spec:
       {{- range $key, $val := $.Volumes }}
         - name: {{ $key }}
           persistentVolumeClaim:
-            claimName: {{ $val }}
+            claimName: {{ $val.Name }}
       {{- end }}
       {{- end }}
       containers:
@@ -266,6 +272,13 @@ spec:
               value: {{ $val | squote }}
             {{- end }}
             {{- end }}
+          {{- if $.Volumes }}
+          volumeMounts:
+            {{- range $key, $val := $.Volumes }}
+            - name: {{ $key }}
+              mountPath: {{ $val.MountPath }}
+            {{- end }}
+          {{- end }}
           {{- if $.Port }}
           ports:
             - containerPort: {{ $.Port }}
