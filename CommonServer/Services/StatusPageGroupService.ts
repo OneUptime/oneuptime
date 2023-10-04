@@ -174,10 +174,7 @@ export class Service extends DatabaseService<Model> {
                 // moving down.
 
                 for (const group of groups) {
-                    if (
-                        group.order! < newOrder &&
-                        group.order! >= currentOrder
-                    ) {
+                    if (group.order! <= newOrder) {
                         // increment order.
                         await this.updateOneBy({
                             query: {

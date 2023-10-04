@@ -193,10 +193,7 @@ export class Service extends DatabaseService<Model> {
                 // moving down.
 
                 for (const resource of resources) {
-                    if (
-                        resource.order! < newOrder &&
-                        resource.order! >= currentOrder
-                    ) {
+                    if (resource.order! <= newOrder) {
                         // increment order.
                         await this.updateOneBy({
                             query: {

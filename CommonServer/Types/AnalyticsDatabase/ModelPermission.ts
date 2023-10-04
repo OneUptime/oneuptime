@@ -64,7 +64,7 @@ export default class ModelPermission {
         data: TBaseModel,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
-        if (props.isRoot|| props.isMasterAdmin) {
+        if (props.isRoot || props.isMasterAdmin) {
             return query;
         }
 
@@ -228,7 +228,7 @@ export default class ModelPermission {
         select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
-        if (props.isRoot|| props.isMasterAdmin) {
+        if (props.isRoot || props.isMasterAdmin) {
             query = await this.addTenantScopeToQueryAsRoot(
                 modelType,
                 query,
