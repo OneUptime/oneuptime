@@ -16,30 +16,10 @@ OneUptime is a comprehensive solution for monitoring and managing your online se
 Create a values.yaml file and change the default secrets.
 
 ```yaml
-secrets: 
-  oneuptime: please-change-this-to-random-value
-  encryption: please-change-this-to-random-value
+host: <ip-address-or-domain-of-server>
 
-probes: 
-  one: 
-    key: please-change-this-to-random-value
-  two: 
-    key: please-change-this-to-random-value
-
-redis:
-  auth: 
-    password: please-change-this-to-random-value
-
-postgresql:
-  auth: 
-    password: please-change-this-to-random-value
-
-internalSmtp: 
-  password: please-change-this-to-random-value
-
-clickhouse: 
-  auth: 
-    password: please-change-this-to-random-value
+# If hosted on non-ssl server then change this to http
+httpProtocol: https 
 ```
 
 #### Pick a Storage Class
@@ -85,8 +65,6 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `image.tag` | Docker image tag | `release` |
 | `image.pullPolicy` | Docker image pull policy | `IfNotPresent` | |
 | `image.restartPolicy` | Docker image restart policy | `Always` | |
-| `secrets.oneuptime` | Secret for OneUptime | `please-change-this-to-random-value` | ✅ |
-| `secrets.encryption` | Secret for Encryption | `please-change-this-to-random-value` | ✅ |
 | `autoScaling.enabled` | Enable autoscaling | `false` | |
 | `autoScaling.minReplicas` | Minimum number of replicas | `1` | |
 | `autoScaling.maxReplicas` | Maximum number of replicas | `100` | |
@@ -100,9 +78,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `probe.<key>.description` | Probe description | `nil` | |
 | `probe.<key>.monitoringWorkers` | Number of threads / parallel processes you need to monitor your resources | `3` | |
 | `probe.<key>.monitorFetchLimit` | Number of resources to be monitored in parallel | `10` | |
-| `probe.<key>.key` | Probe authentication key | `please-change-this-to-random-value` | ✅ |
 | `statusPage.cnameRecord` | CNAME record for the status page | `nil` | |
-| `internalSmtp.password` | Pick any random secure password. It just secures the internal SMTP Server | `nil` | ✅ |
 | `internalSmtp.sendingDomain` | Domain to send emails from  | `nil` |  |
 | `internalSmtp.dkimPrivateKey` | DKIM Private Key that is set for sending domain | `nil` |  |
 | `internalSmtp.dkimPublicKey` | DKIM Public Key that is set for sending domain | `nil` |  |

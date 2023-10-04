@@ -28,7 +28,6 @@ ingress:
 postgresql: 
   auth: 
     username: oneuptime
-    password: please-change-this-to-random-value
     database: oneuptimedb
   architecture: standalone
   primary:
@@ -47,7 +46,6 @@ clickhouse:
     size: 25Gi
   auth: 
     username: oneuptime
-    password: please-change-this-to-random-value
   initdbScripts: 
     db-init.sql: |
       CREATE DATABASE oneuptime;
@@ -55,7 +53,7 @@ clickhouse:
 redis: 
   architecture: standalone
   auth:
-    password: please-change-this-to-random-value
+    enabled: true
   master:
     persistence:
       size: 25Gi
@@ -101,7 +99,6 @@ analytics:
   key: 
 
 internalSmtp: 
-  password: please-change-this-to-random-value
   sendingDomain: 
   dkimPrivateKey: 
   dkimPublicKey: 
@@ -114,21 +111,15 @@ incidents:
 statusPage: 
   cnameRecord: 
 
-secrets: 
-  oneuptime: please-change-this-to-random-value
-  encryption: please-change-this-to-random-value
-
 probes: 
   one: 
     name: "Probe 1"
     description: "Probe 1"
-    key: please-change-this-to-random-value
     monitoringWorkers: 3
     monitorFetchLimit: 10
   two: 
     name: "Probe 2"
     description: "Probe 2"
-    key: please-change-this-to-random-value
     monitoringWorkers: 3
     monitorFetchLimit: 10
 

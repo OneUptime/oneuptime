@@ -1,10 +1,55 @@
 {{- range $key, $val := $.Values.probes }}
-
-# OneUptime probe Deployment
-{{- $probeEnv := dict "PORT"  $.Values.port.probe "PROBE_API_URL" (include "oneuptime.env.probe-api-url" $) "PROBE_NAME" $val.name "PROBE_DESCRIPTION" $val.description "PROBE_MONITORING_WORKERS" $val.monitoringWorkers  "PROBE_KEY" $val.key "PROBE_MONITOR_FETCH_LIMIT" $val.monitorFetchLimit "ONEUPTIME_SECRET" $.Values.secrets.oneuptime  -}}
-{{- $probeDeploymentArgs :=dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values "Env" $probeEnv "ImageName" "probe" -}}
-{{- include "oneuptime.deployment" $probeDeploymentArgs }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
+    spec:
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "probe" $.Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            - name: PORT
+              value: {{ $.Values.port.probe }}
+            - name: PROBE_API_URL
+              value: {{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
+            - name: PROBE_NAME
+              value: {{ $val.name }}
+            - name: PROBE_DESCRIPTION
+              value: {{ $val.description }}
+            - name: PROBE_MONITORING_WORKERS
+              value: {{ $val.monitoringWorkers | squote }}
+            - name: PROBE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
+                  key: {{printf "probe-%s" $key}}
+            - name: PROBE_MONITOR_FETCH_LIMIT
+              value: {{ $val.monitorFetchLimit | squote }}
+            - name: ONEUPTIME_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
+                  key: oneuptime-secret
+          
+      restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
+
 
 # OneUptime probe autoscaler
 {{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
