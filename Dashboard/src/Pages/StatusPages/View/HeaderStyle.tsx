@@ -13,7 +13,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 

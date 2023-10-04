@@ -1,5 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import PositiveNumber from 'Common/Types/PositiveNumber';

@@ -1,5 +1,5 @@
 import BaseModel from 'Common/Models/BaseModel';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { JSONObject } from 'Common/Types/JSON';
 
 type Sort<TBaseModel extends BaseModel | JSONObject> = {

@@ -146,7 +146,7 @@ export default class FindOneBaseModel<
                     model: model
                         ? JSONFunctions.toJSON(
                               model,
-                              this.modelService.entityType
+                              this.modelService.modelType
                           )
                         : null,
                 },

@@ -42,21 +42,8 @@ export default class WebsiteRequest {
         try {
             response = await axios(url.toString(), axiosOptions);
         } catch (err: unknown) {
-            if (
-                err &&
-                err.toString().includes('404') &&
-                options.isHeadRequest
-            ) {
+            if (err && options.isHeadRequest) {
                 // 404 because of HEAD request. Retry with GET request.
-                response = await axios(url.toString(), {
-                    ...axiosOptions,
-                    method: HTTPMethod.GET,
-                });
-            } else if (
-                err &&
-                Object.keys(err).includes('code') &&
-                (err as any)['code'] === 'HPE_INVALID_CONSTANT'
-            ) {
                 response = await axios(url.toString(), {
                     ...axiosOptions,
                     method: HTTPMethod.GET,

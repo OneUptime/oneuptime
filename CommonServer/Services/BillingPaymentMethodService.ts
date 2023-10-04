@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/BillingPaymentMethod';
-import DatabaseService, { OnDelete, OnFind } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnDelete, OnFind } from '../Types/Database/Hooks';
 import FindBy from '../Types/Database/FindBy';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';

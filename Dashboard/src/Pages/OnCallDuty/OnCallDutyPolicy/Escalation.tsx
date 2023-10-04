@@ -19,7 +19,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../../Utils/ProjectUser';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { JSONObject } from 'Common/Types/JSON';
 import TeamView from '../../../Components/OnCallPolicy/EscalationRule/TeamView';
 import UserView from '../../../Components/OnCallPolicy/EscalationRule/UserView';

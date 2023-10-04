@@ -100,7 +100,7 @@ export default class OnTriggerBaseModel<
                     model: data
                         ? JSONFunctions.toJSON(
                               data as any,
-                              this.service!.entityType
+                              this.service!.modelType
                           )
                         : null,
                 },
@@ -138,7 +138,7 @@ export default class OnTriggerBaseModel<
                 model: data
                     ? JSONFunctions.toJSON(
                           model as any,
-                          this.service!.entityType
+                          this.service!.modelType
                       )
                     : null,
             },

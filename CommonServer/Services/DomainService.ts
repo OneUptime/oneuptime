@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Domain';
-import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import Text from 'Common/Types/Text';
 import UpdateBy from '../Types/Database/UpdateBy';

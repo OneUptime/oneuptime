@@ -1,6 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageDomain';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import DomainService from './DomainService';
 import Domain from 'Model/Models/Domain';

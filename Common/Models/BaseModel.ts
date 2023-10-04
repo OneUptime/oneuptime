@@ -28,17 +28,15 @@ import Permission, {
     UserPermission,
     UserTenantAccessPermission,
 } from '../Types/Permission';
-import {
-    ColumnAccessControl,
-    ColumnBillingAccessControl,
-} from '../Types/Database/AccessControl/AccessControl';
+import { ColumnAccessControl } from '../Types/BaseDatabase/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
-import { EnableWorkflowOn } from '../Types/Model/EnableWorkflow';
+import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import IconProp from '../Types/Icon/IconProp';
 import Text from '../Types/Text';
 import { getColumnBillingAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnBillingAccessControl';
+import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 
 export type DbTypes =
     | string

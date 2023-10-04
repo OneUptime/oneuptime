@@ -1,17 +1,14 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageResource';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import QueryHelper from '../Types/Database/QueryHelper';
 import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import UpdateBy from '../Types/Database/UpdateBy';
 import Query from '../Types/Database/Query';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -196,10 +193,7 @@ export class Service extends DatabaseService<Model> {
                 // moving down.
 
                 for (const resource of resources) {
-                    if (
-                        resource.order! < newOrder &&
-                        resource.order! >= currentOrder
-                    ) {
+                    if (resource.order! <= newOrder) {
                         // increment order.
                         await this.updateOneBy({
                             query: {

@@ -1,17 +1,14 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Monitor';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 import ObjectID from 'Common/Types/ObjectID';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ProbeService from './ProbeService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -30,7 +27,7 @@ import TeamMemberService from './TeamMemberService';
 import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
 
 export class Service extends DatabaseService<Model> {

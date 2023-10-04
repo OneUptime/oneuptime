@@ -14,8 +14,13 @@ export default class ObjectID extends DatabaseProperty {
         this._id = v;
     }
 
-    public constructor(id: string) {
+    public constructor(id: string | ObjectID) {
         super();
+
+        if (id instanceof ObjectID) {
+            id = id.toString();
+        }
+
         this.id = id;
     }
 

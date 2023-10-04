@@ -112,12 +112,13 @@ import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
 import BaseService from './BaseService';
 // import LogService from './LogService';
 import AnalyticsDatabaseService from './AnalyticsDatabaseService';
-import AnalyticsBaseModel from 'Common/Models/AnalyticsBaseModel';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
 import ResellerService from './ResellerService';
 import ResellerPlanService from './ResellerPlanService';
 
 import PromoCodeService from './PromoCodeService';
+import LogService from './LogService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
@@ -231,8 +232,6 @@ const services: Array<BaseService> = [
 
 export const AnalyticsServices: Array<
     AnalyticsDatabaseService<AnalyticsBaseModel>
-> = [
-    // LogService
-];
+> = [LogService];
 
 export default services;

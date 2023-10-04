@@ -19,7 +19,7 @@ import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { FormType, ModelField } from '../Forms/ModelForm';
 
-import SortOrder from 'Common/Types/Database/SortOrder';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
@@ -30,7 +30,7 @@ import Permission, {
     UserPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import Query from '../../Utils/ModelAPI/Query';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
