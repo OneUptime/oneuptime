@@ -11,9 +11,9 @@ OneUptime is a comprehensive solution for monitoring and managing your online se
 ## Install Helm Chart
 
 
-#### Create values.yaml file and change the default secrets. 
+#### Create values.yaml file.
 
-Create a values.yaml file and change the default secrets.
+Create a values.yaml file and change the host.
 
 ```yaml
 host: <ip-address-or-domain-of-server>
