@@ -182,6 +182,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
+        <div>
         <div className="flex">
             <div className="w-1/3 mr-1">
                 <Dropdown
@@ -260,6 +261,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                 />
             </div>
+        </div>
+        {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? <div>
+            Some documentation
+        </div> :<></>}
         </div>
     );
 };
