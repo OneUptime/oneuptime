@@ -28,6 +28,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         CriteriaFilter | undefined
     >(props.initialValue);
 
+    const [valuePlaceholder, setValuePlaceholder] = React.useState<string>('');
+
     const [checkOnOptions, setCheckOnOptions] = React.useState<
         Array<DropdownOption>
     >([]);
@@ -56,7 +58,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     i.value === CheckOn.IncomingRequest ||
                     i.value === CheckOn.RequestBody ||
                     i.value === CheckOn.RequestHeader ||
-                    i.value === CheckOn.RequestHeaderValue
+                    i.value === CheckOn.RequestHeaderValue ||
+                    i.value === CheckOn.JavaScriptExpression
                 );
             });
         }
@@ -72,7 +75,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     i.value === CheckOn.ResponseBody ||
                     i.value === CheckOn.ResponseHeader ||
                     i.value === CheckOn.ResponseHeaderValue ||
-                    i.value === CheckOn.ResponseStatusCode
+                    i.value === CheckOn.ResponseStatusCode ||
+                    i.value === CheckOn.JavaScriptExpression
                 );
             });
         }
@@ -102,6 +106,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     i.value === FilterType.GreaterThanOrEqualTo
                 );
             });
+
+            setValuePlaceholder('5000');
         }
 
         if (criteriaFilter?.checkOn === CheckOn.IncomingRequest) {
@@ -135,6 +141,16 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     i.value === FilterType.NotContains
                 );
             });
+
+            setValuePlaceholder('Some Text');
+        }
+
+        if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === FilterType.EvaluatesToTrue;
+            });
+
+            setValuePlaceholder('{{response.body.result}} === true');
         }
 
         if (criteriaFilter?.checkOn === CheckOn.ResponseStatusCode) {
@@ -148,6 +164,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     i.value === FilterType.NotEqualTo
                 );
             });
+
+            setValuePlaceholder('200');
         }
 
         setFilterTypeOptions(options);
@@ -216,6 +234,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     (criteriaFilter?.checkOn &&
                         criteriaFilter?.checkOn !== CheckOn.IsOnline && (
                             <Input
+                                placeholder={valuePlaceholder}
                                 initialValue={criteriaFilter?.value?.toString()}
                                 onChange={(value: string) => {
                                     setCriteriaFilter({

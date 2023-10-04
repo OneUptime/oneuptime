@@ -22,11 +22,16 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         } else {
             text += ' is offline ';
         }
-    } else {
+    } else if (props.criteriaFilter?.checkOn !== CheckOn.JavaScriptExpression) {
         text += props.criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
     }
 
-    if (
+    if (props.criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
+        text +=
+            'JavaScript expression ' +
+            props.criteriaFilter?.value +
+            ' - evaluates to true.';
+    } else if (
         props.criteriaFilter?.filterType &&
         props.criteriaFilter?.checkOn !== CheckOn.IsOnline
     ) {
@@ -43,7 +48,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         }
     }
 
-    if (props.criteriaFilter?.value !== undefined) {
+    if (
+        props.criteriaFilter?.value !== undefined &&
+        props.criteriaFilter?.checkOn !== CheckOn.JavaScriptExpression
+    ) {
         text += props.criteriaFilter?.value.toString() + ' ';
     }
 
