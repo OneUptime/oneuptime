@@ -143,3 +143,7 @@ port:
   adminDashboard: 3158
   nginx: 80
   haraka: 2525
+
+
+testServer: 
+  enabled: false

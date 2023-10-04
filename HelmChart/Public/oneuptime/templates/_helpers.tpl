@@ -137,7 +137,7 @@
 - name: REDIS_PASSWORD
   valueFrom: 
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "redis-password"  }}
+        name: {{ printf "%s-%s" $.Release.Name "redis"  }}
         key: redis-password
 - name: REDIS_DB
   value: {{ printf "0" | squote}}

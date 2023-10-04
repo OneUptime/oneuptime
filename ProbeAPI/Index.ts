@@ -40,10 +40,12 @@ const init: () => Promise<void> = async (): Promise<void> => {
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
+        throw err;
     }
 };
 
 init().catch((err: Error) => {
     logger.error(err);
+    logger.info('Exiting node process');
     process.exit(1);
 });
