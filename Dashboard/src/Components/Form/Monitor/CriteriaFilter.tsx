@@ -183,88 +183,94 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-        <div className="flex">
-            <div className="w-1/3 mr-1">
-                <Dropdown
-                    initialValue={checkOnOptions.find((i: DropdownOption) => {
-                        return i.value === criteriaFilter?.checkOn;
-                    })}
-                    options={checkOnOptions}
-                    onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null
-                    ) => {
-                        setCriteriaFilter({
-                            checkOn: value?.toString() as CheckOn,
-                            filterType: undefined,
-                            value: undefined,
-                        });
-                    }}
-                />
-            </div>
-            <div className="w-1/3 mr-1 ml-1">
-                {!criteriaFilter?.checkOn ||
-                    (criteriaFilter?.checkOn && (
-                        <Dropdown
-                            initialValue={filterTypeOptions.find(
-                                (i: DropdownOption) => {
-                                    return (
-                                        i.value === criteriaFilter?.filterType
-                                    );
-                                }
-                            )}
-                            options={filterTypeOptions}
-                            onChange={(
-                                value:
-                                    | DropdownValue
-                                    | Array<DropdownValue>
-                                    | null
-                            ) => {
-                                setCriteriaFilter({
-                                    checkOn:
-                                        criteriaFilter?.checkOn ||
-                                        CheckOn.IsOnline,
-                                    filterType: value?.toString() as FilterType,
-                                    value: criteriaFilter?.value || '',
-                                });
-                            }}
-                        />
-                    ))}
-            </div>
-            <div className="w-1/3 mr-1 ml-1">
-                {!criteriaFilter?.checkOn ||
-                    (criteriaFilter?.checkOn &&
-                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
-                            <Input
-                                placeholder={valuePlaceholder}
-                                initialValue={criteriaFilter?.value?.toString()}
-                                onChange={(value: string) => {
+            <div className="flex">
+                <div className="w-1/3 mr-1">
+                    <Dropdown
+                        initialValue={checkOnOptions.find(
+                            (i: DropdownOption) => {
+                                return i.value === criteriaFilter?.checkOn;
+                            }
+                        )}
+                        options={checkOnOptions}
+                        onChange={(
+                            value: DropdownValue | Array<DropdownValue> | null
+                        ) => {
+                            setCriteriaFilter({
+                                checkOn: value?.toString() as CheckOn,
+                                filterType: undefined,
+                                value: undefined,
+                            });
+                        }}
+                    />
+                </div>
+                <div className="w-1/3 mr-1 ml-1">
+                    {!criteriaFilter?.checkOn ||
+                        (criteriaFilter?.checkOn && (
+                            <Dropdown
+                                initialValue={filterTypeOptions.find(
+                                    (i: DropdownOption) => {
+                                        return (
+                                            i.value ===
+                                            criteriaFilter?.filterType
+                                        );
+                                    }
+                                )}
+                                options={filterTypeOptions}
+                                onChange={(
+                                    value:
+                                        | DropdownValue
+                                        | Array<DropdownValue>
+                                        | null
+                                ) => {
                                     setCriteriaFilter({
                                         checkOn:
                                             criteriaFilter?.checkOn ||
                                             CheckOn.IsOnline,
                                         filterType:
-                                            criteriaFilter?.filterType ||
-                                            FilterType.EqualTo,
-                                        value: value || '',
+                                            value?.toString() as FilterType,
+                                        value: criteriaFilter?.value || '',
                                     });
                                 }}
                             />
                         ))}
+                </div>
+                <div className="w-1/3 mr-1 ml-1">
+                    {!criteriaFilter?.checkOn ||
+                        (criteriaFilter?.checkOn &&
+                            criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                                <Input
+                                    placeholder={valuePlaceholder}
+                                    initialValue={criteriaFilter?.value?.toString()}
+                                    onChange={(value: string) => {
+                                        setCriteriaFilter({
+                                            checkOn:
+                                                criteriaFilter?.checkOn ||
+                                                CheckOn.IsOnline,
+                                            filterType:
+                                                criteriaFilter?.filterType ||
+                                                FilterType.EqualTo,
+                                            value: value || '',
+                                        });
+                                    }}
+                                />
+                            ))}
+                </div>
+                <div className="mt-1">
+                    <Button
+                        title="Delete"
+                        buttonStyle={ButtonStyleType.ICON}
+                        icon={IconProp.Trash}
+                        onClick={() => {
+                            props.onDelete?.();
+                        }}
+                    />
+                </div>
             </div>
-            <div className="mt-1">
-                <Button
-                    title="Delete"
-                    buttonStyle={ButtonStyleType.ICON}
-                    icon={IconProp.Trash}
-                    onClick={() => {
-                        props.onDelete?.();
-                    }}
-                />
-            </div>
-        </div>
-        {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? <div>
-            Some documentation
-        </div> :<></>}
+            {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? (
+                <div>Some documentation</div>
+            ) : (
+                <></>
+            )}
         </div>
     );
 };

@@ -805,6 +805,14 @@ export default class ProbeMonitorResponseService {
         // process monitor criteria filter here.
         let value: number | string | undefined = input.criteriaFilter.value;
         //check is online filter
+
+        if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
+            if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
+                return 'Monitor is online.';
+            }
+            return null;
+        }
+
         if (
             input.criteriaFilter.checkOn === CheckOn.IsOnline &&
             input.criteriaFilter.filterType === FilterType.True
