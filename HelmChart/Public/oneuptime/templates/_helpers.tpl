@@ -236,6 +236,7 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
+    date: "{{ now | unixEpoch }}"
 spec:
   selector:
     matchLabels:
@@ -245,6 +246,7 @@ spec:
     metadata:
       labels:
         app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+        date: "{{ now | unixEpoch }}"
     spec:
       {{- if $.Volumes }}
       volumes:
