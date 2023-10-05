@@ -9,6 +9,7 @@ export enum CheckOn {
     RequestBody = 'Request Body',
     RequestHeader = 'Request Header',
     RequestHeaderValue = 'Request Header Value',
+    JavaScriptExpression = 'JavaScript Expression',
 }
 
 export interface CriteriaFilter {
@@ -34,6 +35,7 @@ export enum FilterType {
     False = 'False',
     NotRecievedInMinutes = 'Not Recieved In Minutes',
     RecievedInMinutes = 'Recieved In Minutes',
+    EvaluatesToTrue = 'Evaluates To True',
 }
 
 export enum FilterCondition {
