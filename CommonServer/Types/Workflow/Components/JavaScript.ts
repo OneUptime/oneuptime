@@ -55,6 +55,11 @@ export default class JavaScriptCode extends ComponentCode {
             // Inject args
             // Inject dependencies
 
+            let scriptArgs = (args['arguments'] as JSONObject | string) || {};
+
+            if(typeof scriptArgs === 'string') {
+                scriptArgs = JSON.parse(scriptArgs);
+            }
 
             const returnVal: any = VMUtil.runCodeInSandbox(args['code'] as string, {
                 timeout: 5000,
@@ -63,7 +68,7 @@ export default class JavaScriptCode extends ComponentCode {
                 consoleLog: (logValue: JSONValue) => {
                     options.log(logValue);
                 },
-                args: JSON.parse(args['arguments'] as string || '{}') as JSONObject,
+                args: scriptArgs as JSONObject,
             });
 
             return {
