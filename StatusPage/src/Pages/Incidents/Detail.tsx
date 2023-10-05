@@ -83,7 +83,7 @@ export const getIncidentEventItem: Function = (
         ) {
             timeline.push({
                 note: incidentPublicNote?.note,
-                date: incidentPublicNote?.createdAt!,
+                date: incidentPublicNote?.createdAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
                 iconColor: Grey,
@@ -104,7 +104,7 @@ export const getIncidentEventItem: Function = (
         ) {
             timeline.push({
                 state: incidentStateTimeline.incidentState,
-                date: incidentStateTimeline?.createdAt!,
+                date: incidentStateTimeline?.createdAt as Date,
                 type: TimelineItemType.StateChange,
                 icon: incidentStateTimeline.incidentState.isCreatedState
                     ? IconProp.Alert

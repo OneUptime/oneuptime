@@ -91,6 +91,7 @@
         "@typescript-eslint/no-extra-non-null-assertion": "error",
         "@typescript-eslint/no-floating-promises":"error",
         "@typescript-eslint/await-thenable":"error",
+        "@typescript-eslint/no-non-null-asserted-optional-chain": "error",
         "unused-imports/no-unused-imports": "error",
         "unused-imports/no-unused-vars": [
             "error",

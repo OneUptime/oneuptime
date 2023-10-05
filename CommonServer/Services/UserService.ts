@@ -169,8 +169,8 @@ export class Service extends DatabaseService<Model> {
 
                     const emailVerificationToken: EmailVerificationToken =
                         new EmailVerificationToken();
-                    emailVerificationToken.userId = user?.id!;
-                    emailVerificationToken.email = newUser?.email!;
+                    emailVerificationToken.userId = user.id;
+                    emailVerificationToken.email = newUser.email!;
                     emailVerificationToken.token = generatedToken;
                     emailVerificationToken.expires =
                         OneUptimeDate.getOneDayAfter();

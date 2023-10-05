@@ -88,7 +88,7 @@ export const getScheduledEventEventItem: Function = (
         ) {
             timeline.push({
                 note: scheduledMaintenancePublicNote?.note || '',
-                date: scheduledMaintenancePublicNote?.createdAt!,
+                date: scheduledMaintenancePublicNote?.createdAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
                 iconColor: Grey,
@@ -111,7 +111,7 @@ export const getScheduledEventEventItem: Function = (
                 date: scheduledMaintenanceEventstateTimeline
                     .scheduledMaintenanceState?.isScheduledState
                     ? scheduledMaintenance.startsAt!
-                    : scheduledMaintenanceEventstateTimeline?.createdAt!,
+                    : (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
                 type: TimelineItemType.StateChange,
                 icon: scheduledMaintenanceEventstateTimeline
                     .scheduledMaintenanceState.isScheduledState
