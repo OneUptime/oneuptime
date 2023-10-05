@@ -10,7 +10,7 @@ The following variables are available in the context of the monitored object:
 
 | Variable | Description | Type |
 | --- | --- | --- |
-| `responseBody` | The response body object. | `string` or `JSON` |
+| `responseBody` | The response body object. If the response body is in HTML / XML this will be of type sting. If response body is in JSON then this will be in JSON | `string` or `JSON` |
 | `responseHeaders` | The response headers object. | `Dictionary<string>` |
 | `responseStatusCode` | The response status code. | `number` |
 | `responseTimeInMs` | The response time in milliseconds. | `number` |
