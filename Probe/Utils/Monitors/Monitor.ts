@@ -95,7 +95,7 @@ export default class MonitorUtil {
                         criteria.data?.filters;
 
                     for (const filter of filters) {
-                        if (filter.checkOn === CheckOn.ResponseBody) {
+                        if (filter.checkOn === CheckOn.ResponseBody || filter.checkOn === CheckOn.JavaScriptExpression) {
                             return false;
                         }
                     }

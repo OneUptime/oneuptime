@@ -11,8 +11,10 @@ import Dropdown, {
     DropdownValue,
 } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import Input from 'CommonUI/src/Components/Input/Input';
+import Link from 'CommonUI/src/Components/Link/Link';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import URL from 'Common/Types/API/URL';
 
 export interface ComponentProps {
     initialValue: CriteriaFilter | undefined;
@@ -150,7 +152,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 return i.value === FilterType.EvaluatesToTrue;
             });
 
-            setValuePlaceholder('{{response.body.result}} === true');
+            if (props.monitorType === MonitorType.IncomingRequest) {
+                setValuePlaceholder('{{requestBody.result}} === true');
+            } else {
+                setValuePlaceholder('{{responseBody.result}} === true');
+            }
+
         }
 
         if (criteriaFilter?.checkOn === CheckOn.ResponseStatusCode) {
@@ -267,7 +274,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 </div>
             </div>
             {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? (
-                <div>Some documentation</div>
+                <div className="mt-1 text-sm text-gray-500 underline"><Link to={URL.fromString("https://github.com/OneUptime/oneuptime/blob/master/Docs/Monitor/JavaScriptExpression.md")} openInNewTab={true} > Read documentation for using JavaScript exporession here. </Link> </div>
             ) : (
                 <></>
             )}
