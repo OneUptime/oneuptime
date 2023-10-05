@@ -29,7 +29,7 @@ spec:
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
             - name: PROBE_API_URL
-              value: {{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.port.probeApi }}
+              value: http://{{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.port.probeApi }}
             - name: PROBE_NAME
               value: {{ $val.name }}
             - name: PROBE_DESCRIPTION
