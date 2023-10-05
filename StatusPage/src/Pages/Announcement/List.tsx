@@ -41,9 +41,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [_statusPageResources, setStatusPageResources] = useState<
-        Array<StatusPageResource>
-    >([]);
+    const [, setStatusPageResources] = useState<Array<StatusPageResource>>([]);
     const [announcements, setAnnouncements] = useState<
         Array<StatusPageAnnouncement>
     >([]);
