@@ -280,9 +280,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         )}
                         openInNewTab={true}
                     >
-                        {' '}
-                        Read documentation for using JavaScript exporession
-                        here.{' '}
+                        <p>
+                            {' '}
+                            Read documentation for using JavaScript exporession
+                            here.{' '}
+                        </p>
                     </Link>{' '}
                 </div>
             ) : (
