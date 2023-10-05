@@ -21,7 +21,6 @@ import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
 import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
-import StatusPageResource from 'Model/Models/StatusPageResource';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
@@ -41,7 +40,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [, setStatusPageResources] = useState<Array<StatusPageResource>>([]);
     const [announcements, setAnnouncements] = useState<
         Array<StatusPageAnnouncement>
     >([]);
@@ -78,16 +76,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['announcements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
-            const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
-                    (data['statusPageResources'] as JSONArray) || [],
-                    StatusPageResource
-                );
 
             // save data. set()
 
             setAnnouncements(announcements);
-            setStatusPageResources(statusPageResources);
 
             setIsLoading(false);
             props.onLoadComplete();

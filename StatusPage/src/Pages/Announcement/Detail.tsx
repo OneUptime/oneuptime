@@ -16,7 +16,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPageResource from 'Model/Models/StatusPageResource';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
@@ -69,7 +68,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [, setStatusPageResources] = useState<Array<StatusPageResource>>([]);
     const [announcement, setAnnouncement] =
         useState<StatusPageAnnouncement | null>(null);
     const [parsedData, setParsedData] =
@@ -114,16 +112,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     StatusPageAnnouncement
                 );
 
-            const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
-                    (data['statusPageResources'] as JSONArray) || [],
-                    StatusPageResource
-                );
-
             // save data. set()
 
             setAnnouncement(announcement);
-            setStatusPageResources(statusPageResources);
 
             setIsLoading(false);
             props.onLoadComplete();

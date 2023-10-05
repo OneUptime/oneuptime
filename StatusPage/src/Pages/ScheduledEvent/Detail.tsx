@@ -17,7 +17,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPageResource from 'Model/Models/StatusPageResource';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import OneUptimeDate from 'Common/Types/Date';
@@ -181,7 +180,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [, setStatusPageResources] = useState<Array<StatusPageResource>>([]);
     const [
         scheduledMaintenanceEventsPublicNotes,
         setscheduledMaintenanceEventsPublicNotes,
@@ -240,11 +238,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (rawAnnouncements[0] as JSONObject) || {},
                     ScheduledMaintenance
                 );
-            const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
-                    (data['statusPageResources'] as JSONArray) || [],
-                    StatusPageResource
-                );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
@@ -257,7 +250,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 scheduledMaintenanceEventsPublicNotes
             );
             setscheduledMaintenanceEvent(scheduledMaintenanceEvent);
-            setStatusPageResources(statusPageResources);
             setscheduledMaintenanceStateTimelines(
                 scheduledMaintenanceStateTimelines
             );
