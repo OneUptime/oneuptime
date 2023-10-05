@@ -16,7 +16,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     let text: string = 'Check if this resource ';
 
-    if (props.criteriaFilter?.checkOn === CheckOn.IsOnline) {
+    if (props.criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
+        text = 'Check if ';
+
+        text +=
+            'JavaScript expression ' +
+            props.criteriaFilter?.value +
+            ' - evaluates to true.';
+    } else if (props.criteriaFilter?.checkOn === CheckOn.IsOnline) {
         if (props.criteriaFilter?.filterType === FilterType.True) {
             text += ' is online ';
         } else {
@@ -24,27 +31,27 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         }
     } else {
         text += props.criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
-    }
 
-    if (
-        props.criteriaFilter?.filterType &&
-        props.criteriaFilter?.checkOn !== CheckOn.IsOnline
-    ) {
-        if (
-            props.criteriaFilter?.filterType.toLowerCase().includes('contains')
-        ) {
-            text +=
-                props.criteriaFilter?.filterType.toString().toLowerCase() + ' ';
-        } else {
-            text +=
-                'is ' +
-                props.criteriaFilter?.filterType.toString().toLowerCase() +
-                ' ';
+        if (props.criteriaFilter?.filterType) {
+            if (
+                props.criteriaFilter?.filterType
+                    .toLowerCase()
+                    .includes('contains')
+            ) {
+                text +=
+                    props.criteriaFilter?.filterType.toString().toLowerCase() +
+                    ' ';
+            } else {
+                text +=
+                    'is ' +
+                    props.criteriaFilter?.filterType.toString().toLowerCase() +
+                    ' ';
+            }
         }
-    }
 
-    if (props.criteriaFilter?.value !== undefined) {
-        text += props.criteriaFilter?.value.toString() + ' ';
+        if (props.criteriaFilter?.value !== undefined) {
+            text += props.criteriaFilter?.value.toString() + ' ';
+        }
     }
 
     if (props.filterCondition === FilterCondition.All) {

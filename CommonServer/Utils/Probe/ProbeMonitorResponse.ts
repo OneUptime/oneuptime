@@ -34,6 +34,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import VMUtil from '../VM';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -805,6 +806,90 @@ export default class ProbeMonitorResponseService {
         // process monitor criteria filter here.
         let value: number | string | undefined = input.criteriaFilter.value;
         //check is online filter
+
+        if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
+            let storageMap: JSONObject = {};
+
+            if (
+                input.monitor.monitorType === MonitorType.API ||
+                input.monitor.monitorType === MonitorType.Website
+            ) {
+                // try to parse json
+                let responseBody: JSONObject | null = null;
+                try {
+                    responseBody = JSON.parse(
+                        ((input.dataToProcess as ProbeMonitorResponse)
+                            .responseBody as string) || '{}'
+                    );
+                } catch (err) {
+                    responseBody = (input.dataToProcess as ProbeMonitorResponse)
+                        .responseBody as JSONObject;
+                }
+
+                if (
+                    typeof responseBody === Typeof.String &&
+                    responseBody?.toString() === ''
+                ) {
+                    // if empty string then set to empty object.
+                    responseBody = {};
+                }
+
+                storageMap = {
+                    responseBody: responseBody,
+                    responseHeaders: (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).responseHeaders,
+                    responseStatusCode: (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).responseCode,
+                    responseTimeInMs: (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).responseTimeInMs,
+                    isOnline: (input.dataToProcess as ProbeMonitorResponse)
+                        .isOnline,
+                };
+            }
+
+            if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+                storageMap = {
+                    requestBody: (input.dataToProcess as IncomingMonitorRequest)
+                        .requestBody,
+                    requestHeaders: (
+                        input.dataToProcess as IncomingMonitorRequest
+                    ).requestHeaders,
+                };
+            }
+
+            // now evaluate the expression.
+            let expression: string = input.criteriaFilter.value as string;
+            expression = VMUtil.replaceValueInPlace(
+                storageMap,
+                expression,
+                false
+            ); // now pass this to the VM.
+
+            const code: string = `return Boolean(${expression});`;
+            let result: any = null;
+
+            try {
+                result = await VMUtil.runCodeInSandbox(code, {
+                    timeout: 1000,
+                    allowAsync: false,
+                    args: {},
+                    includeHttpPackage: false,
+                });
+            } catch (err) {
+                logger.error(err);
+                return null;
+            }
+
+            if (result) {
+                return `JavaScript Expression - ${expression} - evaluated to true.`;
+            }
+
+            return null; // if true then return null.
+        }
+
         if (
             input.criteriaFilter.checkOn === CheckOn.IsOnline &&
             input.criteriaFilter.filterType === FilterType.True

@@ -28,6 +28,7 @@ import logger from 'CommonServer/Utils/Logger';
 import TimeoutException from 'Common/Types/Exception/TimeoutException';
 import Exception from 'Common/Types/Exception/Exception';
 import WorkflowLog from 'Model/Models/WorkflowLog';
+import VMUtil from 'CommonServer/Utils/VM';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -345,80 +346,6 @@ export default class RunWorkflow {
         // pick arguments from storage map.
         const argumentObj: JSONObject = {};
 
-        const serializeValueForJSON: Function = (value: string): string => {
-            if (!value) {
-                return value;
-            }
-
-            if (typeof value !== 'string') {
-                value = JSON.stringify(value);
-            } else {
-                value = value
-                    .split('\t')
-                    .join('\\t')
-                    .split('\n')
-                    .join('\\n')
-                    .split('\r')
-                    .join('\\r')
-                    .split('\b')
-                    .join('\\b')
-                    .split('\f')
-                    .join('\\f')
-                    .split('"')
-                    .join('\\"');
-            }
-
-            return value;
-        };
-
-        const deepFind: Function = (
-            obj: JSONObject,
-            path: string
-        ): JSONValue => {
-            const paths: Array<string> = path.split('.');
-            let current: any = JSON.parse(JSON.stringify(obj));
-
-            for (let i: number = 0; i < paths.length; ++i) {
-                const key: string | undefined = paths[i];
-
-                if (!key) {
-                    return undefined;
-                }
-                const openBracketIndex: number = key.indexOf('[');
-                const closeBracketIndex: number = key.indexOf(']');
-
-                if (openBracketIndex !== -1 && closeBracketIndex !== -1) {
-                    const arrayKey: string = key.slice(0, openBracketIndex);
-                    const indexString: string = key.slice(
-                        openBracketIndex + 1,
-                        closeBracketIndex
-                    );
-                    let index: number = 0;
-
-                    if (indexString !== 'last') {
-                        index = parseInt(indexString);
-                    } else {
-                        index = current[arrayKey].length - 1;
-                    }
-
-                    if (
-                        Array.isArray(current[arrayKey]) &&
-                        current[arrayKey][index]
-                    ) {
-                        current = current[arrayKey][index];
-                    } else {
-                        return undefined;
-                    }
-                } else if (current && current[key] !== undefined) {
-                    current = current[key];
-                } else {
-                    return undefined;
-                }
-            }
-
-            return current;
-        };
-
         for (const argument of component.metadata.arguments) {
             if (!component.arguments) {
                 component.arguments = {};
@@ -435,44 +362,11 @@ export default class RunWorkflow {
                 continue;
             }
 
-            if (
-                typeof argumentContent === 'string' &&
-                argumentContent.toString().includes('{{') &&
-                argumentContent.toString().includes('}}')
-            ) {
-                let argumentContentCopy: string = argumentContent.toString();
-                const variablesInArgument: Array<string> = [];
-
-                const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
-
-                let match: RegExpExecArray | null = null;
-
-                while ((match = regex.exec(argumentContentCopy)) !== null) {
-                    if (match[1]) {
-                        variablesInArgument.push(match[1]);
-                    }
-                }
-
-                for (const variable of variablesInArgument) {
-                    const value: string = deepFind(
-                        storageMap as any,
-                        variable as any
-                    );
-
-                    if (argumentContentCopy.trim() === '{{' + variable + '}}') {
-                        argumentContentCopy = value;
-                    } else {
-                        argumentContentCopy = argumentContentCopy.replace(
-                            '{{' + variable + '}}',
-                            argument.type === ComponentInputType.JSON
-                                ? serializeValueForJSON(value)
-                                : `${value}`
-                        );
-                    }
-                }
-
-                argumentContent = argumentContentCopy;
-            }
+            argumentContent = VMUtil.replaceValueInPlace(
+                storageMap as any,
+                argumentContent as string,
+                argument.type === ComponentInputType.JSON
+            );
 
             if (
                 typeof argumentContent === 'string' &&
