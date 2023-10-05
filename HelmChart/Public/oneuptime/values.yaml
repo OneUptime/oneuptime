@@ -113,15 +113,15 @@ statusPage:
 
 probes: 
   one: 
-    name: "Probe 1"
-    description: "Probe 1"
+    name: "Probe"
+    description: "Probe"
     monitoringWorkers: 3
     monitorFetchLimit: 10
-  two: 
-    name: "Probe 2"
-    description: "Probe 2"
-    monitoringWorkers: 3
-    monitorFetchLimit: 10
+  # two: 
+  #   name: "Probe 2"
+  #   description: "Probe 2"
+  #   monitoringWorkers: 3
+  #   monitorFetchLimit: 10
 
 port: 
   home: 1444
