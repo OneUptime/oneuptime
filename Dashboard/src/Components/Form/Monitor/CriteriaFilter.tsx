@@ -157,7 +157,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             } else {
                 setValuePlaceholder('{{responseBody.result}} === true');
             }
-
         }
 
         if (criteriaFilter?.checkOn === CheckOn.ResponseStatusCode) {
@@ -274,7 +273,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 </div>
             </div>
             {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? (
-                <div className="mt-1 text-sm text-gray-500 underline"><Link to={URL.fromString("https://github.com/OneUptime/oneuptime/blob/master/Docs/Monitor/JavaScriptExpression.md")} openInNewTab={true} > Read documentation for using JavaScript exporession here. </Link> </div>
+                <div className="mt-1 text-sm text-gray-500 underline">
+                    <Link
+                        to={URL.fromString(
+                            'https://github.com/OneUptime/oneuptime/blob/master/Docs/Monitor/JavaScriptExpression.md'
+                        )}
+                        openInNewTab={true}
+                    >
+                        {' '}
+                        Read documentation for using JavaScript exporession
+                        here.{' '}
+                    </Link>{' '}
+                </div>
             ) : (
                 <></>
             )}

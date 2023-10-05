@@ -55,21 +55,25 @@ export default class JavaScriptCode extends ComponentCode {
             // Inject args
             // Inject dependencies
 
-            let scriptArgs = (args['arguments'] as JSONObject | string) || {};
+            let scriptArgs: JSONObject | string =
+                (args['arguments'] as JSONObject | string) || {};
 
-            if(typeof scriptArgs === 'string') {
+            if (typeof scriptArgs === 'string') {
                 scriptArgs = JSON.parse(scriptArgs);
             }
 
-            const returnVal: any = VMUtil.runCodeInSandbox(args['code'] as string, {
-                timeout: 5000,
-                allowAsync: true,
-                includeHttpPackage: true,
-                consoleLog: (logValue: JSONValue) => {
-                    options.log(logValue);
-                },
-                args: scriptArgs as JSONObject,
-            });
+            const returnVal: any = VMUtil.runCodeInSandbox(
+                args['code'] as string,
+                {
+                    timeout: 5000,
+                    allowAsync: true,
+                    includeHttpPackage: true,
+                    consoleLog: (logValue: JSONValue) => {
+                        options.log(logValue);
+                    },
+                    args: scriptArgs as JSONObject,
+                }
+            );
 
             return {
                 returnValues: {

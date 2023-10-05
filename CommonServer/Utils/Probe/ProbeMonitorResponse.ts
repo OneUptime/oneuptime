@@ -105,7 +105,8 @@ export default class ProbeMonitorResponseService {
 
         // get last log. We do this because there are many monitoring steps and we need to store those.
         logger.info(
-            `${dataToProcess.monitorId.toString()} - monitor type ${monitor.monitorType
+            `${dataToProcess.monitorId.toString()} - monitor type ${
+                monitor.monitorType
             }`
         );
 
@@ -131,7 +132,6 @@ export default class ProbeMonitorResponseService {
                             isRoot: true,
                         },
                     });
-
 
                 if (!monitorProbe) {
                     throw new BadDataException(
@@ -229,7 +229,7 @@ export default class ProbeMonitorResponseService {
                     if (incidentTemplate.autoResolveIncident) {
                         if (
                             !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                            criteriaInstance.data.id.toString()
+                                criteriaInstance.data.id.toString()
                             ]
                         ) {
                             autoResolveCriteriaInstanceIdIncidentIdsDictionary[
@@ -294,11 +294,13 @@ export default class ProbeMonitorResponseService {
 
         if (response.criteriaMetId && response.rootCause) {
             logger.info(
-                `${dataToProcess.monitorId.toString()} - Criteria met: ${response.criteriaMetId
+                `${dataToProcess.monitorId.toString()} - Criteria met: ${
+                    response.criteriaMetId
                 }`
             );
             logger.info(
-                `${dataToProcess.monitorId.toString()} - Root cause: ${response.rootCause
+                `${dataToProcess.monitorId.toString()} - Root cause: ${
+                    response.rootCause
                 }`
             );
 
@@ -313,7 +315,7 @@ export default class ProbeMonitorResponseService {
             !response.criteriaMetId &&
             monitorSteps.data.defaultMonitorStatusId &&
             monitor.currentMonitorStatusId?.toString() !==
-            monitorSteps.data.defaultMonitorStatusId.toString()
+                monitorSteps.data.defaultMonitorStatusId.toString()
         ) {
             logger.info(
                 `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`
@@ -420,7 +422,7 @@ export default class ProbeMonitorResponseService {
             input.criteriaInstance.data?.changeMonitorStatus &&
             input.criteriaInstance.data?.monitorStatusId &&
             input.criteriaInstance.data?.monitorStatusId.toString() !==
-            input.monitor.currentMonitorStatusId?.toString()
+                input.monitor.currentMonitorStatusId?.toString()
         ) {
             logger.info(
                 `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId.toString()}`
@@ -474,9 +476,9 @@ export default class ProbeMonitorResponseService {
                     openIncidents.find((incident: Incident) => {
                         return (
                             incident.createdCriteriaId ===
-                            input.criteriaInstance.data?.id.toString() &&
+                                input.criteriaInstance.data?.id.toString() &&
                             incident.createdIncidentTemplateId ===
-                            criteriaIncident.id.toString()
+                                criteriaIncident.id.toString()
                         );
                     });
 
@@ -642,7 +644,7 @@ export default class ProbeMonitorResponseService {
 
         if (
             input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-            input.openIncident.createdCriteriaId?.toString()
+                input.openIncident.createdCriteriaId?.toString()
             ]
         ) {
             if (
@@ -764,7 +766,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.Any ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria === true
             ) {
                 finalResult = rootCause;
@@ -772,7 +774,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria === false
             ) {
                 finalResult = null;
@@ -781,7 +783,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                input.criteriaInstance.data?.filterCondition &&
+                    input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria &&
                 rootCause
             ) {
@@ -805,61 +807,76 @@ export default class ProbeMonitorResponseService {
         let value: number | string | undefined = input.criteriaFilter.value;
         //check is online filter
 
-
-
         if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
+            let storageMap: JSONObject = {};
 
-            debugger;
-
-            let storageMap: JSONObject = {
-
-            }
-
-            if (input.monitor.monitorType === MonitorType.API || input.monitor.monitorType === MonitorType.Website) {
-
-                // try to parse json 
+            if (
+                input.monitor.monitorType === MonitorType.API ||
+                input.monitor.monitorType === MonitorType.Website
+            ) {
+                // try to parse json
                 let responseBody: JSONObject | null = null;
                 try {
-                    responseBody = JSON.parse((input.dataToProcess as ProbeMonitorResponse).responseBody as string || '{}');
+                    responseBody = JSON.parse(
+                        ((input.dataToProcess as ProbeMonitorResponse)
+                            .responseBody as string) || '{}'
+                    );
                 } catch (err) {
-                    responseBody = (input.dataToProcess as ProbeMonitorResponse).responseBody as JSONObject;
+                    responseBody = (input.dataToProcess as ProbeMonitorResponse)
+                        .responseBody as JSONObject;
                 }
 
-
-                if (typeof responseBody === Typeof.String && (responseBody?.toString()) === '') {
+                if (
+                    typeof responseBody === Typeof.String &&
+                    responseBody?.toString() === ''
+                ) {
                     // if empty string then set to empty object.
                     responseBody = {};
                 }
 
                 storageMap = {
                     responseBody: responseBody,
-                    responseHeaders: (input.dataToProcess as ProbeMonitorResponse).responseHeaders,
-                    responseStatusCode: (input.dataToProcess as ProbeMonitorResponse).responseCode,
-                    responseTimeInMs: (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs,
-                    isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
+                    responseHeaders: (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).responseHeaders,
+                    responseStatusCode: (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).responseCode,
+                    responseTimeInMs: (
+                        input.dataToProcess as ProbeMonitorResponse
+                    ).responseTimeInMs,
+                    isOnline: (input.dataToProcess as ProbeMonitorResponse)
+                        .isOnline,
                 };
             }
 
             if (input.monitor.monitorType === MonitorType.IncomingRequest) {
                 storageMap = {
-                    requestBody: (input.dataToProcess as IncomingMonitorRequest).requestBody,
-                    requestHeaders: (input.dataToProcess as IncomingMonitorRequest).requestHeaders,
+                    requestBody: (input.dataToProcess as IncomingMonitorRequest)
+                        .requestBody,
+                    requestHeaders: (
+                        input.dataToProcess as IncomingMonitorRequest
+                    ).requestHeaders,
                 };
             }
 
             // now evaluate the expression.
             let expression: string = input.criteriaFilter.value as string;
-            expression = VMUtil.replaceValueInPlace(storageMap, expression, false); // now pass this to the VM.
+            expression = VMUtil.replaceValueInPlace(
+                storageMap,
+                expression,
+                false
+            ); // now pass this to the VM.
 
-            let code: string = `return Boolean(${expression});`;
+            const code: string = `return Boolean(${expression});`;
             let result: any = null;
-            
+
             try {
                 result = await VMUtil.runCodeInSandbox(code, {
                     timeout: 1000,
                     allowAsync: false,
                     args: {},
-                    includeHttpPackage: false
+                    includeHttpPackage: false,
                 });
             } catch (err) {
                 logger.error(err);
@@ -919,9 +936,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseTimeInMs! > (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs
-                        } ms which is greater than the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is greater than the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -933,9 +951,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseTimeInMs! < (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs
-                        } ms which is less than the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is less than the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -947,9 +966,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseTimeInMs === (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs
-                        } ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms.`;
                 }
                 return null;
             }
@@ -961,9 +981,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseTimeInMs !== (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs
-                        } ms which is not equal to the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is not equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -978,9 +999,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseTimeInMs! >= (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs
-                        } ms which is greater than or equal to the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is greater than or equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -994,9 +1016,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseTimeInMs! <= (value as number)
                 ) {
-                    return `Response time is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs
-                        } ms which is less than or equal to the criteria value of ${value} ms.`;
+                    return `Response time is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseTimeInMs
+                    } ms which is less than or equal to the criteria value of ${value} ms.`;
                 }
                 return null;
             }
@@ -1028,9 +1051,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseCode! > (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode
-                        } which is greater than the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is greater than the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -1042,9 +1066,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseCode! < (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode
-                        } which is less than the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is less than the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -1056,9 +1081,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseCode === (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode
-                        }.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    }.`;
                 }
                 return null;
             }
@@ -1070,9 +1096,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseCode !== (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode
-                        } which is not equal to the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is not equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -1087,9 +1114,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseCode! >= (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode
-                        } which is greater than or equal to the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is greater than or equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -1103,9 +1131,10 @@ export default class ProbeMonitorResponseService {
                     (input.dataToProcess as ProbeMonitorResponse)
                         .responseCode! <= (value as number)
                 ) {
-                    return `Response status code is ${(input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode
-                        } which is less than or equal to the criteria value of ${value}.`;
+                    return `Response status code is ${
+                        (input.dataToProcess as ProbeMonitorResponse)
+                            .responseCode
+                    } which is less than or equal to the criteria value of ${value}.`;
                 }
                 return null;
             }
@@ -1151,7 +1180,7 @@ export default class ProbeMonitorResponseService {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
             const headerKeys: Array<string> = Object.keys(
                 (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                {}
+                    {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });
@@ -1183,7 +1212,7 @@ export default class ProbeMonitorResponseService {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
             const headerValues: Array<string> = Object.values(
                 (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                {}
+                    {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });

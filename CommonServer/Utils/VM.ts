@@ -5,22 +5,20 @@ import http from 'http';
 import https from 'https';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
-
 export default class VMUtil {
+    public static async runCodeInSandbox(
+        code: string,
+        options: {
+            timeout?: number;
+            allowAsync?: boolean;
+            includeHttpPackage: boolean;
+            consoleLog?: (logValue: JSONValue) => void | undefined;
+            args?: JSONObject | undefined;
+        }
+    ): Promise<any> {
+        let sandbox: any = {};
 
-    public static async runCodeInSandbox(code: string, options: {
-        timeout?: number;
-        allowAsync?: boolean;
-        includeHttpPackage: boolean;
-        consoleLog?: ((logValue: JSONValue) => void | undefined);
-        args?: JSONObject | undefined;
-    }): Promise<any> {
-
-        let sandbox: any = {
-
-        };
-
-        if(options.includeHttpPackage){
+        if (options.includeHttpPackage) {
             sandbox = {
                 ...sandbox,
                 http: http,
@@ -29,14 +27,14 @@ export default class VMUtil {
             };
         }
 
-        if(options.args){
+        if (options.args) {
             sandbox = {
                 ...sandbox,
                 args: options.args,
             };
         }
 
-        if(options.consoleLog){
+        if (options.consoleLog) {
             sandbox = {
                 ...sandbox,
                 console: {
@@ -60,7 +58,9 @@ export default class VMUtil {
         const functionToRun: any = vm.run(script);
 
         const returnVal: any = await functionToRun(
-            JSONFunctions.parse((JSON.stringify(options.args) as string) || '{}')
+            JSONFunctions.parse(
+                (JSON.stringify(options.args) as string) || '{}'
+            )
         );
 
         return returnVal;
