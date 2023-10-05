@@ -1,7 +1,7 @@
 # OneUptime workers Deployment
 
 # attach certs volume to workers whcih is used to store custom status page certs which is then used by nginx
-{{- $certVolume := dict "Name" (printf "%s-%s" $.Release.Name "certs") "MountPath" "/etc/nginx/certs" }}
+{{- $certVolume := dict "Name" (printf "%s-%s" $.Release.Name "certs") "MountPath" "/usr/src/Certs" }}
 {{- $workerVolumes := dict "certs" $certVolume }}
 {{- $workersEnv := dict "PORT"  $.Values.port.workers -}}
 {{- $workersDeploymentArgs :=dict "IsServer" true "ServiceName" "workers" "Port" $.Values.port.workers "Release" $.Release "Values" $.Values "Env" $workersEnv "Volumes" $workerVolumes -}}

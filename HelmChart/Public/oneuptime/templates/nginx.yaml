@@ -1,5 +1,5 @@
 # OneUptime nginx Service
-{{- $nginxCertVolume := dict "Name" (printf "%s-%s" $.Release.Name "certs") "MountPath" "/usr/src/Certs" }}
+{{- $nginxCertVolume := dict "Name" (printf "%s-%s" $.Release.Name "certs") "MountPath" "/etc/nginx/certs" }}
 {{- $nginxVolumes := dict "certs" $nginxCertVolume }}
 {{- $nginxDeploymentArgs :=dict "isHTTPSPortEnabled" true "IsServer" true "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "Volumes" $nginxVolumes -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
