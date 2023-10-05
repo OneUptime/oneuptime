@@ -822,6 +822,13 @@ export default class ProbeMonitorResponseService {
                 };
             }
 
+            if(input.monitor.monitorType === MonitorType.IncomingRequest){
+                storageMap = {
+                    requestBody: (input.dataToProcess as  IncomingMonitorRequest).requestBody,
+                    requestHeaders: (input.dataToProcess as  IncomingMonitorRequest).requestHeaders,
+                };
+            }
+
             // now evaluate the expression.
             let expression: string = input.criteriaFilter.value as string;
             expression = VMUtil.replaceValueInPlace(storageMap, expression, false); // now pass this to the VM.
