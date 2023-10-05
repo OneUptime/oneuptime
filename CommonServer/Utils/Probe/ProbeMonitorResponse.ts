@@ -34,6 +34,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import VMUtil from '../VM';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -807,10 +808,38 @@ export default class ProbeMonitorResponseService {
         //check is online filter
 
         if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
-            if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                return 'Monitor is online.';
+            let storageMap: JSONObject = {
+
             }
-            return null;
+
+            if(input.monitor.monitorType === MonitorType.API || input.monitor.monitorType === MonitorType.Website){
+                storageMap = {
+                    responseBody: (input.dataToProcess as  ProbeMonitorResponse).responseBody,
+                    responseHeaders: (input.dataToProcess as  ProbeMonitorResponse).responseHeaders,
+                    responseStatusCode: (input.dataToProcess as  ProbeMonitorResponse).responseCode,
+                    responseTimeInMs: (input.dataToProcess as  ProbeMonitorResponse).responseTimeInMs,
+                    isOnline: (input.dataToProcess as  ProbeMonitorResponse).isOnline,
+                };
+            }
+
+            // now evaluate the expression.
+            let expression: string = input.criteriaFilter.value as string;
+            expression = VMUtil.replaceValueInPlace(storageMap, expression, false); // now pass this to the VM.
+
+            let code: string = `return Boolean(${expression});`;
+
+            const result = await VMUtil.runCodeInSandbox(code, {
+                timeout: 1000, 
+                allowAsync: false, 
+                args: {},
+                includeHttpPackage: false
+            });
+
+            if(result === false){
+                return `JavaScript Expression - ${expression} - returned false.`;
+            }
+
+            return null; // if true then return null.
         }
 
         if (

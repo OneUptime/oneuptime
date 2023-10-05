@@ -4,11 +4,7 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
 import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
-import VM, { VMScript } from 'vm2';
-import axios from 'axios';
-import http from 'http';
-import https from 'https';
-import JSONFunctions from 'Common/Types/JSONFunctions';
+import VMUtil from '../../../Utils/VM';
 
 export default class JavaScriptCode extends ComponentCode {
     public constructor() {
@@ -59,33 +55,16 @@ export default class JavaScriptCode extends ComponentCode {
             // Inject args
             // Inject dependencies
 
-            const vm: VM.NodeVM = new VM.NodeVM({
+
+            const returnVal: any = VMUtil.runCodeInSandbox(args['code'] as string, {
                 timeout: 5000,
                 allowAsync: true,
-                sandbox: {
-                    args: args['arguments'],
-                    axios: axios,
-                    http: http,
-                    https: https,
-                    console: {
-                        log: (logValue: JSONValue) => {
-                            options.log(logValue);
-                        },
-                    },
+                includeHttpPackage: true,
+                consoleLog: (logValue: JSONValue) => {
+                    options.log(logValue);
                 },
+                args: JSON.parse(args['arguments'] as string || '{}') as JSONObject,
             });
-
-            const script: VMScript = new VMScript(
-                `module.exports = async function(args) { ${
-                    (args['code'] as string) || ''
-                } }`
-            ).compile();
-
-            const functionToRun: any = vm.run(script);
-
-            const returnVal: any = await functionToRun(
-                JSONFunctions.parse((args['arguments'] as string) || '{}')
-            );
 
             return {
                 returnValues: {

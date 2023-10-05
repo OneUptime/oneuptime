@@ -1,6 +1,71 @@
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
+import VM, { VMScript } from 'vm2';
+import axios from 'axios';
+import http from 'http';
+import https from 'https';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+
 
 export default class VMUtil {
+
+    public static async runCodeInSandbox(code: string, options: {
+        timeout?: number;
+        allowAsync?: boolean;
+        includeHttpPackage: boolean;
+        consoleLog?: ((logValue: JSONValue) => void | undefined);
+        args?: JSONObject | undefined;
+    }): Promise<any> {
+
+        let sandbox: any = {
+
+        };
+
+        if(options.includeHttpPackage){
+            sandbox = {
+                ...sandbox,
+                http: http,
+                https: https,
+                axios: axios,
+            };
+        }
+
+        if(options.args){
+            sandbox = {
+                ...sandbox,
+                args: options.args,
+            };
+        }
+
+        if(options.consoleLog){
+            sandbox = {
+                ...sandbox,
+                console: {
+                    log: options.consoleLog,
+                },
+            };
+        }
+
+        const vm: VM.NodeVM = new VM.NodeVM({
+            timeout: options.timeout || 5000,
+            allowAsync: options.allowAsync || false,
+            sandbox: sandbox,
+        });
+
+        const script: VMScript = new VMScript(
+            `module.exports = async function(args) { ${
+                (code as string) || ''
+            } }`
+        ).compile();
+
+        const functionToRun: any = vm.run(script);
+
+        const returnVal: any = await functionToRun(
+            JSONFunctions.parse((JSON.stringify(options.args) as string) || '{}')
+        );
+
+        return returnVal;
+    }
+
     public static replaceValueInPlace(
         storageMap: JSONObject,
         valueToReplaceInPlace: string,
