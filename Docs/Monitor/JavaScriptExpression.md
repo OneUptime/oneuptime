@@ -20,11 +20,21 @@ The following variables are available in the context of the monitored object:
 The following example shows how to use a JavaScript expression to monitor a website for a specific string in the response body:
 
 ```javascript
+
+/**
+ *  
+ * If response body is in JSON then responseBody will be a JSON object
+ * {
+ *    "item": "hello"
+ * }
+ * 
+ *  **/
+
 "{{responseBody.item}}" === "hello"
 
 // or you can use response headers
 
-"{{responseHeaders.contentType}} === "text/html"
+"{{responseHeaders.contentType}} === "application/json"
 
 
 // you can also use regular expressions
@@ -40,6 +50,17 @@ The following example shows how to use a JavaScript expression to monitor a webs
 "{{responseBody.item}}" === "hello" && {{responseStatusCode}} === 200
 
 // for arrays you can use the following
+
+/**
+ *  
+ * If response body is: 
+ * {
+ *    "item": [{
+ *          "name": "hello"
+ *      }]
+ * }
+ * 
+ *  **/
 
 "{{responseBody.items[0].name}}" === "hello"
 ```
