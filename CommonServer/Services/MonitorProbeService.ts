@@ -21,8 +21,8 @@ export class Service extends DatabaseService<MonitorProbe> {
             const monitorProbe: MonitorProbe | null = await this.findOneBy({
                 query: {
                     monitorId:
-                        createBy.data.monitorId! || createBy.data.monitor?.id!,
-                    probeId: createBy.data.probeId! || createBy.data.probe?.id!,
+                        createBy.data.monitorId! || createBy.data.monitor?.id,
+                    probeId: createBy.data.probeId! || createBy.data.probe?.id,
                 },
                 select: {
                     _id: true,

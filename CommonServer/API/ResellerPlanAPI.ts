@@ -20,6 +20,8 @@ import StatusCode from 'Common/Types/API/StatusCode';
 import Project from 'Model/Models/Project';
 import ProjectService from '../Services/ProjectService';
 import DatabaseConfig from '../DatabaseConfig';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,
@@ -135,10 +137,12 @@ export default class ResellerPlanAPI extends BaseAPI<
                         const promoCode: PromoCode = new PromoCode();
 
                         promoCode.promoCodeId = couponcode;
-                        promoCode.resellerId = resellerPlan?.reseller.id!;
-                        promoCode.resellerPlanId = resellerPlan?.id!;
+                        promoCode.resellerId = resellerPlan?.reseller
+                            .id as ObjectID;
+                        promoCode.resellerPlanId = resellerPlan?.id as ObjectID;
                         promoCode.userEmail = userEmail;
-                        promoCode.planType = resellerPlan?.planType!;
+                        promoCode.planType =
+                            resellerPlan?.planType as PlanSelect;
                         promoCode.resellerLicenseId = licenseKey || '';
 
                         await PromoCodeService.create({
@@ -244,7 +248,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                         await ProjectService.deleteOneBy({
                             query: {
                                 resellerLicenseId: licenseKey,
-                                _id: project.id?.toString()!,
+                                _id: project.id?.toString() as string,
                             },
                             props: {
                                 isRoot: true,

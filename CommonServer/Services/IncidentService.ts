@@ -143,7 +143,7 @@ export class Service extends DatabaseService<Model> {
 
             const user: User | null = await UserService.findOneBy({
                 query: {
-                    _id: userId?.toString()!,
+                    _id: userId?.toString() as string,
                 },
                 select: {
                     _id: true,
@@ -442,7 +442,7 @@ export class Service extends DatabaseService<Model> {
             query: {
                 monitors: QueryHelper.inRelationArray([monitorId]),
                 currentIncidentState: {
-                    order: QueryHelper.lessThan(resolvedState?.order!),
+                    order: QueryHelper.lessThan(resolvedState?.order as number),
                 },
                 isCreatedAutomatically: false,
             },

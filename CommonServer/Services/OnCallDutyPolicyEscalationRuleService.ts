@@ -374,7 +374,7 @@ export class Service extends DatabaseService<Model> {
                     projectId: createBy.data.projectId!,
                     onCallDutyPolicyId:
                         createBy.data.onCallDutyPolicyId! ||
-                        createBy.data.onCallDutyPolicy?._id!,
+                        createBy.data.onCallDutyPolicy?._id,
                 },
                 props: {
                     isRoot: true,
@@ -498,12 +498,13 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-            const currentOrder: number = resource?.order!;
+            const currentOrder: number = resource?.order as number;
             const newOrder: number = updateBy.data.order as number;
 
             const resources: Array<Model> = await this.findBy({
                 query: {
-                    onCallDutyPolicyId: resource?.onCallDutyPolicyId!,
+                    onCallDutyPolicyId:
+                        resource?.onCallDutyPolicyId as ObjectID,
                 },
 
                 limit: LIMIT_MAX,

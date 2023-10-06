@@ -12,6 +12,7 @@ import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import OneUptimeDate from 'Common/Types/Date';
 import Incident from 'Model/Models/Incident';
 import IncidentService from 'CommonServer/Services/IncidentService';
+import ObjectID from 'Common/Types/ObjectID';
 
 RunCron(
     'UserOnCallLog:ExecutePendingExecutions',
@@ -83,7 +84,8 @@ const executePendingNotificationLog: Function = async (
                     projectId: pendingNotificationLog.projectId!,
                     userId: pendingNotificationLog.userId!,
                     ruleType: ruleType,
-                    incidentSeverityId: incident?.incidentSeverityId!,
+                    incidentSeverityId:
+                        incident?.incidentSeverityId as ObjectID,
                 },
                 select: {
                     _id: true,

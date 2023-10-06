@@ -32,7 +32,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                                       (i: DropdownOption) => {
                                           return (
                                               i.value.toString() ===
-                                              props.initialValue?.incidentSeverityId?.toString()!
+                                              props.initialValue?.incidentSeverityId?.toString()
                                           );
                                       }
                                   ),

@@ -16,6 +16,7 @@ import logger from 'CommonServer/Utils/Logger';
 import User from 'Model/Models/User';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import Email from 'Common/Types/Email';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 export default class AuthenticationEmail {
@@ -24,8 +25,8 @@ export default class AuthenticationEmail {
 
         const emailVerificationToken: EmailVerificationToken =
             new EmailVerificationToken();
-        emailVerificationToken.userId = user?.id!;
-        emailVerificationToken.email = user?.email!;
+        emailVerificationToken.userId = user?.id as ObjectID;
+        emailVerificationToken.email = user?.email as Email;
         emailVerificationToken.token = generatedToken;
         emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
 

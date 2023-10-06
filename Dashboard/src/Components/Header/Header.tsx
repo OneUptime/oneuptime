@@ -128,7 +128,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 BILLING_ENABLED &&
                                 OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                     OneUptimeDate.getCurrentDate(),
-                                    props.selectedProject?.trialEndsAt!
+                                    props.selectedProject?.trialEndsAt
                                 ) > 0 &&
                                 !props.selectedProject.resellerId && (
                                     <HeaderAlert
@@ -136,12 +136,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
-                                            props.selectedProject?.trialEndsAt!
+                                            props.selectedProject?.trialEndsAt
                                         )} ${
                                             OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                                 OneUptimeDate.getCurrentDate(),
                                                 props.selectedProject
-                                                    ?.trialEndsAt!
+                                                    ?.trialEndsAt
                                             ) > 1
                                                 ? 'days'
                                                 : 'day'

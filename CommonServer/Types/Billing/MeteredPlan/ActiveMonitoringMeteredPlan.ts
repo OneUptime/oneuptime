@@ -60,12 +60,12 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         if (
             project &&
             (options?.meteredPlanSubscriptionId ||
-                project?.paymentProviderMeteredSubscriptionId) &&
+                project.paymentProviderMeteredSubscriptionId) &&
             project.paymentProviderPlanId
         ) {
             await BillingService.addOrUpdateMeteredPricingOnSubscription(
-                options?.meteredPlanSubscriptionId ||
-                    project?.paymentProviderMeteredSubscriptionId!,
+                (options?.meteredPlanSubscriptionId as string) ||
+                    (project.paymentProviderMeteredSubscriptionId as string),
                 ActiveMonitoringMeteredPlan.getMeteredPlan(),
                 count.toNumber()
             );

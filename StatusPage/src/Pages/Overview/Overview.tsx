@@ -326,9 +326,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <MonitorOverview
                         key={Math.random()}
                         monitorName={
-                            resource.displayName ||
-                            resource.monitor?.name! ||
-                            ''
+                            resource.displayName || resource.monitor?.name || ''
                         }
                         description={resource.displayDescription || ''}
                         tooltip={resource.displayTooltip || ''}
