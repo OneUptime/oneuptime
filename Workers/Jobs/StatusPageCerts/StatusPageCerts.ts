@@ -25,8 +25,8 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import axios, { AxiosResponse } from 'axios';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
-import fs from 'fs';
 import SelfSignedSSL from '../../Utils/SelfSignedSSL';
+import LocalFile from 'CommonServer/Utils/LocalFile';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -466,12 +466,23 @@ RunCron(
                     ]) as string;
             }
 
+            // Need to make sure StatusPageCerts dir exists.
+
+            try {
+                await LocalFile.makeDirectory('/usr/src/Certs/StatusPageCerts');
+            } catch (err) {
+                // directory already exists, ignore.
+                logger.err('Create directory err');
+                logger.err(err);
+            }
+
             // Write to disk.
-            fs.writeFileSync(
+            await LocalFile.write(
                 `/usr/src/Certs/StatusPageCerts/${cert.key}.crt`,
                 crt
             );
-            fs.writeFileSync(
+
+            await LocalFile.write(
                 `/usr/src/Certs/StatusPageCerts/${cert.key}.key`,
                 key
             );
