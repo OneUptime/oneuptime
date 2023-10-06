@@ -472,8 +472,8 @@ RunCron(
                 await LocalFile.makeDirectory('/usr/src/Certs/StatusPageCerts');
             } catch (err) {
                 // directory already exists, ignore.
-                logger.err('Create directory err');
-                logger.err(err);
+                logger.error('Create directory err');
+                logger.error(err);
             }
 
             // Write to disk.
