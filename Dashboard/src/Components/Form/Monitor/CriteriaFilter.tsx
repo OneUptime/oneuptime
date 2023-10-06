@@ -282,7 +282,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     >
                         <p>
                             {' '}
-                            Read documentation for using JavaScript exporession
+                            Read documentation for using JavaScript expressions
                             here.{' '}
                         </p>
                     </Link>{' '}
