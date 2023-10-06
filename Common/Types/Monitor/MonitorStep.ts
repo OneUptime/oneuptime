@@ -58,7 +58,7 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     public get id(): ObjectID {
-        return new ObjectID(this.data?.id!);
+        return new ObjectID(this.data?.id as string);
     }
 
     public set id(v: ObjectID) {

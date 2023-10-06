@@ -127,12 +127,12 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-            const currentOrder: number = resource?.order!;
+            const currentOrder: number = resource?.order as number;
             const newOrder: number = updateBy.data.order as number;
 
             const resources: Array<Model> = await this.findBy({
                 query: {
-                    statusPageId: resource?.statusPageId!,
+                    statusPageId: resource?.statusPageId as ObjectID,
                 },
 
                 limit: LIMIT_MAX,

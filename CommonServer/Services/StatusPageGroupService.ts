@@ -126,12 +126,12 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-            const currentOrder: number = group?.order!;
+            const currentOrder: number = group?.order as number;
             const newOrder: number = updateBy.data.order as number;
 
             const groups: Array<Model> = await this.findBy({
                 query: {
-                    statusPageId: group?.statusPageId!,
+                    statusPageId: group?.statusPageId as ObjectID,
                 },
 
                 limit: LIMIT_MAX,

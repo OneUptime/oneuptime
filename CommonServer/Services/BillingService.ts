@@ -123,7 +123,7 @@ export class BillingService extends BaseService {
             items: data.serverMeteredPlans.map(
                 (item: typeof ServerMeteredPlan) => {
                     return {
-                        price: item.getMeteredPlan()?.getPriceId()!,
+                        price: item.getMeteredPlan()?.getPriceId(),
                     };
                 }
             ),
