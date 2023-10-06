@@ -89,7 +89,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (
-            project?.smsOrCallCurrentBalanceInUSDCents! <= 100 &&
+            (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
             IsBillingEnabled
         ) {
             throw new BadDataException(

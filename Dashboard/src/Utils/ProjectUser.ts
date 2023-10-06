@@ -27,7 +27,7 @@ export default class ProjectUser {
 
         return teamMembers.data.map((teamMember: TeamMember) => {
             return {
-                value: teamMember.user?._id!,
+                value: teamMember.user?._id as string,
                 label:
                     teamMember.user?.name?.toString() ||
                     teamMember.user?.email?.toString() ||

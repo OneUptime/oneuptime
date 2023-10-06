@@ -137,8 +137,8 @@ router.post(
 
             const emailVerificationToken: EmailVerificationToken =
                 new EmailVerificationToken();
-            emailVerificationToken.userId = savedUser?.id!;
-            emailVerificationToken.email = savedUser?.email!;
+            emailVerificationToken.userId = savedUser?.id as ObjectID;
+            emailVerificationToken.email = savedUser?.email as Email;
             emailVerificationToken.token = generatedToken;
             emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
 

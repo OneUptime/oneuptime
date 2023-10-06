@@ -230,7 +230,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 await UserNotificationRuleService.addDefaultNotificationRuleForUser(
                     item.projectId!,
                     item.userId!,
-                    item.user?.email!
+                    item.user?.email as Email
                 );
             }
         }
@@ -419,7 +419,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         ) {
             const plan: SubscriptionPlan | undefined =
                 SubscriptionPlan.getSubscriptionPlanById(
-                    project?.paymentProviderPlanId!
+                    project?.paymentProviderPlanId
                 );
 
             if (!plan) {

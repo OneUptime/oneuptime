@@ -56,7 +56,7 @@ export class Service extends DatabaseService<Model> {
             if (subscriber) {
                 await this.deleteOneBy({
                     query: {
-                        _id: subscriber?._id!,
+                        _id: subscriber?._id as string,
                     },
                     props: {
                         ignoreHooks: true,

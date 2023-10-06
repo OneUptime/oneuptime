@@ -105,12 +105,12 @@ export default class MailService {
                 obj && obj['SMTP_ID']
                     ? new ObjectID(obj['SMTP_ID'].toString())
                     : undefined,
-            username: obj['SMTP_USERNAME']?.toString()! || undefined,
-            password: obj['SMTP_PASSWORD']?.toString()! || undefined,
-            host: new Hostname(obj['SMTP_HOST']?.toString()!),
-            port: new Port(obj['SMTP_PORT']?.toString()!),
-            fromEmail: new Email(obj['SMTP_EMAIL']?.toString()!),
-            fromName: obj['SMTP_FROM_NAME']?.toString()!,
+            username: obj['SMTP_USERNAME']?.toString() || undefined,
+            password: obj['SMTP_PASSWORD']?.toString() || undefined,
+            host: new Hostname(obj['SMTP_HOST']?.toString() as string),
+            port: new Port(obj['SMTP_PORT']?.toString() as string),
+            fromEmail: new Email(obj['SMTP_EMAIL']?.toString() as string),
+            fromName: obj['SMTP_FROM_NAME']?.toString() as string,
             secure:
                 obj['SMTP_IS_SECURE'] === 'true' ||
                 obj['SMTP_IS_SECURE'] === true,

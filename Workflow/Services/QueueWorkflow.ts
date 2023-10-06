@@ -175,11 +175,11 @@ export default class QueueWorkflow {
         const job: any = await Queue.addJob(
             QueueName.Workflow,
             workflowLog
-                ? workflowLog._id?.toString()!
-                : workflow._id?.toString()!,
+                ? (workflowLog._id?.toString() as string)
+                : (workflow._id?.toString() as string),
             workflowLog
-                ? workflowLog._id?.toString()!
-                : workflow._id?.toString()!,
+                ? (workflowLog._id?.toString() as string)
+                : (workflow._id?.toString() as string),
             {
                 data: executeWorkflow.returnValues,
                 workflowLogId: workflowLog?._id || null,

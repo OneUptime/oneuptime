@@ -39,7 +39,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
             const user: User | null = await UserService.findOneBy({
                 query: {
-                    _id: userId?.toString()!,
+                    _id: userId?.toString() as string,
                 },
                 select: {
                     _id: true,

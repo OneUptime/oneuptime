@@ -21,7 +21,6 @@ import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
 import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
-import StatusPageResource from 'Model/Models/StatusPageResource';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import OneUptimeDate from 'Common/Types/Date';
@@ -43,9 +42,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [_statusPageResources, setStatusPageResources] = useState<
-        Array<StatusPageResource>
-    >([]);
     const [
         scheduledMaintenanceEventsPublicNotes,
         setscheduledMaintenanceEventsPublicNotes,
@@ -96,11 +92,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
-            const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
-                    (data['statusPageResources'] as JSONArray) || [],
-                    StatusPageResource
-                );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
@@ -113,7 +104,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 scheduledMaintenanceEventsPublicNotes
             );
             setscheduledMaintenanceEvents(scheduledMaintenanceEvents);
-            setStatusPageResources(statusPageResources);
             setscheduledMaintenanceStateTimelines(
                 scheduledMaintenanceStateTimelines
             );

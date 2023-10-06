@@ -310,8 +310,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
                 const option: DropdownOption = {
                     label: model.getColumnValue('phone')
-                        ? model.getColumnValue('phone')?.toString()!
-                        : model.getColumnValue('email')?.toString()!,
+                        ? (model.getColumnValue('phone')?.toString() as string)
+                        : (model.getColumnValue('email')?.toString() as string),
                     value: model.id!.toString(),
                 };
 

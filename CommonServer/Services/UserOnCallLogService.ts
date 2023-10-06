@@ -132,7 +132,8 @@ export class Service extends DatabaseService<Model> {
                     userId: createdItem.userId!,
                     projectId: createdItem.projectId!,
                     ruleType: notificationRuleType,
-                    incidentSeverityId: incident?.incidentSeverityId!,
+                    incidentSeverityId:
+                        incident?.incidentSeverityId as ObjectID,
                 },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
@@ -179,7 +180,8 @@ export class Service extends DatabaseService<Model> {
                     projectId: createdItem.projectId!,
                     notifyAfterMinutes: 0,
                     ruleType: notificationRuleType,
-                    incidentSeverityId: incident?.incidentSeverityId!,
+                    incidentSeverityId:
+                        incident?.incidentSeverityId as ObjectID,
                 },
                 select: {
                     _id: true,

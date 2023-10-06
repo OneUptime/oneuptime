@@ -305,7 +305,7 @@ export class Service extends DatabaseService<Model> {
 
                 const smsMessage: SMS =
                     await this.generateSmsTemplateForIncidentCreated(
-                        notificationRuleItem.userSms?.phone!,
+                        notificationRuleItem.userSms.phone,
                         incident,
                         updatedLog.id!
                     );
@@ -366,7 +366,7 @@ export class Service extends DatabaseService<Model> {
 
             const callRequest: CallRequest =
                 await this.generateCallTemplateForIncidentCreated(
-                    notificationRuleItem.userCall?.phone!,
+                    notificationRuleItem.userCall?.phone,
                     incident,
                     updatedLog.id!
                 );
