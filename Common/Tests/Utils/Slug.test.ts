@@ -1,8 +1,11 @@
 import Slug from '../../Utils/Slug';
 describe('Slug.getSlug()', () => {
-    test('should  return empty string, if name is empty ', () => {
+    test('should return empty string, if name is empty ', () => {
         expect(Slug.getSlug('')).toEqual('');
         expect(Slug.getSlug('     ')).toEqual('');
+    });
+    test('should generate a slug from a valid name when name is null', () => {
+        expect(Slug.getSlug(null)).toMatch(/^[a-z0-9-]+$/);
     });
     test('should replaces spaces in nonEmpty with hyphen -', () => {
         expect(Slug.getSlug('this is slug')).toMatch(/this-is-slug/g);
