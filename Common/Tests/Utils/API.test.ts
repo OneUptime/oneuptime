@@ -349,6 +349,10 @@ const httpMethodTests: Array<HTTPMethodType> = [
         name: 'delete',
         method: HTTPMethod.DELETE,
     },
+    {
+        name: 'head',
+        method: HTTPMethod.HEAD,
+    },
 ];
 
 describe.each(httpMethodTests)('$name', ({ name, method }: HTTPMethodType) => {
