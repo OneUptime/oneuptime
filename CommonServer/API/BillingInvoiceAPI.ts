@@ -83,10 +83,6 @@ export default class UserAPI extends BaseAPI<
                         throw new BadDataException('Project not found');
                     }
 
-                    if (!project) {
-                        throw new BadDataException('Project not found');
-                    }
-
                     if (!project.paymentProviderCustomerId) {
                         throw new BadDataException(
                             'Payment Provider customer not found'
@@ -145,6 +141,16 @@ export default class UserAPI extends BaseAPI<
                         await BillingService.getSubscriptionStatus(
                             project.paymentProviderMeteredSubscriptionId as string
                         );
+
+                    // if subscription is cancelled, create a new subscription and update project.
+
+                    if (
+                        meteredSubscriptionState ===
+                            SubscriptionStatus.Canceled ||
+                        subscriptionState === SubscriptionStatus.Canceled
+                    ) {
+                        await ProjectService.reactiveSubscription(project.id!);
+                    }
 
                     await ProjectService.updateOneById({
                         id: project.id!,

@@ -48,6 +48,7 @@ import UserNotificationSettingService from './UserNotificationSettingService';
 import PromoCode from 'Model/Models/PromoCode';
 import PromoCodeService from './PromoCodeService';
 import Color from 'Common/Types/Color';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -998,6 +999,110 @@ export class Service extends DatabaseService<Model> {
                 logger.error(err);
             });
         }
+    }
+
+    public async reactiveSubscription(projectId: ObjectID): Promise<void> {
+        logger.info('Reactivating subscription for project ' + projectId);
+
+        const project: Model | null = await this.findOneById({
+            id: projectId!,
+            props: {
+                isRoot: true,
+            },
+            select: {
+                _id: true,
+                paymentProviderCustomerId: true,
+                paymentProviderSubscriptionId: true,
+                paymentProviderMeteredSubscriptionId: true,
+                paymentProviderSubscriptionSeats: true,
+                paymentProviderPlanId: true,
+            },
+        });
+
+        if (!project) {
+            throw new BadDataException('Project not found');
+        }
+
+        if (!project.paymentProviderCustomerId) {
+            throw new BadDataException('Payment Provider customer not found');
+        }
+
+        if (!project.paymentProviderSubscriptionId) {
+            throw new BadDataException(
+                'Payment Provider subscription not found'
+            );
+        }
+
+        if (!project.paymentProviderMeteredSubscriptionId) {
+            throw new BadDataException(
+                'Payment Provider metered subscription not found'
+            );
+        }
+
+        if (!project.paymentProviderSubscriptionSeats) {
+            throw new BadDataException(
+                'Payment Provider subscription seats not found'
+            );
+        }
+
+        if (!project.paymentProviderPlanId) {
+            throw new BadDataException('Payment Provider plan id not found');
+        }
+
+        const subscriptionPlan: SubscriptionPlan | undefined =
+            SubscriptionPlan.getSubscriptionPlanById(
+                project.paymentProviderPlanId,
+                getAllEnvVars()
+            );
+
+        if (!subscriptionPlan) {
+            throw new BadDataException('Subscription plan not found');
+        }
+
+        const result: {
+            subscriptionId: string;
+            meteredSubscriptionId: string;
+            trialEndsAt?: Date | undefined;
+        } = await BillingService.changePlan({
+            projectId: project.id as ObjectID,
+            subscriptionId: project.paymentProviderSubscriptionId,
+            meteredSubscriptionId: project.paymentProviderMeteredSubscriptionId,
+            serverMeteredPlans: AllMeteredPlans,
+            newPlan: subscriptionPlan,
+            quantity: project.paymentProviderSubscriptionSeats,
+            isYearly: SubscriptionPlan.isYearlyPlan(
+                project.paymentProviderPlanId
+            ),
+            endTrialAt: undefined,
+        });
+
+        // refresh subscription status.
+        const subscriptionState: SubscriptionStatus =
+            await BillingService.getSubscriptionStatus(
+                result.subscriptionId as string
+            );
+
+        const meteredSubscriptionState: SubscriptionStatus =
+            await BillingService.getSubscriptionStatus(
+                project.paymentProviderMeteredSubscriptionId as string
+            );
+
+        // now update project with new subscription id.
+
+        await this.updateOneById({
+            id: project.id!,
+            data: {
+                paymentProviderSubscriptionId: result.subscriptionId,
+                paymentProviderMeteredSubscriptionId:
+                    result.meteredSubscriptionId,
+                paymentProviderSubscriptionStatus: subscriptionState,
+                paymentProviderMeteredSubscriptionStatus:
+                    meteredSubscriptionState,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
     }
 }
 export default new Service();

@@ -9,24 +9,24 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <p className="text-center my-10 text-gray-500 text-sm">
-            {props.error} <br />{' '}
+        <div className="text-center my-10 text-gray-500 text-sm">
+            {props.error}
             {props.onRefreshClick ? (
-                <span
+                <div
                     role={'refresh-button'}
                     onClick={() => {
                         if (props.onRefreshClick) {
                             props.onRefreshClick();
                         }
                     }}
-                    className="underline cursor-pointer hover:text-gray-700"
+                    className="underline cursor-pointer hover:text-gray-700 mt-3"
                 >
                     Refresh?
-                </span>
+                </div>
             ) : (
                 <></>
             )}
-        </p>
+        </div>
     );
 };
 

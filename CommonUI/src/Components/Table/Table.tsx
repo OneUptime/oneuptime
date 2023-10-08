@@ -66,7 +66,7 @@ const Table: FunctionComponent<ComponentProps> = (
             return (
                 <tbody>
                     <tr>
-                        <td colSpan={colspan}>
+                        <td colSpan={colspan} className="pl-10 pr-10">
                             <ErrorMessage
                                 error={props.error}
                                 onRefreshClick={props.onRefreshClick}
