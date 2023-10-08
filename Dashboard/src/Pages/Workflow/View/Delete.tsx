@@ -57,7 +57,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 modelType={Workflow}
                 modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.WORKFLOWS] as Route);
+                    Navigation.navigate(
+                        RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.WORKFLOWS] as Route,
+                            { modelId }
+                        )
+                    );
                 }}
             />
         </ModelPage>

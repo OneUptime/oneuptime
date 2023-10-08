@@ -59,7 +59,12 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                 modelType={Monitor}
                 modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.MONITORS] as Route);
+                    Navigation.navigate(
+                        RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.MONITORS] as Route,
+                            { modelId }
+                        )
+                    );
                 }}
             />
         </ModelPage>

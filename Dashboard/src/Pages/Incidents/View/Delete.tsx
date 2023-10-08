@@ -57,7 +57,12 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 modelType={Incident}
                 modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.INCIDENTS] as Route);
+                    Navigation.navigate(
+                        RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.INCIDENTS] as Route,
+                            { modelId }
+                        )
+                    );
                 }}
             />
         </ModelPage>
