@@ -9,7 +9,7 @@ import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import MonitorStep from 'Common/Types/Monitor/MonitorStep';
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
-import IngestorIngestResponse from 'Common/Types/Probe/IngestorIngestResponse';
+import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Typeof from 'Common/Types/Typeof';
 import MonitorService from '../../Services/MonitorService';
@@ -39,8 +39,8 @@ import VMUtil from '../VM';
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest
-    ): Promise<IngestorIngestResponse> {
-        let response: IngestorIngestResponse = {
+    ): Promise<ProbeApiIngestResponse> {
+        let response: ProbeApiIngestResponse = {
             monitorId: dataToProcess.monitorId,
             criteriaMetId: undefined,
             rootCause: null,
@@ -289,7 +289,7 @@ export default class ProbeMonitorResponseService {
             dataToProcess: dataToProcess,
             monitorStep: monitorStep,
             monitor: monitor,
-            ingestorIngestResponse: response,
+            probeApiIngestResponse: response,
         });
 
         if (response.criteriaMetId && response.rootCause) {
@@ -665,8 +665,8 @@ export default class ProbeMonitorResponseService {
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
         monitorStep: MonitorStep;
         monitor: Monitor;
-        ingestorIngestResponse: IngestorIngestResponse;
-    }): Promise<IngestorIngestResponse> {
+        probeApiIngestResponse: ProbeApiIngestResponse;
+    }): Promise<ProbeApiIngestResponse> {
         // process monitor step here.
 
         const criteria: MonitorCriteria | undefined =
@@ -674,7 +674,7 @@ export default class ProbeMonitorResponseService {
 
         if (!criteria || !criteria.data) {
             // do nothing as there's no criteria to process.
-            return input.ingestorIngestResponse;
+            return input.probeApiIngestResponse;
         }
 
         for (const criteriaInstance of criteria.data
@@ -685,15 +685,15 @@ export default class ProbeMonitorResponseService {
                         dataToProcess: input.dataToProcess,
                         monitorStep: input.monitorStep,
                         monitor: input.monitor,
-                        ingestorIngestResponse: input.ingestorIngestResponse,
+                        probeApiIngestResponse: input.probeApiIngestResponse,
                         criteriaInstance: criteriaInstance,
                     }
                 );
 
             if (rootCause) {
-                input.ingestorIngestResponse.criteriaMetId =
+                input.probeApiIngestResponse.criteriaMetId =
                     criteriaInstance.data?.id;
-                input.ingestorIngestResponse.rootCause =
+                input.probeApiIngestResponse.rootCause =
                     rootCause +
                     ' ' +
                     (
@@ -704,14 +704,14 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        return input.ingestorIngestResponse;
+        return input.probeApiIngestResponse;
     }
 
     private static async processMonitorCriteiaInstance(input: {
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
         monitorStep: MonitorStep;
         monitor: Monitor;
-        ingestorIngestResponse: IngestorIngestResponse;
+        probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
     }): Promise<string | null> {
         // returns root cause if any. Otherwise criteria is not met.
@@ -723,7 +723,7 @@ export default class ProbeMonitorResponseService {
                     dataToProcess: input.dataToProcess,
                     monitorStep: input.monitorStep,
                     monitor: input.monitor,
-                    ingestorIngestResponse: input.ingestorIngestResponse,
+                    probeApiIngestResponse: input.probeApiIngestResponse,
                     criteriaInstance: input.criteriaInstance,
                 }
             );
@@ -736,7 +736,7 @@ export default class ProbeMonitorResponseService {
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
         monitorStep: MonitorStep;
         monitor: Monitor;
-        ingestorIngestResponse: IngestorIngestResponse;
+        probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
     }): Promise<string | null> {
         // returns root cause if any. Otherwise criteria is not met.
@@ -756,7 +756,7 @@ export default class ProbeMonitorResponseService {
                         dataToProcess: input.dataToProcess,
                         monitorStep: input.monitorStep,
                         monitor: input.monitor,
-                        ingestorIngestResponse: input.ingestorIngestResponse,
+                        probeApiIngestResponse: input.probeApiIngestResponse,
                         criteriaInstance: input.criteriaInstance,
                         criteriaFilter: criteriaFilter,
                     }
@@ -798,7 +798,7 @@ export default class ProbeMonitorResponseService {
         dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
         monitorStep: MonitorStep;
         monitor: Monitor;
-        ingestorIngestResponse: IngestorIngestResponse;
+        probeApiIngestResponse: ProbeApiIngestResponse;
         criteriaInstance: MonitorCriteriaInstance;
         criteriaFilter: CriteriaFilter;
     }): Promise<string | null> {

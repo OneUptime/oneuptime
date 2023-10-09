@@ -7,7 +7,7 @@ import Express, {
 import Response from 'CommonServer/Utils/Response';
 import ProbeAuthorization from '../Middleware/ProbeAuthorization';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import IngestorIngestResponse from 'Common/Types/Probe/IngestorIngestResponse';
+import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -44,13 +44,13 @@ router.post(
             }
 
             // process probe response here.
-            const ingestorIngestResponse: IngestorIngestResponse =
+            const probeApiIngestResponse: ProbeApiIngestResponse =
                 await ProbeMonitorResponseService.processProbeResponse(
                     probeResponse
                 );
 
             return Response.sendJsonObjectResponse(req, res, {
-                ingestorIngestResponse: ingestorIngestResponse,
+                probeApiIngestResponse: probeApiIngestResponse,
             } as any);
         } catch (err) {
             return next(err);
