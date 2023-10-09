@@ -50,7 +50,7 @@ const ModelProgress: <TBaseModel extends BaseModel>(
 
     return (
         <Card title={props.title} description={props.description}>
-            <div className="w-full -mt-20">
+            <div className="w-full -mt-6">
                 {!error && (
                     <div>
                         <ErrorMessage error={error} />
