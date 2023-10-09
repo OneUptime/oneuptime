@@ -24,6 +24,10 @@ export default abstract class LoginUtil {
         UserUtil.setName(user.name || new Name(''));
         UserUtil.setIsMasterAdmin(user.isMasterAdmin as boolean);
 
+        if (user.profilePictureId) {
+            UserUtil.setProfilePicId(user.profilePictureId);
+        }
+
         Analytics.userAuth(user.email!);
 
         // go to dashboard, user should be logged in.

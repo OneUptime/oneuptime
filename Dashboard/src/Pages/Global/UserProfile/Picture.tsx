@@ -10,6 +10,8 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import SideMenu from './SideMenu';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../../Utils/EventName';
 
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -61,6 +63,24 @@ const Home: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
+                    selectMoreFields: {
+                        profilePictureId: true,
+                    },
+                    onItemLoaded: (item: User) => {
+                        if (item.profilePictureId) {
+                            UserUtil.setProfilePicId(item.profilePictureId);
+                            GlobalEvents.dispatchEvent(
+                                EventName.SET_NEW_PROFILE_PICTURE,
+                                { id: item.profilePictureId }
+                            );
+                        } else {
+                            UserUtil.setProfilePicId(null);
+                            GlobalEvents.dispatchEvent(
+                                EventName.SET_NEW_PROFILE_PICTURE,
+                                { id: null }
+                            );
+                        }
+                    },
                     modelType: User,
                     id: 'model-detail-user-profile-picture',
                     fields: [

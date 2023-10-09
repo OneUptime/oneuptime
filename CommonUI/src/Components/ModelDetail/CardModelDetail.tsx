@@ -91,6 +91,9 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
                         {...props.modelDetailProps}
                         onItemLoaded={(item: TBaseModel) => {
                             setItem(item);
+                            if (props.modelDetailProps.onItemLoaded) {
+                                props.modelDetailProps.onItemLoaded(item);
+                            }
                         }}
                     />
                 </div>

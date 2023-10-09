@@ -20,7 +20,9 @@ export default class GlobalEvents {
         data?: JSONObject | undefined
     ): void {
         // Create a custom event with data
-        const event: CustomEvent = new CustomEvent(name, data || {});
+        const event: CustomEvent = new CustomEvent(name, {
+            detail: data || {},
+        });
 
         // Dispatch the event
         window.dispatchEvent(event);
