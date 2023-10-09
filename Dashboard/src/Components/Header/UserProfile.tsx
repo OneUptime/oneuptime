@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -10,6 +15,10 @@ import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDr
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ADMIN_DASHBOARD_URL } from 'CommonUI/src/Config';
 import User from 'CommonUI/src/Utils/User';
+import ObjectID from 'Common/Types/ObjectID';
+import FileUtil from 'CommonUI/src/Utils/File';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../Utils/EventName';
 
 export interface ComponentProps {
     onClickUserProfile: () => void;
@@ -20,10 +29,40 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
+    const [profilePictureId, setProfilePictureId] = useState<ObjectID | null>(
+        User.getProfilePicId()
+    );
+
+    const setPicture: Function = (event: CustomEvent): void => {
+        // get data from event.
+        const id: ObjectID = event.detail.id as ObjectID;
+
+        setProfilePictureId(id);
+    };
+
+    useEffect(() => {
+        GlobalEvents.addEventListener(
+            EventName.SET_NEW_PROFILE_PICTURE,
+            setPicture
+        );
+
+        return () => {
+            // on unmount.
+            GlobalEvents.removeEventListener(
+                EventName.SET_NEW_PROFILE_PICTURE,
+                setPicture
+            );
+        };
+    }, []);
+
     return (
         <>
             <HeaderIconDropdownButton
-                iconImageUrl={BlankProfilePic}
+                iconImageUrl={
+                    profilePictureId
+                        ? FileUtil.getFileURL(profilePictureId)
+                        : BlankProfilePic
+                }
                 name="User Profile"
                 showDropdown={isDropdownVisible}
                 onClick={() => {

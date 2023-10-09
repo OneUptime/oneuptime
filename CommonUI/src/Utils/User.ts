@@ -12,6 +12,25 @@ export default class User {
         return LocalStorage.getItem('access_token') as string;
     }
 
+    public static setProfilePicId(id: ObjectID | null): void {
+        if (!id) {
+            LocalStorage.removeItem('profile_pic_id');
+            return;
+        }
+
+        LocalStorage.setItem('profile_pic_id', id.toString());
+    }
+
+    public static getProfilePicId(): ObjectID | null {
+        if (!LocalStorage.getItem('profile_pic_id')) {
+            return null;
+        }
+
+        return new ObjectID(
+            (LocalStorage.getItem('profile_pic_id') as string) || ''
+        );
+    }
+
     public static setAccessToken(token: string): void {
         LocalStorage.setItem('access_token', token);
     }
