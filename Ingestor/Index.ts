@@ -6,7 +6,7 @@ import App from 'CommonServer/Utils/StartServer';
 import AliveAPI from './API/Alive';
 import RegisterAPI from './API/Register';
 import MonitorAPI from './API/Monitor';
-import ProbeAPI from './API/Probe';
+import Ingestor from './API/Probe';
 import IncomingRequestAPI from './API/IncomingRequest';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
@@ -14,12 +14,12 @@ import Redis from 'CommonServer/Infrastructure/Redis';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = 'probe-api';
+const APP_NAME: string = 'ingestor';
 
 app.use([`/${APP_NAME}`, '/'], AliveAPI);
 app.use([`/${APP_NAME}`, '/'], RegisterAPI);
 app.use([`/${APP_NAME}`, '/'], MonitorAPI);
-app.use([`/${APP_NAME}`, '/'], ProbeAPI);
+app.use([`/${APP_NAME}`, '/'], Ingestor);
 app.use([`/${APP_NAME}`, '/'], IncomingRequestAPI);
 
 const init: () => Promise<void> = async (): Promise<void> => {

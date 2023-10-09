@@ -115,11 +115,11 @@ services:
        
     
 
-    probe-api:
-        image:  oneuptime/probe-api:${APP_TAG}
+    ingestor:
+        image:  oneuptime/ingestor:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
-            service: probe-api
+            service: ingestor
        
 
     file:

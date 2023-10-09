@@ -10,7 +10,7 @@ import {
     IdentityRoute,
     IntegrationRoute,
     NotificationRoute,
-    ProbeApiRoute,
+    IngestorRoute,
     StatusPageRoute,
     WorkflowRoute,
     homeRoute,
@@ -54,7 +54,7 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const PROBE_API_HOSTNAME: Hostname = Hostname.fromString(HOST);
+export const INGESTOR_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
@@ -90,10 +90,10 @@ export const WORKFLOW_URL: URL = new URL(
     WorkflowRoute
 );
 
-export const PROBE_API_URL: URL = new URL(
+export const INGESTOR_URL: URL = new URL(
     HTTP_PROTOCOL,
-    PROBE_API_HOSTNAME,
-    ProbeApiRoute
+    INGESTOR_HOSTNAME,
+    IngestorRoute
 );
 
 export const STATUS_PAGE_URL: URL = new URL(

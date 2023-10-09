@@ -22,7 +22,7 @@ x-common-variables: &common-variables
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_LINK_SHORTENER_HOSTNAME: link-shortener
     SERVER_ALERT_HOSTNAME: alert
-    SERVER_PROBE_API_HOSTNAME: probe-api
+    SERVER_INGESTOR_HOSTNAME: ingestor
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_FILE_HOSTNAME: file
     SERVER_HOME_HOSTNAME: home
@@ -41,7 +41,7 @@ x-common-variables: &common-variables
     WORKFLOW_PORT: ${WORKFLOW_PORT}
     LINK_SHORTENER_PORT: ${LINK_SHORTENER_PORT}
     ALERT_PORT: ${ALERT_PORT}
-    PROBE_API_PORT: ${PROBE_API_PORT}
+    INGESTOR_PORT: ${INGESTOR_PORT}
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     FILE_PORT: ${FILE_PORT}
@@ -312,12 +312,12 @@ services:
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
-            PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+            INGESTOR_URL: http://${INGESTOR_HOSTNAME}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
         depends_on:
-            - probe-api
+            - ingestor
         links:
-            - probe-api
+            - ingestor
 
     probe-2:   
         networks:
@@ -330,12 +330,12 @@ services:
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
-            PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+            INGESTOR_URL: http://${INGESTOR_HOSTNAME}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
         depends_on:
-            - probe-api
+            - ingestor
         links:
-            - probe-api
+            - ingestor
         
 
     identity:
@@ -356,13 +356,13 @@ services:
        
     
 
-    probe-api:
+    ingestor:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-server-variables
-            PORT: ${PROBE_API_PORT}
+            PORT: ${INGESTOR_PORT}
         depends_on:
             - redis
             - postgres

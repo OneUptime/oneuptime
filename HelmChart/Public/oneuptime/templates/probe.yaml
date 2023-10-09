@@ -28,8 +28,8 @@ spec:
           env:
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
-            - name: PROBE_API_URL
-              value: http://{{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.port.probeApi }}
+            - name: INGESTOR_URL
+              value: http://{{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.port.ingestor }}
             - name: PROBE_NAME
               value: {{ $val.name }}
             - name: PROBE_DESCRIPTION

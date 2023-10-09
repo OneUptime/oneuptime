@@ -99,7 +99,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/ProbeAPI",
+            "localRoot": "${workspaceFolder}/Ingestor",
             "name": "Probe API: Debug with Docker",
             "port": 9932,
             "remoteRoot": "/usr/src/app",
@@ -197,7 +197,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/ProbeAPI",
+            "localRoot": "${workspaceFolder}/Ingestor",
             "name": "Probe API: Debug with Docker",
             "port": 9251,
             "remoteRoot": "/usr/src/app",

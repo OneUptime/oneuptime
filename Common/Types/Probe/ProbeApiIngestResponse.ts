@@ -1,6 +1,6 @@
 import ObjectID from '../ObjectID';
 
-export default interface ProbeApiIngestResponse {
+export default interface IngestorIngestResponse {
     monitorId: ObjectID;
     ingestedMonitorStepId?: ObjectID | undefined;
     nextMonitorStepId?: ObjectID | undefined;

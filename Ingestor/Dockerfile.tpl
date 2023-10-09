@@ -1,5 +1,5 @@
 #
-# OneUptime-probe-api Dockerfile
+# OneUptime-ingestor Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -53,11 +53,11 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./ProbeAPI/package*.json /usr/src/app/
+COPY ./Ingestor/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3400: OneUptime-probe-api
+#   - 3400: OneUptime-ingestor
 EXPOSE 3400
 
 {{ if eq .Env.ENVIRONMENT "development" }}
@@ -65,7 +65,7 @@ EXPOSE 3400
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./ProbeAPI /usr/src/app
+COPY ./Ingestor /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

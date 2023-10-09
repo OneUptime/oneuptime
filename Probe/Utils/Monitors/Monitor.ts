@@ -6,8 +6,8 @@ import PingMonitor, { PingResponse } from './MonitorTypes/PingMonitor';
 import API from 'Common/Utils/API';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import URL from 'Common/Types/API/URL';
-import { PROBE_API_URL } from '../../Config';
-import ProbeAPIRequest from '../ProbeAPIRequest';
+import { INGESTOR_URL } from '../../Config';
+import IngestorRequest from '../IngestorRequest';
 import { JSONObject } from 'Common/Types/JSON';
 import WebsiteMonitor, {
     ProbeWebsiteResponse,
@@ -47,11 +47,11 @@ export default class MonitorUtil {
 
                 await API.fetch<JSONObject>(
                     HTTPMethod.POST,
-                    URL.fromString(PROBE_API_URL.toString()).addRoute(
+                    URL.fromString(INGESTOR_URL.toString()).addRoute(
                         '/probe/response/ingest'
                     ),
                     {
-                        ...ProbeAPIRequest.getDefaultRequestBody(),
+                        ...IngestorRequest.getDefaultRequestBody(),
                         probeMonitorResponse: result as any,
                     },
                     {},

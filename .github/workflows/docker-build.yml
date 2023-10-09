@@ -223,7 +223,7 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Probe/Dockerfile .
 
-  docker-build-probe-api:
+  docker-build-ingestor:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -236,7 +236,7 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./ProbeAPI/Dockerfile .
+        run: sudo docker build -f ./Ingestor/Dockerfile .
 
   docker-build-realtime:
     runs-on: ubuntu-latest

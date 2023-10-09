@@ -1,11 +1,11 @@
 import API from 'Common/Utils/API';
-import { PROBE_API_URL, PROBE_MONITOR_FETCH_LIMIT } from '../../Config';
+import { INGESTOR_URL, PROBE_MONITOR_FETCH_LIMIT } from '../../Config';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Monitor from 'Model/Models/Monitor';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
+import IngestorRequest from '../../Utils/IngestorRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -54,7 +54,7 @@ export default class FetchListAndProbe {
             logger.info('Fetching monitor list');
 
             const monitorListUrl: URL = URL.fromString(
-                PROBE_API_URL.toString()
+                INGESTOR_URL.toString()
             ).addRoute('/monitor/list');
 
             const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
@@ -62,7 +62,7 @@ export default class FetchListAndProbe {
                     HTTPMethod.POST,
                     monitorListUrl,
                     {
-                        ...ProbeAPIRequest.getDefaultRequestBody(),
+                        ...IngestorRequest.getDefaultRequestBody(),
                         limit: PROBE_MONITOR_FETCH_LIMIT || 100,
                     },
                     {},
