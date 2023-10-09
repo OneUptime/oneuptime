@@ -1,24 +1,11 @@
-import Exception from 'Common/Types/Exception/Exception';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
+import { ErrorBoundary as NativeErrorBoundary } from 'react-error-boundary';
 
 export interface ComponentProps {
-    children: ReactElement;
+    children?: ReactElement;
 }
 
-const ErrorBoundary: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
-): ReactElement => {
-    const [error, setError] = useState<string | null>(null);
-
-    try {
-        if (!error) {
-            return props.children;
-        }
-    } catch (e) {
-        const exception: Exception = e as Exception;
-        setError(exception.message);
-    }
-
+const Fallback: FunctionComponent = () => {
     return (
         <div
             id="app-loading"
@@ -40,6 +27,16 @@ const ErrorBoundary: FunctionComponent<ComponentProps> = (
                 continue
             </div>
         </div>
+    );
+};
+
+const ErrorBoundary: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+) => {
+    return (
+        <NativeErrorBoundary FallbackComponent={Fallback}>
+            {props.children}
+        </NativeErrorBoundary>
     );
 };
 
