@@ -5,7 +5,7 @@ import { INGESTOR_URL } from '../Config';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import URL from 'Common/Types/API/URL';
 import logger from 'CommonServer/Utils/Logger';
-import IngestorRequest from '../Utils/IngestorRequest';
+import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 import Register from '../Services/Register';
 
 RunCron(
@@ -34,7 +34,7 @@ RunCron(
 
         await API.post(
             URL.fromString(INGESTOR_URL.toString()).addRoute('/alive'),
-            IngestorRequest.getDefaultRequestBody()
+            ProbeAPIRequest.getDefaultRequestBody()
         );
     }
 );

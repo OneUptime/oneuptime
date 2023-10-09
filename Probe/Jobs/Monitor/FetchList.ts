@@ -5,7 +5,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Monitor from 'Model/Models/Monitor';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import IngestorRequest from '../../Utils/IngestorRequest';
+import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -62,7 +62,7 @@ export default class FetchListAndProbe {
                     HTTPMethod.POST,
                     monitorListUrl,
                     {
-                        ...IngestorRequest.getDefaultRequestBody(),
+                        ...ProbeAPIRequest.getDefaultRequestBody(),
                         limit: PROBE_MONITOR_FETCH_LIMIT || 100,
                     },
                     {},

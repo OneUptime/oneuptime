@@ -7,7 +7,7 @@ import API from 'Common/Utils/API';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import URL from 'Common/Types/API/URL';
 import { INGESTOR_URL } from '../../Config';
-import IngestorRequest from '../IngestorRequest';
+import ProbeAPIRequest from '../ProbeAPIRequest';
 import { JSONObject } from 'Common/Types/JSON';
 import WebsiteMonitor, {
     ProbeWebsiteResponse,
@@ -51,7 +51,7 @@ export default class MonitorUtil {
                         '/probe/response/ingest'
                     ),
                     {
-                        ...IngestorRequest.getDefaultRequestBody(),
+                        ...ProbeAPIRequest.getDefaultRequestBody(),
                         probeMonitorResponse: result as any,
                     },
                     {},
