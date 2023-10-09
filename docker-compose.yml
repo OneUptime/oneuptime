@@ -37,6 +37,13 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: notification
+    
+    otel-collector:
+        image:  oneuptime/otel-collector:${APP_TAG}
+        build:
+            network: host
+            context: .
+            dockerfile: ./OTelCollector/Dockerfile
         
     accounts:
         image:  oneuptime/accounts:${APP_TAG}

@@ -64,7 +64,17 @@ services:
             network: host
             context: .
             dockerfile: ./Notification/Dockerfile
-        
+
+
+    otel-collector:
+        extends:
+            file: ./docker-compose.base.yml
+            service: otel-collector
+        build:
+            network: host
+            context: .
+            dockerfile: ./OTelCollector/Dockerfile
+
     accounts:
         ports: 
             - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}' # ws port for webpack
