@@ -7,7 +7,7 @@ import Express, {
 import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
-
+import zlib from 'zlib';
 // Load proto file for OTel
 
 // Create a root namespace
@@ -32,29 +32,51 @@ router.post(
     ): Promise<void> => {
         try {
 
+            let buffers: any = [];
+            req.on('data', (chunk) => {
+                buffers.push(chunk);
+            });
+
+
+            req.on('end', () => {
+                let buffer = Buffer.concat(buffers);
+                zlib.gunzip(buffer, (err, decoded) => {
+                    if (err) {
+                        console.error(err);
+                        res.status(500).send('Error decompressing data');
+                        return;
+                    }
+
+
+                    if (req.url === '/otel/v1/traces') {
+                        const traces = TracesData.decode(decoded);
+        
+                        logger.info('Traces: ', traces);
+                    }
+        
+                    if (req.url === '/otel/v1/logs') {
+                        const logs = LogsData.decode(decoded);
+        
+                        logger.info('Logs: ', logs);
+                    }
+        
+                    if (req.url === '/otel/v1/metrics') {
+                        const metrics = MetricsData.decode(decoded);
+        
+                        logger.info('Metrics: ', metrics);
+                    }
+        
+                    // middleware marks the probe as alive.
+                    // so we don't need to do anything here.
+                    return Response.sendEmptyResponse(req, res);
+        
+                    
+                });
+            });
+
             logger.info('OTelIngest URL: ', req.url);
 
-            if(req.url === '/otel/v1/traces') {
-                const traces = TracesData.decode(req.body);
-
-                logger.info('Traces: ', traces);
-            }
-
-            if(req.url === '/otel/v1/logs') {
-                const logs = LogsData.decode(req.body);
-
-                logger.info('Logs: ', logs);
-            }
-
-            if(req.url === '/otel/v1/metrics') {
-                const metrics = MetricsData.decode(req.body);
-
-                logger.info('Metrics: ', metrics);
-            }
-
-            // middleware marks the probe as alive.
-            // so we don't need to do anything here.
-            return Response.sendEmptyResponse(req, res);
+            
         } catch (err) {
             return next(err);
         }

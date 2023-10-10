@@ -33,7 +33,7 @@ import { DashboardApiRoute } from 'Common/ServiceRoute';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ServerException from 'Common/Types/Exception/ServerException';
-import zlib from 'zlib';
+// import zlib from 'zlib';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -98,19 +98,19 @@ app.use(setDefaultHeaders);
  */
 
 app.use(function (req, res, next) {
-    
     if (req.headers['content-encoding'] === 'gzip') {
-        var gunzip = zlib.createGunzip();
-        req.pipe(gunzip);
-        var buffer: any = [];
-        gunzip.on('data', function (data) {
-            buffer.push(data.toString());
-        }).on('end', function () {
-            req.body = buffer;
-            next();
-        }).on('error', function (e) {
-            next(e);
-        });
+        // var gunzip = zlib.createGunzip();
+        // req.pipe(gunzip);
+        // var buffer: any = [];
+        // gunzip.on('data', function (data) {
+        //     buffer.push(data.toString());
+        // }).on('end', function () {
+        //     req.body = buffer.join('');
+        //     next();
+        // }).on('error', function (e) {
+        //     next(e);
+        // });
+        next();
     } else {
         jsonBodyParserMiddleware(req, res, next);
     }
