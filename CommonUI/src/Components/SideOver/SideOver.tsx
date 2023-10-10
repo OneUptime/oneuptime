@@ -31,7 +31,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
                         <div className="pointer-events-auto w-screen max-w-2xl">
                             <div className="flex h-full flex-col overflow-y-auto bg-white shadow-xl">
-                                <div className="flex-1">
+                                <div className="flex-1 flex flex-col overflow-hidden">
                                     <div className="bg-gray-50 px-4 py-6 sm:px-6">
                                         <div className="flex items-start justify-between space-x-3">
                                             <div className="space-y-1">
@@ -66,7 +66,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                                         </div>
                                     </div>
 
-                                    <div className="space-y-6 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:py-0 p-5">
+                                    <div className="space-y-6 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:py-0 p-5 overflow-hidden">
                                         {props.children}
                                     </div>
                                 </div>
