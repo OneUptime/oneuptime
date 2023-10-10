@@ -60,7 +60,10 @@ const logRequest: RequestHandler = (
     (req as OneUptimeRequest).id = ObjectID.generate();
     (req as OneUptimeRequest).requestStartedAt = OneUptimeDate.getCurrentDate();
 
-    let requestBody = req.body && req.headers['content-encoding'] !== 'gzip'  ? JSON.stringify(req.body) : 'EMPTY';
+    let requestBody =
+        req.body && req.headers['content-encoding'] !== 'gzip'
+            ? JSON.stringify(req.body)
+            : 'EMPTY';
 
     if (req.headers['content-encoding'] === 'gzip') {
         requestBody = 'GZIP';
@@ -178,10 +181,10 @@ const init: Function = async (
                 const databaseConfig:
                     | HTTPResponse<JSONObject>
                     | HTTPErrorResponse = await API.get<JSONObject>(
-                        URL.fromString(
-                            `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
-                        )
-                    );
+                    URL.fromString(
+                        `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
+                    )
+                );
 
                 if (databaseConfig instanceof HTTPErrorResponse) {
                     // error getting database config.
