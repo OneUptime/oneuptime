@@ -60,7 +60,7 @@ const logRequest: RequestHandler = (
     (req as OneUptimeRequest).id = ObjectID.generate();
     (req as OneUptimeRequest).requestStartedAt = OneUptimeDate.getCurrentDate();
 
-    let requestBody = req.body || 'EMPTY';
+    let requestBody = req.body && req.headers['content-encoding'] !== 'gzip'  ? JSON.stringify(req.body) : 'EMPTY';
 
     if (req.headers['content-encoding'] === 'gzip') {
         requestBody = 'GZIP';
