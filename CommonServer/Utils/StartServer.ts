@@ -60,7 +60,7 @@ const logRequest: RequestHandler = (
     (req as OneUptimeRequest).id = ObjectID.generate();
     (req as OneUptimeRequest).requestStartedAt = OneUptimeDate.getCurrentDate();
 
-    let requestBody =
+    let requestBody: string =
         req.body && req.headers['content-encoding'] !== 'gzip'
             ? JSON.stringify(req.body)
             : 'EMPTY';
@@ -123,13 +123,13 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     if (req.headers['content-encoding'] === 'gzip') {
         const buffers: any = [];
 
-        req.on('data', (chunk) => {
+        req.on('data', (chunk: any) => {
             buffers.push(chunk);
         });
 
         req.on('end', () => {
-            const buffer = Buffer.concat(buffers);
-            zlib.gunzip(buffer, (err, decoded) => {
+            const buffer: Buffer = Buffer.concat(buffers);
+            zlib.gunzip(buffer, (err: unknown, decoded: Buffer) => {
                 if (err) {
                     logger.error(err);
                     return Response.sendErrorResponse(
