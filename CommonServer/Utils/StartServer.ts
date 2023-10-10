@@ -42,9 +42,15 @@ app.disable('x-powered-by');
 app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
 
-const jsonBodyParserMiddleware = ExpressJson({ limit: '50mb', extended: true }); // 50 MB limit.
+const jsonBodyParserMiddleware: Function = ExpressJson({
+    limit: '50mb',
+    extended: true,
+}); // 50 MB limit.
 
-const urlEncodedMiddleware = ExpressUrlEncoded({ limit: '50mb', extended: true }); // 50 MB limit.
+const urlEncodedMiddleware: Function = ExpressUrlEncoded({
+    limit: '50mb',
+    extended: true,
+}); // 50 MB limit.
 
 const logRequest: RequestHandler = (
     req: ExpressRequest,
@@ -57,13 +63,17 @@ const logRequest: RequestHandler = (
     const method: string = req.method;
     const url: string = req.url;
 
-    const header_info: string = `Request ID: ${(req as OneUptimeRequest).id
-        } -- POD NAME: ${process.env['POD_NAME'] || 'NONE'
-        } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    const header_info: string = `Request ID: ${
+        (req as OneUptimeRequest).id
+    } -- POD NAME: ${
+        process.env['POD_NAME'] || 'NONE'
+    } -- METHOD: ${method} -- URL: ${url.toString()}`;
 
-    const body_info: string = `Request ID: ${(req as OneUptimeRequest).id
-        } -- Request Body: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-        }`;
+    const body_info: string = `Request ID: ${
+        (req as OneUptimeRequest).id
+    } -- Request Body: ${
+        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+    }`;
 
     logger.info(header_info + '\n ' + body_info);
     next();
@@ -74,7 +84,6 @@ const setDefaultHeaders: RequestHandler = (
     res: ExpressResponse,
     next: NextFunction
 ): void => {
-
     if (typeof req.body === Typeof.String) {
         req.body = JSONFunctions.parse(req.body);
     }
@@ -97,20 +106,24 @@ app.use(setDefaultHeaders);
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
  */
 
-app.use(function (req, res, next) {
+app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     if (req.headers['content-encoding'] === 'gzip') {
-        let buffers: any = [];
+        const buffers: any = [];
 
         req.on('data', (chunk) => {
             buffers.push(chunk);
         });
 
         req.on('end', () => {
-            let buffer = Buffer.concat(buffers);
+            const buffer = Buffer.concat(buffers);
             zlib.gunzip(buffer, (err, decoded) => {
                 if (err) {
                     logger.error(err);
-                    return Response.sendErrorResponse(req, res, new ServerException("Error decompressing data"));
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new ServerException('Error decompressing data')
+                    );
                 }
 
                 req.body = decoded;
@@ -123,15 +136,13 @@ app.use(function (req, res, next) {
     }
 });
 
-app.use(function (req, res, next) {
-
+app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     if (req.headers['content-encoding'] === 'gzip') {
         next();
     } else {
         urlEncodedMiddleware(req, res, next);
     }
 });
-
 
 app.use(logRequest);
 
@@ -157,10 +168,10 @@ const init: Function = async (
                 const databaseConfig:
                     | HTTPResponse<JSONObject>
                     | HTTPErrorResponse = await API.get<JSONObject>(
-                        URL.fromString(
-                            `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
-                        )
-                    );
+                    URL.fromString(
+                        `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
+                    )
+                );
 
                 if (databaseConfig instanceof HTTPErrorResponse) {
                     // error getting database config.
