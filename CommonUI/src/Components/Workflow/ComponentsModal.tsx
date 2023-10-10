@@ -97,7 +97,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
             }}
         >
             <>
-                <div>
+                <div className="flex flex-col h-full">
                     {/** Search box here */}
 
                     <div className="mt-5">
@@ -110,7 +110,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                         />
                     </div>
 
-                    <div className="max-h-[60rem] overflow-y-auto overflow-x-hidden pb-10 mt-5">
+                    <div className="overflow-y-auto overflow-x-hidden my-5">
                         {!componentsToShow ||
                             (componentsToShow.length === 0 && (
                                 <div className="w-full flex justify-center mt-20">
