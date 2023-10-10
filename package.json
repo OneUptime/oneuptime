@@ -58,6 +58,7 @@
         "dev": "npm run config-to-dev && npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up  --remove-orphans  -d $npm_config_services",
         "stop": "export $(grep -v '^#' config.env | xargs) && docker compose down --remove-orphans",
         "down": "npm run stop",
+        "exec": "export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.yml exec -it",
         "prune": "docker system prune",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
         "prepare": "husky install",

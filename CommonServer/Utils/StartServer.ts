@@ -33,6 +33,7 @@ import { DashboardApiRoute } from 'Common/ServiceRoute';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ServerException from 'Common/Types/Exception/ServerException';
+import zlib from 'zlib';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -40,6 +41,10 @@ const app: ExpressApplication = Express.getExpressApp();
 app.disable('x-powered-by');
 app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
+
+const jsonBodyParserMiddleware = ExpressJson({ limit: '50mb', extended: true }); // 50 MB limit.
+
+const urlEncodedMiddleware = ExpressUrlEncoded({ limit: '50mb', extended: true }); // 50 MB limit.
 
 const logRequest: RequestHandler = (
     req: ExpressRequest,
@@ -52,17 +57,13 @@ const logRequest: RequestHandler = (
     const method: string = req.method;
     const url: string = req.url;
 
-    const header_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- POD NAME: ${
-        process.env['POD_NAME'] || 'NONE'
-    } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    const header_info: string = `Request ID: ${(req as OneUptimeRequest).id
+        } -- POD NAME: ${process.env['POD_NAME'] || 'NONE'
+        } -- METHOD: ${method} -- URL: ${url.toString()}`;
 
-    const body_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- Request Body: ${
-        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-    }`;
+    const body_info: string = `Request ID: ${(req as OneUptimeRequest).id
+        } -- Request Body: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        }`;
 
     logger.info(header_info + '\n ' + body_info);
     next();
@@ -73,6 +74,7 @@ const setDefaultHeaders: RequestHandler = (
     res: ExpressResponse,
     next: NextFunction
 ): void => {
+
     if (typeof req.body === Typeof.String) {
         req.body = JSONFunctions.parse(req.body);
     }
@@ -95,8 +97,34 @@ app.use(setDefaultHeaders);
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
  */
 
-app.use(ExpressJson({ limit: '50mb', extended: true }));
-app.use(ExpressUrlEncoded({ limit: '50mb', extended: true }));
+app.use(function (req, res, next) {
+    
+    if (req.headers['content-encoding'] === 'gzip') {
+        var gunzip = zlib.createGunzip();
+        req.pipe(gunzip);
+        var buffer: any = [];
+        gunzip.on('data', function (data) {
+            buffer.push(data.toString());
+        }).on('end', function () {
+            req.body = buffer;
+            next();
+        }).on('error', function (e) {
+            next(e);
+        });
+    } else {
+        jsonBodyParserMiddleware(req, res, next);
+    }
+});
+
+app.use(function (req, res, next) {
+    
+    if (req.headers['content-encoding'] === 'gzip') {
+        next();
+    } else {
+        urlEncodedMiddleware(req, res, next);
+    }
+});
+
 
 app.use(logRequest);
 
@@ -122,10 +150,10 @@ const init: Function = async (
                 const databaseConfig:
                     | HTTPResponse<JSONObject>
                     | HTTPErrorResponse = await API.get<JSONObject>(
-                    URL.fromString(
-                        `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
-                    )
-                );
+                        URL.fromString(
+                            `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
+                        )
+                    );
 
                 if (databaseConfig instanceof HTTPErrorResponse) {
                     // error getting database config.
