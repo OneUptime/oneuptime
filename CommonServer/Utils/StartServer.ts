@@ -33,7 +33,7 @@ import { DashboardApiRoute } from 'Common/ServiceRoute';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ServerException from 'Common/Types/Exception/ServerException';
-// import zlib from 'zlib';
+import zlib from 'zlib';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -99,25 +99,32 @@ app.use(setDefaultHeaders);
 
 app.use(function (req, res, next) {
     if (req.headers['content-encoding'] === 'gzip') {
-        // var gunzip = zlib.createGunzip();
-        // req.pipe(gunzip);
-        // var buffer: any = [];
-        // gunzip.on('data', function (data) {
-        //     buffer.push(data.toString());
-        // }).on('end', function () {
-        //     req.body = buffer.join('');
-        //     next();
-        // }).on('error', function (e) {
-        //     next(e);
-        // });
-        next();
+        let buffers: any = [];
+
+        req.on('data', (chunk) => {
+            buffers.push(chunk);
+        });
+
+        req.on('end', () => {
+            let buffer = Buffer.concat(buffers);
+            zlib.gunzip(buffer, (err, decoded) => {
+                if (err) {
+                    logger.error(err);
+                    return Response.sendErrorResponse(req, res, new ServerException("Error decompressing data"));
+                }
+
+                req.body = decoded;
+
+                next();
+            });
+        });
     } else {
         jsonBodyParserMiddleware(req, res, next);
     }
 });
 
 app.use(function (req, res, next) {
-    
+
     if (req.headers['content-encoding'] === 'gzip') {
         next();
     } else {

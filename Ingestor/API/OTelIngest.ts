@@ -7,7 +7,7 @@ import Express, {
 import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
-import zlib from 'zlib';
+
 // Load proto file for OTel
 
 // Create a root namespace
@@ -23,6 +23,33 @@ const MetricsData = MetricsProto.lookupType('MetricsData');
 
 const router: ExpressRouter = Express.getRouter();
 
+/** 
+ *  
+ *  Otel Middleware
+ * 
+ */
+router.use('/otel/*', (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+    try {
+
+        if (req.baseUrl === '/otel/v1/traces') {
+            req.body = TracesData.decode(req.body);
+        }
+
+        if (req.baseUrl === '/otel/v1/logs') {
+            req.body = LogsData.decode(req.body);
+        }
+
+        if (req.baseUrl === '/otel/v1/metrics') {
+            req.body = MetricsData.decode(req.body);
+        }
+
+        next();
+
+    } catch (err) {
+        return next(err);
+    }
+});
+
 router.post(
     '/otel/*',
     async (
@@ -31,52 +58,11 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+            logger.info('OTel Ingestor API called');
 
-            let buffers: any = [];
-            req.on('data', (chunk) => {
-                buffers.push(chunk);
-            });
+            logger.info(req.body);
 
-
-            req.on('end', () => {
-                let buffer = Buffer.concat(buffers);
-                zlib.gunzip(buffer, (err, decoded) => {
-                    if (err) {
-                        console.error(err);
-                        res.status(500).send('Error decompressing data');
-                        return;
-                    }
-
-
-                    if (req.url === '/otel/v1/traces') {
-                        const traces = TracesData.decode(decoded);
-        
-                        logger.info('Traces: ', traces);
-                    }
-        
-                    if (req.url === '/otel/v1/logs') {
-                        const logs = LogsData.decode(decoded);
-        
-                        logger.info('Logs: ', logs);
-                    }
-        
-                    if (req.url === '/otel/v1/metrics') {
-                        const metrics = MetricsData.decode(decoded);
-        
-                        logger.info('Metrics: ', metrics);
-                    }
-        
-                    // middleware marks the probe as alive.
-                    // so we don't need to do anything here.
-                    return Response.sendEmptyResponse(req, res);
-        
-                    
-                });
-            });
-
-            logger.info('OTelIngest URL: ', req.url);
-
-            
+            return Response.sendEmptyResponse(req, res);
         } catch (err) {
             return next(err);
         }
