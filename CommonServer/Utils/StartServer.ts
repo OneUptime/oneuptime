@@ -60,22 +60,32 @@ const logRequest: RequestHandler = (
     (req as OneUptimeRequest).id = ObjectID.generate();
     (req as OneUptimeRequest).requestStartedAt = OneUptimeDate.getCurrentDate();
 
-    const method: string = req.method;
-    const url: string = req.url;
+    let requestBody = req.body || 'EMPTY';
 
-    const header_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- POD NAME: ${
-        process.env['POD_NAME'] || 'NONE'
-    } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    if (req.headers['content-encoding'] === 'gzip') {
+        requestBody = 'GZIP';
+    }
 
-    const body_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- Request Body: ${
-        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-    }`;
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-    logger.info(header_info + '\n ' + body_info);
+    const method: string = oneUptimeRequest.method;
+    const path: string = oneUptimeRequest.originalUrl.toString();
+
+    const logLine: JSONObject = {
+        RequestID: `${oneUptimeRequest.id}`,
+
+        PodName: `${process.env['POD_NAME'] || 'NONE'}`,
+
+        HTTPMethod: `${method}`,
+
+        Path: `${path.toString()}`,
+
+        Host: `${oneUptimeRequest.hostname}`,
+
+        RequestBody: `${requestBody}`,
+    };
+
+    logger.info(logLine);
     next();
 };
 
@@ -168,10 +178,10 @@ const init: Function = async (
                 const databaseConfig:
                     | HTTPResponse<JSONObject>
                     | HTTPErrorResponse = await API.get<JSONObject>(
-                    URL.fromString(
-                        `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
-                    )
-                );
+                        URL.fromString(
+                            `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
+                        )
+                    );
 
                 if (databaseConfig instanceof HTTPErrorResponse) {
                     // error getting database config.
