@@ -46,7 +46,7 @@
         "fix": "npm run fix-lint",
         "status-check": "bash ./Tests/Scripts/status-check.sh $npm_config_services",
         "start": "export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d $npm_config_services && npm run status-check",
-        "ps": "docker compose ps",
+        "ps": "export $(grep -v '^#' config.env | xargs) &&  docker compose ps",
         "save-logs": "export $(grep -v '^#' config.env | xargs) && docker compose logs --tail=100000 $npm_config_services > logs.txt",
         "logs": "export $(grep -v '^#' config.env | xargs) && docker compose logs --tail=100 -f $npm_config_services",
         "write-logs": "export $(grep -v '^#' config.env | xargs) && docker compose logs -f $npm_config_services > logs.txt",

@@ -1,0 +1,29 @@
+processors:
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+
+
+exporters:
+  otlphttp:
+    endpoint: "http://ingestor:3400/otel"
+    headers: {"x-api-key": "****************"}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]

@@ -8,6 +8,7 @@ import RegisterAPI from './API/Register';
 import MonitorAPI from './API/Monitor';
 import Ingestor from './API/Probe';
 import IncomingRequestAPI from './API/IncomingRequest';
+import OTelIngestAPI from './API/OTelIngest';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 import Redis from 'CommonServer/Infrastructure/Redis';
@@ -21,6 +22,7 @@ app.use([`/${APP_NAME}`, '/'], RegisterAPI);
 app.use([`/${APP_NAME}`, '/'], MonitorAPI);
 app.use([`/${APP_NAME}`, '/'], Ingestor);
 app.use([`/${APP_NAME}`, '/'], IncomingRequestAPI);
+app.use([`/${APP_NAME}`, '/'], OTelIngestAPI);
 
 const init: () => Promise<void> = async (): Promise<void> => {
     try {
