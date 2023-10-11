@@ -117,7 +117,7 @@ export class Service extends DatabaseService<Model> {
 
         createBy.data.currentMonitorStatusId = monitorStatus.id;
 
-        createBy.data.embeddedStatusKey = ObjectID.generate()
+        createBy.data.embeddedStatusKey = ObjectID.generate();
 
         return { createBy, carryForward: null };
     }
