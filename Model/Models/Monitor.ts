@@ -786,7 +786,8 @@ export default class Monitor extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         title: 'Monitor Key',
-        description: 'Key of your OneUptime Monitor in which this is used to fetch statuses',
+        description:
+            'Key of your OneUptime Monitor in which this is used to fetch statuses',
     })
     @Column({
         type: ColumnType.ObjectID,
