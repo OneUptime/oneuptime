@@ -761,4 +761,37 @@ export default class Monitor extends BaseModel {
         default: false,
     })
     public disableActiveMonitoringBecauseOfManualIncident?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Monitor Key',
+        description: 'Key of your OneUptime Monitor in which this is used to fetch statuses',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public embeddedStatusKey?: ObjectID = undefined;
 }
