@@ -98,7 +98,7 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
         <>
             <Card
                 title={`Duplicate ${model.singularName}`}
-                description={`Are you sure you want to duplicate and clone this ${model.singularName?.toLowerCase()}?`}
+                description={`Duplicating this ${model.singularName?.toLowerCase()} will create another ${model.singularName?.toLowerCase()} exactly like this one.`}
                 buttons={[
                     {
                         title: `Duplicate ${model.singularName}`,
