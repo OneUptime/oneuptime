@@ -74,6 +74,8 @@ import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
 
+import './Jobs/Workflow/TimeoutJobs';
+
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();
