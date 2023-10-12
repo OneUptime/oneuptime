@@ -9,17 +9,16 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
+import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -79,63 +78,81 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
             return <ErrorMessage error={error} />;
         }
 
-        if (monitorType === MonitorType.Manual) {
-            return (
-                <EmptyState
-                    id="empty-state-monitoring-settings"
-                    icon={IconProp.Settings}
-                    title={'No Settings for Manual Monitors'}
-                    description={
-                        <>
-                            This is a manual monitor and it cannot have any
-                            settings. You can have monitor settings on other
-                            monitor types.{' '}
-                        </>
-                    }
-                />
-            );
-        }
-
         return (
-            <CardModelDetail
-                name="Monitor Settings"
-                editButtonText="Edit Settings"
-                cardProps={{
-                    title: 'Monitor Settings',
-                    description:
-                        'Here are some advanced settings for this monitor.',
-                }}
-                onSaveSuccess={() => {
-                    setAlertRefreshToggle(!alertRefreshToggle);
-                }}
-                isEditable={true}
-                formFields={[
-                    {
-                        field: {
-                            disableActiveMonitoring: true,
-                        },
+            <div>
+                {monitorType !== MonitorType.Manual && (
+                    <CardModelDetail
+                        name="Monitor Settings"
+                        editButtonText="Edit Settings"
+                        cardProps={{
+                            title: 'Monitor Settings',
+                            description:
+                                'Here are some advanced settings for this monitor.',
+                        }}
+                        onSaveSuccess={() => {
+                            setAlertRefreshToggle(!alertRefreshToggle);
+                        }}
+                        isEditable={true}
+                        formFields={[
+                            {
+                                field: {
+                                    disableActiveMonitoring: true,
+                                },
 
-                        title: 'Disable Active Monitoring',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                    },
-                ]}
-                modelDetailProps={{
-                    showDetailsInNumberOfColumns: 1,
-                    modelType: Monitor,
-                    id: 'model-detail-monitors',
-                    fields: [
-                        {
-                            field: {
-                                disableActiveMonitoring: true,
+                                title: 'Disable Active Monitoring',
+                                fieldType: FormFieldSchemaType.Toggle,
+                                required: false,
                             },
-                            title: 'Disable Active Monitoring',
-                            fieldType: FieldType.Boolean,
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
+                        ]}
+                        modelDetailProps={{
+                            showDetailsInNumberOfColumns: 1,
+                            modelType: Monitor,
+                            id: 'model-detail-monitors',
+                            fields: [
+                                {
+                                    field: {
+                                        disableActiveMonitoring: true,
+                                    },
+                                    title: 'Disable Active Monitoring',
+                                    fieldType: FieldType.Boolean,
+                                },
+                            ],
+                            modelId: modelId,
+                        }}
+                    />
+                )}
+                <div className="mt-5">
+                    <DuplicateModel
+                        modelId={modelId}
+                        modelType={Monitor}
+                        fieldsToDuplicate={{
+                            description: true,
+                            monitorType: true,
+                            monitorSteps: true,
+                            monitoringInterval: true,
+                            labels: true,
+                            customFields: true,
+                        }}
+                        navigateToOnSuccess={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.MONITORS] as Route
+                        )}
+                        fieldsToChange={[
+                            {
+                                field: {
+                                    name: true,
+                                },
+                                title: 'New Monitor Name',
+                                fieldType: FormFieldSchemaType.Text,
+                                required: true,
+                                placeholder: 'New Monitor Name',
+                                validation: {
+                                    minLength: 2,
+                                },
+                            },
+                        ]}
+                    />
+                </div>
+            </div>
         );
     };
 

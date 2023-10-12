@@ -49,6 +49,35 @@ export default abstract class Redis {
 
             this.client = new RedisClient(redisOptions);
 
+            // Listen to 'error' events to the Redis connection
+            this.client.on('error', (error: Error) => {
+                if ((error as any).code === 'ECONNRESET') {
+                    logger.error(
+                        'Connection to Redis Session Store timed out.'
+                    );
+                } else if ((error as any).code === 'ECONNREFUSED') {
+                    logger.error('Connection to Redis Session Store refused!');
+                } else {
+                    logger.error(error);
+                }
+            });
+
+            // Listen to 'reconnecting' event to Redis
+            this.client.on('reconnecting', () => {
+                if (this.client?.status === 'reconnecting') {
+                    logger.error('Reconnecting to Redis Session Store...');
+                } else {
+                    logger.error('Error reconnecting to Redis Session Store.');
+                }
+            });
+
+            // Listen to the 'connect' event to Redis
+            this.client.on('connect', (err: Error) => {
+                if (!err) {
+                    logger.info('Connected to Redis Session Store!');
+                }
+            });
+
             const connectToDatabase: Function = async (
                 client: RedisClient
             ): Promise<void> => {
