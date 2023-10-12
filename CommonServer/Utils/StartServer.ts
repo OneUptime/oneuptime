@@ -35,6 +35,9 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ServerException from 'Common/Types/Exception/ServerException';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
+// Make sure we have stack trace for debugging.
+Error.stackTraceLimit = Infinity;
+
 const app: ExpressApplication = Express.getExpressApp();
 
 app.disable('x-powered-by');
