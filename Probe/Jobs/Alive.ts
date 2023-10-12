@@ -22,8 +22,6 @@ RunCron(
             'PROBE_ID'
         );
 
-        logger.info('Probe ID: ' + probeId.toString());
-
         if (!probeId) {
             logger.warn(
                 'Probe is not registered yet. Skipping alive check. Trying to register probe again...'
@@ -31,6 +29,8 @@ RunCron(
             await Register.registerProbe();
             return;
         }
+
+        logger.info('Probe ID: ' + probeId.toString());
 
         await API.post(
             URL.fromString(INGESTOR_URL.toString()).addRoute('/alive'),
