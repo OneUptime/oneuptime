@@ -253,6 +253,10 @@ export default class BaseModel extends BaseEntity {
         (this as any)[columnName] = value;
     }
 
+    public removeValue(columnName: string): void {
+        (this as any)[columnName] = undefined;
+    }
+
     public doesPermissionHaveConditions(
         permission: Permission
     ): JSONObject | null {
