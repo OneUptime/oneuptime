@@ -25,6 +25,7 @@ import WorkflowDelete from './Pages/Workflow/View/Delete';
 import WorkflowBuilder from './Pages/Workflow/View/Builder';
 import WorkflowOverview from './Pages/Workflow/View/Index';
 import WorkflowVariables from './Pages/Workflow/View/Variable';
+import WorkflowSettings from './Pages/Workflow/View/Settings';
 
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
@@ -659,6 +660,23 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.WORKFLOW_VARIABLES] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.WORKFLOW_VIEW_SETTINGS]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <WorkflowSettings
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.WORKFLOW_VIEW_SETTINGS
+                                ] as Route
                             }
                         />
                     }
