@@ -28,6 +28,8 @@ import Steps from './Steps/Steps';
 import FormField from './Fields/FormField';
 import Validation from './Validation';
 import useAsyncEffect from 'use-async-effect';
+import API from '../../Utils/API/API';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -76,6 +78,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         const [isLoading, setIsLoading] = useState<boolean | undefined>(
             props.isLoading
         );
+
+        const [formError, setFormError] = useState<string | null>(null);
 
         const [isDropdownOptionsLoading, setIsDropdownOptionsLoading] =
             useState<boolean>(false);
@@ -207,9 +211,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 if (item.fetchDropdownOptions) {
                     setIsDropdownOptionsLoading(true);
                     // If a dropdown has fetch optiosn then we need to fetch them
-                    const options: Array<DropdownOption> =
-                        await item.fetchDropdownOptions();
-                    item.dropdownOptions = options;
+                    try {
+                        const options: Array<DropdownOption> =
+                            await item.fetchDropdownOptions();
+                        item.dropdownOptions = options;
+                    } catch (err) {
+                        setFormError(API.getFriendlyMessage(err));
+                    }
                 }
             }
 
@@ -456,6 +464,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         if (props.maxPrimaryButtonWidth) {
             primaryButtonStyle.marginLeft = '0px';
             primaryButtonStyle.width = '100%';
+        }
+
+        if (formError) {
+            return <ErrorMessage error={formError} />;
         }
 
         return (

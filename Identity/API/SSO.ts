@@ -31,6 +31,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -200,7 +201,9 @@ router.post(
                     return Response.sendErrorResponse(
                         req,
                         res,
-                        new BadRequestException('Signature is not valid')
+                        new BadRequestException(
+                            'Signature is not valid or Public Certificate configured with this SSO provider is not valid'
+                        )
                     );
                 }
 
@@ -326,10 +329,14 @@ router.post(
                 });
             }
 
+            const projectId: ObjectID = new ObjectID(
+                req.params['projectId'] as string
+            );
+
             const token: string = JSONWebToken.sign(
                 {
                     userId: alreadySavedUser.id!,
-                    projectId: new ObjectID(req.params['projectId']),
+                    projectId: projectId,
                     email: email,
                     isMasterAdmin: false,
                 },
@@ -344,6 +351,18 @@ router.post(
             const host: Hostname = await DatabaseConfig.getHost();
             const httpProtocol: Protocol =
                 await DatabaseConfig.getHttpProtocol();
+
+            CookieUtil.setCookie(
+                res,
+                CookieUtil.getUserSSOKey(projectId),
+                token,
+                {
+                    maxAge: OneUptimeDate.getSecondsInDays(
+                        new PositiveNumber(30)
+                    ),
+                    httpOnly: true,
+                }
+            );
 
             return Response.redirect(
                 req,

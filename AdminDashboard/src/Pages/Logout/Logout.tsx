@@ -9,12 +9,21 @@ import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const Logout: FunctionComponent = (): ReactElement => {
-    useEffect(() => {
+    const [error, setError] = React.useState<string | null>(null);
+
+    const logout: Function = async () => {
         UiAnalytics.logout();
-        UserUtil.logout();
+        await UserUtil.logout();
         Navigation.navigate(ACCOUNTS_URL);
+    };
+
+    useEffect(() => {
+        logout().catch((error: Error) => {
+            setError(error.message || error.toString());
+        });
     }, []);
 
     return (
@@ -35,7 +44,8 @@ const Logout: FunctionComponent = (): ReactElement => {
                 },
             ]}
         >
-            <PageLoader isVisible={true} />
+            {!error ? <PageLoader isVisible={true} /> : <></>}
+            {error ? <ErrorMessage error={error} /> : <></>}
         </Page>
     );
 };

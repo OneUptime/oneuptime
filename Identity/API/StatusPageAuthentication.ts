@@ -25,8 +25,37 @@ import StatusPageService from 'CommonServer/Services/StatusPageService';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 
 const router: ExpressRouter = Express.getRouter();
+
+router.post(
+    '/logout/:statuspageid',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            if (!req.params['statuspageid']) {
+                throw new BadDataException('Status Page ID is required.');
+            }
+
+            const statusPageId: ObjectID = new ObjectID(
+                req.params['statuspageid'].toString()
+            );
+
+            CookieUtil.removeCookie(
+                res,
+                CookieUtil.getUserTokenKey(statusPageId)
+            ); // remove the cookie.
+
+            return Response.sendEmptyResponse(req, res);
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
 
 router.post(
     '/forgot-password',
@@ -364,16 +393,24 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
+                // Set a cookie with token.
+                CookieUtil.setCookie(
+                    res,
+                    CookieUtil.getUserTokenKey(user.statusPageId!),
+                    token,
+                    {
+                        maxAge: OneUptimeDate.getSecondsInDays(
+                            new PositiveNumber(30)
+                        ),
+                        httpOnly: true,
+                    }
+                );
+
                 return Response.sendEntityResponse(
                     req,
                     res,
                     alreadySavedUser,
-                    StatusPagePrivateUser,
-                    {
-                        miscData: {
-                            token,
-                        },
-                    }
+                    StatusPagePrivateUser
                 );
             }
             throw new BadDataException(

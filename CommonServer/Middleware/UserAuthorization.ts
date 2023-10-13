@@ -29,6 +29,7 @@ import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationEx
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import logger from '../Utils/Logger';
 import Exception from 'Common/Types/Exception/Exception';
+import CookieUtil from '../Utils/Cookie';
 
 export default class UserMiddleware {
     /*
@@ -38,19 +39,14 @@ export default class UserMiddleware {
      * Returns: 401: User is unauthorized since unauthorized token was present.
      */
 
-    public static getAccessToken(req: ExpressRequest): string | null {
-        let accessToken: string | null = null;
+    public static getAccessToken(req: ExpressRequest): string | undefined {
+        let accessToken: string | undefined = undefined;
 
-        if (req.headers['authorization']) {
-            accessToken = req.headers['authorization'] as string;
-        }
-
-        if (req.query['accessToken']) {
-            accessToken = req.query['accessToken'] as string;
-        }
-
-        if (accessToken?.includes(' ')) {
-            accessToken = accessToken.split(' ')[1] || '';
+        if (CookieUtil.getCookie(req, CookieUtil.getUserTokenKey())) {
+            accessToken = CookieUtil.getCookie(
+                req,
+                CookieUtil.getUserTokenKey()
+            );
         }
 
         return accessToken;
@@ -59,10 +55,13 @@ export default class UserMiddleware {
     public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
         const ssoTokens: Dictionary<string> = {};
 
-        for (const key of Object.keys(req.headers)) {
-            if (key.startsWith('sso-')) {
-                const value: string | undefined | Array<string> =
-                    req.headers[key];
+        // get sso tokens from cookies.
+
+        const cookies: Dictionary<string> = CookieUtil.getAllCookies(req);
+
+        for (const key of Object.keys(cookies)) {
+            if (key.startsWith(CookieUtil.getSSOKey())) {
+                const value: string | undefined | Array<string> = cookies[key];
                 let projectId: string | undefined = undefined;
 
                 try {
@@ -80,7 +79,7 @@ export default class UserMiddleware {
                     typeof value === 'string' &&
                     typeof projectId === 'string'
                 ) {
-                    ssoTokens[projectId] = req.headers[key] as string;
+                    ssoTokens[projectId] = cookies[key] as string;
                 }
             }
         }
@@ -133,7 +132,8 @@ export default class UserMiddleware {
             );
         }
 
-        const accessToken: string | null = UserMiddleware.getAccessToken(req);
+        const accessToken: string | undefined =
+            UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
             oneuptimeRequest.userType = UserType.Public;

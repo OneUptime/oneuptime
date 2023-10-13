@@ -11,11 +11,9 @@ export default abstract class LoginUtil {
             value['user'] as JSONObject,
             StatusPagePrivateUser
         ) as StatusPagePrivateUser;
-        const token: string = value['token'] as string;
 
         const statusPageId: ObjectID = user.statusPageId!;
 
-        UserUtil.setAccessToken(statusPageId, token);
         UserUtil.setEmail(statusPageId, user.email as Email);
         UserUtil.setUserId(statusPageId, user.id as ObjectID);
     }

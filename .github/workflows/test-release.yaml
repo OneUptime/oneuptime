@@ -202,6 +202,69 @@ jobs:
             GIT_SHA=${{ github.sha }}
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
+
+          
+  otel-collector-docker-image-deploy:
+    needs: generate-build-number
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            oneuptime/otel-collector
+            ghcr.io/oneuptime/otel-collector
+          tags: |
+            type=raw,value=test,enable=true
+            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      # Build and deploy otel-collector.
+
+      - name: Login to Docker Hub 
+        uses: docker/login-action@v2.2.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          file: ./OTelCollector/Dockerfile
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+
   link-shortener-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
@@ -622,67 +685,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           file: ./Notification/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
-
-  licensing-docker-image-deploy:
-    needs: generate-build-number
-    runs-on: ubuntu-latest
-    steps:
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/licensing
-            ghcr.io/oneuptime/licensing
-          tags: |
-            type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
-            
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
-
-      # Build and deploy licensing.
-
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          file: ./Licensing/Dockerfile
           context: .
           platforms: linux/amd64,linux/arm64
           push: true

@@ -220,6 +220,7 @@ export default class TeamMember extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanReadProjectTeam,
+            Permission.ProjectMember,
         ],
         update: [],
     })

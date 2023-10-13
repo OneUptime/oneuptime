@@ -34,7 +34,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ServerException from 'Common/Types/Exception/ServerException';
 import zlib from 'zlib';
-// import OpenTelemetrySDK from "./OpenTelemetry";
+import CookieParser from 'cookie-parser';
 
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
@@ -44,6 +44,7 @@ const app: ExpressApplication = Express.getExpressApp();
 app.disable('x-powered-by');
 app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
+app.use(CookieParser());
 
 const jsonBodyParserMiddleware: Function = ExpressJson({
     limit: '50mb',

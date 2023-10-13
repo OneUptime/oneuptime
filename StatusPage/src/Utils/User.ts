@@ -2,18 +2,11 @@ import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
+import { IDENTITY_URL } from 'CommonUI/src/Config';
+import API from 'Common/Utils/API';
+import URL from 'Common/Types/API/URL';
 
 export default class User {
-    public static getAccessToken(statusPageId: ObjectID): string {
-        return LocalStorage.getItem(
-            statusPageId.toString() + 'access_token'
-        ) as string;
-    }
-
-    public static setAccessToken(statusPageId: ObjectID, token: string): void {
-        LocalStorage.setItem(statusPageId.toString() + 'access_token', token);
-    }
-
     public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {
         LocalStorage.setItem(
             statusPageId.toString() + 'user_id',
@@ -44,7 +37,21 @@ export default class User {
         );
     }
 
-    public static getEmail(statusPageId: ObjectID): Email {
+    public static removeName(statusPageId: ObjectID): void {
+        LocalStorage.removeItem(statusPageId.toString() + 'user_name');
+    }
+
+    public static removeUser(statusPageId: ObjectID): void {
+        this.removeUserId(statusPageId);
+        this.removeUserEmail(statusPageId);
+        this.removeName(statusPageId);
+    }
+
+    public static getEmail(statusPageId: ObjectID): Email | null {
+        if (!LocalStorage.getItem(statusPageId.toString() + 'user_email')) {
+            return null;
+        }
+
         return new Email(
             LocalStorage.getItem(
                 statusPageId.toString() + 'user_email'
@@ -60,8 +67,8 @@ export default class User {
         LocalStorage.removeItem(statusPageId.toString() + 'user_id');
     }
 
-    public static removeAccessToken(statusPageId: ObjectID): void {
-        LocalStorage.removeItem(statusPageId.toString() + 'access_token');
+    public static removeUserEmail(statusPageId: ObjectID): void {
+        LocalStorage.removeItem(statusPageId.toString() + 'user_email');
     }
 
     public static removeInitialUrl(statusPageId: ObjectID): void {
@@ -71,13 +78,15 @@ export default class User {
     }
 
     public static isLoggedIn(statusPageId: ObjectID): boolean {
-        return LocalStorage.getItem(statusPageId.toString() + 'access_token')
-            ? true
-            : false;
+        return Boolean(this.getEmail(statusPageId));
     }
 
-    public static logout(statusPageId: ObjectID): void {
-        User.removeAccessToken(statusPageId);
-        User.removeUserId(statusPageId);
+    public static async logout(statusPageId: ObjectID): Promise<void> {
+        await API.post(
+            URL.fromString(IDENTITY_URL.toString())
+                .addRoute('/status-page/logout')
+                .addRoute('/' + statusPageId.toString())
+        );
+        this.removeUser(statusPageId);
     }
 }

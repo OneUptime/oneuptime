@@ -32,7 +32,6 @@ import Link from 'Common/Types/Link';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
 import Route from 'Common/Types/API/Route';
-import User from '../../Utils/User';
 import LoginUtil from '../../Utils/Login';
 import StatusPageUtil from '../../Utils/StatusPage';
 
@@ -94,7 +93,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
 
             LoginUtil.login({
-                token: sso_token,
                 user: { ...decodedtoken, _id: decodedtoken.userId },
             });
 
@@ -104,8 +102,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 );
                 return Navigation.navigate(logoutRoute);
             }
-
-            User.setAccessToken(decodedtoken.statusPageId!, sso_token);
 
             if (Navigation.getQueryStringByName('redirectUrl')) {
                 Navigation.navigate(
