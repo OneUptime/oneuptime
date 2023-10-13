@@ -32,7 +32,7 @@ export default class CookieUtil {
 
     // get all cookies with express request
     public static getAllCookies(req: ExpressRequest): Dictionary<string> {
-        return req.cookies;
+        return req.cookies || {};
     }
 
     public static getUserTokenKey(id?: ObjectID): string {

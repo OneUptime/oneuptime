@@ -48,9 +48,9 @@ describe('UserMiddleware', () => {
     });
 
     describe('getAccessToken', () => {
-        test('should return access token when authorization token is passed in the request header', () => {
+        test('should return access token when authorization token is passed in the cookie', () => {
             const req: ExpressRequest = {
-                headers: { authorization: mockedAccessToken },
+                cookies: { "user-token": mockedAccessToken },
                 query: {},
             } as ExpressRequest;
 
@@ -60,33 +60,10 @@ describe('UserMiddleware', () => {
             expect(result).toEqual(mockedAccessToken);
         });
 
-        test('should return access token when accessToken token is passed in the request query', () => {
-            const req: Partial<ExpressRequest> = {
-                query: { accessToken: mockedAccessToken },
-                headers: {},
-            };
-
-            const result: StringOrUndefined = UserMiddleware.getAccessToken(
-                req as ExpressRequest
-            );
-
-            expect(result).toEqual(mockedAccessToken);
-        });
-
-        test('should split and return the access token part of a bearer authorization token', () => {
-            const req: ExpressRequest = {
-                headers: { authorization: `Bearer ${mockedAccessToken}` },
-                query: {},
-            } as ExpressRequest;
-
-            const result: StringOrUndefined =
-                UserMiddleware.getAccessToken(req);
-
-            expect(result).toEqual(mockedAccessToken);
-        });
-
+      
         test('should return null when authorization nor accessToken is passed', () => {
             const req: ExpressRequest = {
+                cookies: {},
                 headers: {},
                 query: {},
             } as ExpressRequest;
@@ -94,7 +71,7 @@ describe('UserMiddleware', () => {
             const result: StringOrUndefined =
                 UserMiddleware.getAccessToken(req);
 
-            expect(result).toBeNull();
+            expect(result).toBeUndefined();
         });
     });
 
@@ -104,7 +81,7 @@ describe('UserMiddleware', () => {
         });
 
         const req: Partial<ExpressRequest> = {
-            headers: { 'sso-token': mockedAccessToken },
+            cookies: { 'sso-token': mockedAccessToken },
         };
 
         test('should return an empty object when ssoToken is not passed', () => {
