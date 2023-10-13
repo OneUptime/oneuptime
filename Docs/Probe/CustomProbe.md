@@ -10,11 +10,11 @@ To begin with you need to create a custom probe in your Project Settings > Probe
 To run a probe, please make sure you have docker installed. You can run custom probe by: 
 
 ```
-docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e PROBE_API_URL=https://oneuptime.com -d oneuptime/probe:release
+docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e INGESTOR_URL=https://oneuptime.com -d oneuptime/probe:release
 
 ```
 
-If you are self hosting OneUptime, you can change `PROBE_API_URL` to your custom self hosted instance. 
+If you are self hosting OneUptime, you can change `INGESTOR_URL` to your custom self hosted instance. 
 
 ### Verify 
 
