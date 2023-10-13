@@ -4,15 +4,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
 
 export default class User {
-    public static getAccessToken(statusPageId: ObjectID): string {
-        return LocalStorage.getItem(
-            statusPageId.toString() + 'access_token'
-        ) as string;
-    }
-
-    public static setAccessToken(statusPageId: ObjectID, token: string): void {
-        LocalStorage.setItem(statusPageId.toString() + 'access_token', token);
-    }
 
     public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {
         LocalStorage.setItem(

@@ -35,6 +35,7 @@ import AccessTokenService from 'CommonServer/Services/AccessTokenService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -183,11 +184,15 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendEntityResponse(req, res, savedUser, User, {
-                    miscData: {
-                        token,
-                    },
+                // Set a cookie with token.
+                CookieUtil.setCookie(res, 'user-token', token, {
+                    maxAge: OneUptimeDate.getSecondsInDays(
+                        new PositiveNumber(30)
+                    ),
+                    httpOnly: true,
                 });
+
+                return Response.sendEntityResponse(req, res, savedUser, User);
             }
 
             return Response.sendErrorResponse(
@@ -482,6 +487,24 @@ router.post(
 );
 
 router.post(
+    '/logout',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            CookieUtil.removeCookie(res, 'user-token');
+
+            // remove all sso cookies as well. 
+            
+            return Response.sendEmptyResponse(req, res);
+        } catch (err) {
+            return next(err);
+        }
+    });
+
+router.post(
     '/login',
     async (
         req: ExpressRequest,
@@ -553,16 +576,19 @@ router.post(
                         OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                     );
 
+                    // Set a cookie with token. 
+                    CookieUtil.setCookie(res, 'user-token', token, {
+                        maxAge: OneUptimeDate.getSecondsInDays(
+                            new PositiveNumber(30)
+                        ),
+                        httpOnly: true,
+                    });
+
                     return Response.sendEntityResponse(
                         req,
                         res,
                         alreadySavedUser,
-                        User,
-                        {
-                            miscData: {
-                                token,
-                            },
-                        }
+                        User
                     );
                 }
             }

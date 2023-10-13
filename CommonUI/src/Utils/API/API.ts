@@ -68,9 +68,6 @@ class BaseAPI extends API {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
         const headers: Headers = {};
-        if (User.isLoggedIn()) {
-            headers['Authorization'] = 'Basic ' + User.getAccessToken();
-        }
 
         const globalPermissionsHash: string = LocalStorage.getItem(
             'global-permissions-hash'

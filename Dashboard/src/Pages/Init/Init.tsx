@@ -49,7 +49,6 @@ const Init: FunctionComponent<ComponentProps> = (
                 return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
             }
 
-            User.setSsoToken(decodedtoken.projectId, sso_token);
         }
     }, []);
 

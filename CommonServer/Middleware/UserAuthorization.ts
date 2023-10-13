@@ -29,6 +29,7 @@ import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationEx
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import logger from '../Utils/Logger';
 import Exception from 'Common/Types/Exception/Exception';
+import CookieUtil from '../Utils/Cookie';
 
 export default class UserMiddleware {
     /*
@@ -41,16 +42,8 @@ export default class UserMiddleware {
     public static getAccessToken(req: ExpressRequest): string | null {
         let accessToken: string | null = null;
 
-        if (req.headers['authorization']) {
-            accessToken = req.headers['authorization'] as string;
-        }
-
-        if (req.query['accessToken']) {
-            accessToken = req.query['accessToken'] as string;
-        }
-
-        if (accessToken?.includes(' ')) {
-            accessToken = accessToken.split(' ')[1] || '';
+        if(CookieUtil.getCookie(req, "user-token")){
+            accessToken = CookieUtil.getCookie(req, "user-token");
         }
 
         return accessToken;
@@ -59,10 +52,14 @@ export default class UserMiddleware {
     public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
         const ssoTokens: Dictionary<string> = {};
 
-        for (const key of Object.keys(req.headers)) {
+        // get sso tokens from cookies. 
+
+        const cookies: Dictionary<string> = CookieUtil.getAllCookies(req);
+
+        for (const key of Object.keys(cookies)) {
             if (key.startsWith('sso-')) {
                 const value: string | undefined | Array<string> =
-                    req.headers[key];
+                    cookies[key];
                 let projectId: string | undefined = undefined;
 
                 try {
@@ -80,7 +77,7 @@ export default class UserMiddleware {
                     typeof value === 'string' &&
                     typeof projectId === 'string'
                 ) {
-                    ssoTokens[projectId] = req.headers[key] as string;
+                    ssoTokens[projectId] = cookies[key] as string;
                 }
             }
         }

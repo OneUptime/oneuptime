@@ -8,9 +8,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Dictionary from 'Common/Types/Dictionary';
 
 export default class User {
-    public static getAccessToken(): string {
-        return LocalStorage.getItem('access_token') as string;
-    }
 
     public static setProfilePicId(id: ObjectID | null): void {
         if (!id) {
@@ -29,20 +26,6 @@ export default class User {
         return new ObjectID(
             (LocalStorage.getItem('profile_pic_id') as string) || ''
         );
-    }
-
-    public static setAccessToken(token: string): void {
-        LocalStorage.setItem('access_token', token);
-    }
-
-    public static setSsoToken(projectId: ObjectID, token: string): void {
-        LocalStorage.setItem('sso_' + projectId.toString(), token);
-    }
-
-    public static getSsoToken(projectId: ObjectID): string | null {
-        return LocalStorage.getItem('sso_' + projectId.toString()) as
-            | string
-            | null;
     }
 
     public static isCardRegistered(): boolean {
@@ -69,7 +52,11 @@ export default class User {
         LocalStorage.setItem('user_name', name.toString());
     }
 
-    public static getEmail(): Email {
+    public static getEmail(): Email | null {
+        if(!LocalStorage.getItem('user_email')){
+            return null;
+        }
+        
         return new Email(LocalStorage.getItem('user_email') as string);
     }
 
@@ -92,29 +79,6 @@ export default class User {
     // TODO: Fix project type
     public static setProject(project: JSONObject): void {
         LocalStorage.setItem('project', project);
-    }
-
-    public static getAllSsoTokens(): Dictionary<string> {
-        const localStorageItems: Dictionary<string> =
-            LocalStorage.getAllItems();
-        const result: Dictionary<string> = {};
-
-        let numberOfTokens: number = 1;
-
-        for (const key in localStorageItems) {
-            if (!localStorageItems[key]) {
-                continue;
-            }
-
-            if (key.startsWith('sso_')) {
-                result['sso-' + numberOfTokens] = localStorageItems[
-                    key
-                ] as string;
-                numberOfTokens++;
-            }
-        }
-
-        return result;
     }
 
     public static getProject(): JSONObject {
@@ -146,10 +110,11 @@ export default class User {
     }
 
     public static isLoggedIn(): boolean {
-        return LocalStorage.getItem('access_token') ? true : false;
+        return !!this.getEmail();
     }
 
-    public static logout(): void {
+    public static async logout(): Promise<void> {
+        // TODO: Clear all cookies here.
         LocalStorage.clear();
     }
 

@@ -16,9 +16,6 @@ export default abstract class LoginUtil {
             User
         ) as User;
 
-        const token: string = value['token'] as string;
-
-        UserUtil.setAccessToken(token);
         UserUtil.setEmail(user.email as Email);
         UserUtil.setUserId(user.id as ObjectID);
         UserUtil.setName(user.name || new Name(''));

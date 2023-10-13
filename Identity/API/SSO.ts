@@ -31,6 +31,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -344,6 +345,13 @@ router.post(
             const host: Hostname = await DatabaseConfig.getHost();
             const httpProtocol: Protocol =
                 await DatabaseConfig.getHttpProtocol();
+
+            CookieUtil.setCookie(res, 'sso-'+req.params['projectId'].toString(), token, {
+                maxAge: OneUptimeDate.getSecondsInDays(
+                    new PositiveNumber(30)
+                ),
+                httpOnly: true,
+            });
 
             return Response.redirect(
                 req,

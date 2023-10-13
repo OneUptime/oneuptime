@@ -17,7 +17,6 @@ import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
 import Sort from './Sort';
 import Project from 'Model/Models/Project';
-import User from '../User';
 import Navigation from '../Navigation';
 
 export class ModelAPIHttpResponse<
@@ -319,7 +318,6 @@ export default class ModelAPI {
 
         headers = {
             ...headers,
-            ...User.getAllSsoTokens(),
         };
 
         if (requestOptions && requestOptions.isMultiTenantRequest) {
