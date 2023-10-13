@@ -3,6 +3,7 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Email from 'Common/Types/Email';
 import xmldom from 'xmldom';
 import xmlCrypto, { FileKeyInfo } from 'xml-crypto';
+import logger from 'CommonServer/Utils/Logger';
 
 export default class SSOUtil {
     public static isPayloadValid(payload: JSONObject): void {
@@ -83,28 +84,33 @@ export default class SSOUtil {
         samlPayload: string,
         certificate: string
     ): boolean {
-        const dom: Document = new xmldom.DOMParser().parseFromString(
-            samlPayload
-        );
-        const signature: Element | undefined = dom.getElementsByTagNameNS(
-            'http://www.w3.org/2000/09/xmldsig#',
-            'Signature'
-        )[0];
-        const sig: xmlCrypto.SignedXml = new xmlCrypto.SignedXml();
+        try {
+            const dom: Document = new xmldom.DOMParser().parseFromString(
+                samlPayload
+            );
+            const signature: Element | undefined = dom.getElementsByTagNameNS(
+                'http://www.w3.org/2000/09/xmldsig#',
+                'Signature'
+            )[0];
+            const sig: xmlCrypto.SignedXml = new xmlCrypto.SignedXml();
 
-        sig.keyInfoProvider = {
-            getKeyInfo: function (_key: any) {
-                return `<X509Data><X509Certificate>${certificate}</X509Certificate></X509Data>`;
-            },
-            getKey: function () {
-                return certificate;
-            } as any,
-        } as FileKeyInfo;
+            sig.keyInfoProvider = {
+                getKeyInfo: function (_key: any) {
+                    return `<X509Data><X509Certificate>${certificate}</X509Certificate></X509Data>`;
+                },
+                getKey: function () {
+                    return certificate;
+                } as any,
+            } as FileKeyInfo;
 
-        sig.loadSignature(signature!.toString());
-        const res: boolean = sig.checkSignature(samlPayload);
+            sig.loadSignature(signature!.toString());
+            const res: boolean = sig.checkSignature(samlPayload);
 
-        return res;
+            return res;
+        } catch (err) {
+            logger.error(err);
+            return false;
+        }
     }
 
     public static getEmail(payload: JSONObject): Email {

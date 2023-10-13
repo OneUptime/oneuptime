@@ -201,7 +201,9 @@ router.post(
                     return Response.sendErrorResponse(
                         req,
                         res,
-                        new BadRequestException('Signature is not valid')
+                        new BadRequestException(
+                            'Signature is not valid or Public Certificate configured with this SSO provider is not valid'
+                        )
                     );
                 }
 

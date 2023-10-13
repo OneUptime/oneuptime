@@ -50,4 +50,15 @@ export default class CookieUtil {
     public static getSSOKey(): string {
         return `sso-`;
     }
+
+    // delete all cookies.
+    public static removeAllCookies(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): void {
+        const cookies: Dictionary<string> = this.getAllCookies(req);
+        for (const key in cookies) {
+            this.removeCookie(res, key);
+        }
+    }
 }

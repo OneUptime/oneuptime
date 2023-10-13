@@ -494,7 +494,7 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey()); // remove the cookie.
+            CookieUtil.removeAllCookies(req, res);
 
             return Response.sendEmptyResponse(req, res);
         } catch (err) {
