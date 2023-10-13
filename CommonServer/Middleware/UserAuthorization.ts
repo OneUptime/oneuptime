@@ -39,8 +39,8 @@ export default class UserMiddleware {
      * Returns: 401: User is unauthorized since unauthorized token was present.
      */
 
-    public static getAccessToken(req: ExpressRequest): string | null {
-        let accessToken: string | null = null;
+    public static getAccessToken(req: ExpressRequest): string | undefined {
+        let accessToken: string | undefined = undefined;
 
         if (CookieUtil.getCookie(req, CookieUtil.getUserTokenKey())) {
             accessToken = CookieUtil.getCookie(
