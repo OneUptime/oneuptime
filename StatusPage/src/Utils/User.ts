@@ -37,6 +37,16 @@ export default class User {
         );
     }
 
+    public static removeName(statusPageId: ObjectID): void {
+        LocalStorage.removeItem(statusPageId.toString() + 'user_name');
+    }
+
+    public static removeUser(statusPageId: ObjectID): void {
+        this.removeUserId(statusPageId);
+        this.removeUserEmail(statusPageId);
+        this.removeName(statusPageId);
+    }
+
     public static getEmail(statusPageId: ObjectID): Email | null {
         if (!LocalStorage.getItem(statusPageId.toString() + 'user_email')) {
             return null;
@@ -57,6 +67,10 @@ export default class User {
         LocalStorage.removeItem(statusPageId.toString() + 'user_id');
     }
 
+    public static removeUserEmail(statusPageId: ObjectID): void {
+        LocalStorage.removeItem(statusPageId.toString() + 'user_email');
+    }
+
     public static removeInitialUrl(statusPageId: ObjectID): void {
         return sessionStorage.removeItem(
             statusPageId.toString() + 'initialUrl'
@@ -73,6 +87,6 @@ export default class User {
                 .addRoute('/status-page/logout')
                 .addRoute('/' + statusPageId.toString())
         );
-        User.removeUserId(statusPageId);
+        this.removeUser(statusPageId);
     }
 }
