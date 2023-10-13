@@ -50,7 +50,7 @@ describe('UserMiddleware', () => {
     describe('getAccessToken', () => {
         test('should return access token when authorization token is passed in the cookie', () => {
             const req: ExpressRequest = {
-                cookies: { "user-token": mockedAccessToken },
+                cookies: { 'user-token': mockedAccessToken },
                 query: {},
             } as ExpressRequest;
 
@@ -60,7 +60,6 @@ describe('UserMiddleware', () => {
             expect(result).toEqual(mockedAccessToken);
         });
 
-      
         test('should return null when authorization nor accessToken is passed', () => {
             const req: ExpressRequest = {
                 cookies: {},
