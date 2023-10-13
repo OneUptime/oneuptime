@@ -2,20 +2,20 @@ import URL from 'Common/Types/API/URL';
 import logger from 'CommonServer/Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
 
-if (!process.env['PROBE_API_URL']) {
-    logger.error('PROBE_API_URL is not set');
+if (!process.env['INGESTOR_URL']) {
+    logger.error('INGESTOR_URL is not set');
     process.exit();
 }
 
-export let PROBE_API_URL: URL = URL.fromString(process.env['PROBE_API_URL']);
+export let INGESTOR_URL: URL = URL.fromString(process.env['INGESTOR_URL']);
 
 // If probe api does not have the path. Add it.
 if (
-    !PROBE_API_URL.toString().endsWith('probe-api') &&
-    !PROBE_API_URL.toString().endsWith('probe-api/')
+    !INGESTOR_URL.toString().endsWith('ingestor') &&
+    !INGESTOR_URL.toString().endsWith('ingestor/')
 ) {
-    PROBE_API_URL = URL.fromString(
-        PROBE_API_URL.addRoute('/probe-api').toString()
+    INGESTOR_URL = URL.fromString(
+        INGESTOR_URL.addRoute('/ingestor').toString()
     );
 }
 

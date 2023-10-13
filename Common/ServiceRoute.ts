@@ -26,4 +26,4 @@ export const ApiReferenceRoute: Route = new Route('/reference');
 
 export const AdminDashboardRoute: Route = new Route('/admin');
 
-export const ProbeApiRoute: Route = new Route('/probe-api');
+export const IngestorRoute: Route = new Route('/ingestor');

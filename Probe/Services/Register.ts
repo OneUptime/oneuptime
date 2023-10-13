@@ -1,6 +1,6 @@
 import API from 'Common/Utils/API';
 import {
-    PROBE_API_URL,
+    INGESTOR_URL,
     PROBE_DESCRIPTION,
     PROBE_ID,
     PROBE_KEY,
@@ -44,7 +44,7 @@ export default class Register {
     private static async _registerProbe(): Promise<void> {
         if (HasClusterKey) {
             const probeRegistrationUrl: URL = URL.fromString(
-                PROBE_API_URL.toString()
+                INGESTOR_URL.toString()
             ).addRoute('/register');
 
             logger.info('Registering Probe...');
@@ -77,7 +77,7 @@ export default class Register {
             }
 
             await API.post(
-                URL.fromString(PROBE_API_URL.toString()).addRoute('/alive'),
+                URL.fromString(INGESTOR_URL.toString()).addRoute('/alive'),
                 {
                     probeKey: PROBE_KEY.toString(),
                     probeId: PROBE_ID.toString(),

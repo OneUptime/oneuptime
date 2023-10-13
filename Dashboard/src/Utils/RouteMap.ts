@@ -485,6 +485,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/delete`
     ),
 
+    [PageMap.WORKFLOW_VIEW_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/settings`
+    ),
+
     /// custom fields settings.
 
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: new Route(

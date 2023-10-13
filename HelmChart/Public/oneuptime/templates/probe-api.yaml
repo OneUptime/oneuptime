@@ -1,16 +1,16 @@
-# OneUptime probeApi Deployment
-{{- $probeApiEnv := dict "PORT"  $.Values.port.probeApi -}}
-{{- $probeApiDeploymentArgs :=dict "IsServer" true "ServiceName" "probe-api" "Port" $.Values.port.probeApi "Release" $.Release "Values" $.Values "Env" $probeApiEnv -}}
-{{- include "oneuptime.deployment" $probeApiDeploymentArgs }}
+# OneUptime ingestor Deployment
+{{- $ingestorEnv := dict "PORT"  $.Values.port.ingestor -}}
+{{- $ingestorDeploymentArgs :=dict "IsServer" true "ServiceName" "ingestor" "Port" $.Values.port.ingestor "Release" $.Release "Values" $.Values "Env" $ingestorEnv -}}
+{{- include "oneuptime.deployment" $ingestorDeploymentArgs }}
 ---
 
-# OneUptime probeApi Service
+# OneUptime ingestor Service
 
-{{- $probeApiServiceArgs := dict "ServiceName" "probe-api" "Port" $.Values.port.probeApi "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $probeApiServiceArgs }}
+{{- $ingestorServiceArgs := dict "ServiceName" "ingestor" "Port" $.Values.port.ingestor "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $ingestorServiceArgs }}
 ---
 
-# OneUptime probeApi autoscaler
-{{- $probeApiAutoScalerArgs := dict "ServiceName" "probe-api" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $probeApiAutoScalerArgs }}
+# OneUptime ingestor autoscaler
+{{- $ingestorAutoScalerArgs := dict "ServiceName" "ingestor" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $ingestorAutoScalerArgs }}
 ---

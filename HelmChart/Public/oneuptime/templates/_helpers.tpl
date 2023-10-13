@@ -31,8 +31,8 @@
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_LINK_SHORTENER_HOSTNAME
   value: {{ $.Release.Name }}-link-shortener.{{ $.Release.Namespace }}.svc.cluster.local
-- name: SERVER_PROBE_API_HOSTNAME
-  value: {{ $.Release.Name }}-probe-api.{{ $.Release.Namespace }}.svc.cluster.local
+- name: SERVER_INGESTOR_HOSTNAME
+  value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_FILE_HOSTNAME
@@ -64,8 +64,8 @@
   value: {{ $.Values.port.linkShortener | squote }}
 - name: ALERT_PORT
   value: {{ $.Values.port.alert | squote }}
-- name: PROBE_API_PORT
-  value: {{ $.Values.port.probeApi | squote }}
+- name: INGESTOR_PORT
+  value: {{ $.Values.port.ingestor | squote }}
 - name: PROBE_PORT
   value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT

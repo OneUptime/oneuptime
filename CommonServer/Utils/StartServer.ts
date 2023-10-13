@@ -33,6 +33,7 @@ import { DashboardApiRoute } from 'Common/ServiceRoute';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ServerException from 'Common/Types/Exception/ServerException';
+import zlib from 'zlib';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 // Make sure we have stack trace for debugging.
@@ -44,6 +45,16 @@ app.disable('x-powered-by');
 app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
 
+const jsonBodyParserMiddleware: Function = ExpressJson({
+    limit: '50mb',
+    extended: true,
+}); // 50 MB limit.
+
+const urlEncodedMiddleware: Function = ExpressUrlEncoded({
+    limit: '50mb',
+    extended: true,
+}); // 50 MB limit.
+
 const logRequest: RequestHandler = (
     req: ExpressRequest,
     _res: ExpressResponse,
@@ -52,22 +63,35 @@ const logRequest: RequestHandler = (
     (req as OneUptimeRequest).id = ObjectID.generate();
     (req as OneUptimeRequest).requestStartedAt = OneUptimeDate.getCurrentDate();
 
-    const method: string = req.method;
-    const url: string = req.url;
+    let requestBody: string =
+        req.body && req.headers['content-encoding'] !== 'gzip'
+            ? JSON.stringify(req.body)
+            : 'EMPTY';
 
-    const header_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- POD NAME: ${
-        process.env['POD_NAME'] || 'NONE'
-    } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    if (req.headers['content-encoding'] === 'gzip') {
+        requestBody = 'GZIP';
+    }
 
-    const body_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- Request Body: ${
-        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-    }`;
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-    logger.info(header_info + '\n ' + body_info);
+    const method: string = oneUptimeRequest.method;
+    const path: string = oneUptimeRequest.originalUrl.toString();
+
+    const logLine: JSONObject = {
+        RequestID: `${oneUptimeRequest.id}`,
+
+        PodName: `${process.env['POD_NAME'] || 'NONE'}`,
+
+        HTTPMethod: `${method}`,
+
+        Path: `${path.toString()}`,
+
+        Host: `${oneUptimeRequest.hostname}`,
+
+        RequestBody: `${requestBody}`,
+    };
+
+    logger.info(logLine);
     next();
 };
 
@@ -98,8 +122,43 @@ app.use(setDefaultHeaders);
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
  */
 
-app.use(ExpressJson({ limit: '50mb', extended: true }));
-app.use(ExpressUrlEncoded({ limit: '50mb', extended: true }));
+app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    if (req.headers['content-encoding'] === 'gzip') {
+        const buffers: any = [];
+
+        req.on('data', (chunk: any) => {
+            buffers.push(chunk);
+        });
+
+        req.on('end', () => {
+            const buffer: Buffer = Buffer.concat(buffers);
+            zlib.gunzip(buffer, (err: unknown, decoded: Buffer) => {
+                if (err) {
+                    logger.error(err);
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new ServerException('Error decompressing data')
+                    );
+                }
+
+                req.body = decoded;
+
+                next();
+            });
+        });
+    } else {
+        jsonBodyParserMiddleware(req, res, next);
+    }
+});
+
+app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    if (req.headers['content-encoding'] === 'gzip') {
+        next();
+    } else {
+        urlEncodedMiddleware(req, res, next);
+    }
+});
 
 app.use(logRequest);
 

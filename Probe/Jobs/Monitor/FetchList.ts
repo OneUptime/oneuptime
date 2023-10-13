@@ -1,5 +1,5 @@
 import API from 'Common/Utils/API';
-import { PROBE_API_URL, PROBE_MONITOR_FETCH_LIMIT } from '../../Config';
+import { INGESTOR_URL, PROBE_MONITOR_FETCH_LIMIT } from '../../Config';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -54,7 +54,7 @@ export default class FetchListAndProbe {
             logger.info('Fetching monitor list');
 
             const monitorListUrl: URL = URL.fromString(
-                PROBE_API_URL.toString()
+                INGESTOR_URL.toString()
             ).addRoute('/monitor/list');
 
             const result: HTTPResponse<JSONArray> | HTTPErrorResponse =

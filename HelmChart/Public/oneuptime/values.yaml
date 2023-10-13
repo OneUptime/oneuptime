@@ -130,7 +130,7 @@ port:
   workflow: 3099
   linkShortener: 3521
   alert: 3088
-  probeApi: 3400
+  ingestor: 3400
   testServer: 3800
   file: 3125
   identity: 3087

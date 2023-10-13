@@ -64,7 +64,17 @@ services:
             network: host
             context: .
             dockerfile: ./Notification/Dockerfile
-        
+
+
+    otel-collector:
+        extends:
+            file: ./docker-compose.base.yml
+            service: otel-collector
+        build:
+            network: host
+            context: .
+            dockerfile: ./OTelCollector/Dockerfile
+
     accounts:
         ports: 
             - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}' # ws port for webpack
@@ -349,9 +359,9 @@ services:
        
     
 
-    probe-api:
+    ingestor:
         volumes:
-            - ./ProbeAPI:/usr/src/app
+            - ./Ingestor:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -367,11 +377,11 @@ services:
           - '9932:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
-            service: probe-api
+            service: ingestor
         build:
             network: host
             context: .
-            dockerfile: ./ProbeAPI/Dockerfile
+            dockerfile: ./Ingestor/Dockerfile
        
 
     file:

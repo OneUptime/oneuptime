@@ -307,7 +307,7 @@ import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 
-import ProbeAPI from 'CommonServer/API/ProbeAPI';
+import Ingestor from 'CommonServer/API/ProbeAPI';
 
 import StatusPageSubscriberAPI from 'CommonServer/API/StatusPageSubscriberAPI';
 
@@ -836,7 +836,7 @@ app.use(
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
-app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new Ingestor().getRouter());
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

@@ -22,7 +22,7 @@ x-common-variables: &common-variables
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_LINK_SHORTENER_HOSTNAME: link-shortener
     SERVER_ALERT_HOSTNAME: alert
-    SERVER_PROBE_API_HOSTNAME: probe-api
+    SERVER_INGESTOR_HOSTNAME: ingestor
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_FILE_HOSTNAME: file
     SERVER_HOME_HOSTNAME: home
@@ -33,6 +33,7 @@ x-common-variables: &common-variables
     SERVER_DASHBOARD_HOSTNAME: dashboard
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
     SERVER_API_REFERENCE_HOSTNAME: api-reference
+    OTEL_COLLECTOR_HOSTNAME: otel-collector
 
 
     #Ports. Usually they don't need to change. 
@@ -41,7 +42,7 @@ x-common-variables: &common-variables
     WORKFLOW_PORT: ${WORKFLOW_PORT}
     LINK_SHORTENER_PORT: ${LINK_SHORTENER_PORT}
     ALERT_PORT: ${ALERT_PORT}
-    PROBE_API_PORT: ${PROBE_API_PORT}
+    INGESTOR_PORT: ${INGESTOR_PORT}
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     FILE_PORT: ${FILE_PORT}
@@ -54,6 +55,7 @@ x-common-variables: &common-variables
     STATUS_PAGE_PORT: ${STATUS_PAGE_PORT}
     DASHBOARD_PORT: ${DASHBOARD_PORT}
     ADMIN_DASHBOARD_PORT: ${ADMIN_DASHBOARD_PORT}
+    OTEL_COLLECTOR_PORT: ${OTEL_COLLECTOR_PORT}
 
 x-common-ui-variables: &common-ui-variables
     <<: *common-variables   
@@ -312,12 +314,12 @@ services:
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
-            PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+            INGESTOR_URL: http://${INGESTOR_HOSTNAME}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
         depends_on:
-            - probe-api
+            - ingestor
         links:
-            - probe-api
+            - ingestor
 
     probe-2:   
         networks:
@@ -330,12 +332,12 @@ services:
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
             PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
-            PROBE_API_URL: http://${PROBE_API_HOSTNAME}
+            INGESTOR_URL: http://${INGESTOR_HOSTNAME}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
         depends_on:
-            - probe-api
+            - ingestor
         links:
-            - probe-api
+            - ingestor
         
 
     identity:
@@ -354,15 +356,36 @@ services:
             - postgres
             - notification
        
-    
 
-    probe-api:
+    otel-collector:
+        networks:
+          - oneuptime
+        restart: always
+        ports:
+            - 1888:1888 # pprof extension
+            - 8888:8888 # Prometheus metrics exposed by the collector
+            - 8889:8889 # Prometheus exporter metrics
+            - 13133:13133 # health_check extension
+            - 4317:4317 # OTLP gRPC receiver
+            - 4318:4318 # OTLP http receiver
+            - 55679:55679 # zpages extension
+        depends_on:
+            - redis
+            - postgres
+            - notification
+        links:
+            - redis
+            - postgres
+            - notification
+
+
+    ingestor:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-server-variables
-            PORT: ${PROBE_API_PORT}
+            PORT: ${INGESTOR_PORT}
         depends_on:
             - redis
             - postgres

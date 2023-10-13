@@ -97,9 +97,9 @@ export const DashboardApiHostname: Hostname = Hostname.fromString(
     }`
 );
 
-export const ProbeApiHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_PROBE_API_HOSTNAME'] || 'localhost'}:${
-        process.env['PROBE_API_PORT'] || 80
+export const IngestorHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_INGESTOR_HOSTNAME'] || 'localhost'}:${
+        process.env['INGESTOR_PORT'] || 80
     }`
 );
 
