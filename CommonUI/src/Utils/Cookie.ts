@@ -7,10 +7,16 @@ import UniversalCookies from 'universal-cookie';
 import Route from 'Common/Types/API/Route';
 
 export default class Cookie {
-    public static setItem(key: string, value: JSONValue | Email | URL, options?: {
-        httpOnly?: boolean | undefined,
-        path: Route,
-    } | undefined): void {
+    public static setItem(
+        key: string,
+        value: JSONValue | Email | URL,
+        options?:
+            | {
+                  httpOnly?: boolean | undefined;
+                  path: Route;
+              }
+            | undefined
+    ): void {
         if (typeof value === Typeof.Object) {
             // if of type jsonobject.
             value = JSON.stringify(
@@ -21,12 +27,11 @@ export default class Cookie {
         const cookies: UniversalCookies = new UniversalCookies();
         cookies.set(key, value as string, {
             httpOnly: options?.httpOnly || false,
-            path: options?.path ? options.path.toString() : '/'
+            path: options?.path ? options.path.toString() : '/',
         });
     }
 
     public static getItem(key: string): JSONValue {
-
         const cookies: UniversalCookies = new UniversalCookies();
         const value: JSONValue = cookies.get(key) as JSONValue;
 

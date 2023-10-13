@@ -24,6 +24,7 @@ import TeamMemberService from './TeamMemberService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import CookieUtil from '../Utils/Cookie';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -191,8 +192,10 @@ export class Service extends DatabaseService<StatusPage> {
     ): Promise<boolean> {
         try {
             // token decode.
-            const token: string | Array<string> | undefined =
-                req.headers['status-page-token'];
+            const token: string | undefined = CookieUtil.getCookie(
+                req,
+                CookieUtil.getUserTokenKey(statusPageId)
+            );
 
             if (token) {
                 try {

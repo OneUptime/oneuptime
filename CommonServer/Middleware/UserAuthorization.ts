@@ -42,8 +42,11 @@ export default class UserMiddleware {
     public static getAccessToken(req: ExpressRequest): string | null {
         let accessToken: string | null = null;
 
-        if(CookieUtil.getCookie(req, "user-token")){
-            accessToken = CookieUtil.getCookie(req, "user-token");
+        if (CookieUtil.getCookie(req, CookieUtil.getUserTokenKey())) {
+            accessToken = CookieUtil.getCookie(
+                req,
+                CookieUtil.getUserTokenKey()
+            );
         }
 
         return accessToken;
@@ -52,14 +55,13 @@ export default class UserMiddleware {
     public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
         const ssoTokens: Dictionary<string> = {};
 
-        // get sso tokens from cookies. 
+        // get sso tokens from cookies.
 
         const cookies: Dictionary<string> = CookieUtil.getAllCookies(req);
 
         for (const key of Object.keys(cookies)) {
-            if (key.startsWith('sso-')) {
-                const value: string | undefined | Array<string> =
-                    cookies[key];
+            if (key.startsWith(CookieUtil.getSSOKey())) {
+                const value: string | undefined | Array<string> = cookies[key];
                 let projectId: string | undefined = undefined;
 
                 try {

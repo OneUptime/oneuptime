@@ -185,7 +185,7 @@ router.post(
                 );
 
                 // Set a cookie with token.
-                CookieUtil.setCookie(res, 'user-token', token, {
+                CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
                     maxAge: OneUptimeDate.getSecondsInDays(
                         new PositiveNumber(30)
                     ),
@@ -494,15 +494,14 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            CookieUtil.removeCookie(res, 'user-token');
+            CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey()); // remove the cookie.
 
-            // remove all sso cookies as well. 
-            
             return Response.sendEmptyResponse(req, res);
         } catch (err) {
             return next(err);
         }
-    });
+    }
+);
 
 router.post(
     '/login',
@@ -576,13 +575,18 @@ router.post(
                         OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                     );
 
-                    // Set a cookie with token. 
-                    CookieUtil.setCookie(res, 'user-token', token, {
-                        maxAge: OneUptimeDate.getSecondsInDays(
-                            new PositiveNumber(30)
-                        ),
-                        httpOnly: true,
-                    });
+                    // Set a cookie with token.
+                    CookieUtil.setCookie(
+                        res,
+                        CookieUtil.getUserTokenKey(),
+                        token,
+                        {
+                            maxAge: OneUptimeDate.getSecondsInDays(
+                                new PositiveNumber(30)
+                            ),
+                            httpOnly: true,
+                        }
+                    );
 
                     return Response.sendEntityResponse(
                         req,

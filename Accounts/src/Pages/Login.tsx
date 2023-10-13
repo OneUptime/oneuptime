@@ -107,7 +107,7 @@ const LoginPage: () => JSX.Element = () => {
                         maxPrimaryButtonWidth={true}
                         footer={
                             <div className="actions pointer text-center mt-4 hover:underline fw-semibold">
-                                <p>
+                                <div>
                                     {!showSsoTip && (
                                         <div
                                             onClick={() => {
@@ -128,13 +128,13 @@ const LoginPage: () => JSX.Element = () => {
                                             your project.
                                         </div>
                                     )}
-                                </p>
+                                </div>
                             </div>
                         }
                     />
                 </div>
                 <div className="mt-10 text-center">
-                    <p className="text-muted mb-0 text-gray-500">
+                    <div className="text-muted mb-0 text-gray-500">
                         Don&apos;t have an account?{' '}
                         <Link
                             to={new Route('/accounts/register')}
@@ -142,7 +142,7 @@ const LoginPage: () => JSX.Element = () => {
                         >
                             Register.
                         </Link>
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -176,7 +176,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                             props.item
                                                         )
                                                     ) {
-                                                        return <></>;
+                                                        return (
+                                                            <div key={i}></div>
+                                                        );
                                                     }
 
                                                     return (

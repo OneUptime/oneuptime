@@ -4,7 +4,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
 
 export default class User {
-
     public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {
         LocalStorage.setItem(
             statusPageId.toString() + 'user_id',
@@ -35,7 +34,11 @@ export default class User {
         );
     }
 
-    public static getEmail(statusPageId: ObjectID): Email {
+    public static getEmail(statusPageId: ObjectID): Email | null {
+        if (!LocalStorage.getItem(statusPageId.toString() + 'user_email')) {
+            return null;
+        }
+
         return new Email(
             LocalStorage.getItem(
                 statusPageId.toString() + 'user_email'
@@ -51,10 +54,6 @@ export default class User {
         LocalStorage.removeItem(statusPageId.toString() + 'user_id');
     }
 
-    public static removeAccessToken(statusPageId: ObjectID): void {
-        LocalStorage.removeItem(statusPageId.toString() + 'access_token');
-    }
-
     public static removeInitialUrl(statusPageId: ObjectID): void {
         return sessionStorage.removeItem(
             statusPageId.toString() + 'initialUrl'
@@ -62,13 +61,10 @@ export default class User {
     }
 
     public static isLoggedIn(statusPageId: ObjectID): boolean {
-        return LocalStorage.getItem(statusPageId.toString() + 'access_token')
-            ? true
-            : false;
+        return Boolean(this.getEmail(statusPageId));
     }
 
-    public static logout(statusPageId: ObjectID): void {
-        User.removeAccessToken(statusPageId);
+    public static async logout(statusPageId: ObjectID): Promise<void> {
         User.removeUserId(statusPageId);
     }
 }

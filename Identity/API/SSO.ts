@@ -327,10 +327,14 @@ router.post(
                 });
             }
 
+            const projectId: ObjectID = new ObjectID(
+                req.params['projectId'] as string
+            );
+
             const token: string = JSONWebToken.sign(
                 {
                     userId: alreadySavedUser.id!,
-                    projectId: new ObjectID(req.params['projectId']),
+                    projectId: projectId,
                     email: email,
                     isMasterAdmin: false,
                 },
@@ -346,12 +350,17 @@ router.post(
             const httpProtocol: Protocol =
                 await DatabaseConfig.getHttpProtocol();
 
-            CookieUtil.setCookie(res, 'sso-'+req.params['projectId'].toString(), token, {
-                maxAge: OneUptimeDate.getSecondsInDays(
-                    new PositiveNumber(30)
-                ),
-                httpOnly: true,
-            });
+            CookieUtil.setCookie(
+                res,
+                CookieUtil.getUserSSOKey(projectId),
+                token,
+                {
+                    maxAge: OneUptimeDate.getSecondsInDays(
+                        new PositiveNumber(30)
+                    ),
+                    httpOnly: true,
+                }
+            );
 
             return Response.redirect(
                 req,

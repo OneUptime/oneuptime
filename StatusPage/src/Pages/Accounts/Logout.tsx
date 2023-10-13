@@ -5,11 +5,14 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import StatusPageUtil from '../../Utils/StatusPage';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const Logout: () => JSX.Element = () => {
-    useEffect(() => {
+    const [error, setError] = React.useState<string | null>(null);
+
+    const logout: Function = async () => {
         if (StatusPageUtil.getStatusPageId()) {
-            UserUtil.logout(StatusPageUtil.getStatusPageId()!);
+            await UserUtil.logout(StatusPageUtil.getStatusPageId()!);
             Navigation.navigate(
                 StatusPageUtil.isPreviewPage()
                     ? RouteUtil.populateRouteParams(
@@ -22,7 +25,17 @@ const Logout: () => JSX.Element = () => {
                       )
             );
         }
+    };
+
+    useEffect(() => {
+        logout().catch((error: Error) => {
+            setError(error.message || error.toString());
+        });
     }, [StatusPageUtil.getStatusPageId()]);
+
+    if (error) {
+        return <ErrorMessage error={error} />;
+    }
 
     return <PageLoader isVisible={true} />;
 };

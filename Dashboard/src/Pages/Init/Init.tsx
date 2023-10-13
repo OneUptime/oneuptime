@@ -48,7 +48,6 @@ const Init: FunctionComponent<ComponentProps> = (
                 alert('Project ID not found in the SSO token. Logging out.');
                 return Navigation.navigate(RouteMap[PageMap.LOGOUT] as Route);
             }
-
         }
     }, []);
 

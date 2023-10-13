@@ -10,14 +10,25 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 import useAsyncEffect from 'use-async-effect';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const Logout: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+    const [error, setError] = React.useState<string | null>(null);
+
     useAsyncEffect(async () => {
-        UiAnalytics.logout();
-        await UserUtil.logout();
-        Navigation.navigate(ACCOUNTS_URL);
+        try {
+            UiAnalytics.logout();
+            await UserUtil.logout();
+            Navigation.navigate(ACCOUNTS_URL);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message || err.toString());
+            } else {
+                setError('Unknown error');
+            }
+        }
     }, []);
 
     return (
@@ -32,7 +43,8 @@ const Logout: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
-            <PageLoader isVisible={true} />
+            {!error ? <PageLoader isVisible={true} /> : <></>}
+            {error ? <ErrorMessage error={error} /> : <></>}
         </Page>
     );
 };

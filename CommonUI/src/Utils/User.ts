@@ -6,9 +6,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Dictionary from 'Common/Types/Dictionary';
+import API from 'Common/Utils/API';
+import { IDENTITY_URL } from '../Config';
 
 export default class User {
-
     public static setProfilePicId(id: ObjectID | null): void {
         if (!id) {
             LocalStorage.removeItem('profile_pic_id');
@@ -53,10 +54,10 @@ export default class User {
     }
 
     public static getEmail(): Email | null {
-        if(!LocalStorage.getItem('user_email')){
+        if (!LocalStorage.getItem('user_email')) {
             return null;
         }
-        
+
         return new Email(LocalStorage.getItem('user_email') as string);
     }
 
@@ -110,11 +111,13 @@ export default class User {
     }
 
     public static isLoggedIn(): boolean {
-        return !!this.getEmail();
+        return Boolean(this.getEmail());
     }
 
     public static async logout(): Promise<void> {
-        // TODO: Clear all cookies here.
+        await API.post(
+            URL.fromString(IDENTITY_URL.toString()).addRoute('/logout')
+        );
         LocalStorage.clear();
     }
 
