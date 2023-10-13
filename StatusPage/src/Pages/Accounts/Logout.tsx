@@ -6,6 +6,7 @@ import PageMap from '../../Utils/PageMap';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import StatusPageUtil from '../../Utils/StatusPage';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Route from 'Common/Types/API/Route';
 
 const Logout: () => JSX.Element = () => {
     const [error, setError] = React.useState<string | null>(null);
@@ -13,17 +14,18 @@ const Logout: () => JSX.Element = () => {
     const logout: Function = async () => {
         if (StatusPageUtil.getStatusPageId()) {
             await UserUtil.logout(StatusPageUtil.getStatusPageId()!);
-            Navigation.navigate(
-                StatusPageUtil.isPreviewPage()
-                    ? RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.PREVIEW_LOGIN]!,
-                          StatusPageUtil.getStatusPageId()!
-                      )
-                    : RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.LOGIN]!,
-                          StatusPageUtil.getStatusPageId()!
-                      )
-            );
+            const navRoute: Route = StatusPageUtil.isPreviewPage()
+                ? RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.PREVIEW_LOGIN]!,
+                      StatusPageUtil.getStatusPageId()!
+                  )
+                : RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.LOGIN]!,
+                      StatusPageUtil.getStatusPageId()!
+                  );
+            Navigation.navigate(navRoute, {
+                forceNavigate: true,
+            });
         }
     };
 

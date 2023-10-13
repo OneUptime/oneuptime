@@ -30,19 +30,19 @@ import CookieUtil from 'CommonServer/Utils/Cookie';
 const router: ExpressRouter = Express.getRouter();
 
 router.post(
-    '/logout/:status-page-id',
+    '/logout/:statuspageid',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
         try {
-            if (!req.params['status-page-id']) {
+            if (!req.params['statuspageid']) {
                 throw new BadDataException('Status Page ID is required.');
             }
 
             const statusPageId: ObjectID = new ObjectID(
-                req.params['status-page-id'].toString()
+                req.params['statuspageid'].toString()
             );
 
             CookieUtil.removeCookie(

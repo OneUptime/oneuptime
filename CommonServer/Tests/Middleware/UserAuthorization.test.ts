@@ -35,7 +35,7 @@ jest.mock('../../Services/ProjectService');
 jest.mock('Common/Types/HashedString');
 jest.mock('Common/Types/JSONFunctions');
 
-type StringOrNull = string | null;
+type StringOrUndefined = string | undefined;
 
 describe('UserMiddleware', () => {
     const mockedAccessToken: string = ObjectID.generate().toString();
@@ -54,7 +54,8 @@ describe('UserMiddleware', () => {
                 query: {},
             } as ExpressRequest;
 
-            const result: StringOrNull = UserMiddleware.getAccessToken(req);
+            const result: StringOrUndefined =
+                UserMiddleware.getAccessToken(req);
 
             expect(result).toEqual(mockedAccessToken);
         });
@@ -65,7 +66,7 @@ describe('UserMiddleware', () => {
                 headers: {},
             };
 
-            const result: StringOrNull = UserMiddleware.getAccessToken(
+            const result: StringOrUndefined = UserMiddleware.getAccessToken(
                 req as ExpressRequest
             );
 
@@ -78,7 +79,8 @@ describe('UserMiddleware', () => {
                 query: {},
             } as ExpressRequest;
 
-            const result: StringOrNull = UserMiddleware.getAccessToken(req);
+            const result: StringOrUndefined =
+                UserMiddleware.getAccessToken(req);
 
             expect(result).toEqual(mockedAccessToken);
         });
@@ -89,7 +91,8 @@ describe('UserMiddleware', () => {
                 query: {},
             } as ExpressRequest;
 
-            const result: StringOrNull = UserMiddleware.getAccessToken(req);
+            const result: StringOrUndefined =
+                UserMiddleware.getAccessToken(req);
 
             expect(result).toBeNull();
         });
@@ -324,7 +327,7 @@ describe('UserMiddleware', () => {
         test("should call function 'next' and return, when getAccessToken returns a null value", async () => {
             const spyGetAccessToken: jest.SpyInstance = jest
                 .spyOn(UserMiddleware, 'getAccessToken')
-                .mockReturnValueOnce(null);
+                .mockReturnValueOnce(undefined);
 
             await UserMiddleware.getUserMiddleware(req, res, next);
 

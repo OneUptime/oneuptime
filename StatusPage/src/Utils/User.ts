@@ -2,6 +2,9 @@ import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
+import { IDENTITY_URL } from 'CommonUI/src/Config';
+import API from 'Common/Utils/API';
+import URL from 'Common/Types/API/URL';
 
 export default class User {
     public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {
@@ -65,6 +68,11 @@ export default class User {
     }
 
     public static async logout(statusPageId: ObjectID): Promise<void> {
+        await API.post(
+            URL.fromString(IDENTITY_URL.toString())
+                .addRoute('/status-page/logout')
+                .addRoute('/' + statusPageId.toString())
+        );
         User.removeUserId(statusPageId);
     }
 }

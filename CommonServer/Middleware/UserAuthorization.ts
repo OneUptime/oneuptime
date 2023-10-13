@@ -132,7 +132,8 @@ export default class UserMiddleware {
             );
         }
 
-        const accessToken: string | undefined = UserMiddleware.getAccessToken(req);
+        const accessToken: string | undefined =
+            UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
             oneuptimeRequest.userType = UserType.Public;
