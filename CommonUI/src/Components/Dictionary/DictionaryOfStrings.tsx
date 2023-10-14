@@ -83,6 +83,7 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
                             </div>
                             <div className="ml-1 mt-1">
                                 <Button
+                                    dataTestId={`delete-${item.key}`}
                                     title="Delete"
                                     buttonStyle={ButtonStyleType.ICON}
                                     icon={IconProp.Trash}
