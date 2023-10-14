@@ -20,6 +20,7 @@ import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
+import EmbeddedMonitorKey from './EmbeddedMonitorKey';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -136,6 +137,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+            <EmbeddedMonitorKey modelId={modelId}  />
         );
     };
 
