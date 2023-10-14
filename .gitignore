@@ -92,3 +92,6 @@ Haraka/dkim/keys/public_base64.txt
 .eslintcache
 
 HelmChart/Values/*.values.yaml
+
+Llama/Models/tokenizer*
+Llama/Models/llama*
