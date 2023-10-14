@@ -14,5 +14,5 @@ docker build -t llama . -f ./Llama/Dockerfile
 ## Run
 
 ```
-docker run -it --rm -p 5000:5000 llama
+docker run -it llama
 ```
