@@ -154,13 +154,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     />
                 </div>
             </div>
-                            title: 'Disable Active Monitoring',
-                            fieldType: FieldType.Boolean,
-                        },
-                    ],
-                    modelId: modelId,
-                }}
-            />
             <EmbeddedMonitorKey modelId={modelId}  />
         );
     };
