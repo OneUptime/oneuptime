@@ -19,6 +19,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
 import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
+import EmbeddedMonitorKey from './EmbeddedMonitorKey';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -153,6 +154,14 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     />
                 </div>
             </div>
+                            title: 'Disable Active Monitoring',
+                            fieldType: FieldType.Boolean,
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+            <EmbeddedMonitorKey modelId={modelId}  />
         );
     };
 
