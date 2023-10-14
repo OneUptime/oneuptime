@@ -1,7 +1,7 @@
 import BaseAPI from './BaseAPI';
-import Monitor from 'Model/Models/Monitor';
+import Monitor from '../../Model/Models/Monitor';
 import Select from '../Types/Database/Select';
-import UUID from '../Utils/UUID';
+import UUID from '../../Common/Utils/UUID';
 import MonitorService, {
     Service as MonitorServiceType,
 } from '../Services/MonitorService';
@@ -33,9 +33,7 @@ export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
                 }
 
                 const select: Select<Monitor> = {
-                    _id: true,
                     name: true,
-                    createdAt: true,
                     monitorType: true,
                     monitoringInterval: true,
                     disableActiveMonitoring: true,
