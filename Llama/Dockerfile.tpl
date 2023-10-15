@@ -1,85 +1,20 @@
-FROM continuumio/miniconda3:latest as intelligence
+# Use an official Python runtime as a parent image
+FROM python:3.8-slim-buster
 
-ENV MODEL_NAME="llama-7b"
+# Set the working directory in the container to /app
+WORKDIR /app
 
-RUN apt-get update \
-    && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
-        git \
-        locales \
-        sudo \
-        build-essential \
-        dpkg-dev \
-        wget \
-        openssh-server \
-        nano \
-    && rm -rf /var/lib/apt/lists/*
+# Copy the current directory contents into the container at /app
+ADD ./Llama /app
 
-# Setting up locales
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
+# Install Hugging Face Transformers library
+RUN pip install --no-cache-dir transformers
 
-# Updating conda to the latest version
-RUN conda update conda -y
+# Make port 80 available to the world outside this container
+EXPOSE 80
 
-RUN git clone https://github.com/ggerganov/llama.cpp.git
-
-WORKDIR /llama.cpp
-RUN make
-COPY ./Llama/Models ./models
-
-RUN python3 -m pip install -r requirements.txt
-RUN python3 convert.py models/$MODEL_NAME/
-RUN ./quantize ./models/$MODEL_NAME/ggml-model-f16.gguf ./models/$MODEL_NAME/ggml-model-q4_0.gguf q4_0
-
-
-## Node App
-
-FROM node:current-alpine as app
-
-ENV MODEL_NAME="llama-7b"
-
-USER root
-RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
-
-
-
-ARG GIT_SHA
-ARG APP_VERSION
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-
-
-# Install bash. 
-RUN apk add bash && apk add curl
-
-
-# Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
-
-#Use bash shell by default
-SHELL ["/bin/bash", "-c"]
-
-RUN mkdir /usr/src
-
-ENV PRODUCTION=true
-
-WORKDIR /usr/src/app
-
-COPY --from=intelligence /llama.cpp/models/$MODEL_NAME/ggml-model-q4_0.gguf .
-
-# Install app dependencies
-COPY ./Llama/package*.json /usr/src/app/
-RUN npm install
-
-# Copy app source
-COPY ./Llama/Index.ts /usr/src/app/Index.ts
-COPY ./Llama/nodemon.json /usr/src/app/nodemon.json
-COPY ./Llama/tsconfig.json /usr/src/app/tsconfig.json
-
-# Bundle app source
-RUN npm run compile
-
-#Run the app
-CMD [ "npm", "start" ]
+# Run app.py when the container launches
+CMD ["python", "app.py"]

@@ -1,0 +1,3 @@
+# Hugging Face Transformers
+transformers==4.34.0
+
