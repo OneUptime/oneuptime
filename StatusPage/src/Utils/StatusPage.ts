@@ -56,14 +56,14 @@ export default class StatusPageUtil {
         }
     }
 
-    public static checkIfTheUserIsAuthenticated(
+    public static async checkIfTheUserIsAuthenticated(
         errorResponse: HTTPErrorResponse
-    ): void {
+    ): Promise<void> {
         if (
             errorResponse instanceof HTTPErrorResponse &&
             errorResponse.statusCode === 401
         ) {
-            UserUtil.logout(StatusPageUtil.getStatusPageId()!);
+            await UserUtil.logout(StatusPageUtil.getStatusPageId()!);
             StatusPageUtil.navigateToLoginPage();
         }
     }

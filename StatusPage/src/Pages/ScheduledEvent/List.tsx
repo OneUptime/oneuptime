@@ -112,7 +112,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             props.onLoadComplete();
         } catch (err) {
             if (err instanceof HTTPErrorResponse) {
-                StatusPageUtil.checkIfTheUserIsAuthenticated(err);
+                await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
             }
             setError(BaseAPI.getFriendlyMessage(err));
             setIsLoading(false);
