@@ -12,13 +12,13 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 
 // Create a root namespace
 const LogsProto: protobuf.Root = protobuf.loadSync(
-    '/usr/src/app/ProtoFiles/Otel/v1/logs.proto'
+    '/usr/src/app/ProtoFiles/OTel/v1/logs.proto'
 );
 const TracesProto: protobuf.Root = protobuf.loadSync(
-    '/usr/src/app/ProtoFiles/Otel/v1/traces.proto'
+    '/usr/src/app/ProtoFiles/OTel/v1/traces.proto'
 );
 const MetricsProto: protobuf.Root = protobuf.loadSync(
-    '/usr/src/app/ProtoFiles/Otel/v1/metrics.proto'
+    '/usr/src/app/ProtoFiles/OTel/v1/metrics.proto'
 );
 
 // Lookup the message type
