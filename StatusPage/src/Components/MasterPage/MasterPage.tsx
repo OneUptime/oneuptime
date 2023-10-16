@@ -88,7 +88,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
 
             if (!decodedtoken.userId.toString()) {
-                alert('USer ID not found in SSO Token. Logging out.');
+                alert('User ID not found in SSO Token. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
 
