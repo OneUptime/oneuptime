@@ -34,7 +34,6 @@ import Route from 'Common/Types/API/Route';
 import LoginUtil from '../../Utils/Login';
 import StatusPageUtil from '../../Utils/StatusPage';
 import API from '../../Utils/API';
-import Cookie from 'CommonUI/src/Utils/Cookie';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -94,21 +93,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             LoginUtil.login({
                 user: { ...decodedtoken, _id: decodedtoken.userId },
+                token: token,
             });
 
             if (!decodedtoken.statusPageId) {
                 alert('Status Page ID not found in the token. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
-
-            // set token as cookie.
-            Cookie.setItem(
-                'user-token-' + decodedtoken.statusPageId.toString(),
-                token,
-                {
-                    path: new Route('/'),
-                }
-            );
 
             if (Navigation.getQueryStringByName('redirectUrl')) {
                 Navigation.navigate(
