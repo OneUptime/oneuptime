@@ -436,6 +436,7 @@ services:
             - dashboard
             - home
             - notification
+            - otel-collector
         restart: always
         networks:
           - oneuptime

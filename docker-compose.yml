@@ -40,10 +40,9 @@ services:
     
     otel-collector:
         image:  oneuptime/otel-collector:${APP_TAG}
-        build:
-            network: host
-            context: .
-            dockerfile: ./OTelCollector/Dockerfile
+        extends:
+            file: ./docker-compose.base.yml
+            service: otel-collector
         
     accounts:
         image:  oneuptime/accounts:${APP_TAG}
