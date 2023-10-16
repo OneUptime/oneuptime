@@ -42,6 +42,7 @@ bash $scriptDir/endpoint-status.sh "Link Shortener" $HOST_TO_CHECK/l/status
 
 bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
 
+bash $scriptDir/endpoint-status.sh "Ingestor" $HOST_TO_CHECK/ingestor/status
 
 echo "🚀 OneUptime is up! 🚀"
 echo ""
