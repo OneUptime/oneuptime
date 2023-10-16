@@ -327,6 +327,8 @@ router.post(
                     continue;
                 }
 
+                logger.info('Setting cookie for domain: ', domain.fullDomain);
+
                 CookieUtil.setCookie(
                     res,
                     CookieUtil.getUserTokenKey(statusPageId),

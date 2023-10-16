@@ -154,7 +154,7 @@ export default class API {
         return Promise.resolve(headers);
     }
 
-    public static getDefaultHeaders(): Headers {
+    public static getDefaultHeaders(_props?: any): Headers {
         const defaultHeaders: Headers = {
             'Access-Control-Allow-Origin': '*',
             Accept: 'application/json',

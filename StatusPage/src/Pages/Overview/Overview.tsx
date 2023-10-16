@@ -11,7 +11,7 @@ import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
 import Alert from 'CommonUI/src/Components/Alerts/Alert';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import BaseAPI from 'CommonUI/src/Utils/API/API';
+
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -127,7 +127,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
             const response: HTTPResponse<JSONObject> =
-                await BaseAPI.post<JSONObject>(
+                await API.post<JSONObject>(
                     URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                         `/status-page/overview/${id.toString()}`
                     ),
@@ -232,7 +232,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
             }
 
-            setError(BaseAPI.getFriendlyMessage(err));
+            setError(API.getFriendlyMessage(err));
             setIsLoading(false);
         }
     };

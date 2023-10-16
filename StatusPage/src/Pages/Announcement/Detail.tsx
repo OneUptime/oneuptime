@@ -8,7 +8,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import BaseAPI from 'CommonUI/src/Utils/API/API';
+
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -94,7 +94,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 Navigation.getLastParamAsObjectID().toString();
 
             const response: HTTPResponse<JSONObject> =
-                await BaseAPI.post<JSONObject>(
+                await API.post<JSONObject>(
                     URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                         `/status-page/announcements/${id.toString()}/${announcementId}`
                     ),
@@ -123,7 +123,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
             }
 
-            setError(BaseAPI.getFriendlyMessage(err));
+            setError(API.getFriendlyMessage(err));
             setIsLoading(false);
         }
     }, []);

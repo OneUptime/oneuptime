@@ -8,7 +8,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import BaseAPI from 'CommonUI/src/Utils/API/API';
+
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -71,7 +71,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
             const response: HTTPResponse<JSONObject> =
-                await BaseAPI.post<JSONObject>(
+                await API.post<JSONObject>(
                     URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                         `/status-page/scheduled-maintenance-events/${id.toString()}`
                     ),
@@ -114,7 +114,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             if (err instanceof HTTPErrorResponse) {
                 await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
             }
-            setError(BaseAPI.getFriendlyMessage(err));
+            setError(API.getFriendlyMessage(err));
             setIsLoading(false);
         }
     }, []);

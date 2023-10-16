@@ -101,21 +101,29 @@ class BaseAPI extends API {
             error instanceof HTTPErrorResponse &&
             (error.statusCode === 401 || error.statusCode === 405)
         ) {
+            const loginRoute: Route = this.getLoginRoute();
+
             const cookies: Cookies = new Cookies();
             cookies.remove('admin-data', { path: '/' });
             cookies.remove('data', { path: '/' });
             User.clear();
 
             if (Navigation.getQueryStringByName('sso_token')) {
-                Navigation.navigate(
-                    new Route('/accounts/login').addRouteParam('sso', 'true')
-                );
+                Navigation.navigate(loginRoute.addRouteParam('sso', 'true'), {
+                    forceNavigate: true,
+                });
             } else {
-                Navigation.navigate(new Route('/accounts/login'));
+                Navigation.navigate(loginRoute, {
+                    forceNavigate: true,
+                });
             }
         }
 
         return error;
+    }
+
+    protected static getLoginRoute(): Route {
+        return new Route('/accounts/login');
     }
 
     public static getFriendlyMessage(

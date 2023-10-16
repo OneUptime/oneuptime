@@ -11,7 +11,6 @@ import React, {
 } from 'react';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
@@ -34,6 +33,7 @@ import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
 import Route from 'Common/Types/API/Route';
 import LoginUtil from '../../Utils/Login';
 import StatusPageUtil from '../../Utils/StatusPage';
+import API from '../../Utils/API';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -134,16 +134,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
         }
         // get status page id by hostname.
-        const response: HTTPResponse<JSONObject> =
-            await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/status-page/domain`
-                ),
-                {
-                    domain: Navigation.getHostname().toString(),
-                },
-                {}
-            );
+        const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
+            URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                `/status-page/domain`
+            ),
+            {
+                domain: Navigation.getHostname().toString(),
+            },
+            {}
+        );
 
         if (response.data && response.data['statusPageId']) {
             return new ObjectID(response.data['statusPageId'] as string);
@@ -161,7 +160,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             LocalStorage.setItem('statusPageId', id);
             const response: HTTPResponse<JSONObject> =
-                await BaseAPI.post<JSONObject>(
+                await API.post<JSONObject>(
                     URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                         `/status-page/master-page/${id.toString()}`
                     ),
@@ -221,7 +220,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             setIsLoading(false);
         } catch (err) {
-            setError(BaseAPI.getFriendlyMessage(err));
+            setError(API.getFriendlyMessage(err));
             setIsLoading(false);
         }
     }, []);
