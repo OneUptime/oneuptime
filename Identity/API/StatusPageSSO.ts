@@ -25,6 +25,9 @@ import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivat
 import HashedString from 'Common/Types/HashedString';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import CookieUtil from 'CommonServer/Utils/Cookie';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -275,6 +278,23 @@ router.post(
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
             );
 
+            // get all  status page doamins. and set cookie for each domain.
+
+            const domains: Array<StatusPageDomain> =
+                await StatusPageDomainService.findBy({
+                    query: {
+                        statusPageId: statusPageId,
+                    },
+                    select: {
+                        fullDomain: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
             CookieUtil.setCookie(
                 res,
                 CookieUtil.getUserTokenKey(statusPageId),
@@ -286,6 +306,25 @@ router.post(
                     httpOnly: true,
                 }
             );
+
+            for (const domain of domains) {
+                if (!domain.fullDomain) {
+                    continue;
+                }
+
+                CookieUtil.setCookie(
+                    res,
+                    CookieUtil.getUserTokenKey(statusPageId),
+                    token,
+                    {
+                        maxAge: OneUptimeDate.getSecondsInDays(
+                            new PositiveNumber(30)
+                        ),
+                        httpOnly: true,
+                        domain: domain.fullDomain,
+                    }
+                );
+            }
 
             // get status page URL.
             const statusPageURL: string =
