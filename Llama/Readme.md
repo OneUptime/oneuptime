@@ -16,3 +16,8 @@ docker build -t llama . -f ./Llama/Dockerfile
 ```
 docker run -it llama
 ```
+
+
+## Run without a docker conatiner
+
+uvicorn app:app --host 0.0.0.0 --port 8547 

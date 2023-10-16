@@ -1,3 +1,7 @@
 # Hugging Face Transformers
 transformers==4.34.0
 
+# Rest api related stuff. 
+fastapi===0.103.2
+uvicorn===0.23.2
+pydantic===2.4.2
