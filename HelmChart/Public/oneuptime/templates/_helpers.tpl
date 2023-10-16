@@ -43,6 +43,8 @@
   value: {{ $.Release.Name }}-identity.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_NOTIFICATION_HOSTNAME
   value: {{ $.Release.Name }}-notification.{{ $.Release.Namespace }}.svc.cluster.local
+- name: OTEL_COLLECTOR_HOSTNAME
+  value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_WORKERS_HOSTNAME
   value: {{ $.Release.Name }}-workers.{{ $.Release.Namespace }}.svc.cluster.local
 - name: SERVER_STATUS_PAGE_HOSTNAME
@@ -90,6 +92,8 @@
   value: {{ $.Values.port.dashboard | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.port.adminDashboard | squote }}
+- name: OTEL_COLLECTOR_PORT
+  value: {{ $.Values.port.otelCollector | squote }}
 {{- end }}
 
 
