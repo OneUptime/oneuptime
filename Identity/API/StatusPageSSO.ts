@@ -28,6 +28,7 @@ import CookieUtil from 'CommonServer/Utils/Cookie';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -304,6 +305,20 @@ router.post(
                         new PositiveNumber(30)
                     ),
                     httpOnly: true,
+                }
+            );
+
+            // Set a cookie with token.
+            CookieUtil.setCookie(
+                res,
+                CookieUtil.getUserTokenKey(statusPageId),
+                token,
+                {
+                    maxAge: OneUptimeDate.getSecondsInDays(
+                        new PositiveNumber(30)
+                    ),
+                    httpOnly: true,
+                    domain: (await DatabaseConfig.getHost()).toString(),
                 }
             );
 

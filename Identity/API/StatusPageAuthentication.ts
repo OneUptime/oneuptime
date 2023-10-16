@@ -424,6 +424,20 @@ router.post(
                     }
                 );
 
+                // Set a cookie with token.
+                CookieUtil.setCookie(
+                    res,
+                    CookieUtil.getUserTokenKey(user.statusPageId!),
+                    token,
+                    {
+                        maxAge: OneUptimeDate.getSecondsInDays(
+                            new PositiveNumber(30)
+                        ),
+                        httpOnly: true,
+                        domain: (await DatabaseConfig.getHost()).toString(),
+                    }
+                );
+
                 for (const domain of domains) {
                     if (!domain.fullDomain) {
                         continue;
