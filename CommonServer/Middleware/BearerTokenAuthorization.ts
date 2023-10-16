@@ -31,7 +31,6 @@ export default class BearerTokenAuthorization {
 
                     return next();
                 }
-                throw new NotAuthorizedException('Invalid bearer token.');
             }
 
             throw new NotAuthorizedException('Invalid bearer token.');
