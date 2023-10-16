@@ -26,9 +26,6 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import CookieUtil from 'CommonServer/Utils/Cookie';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -396,77 +393,16 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                const domains: Array<StatusPageDomain> =
-                    await StatusPageDomainService.findBy({
-                        query: {
-                            statusPageId: user.statusPageId!,
-                        },
-                        select: {
-                            fullDomain: true,
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                // Set a cookie with token.
-                CookieUtil.setCookie(
-                    res,
-                    CookieUtil.getUserTokenKey(user.statusPageId!),
-                    token,
-                    {
-                        maxAge: OneUptimeDate.getSecondsInDays(
-                            new PositiveNumber(30)
-                        ),
-                        httpOnly: true,
-                    }
-                );
-
-                // Set a cookie with token.
-                CookieUtil.setCookie(
-                    res,
-                    CookieUtil.getUserTokenKey(user.statusPageId!),
-                    token,
-                    {
-                        maxAge: OneUptimeDate.getSecondsInDays(
-                            new PositiveNumber(30)
-                        ),
-                        httpOnly: true,
-                        domain: (await DatabaseConfig.getHost()).toString(),
-                    }
-                );
-
-                for (const domain of domains) {
-                    if (!domain.fullDomain) {
-                        continue;
-                    }
-
-                    logger.info(
-                        'Setting cookie for domain: ',
-                        domain.fullDomain
-                    );
-
-                    CookieUtil.setCookie(
-                        res,
-                        CookieUtil.getUserTokenKey(user.statusPageId!),
-                        token,
-                        {
-                            maxAge: OneUptimeDate.getSecondsInDays(
-                                new PositiveNumber(30)
-                            ),
-                            httpOnly: true,
-                            domain: domain.fullDomain,
-                        }
-                    );
-                }
-
                 return Response.sendEntityResponse(
                     req,
                     res,
                     alreadySavedUser,
-                    StatusPagePrivateUser
+                    StatusPagePrivateUser,
+                    {
+                        miscData: {
+                            token: token,
+                        },
+                    }
                 );
             }
             throw new BadDataException(

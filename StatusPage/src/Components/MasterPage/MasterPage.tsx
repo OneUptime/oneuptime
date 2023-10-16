@@ -34,6 +34,7 @@ import Route from 'Common/Types/API/Route';
 import LoginUtil from '../../Utils/Login';
 import StatusPageUtil from '../../Utils/StatusPage';
 import API from '../../Utils/API';
+import Cookie from 'CommonUI/src/Utils/Cookie';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -62,10 +63,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         // if there is an SSO token. We need to save that to localstorage.
 
-        const sso_token: string | null =
-            Navigation.getQueryStringByName('sso_token');
+        const token: string | null = Navigation.getQueryStringByName('token');
 
-        if (sso_token && statusPageId) {
+        if (token && statusPageId) {
             // set token.
 
             const logoutRoute: Route = props.isPreview
@@ -79,16 +79,16 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                   );
 
             const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
-                sso_token
+                token
             ) as JSONWebTokenData;
 
             if (!decodedtoken) {
-                alert('Invalid SSO Token. Please log in again.');
+                alert('Invalid Token. Please log in again.');
                 return Navigation.navigate(logoutRoute);
             }
 
             if (!decodedtoken.userId.toString()) {
-                alert('User ID not found in SSO Token. Logging out.');
+                alert('User ID not found in Token. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
 
@@ -97,11 +97,19 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             });
 
             if (!decodedtoken.statusPageId) {
-                alert(
-                    'Status Page ID not found in the SSO token. Logging out.'
-                );
+                alert('Status Page ID not found in the token. Logging out.');
                 return Navigation.navigate(logoutRoute);
             }
+
+            // set token as cookie.
+            Cookie.setItem(
+                'user-token-' + decodedtoken.statusPageId.toString(),
+                token,
+                {
+                    httpOnly: true,
+                    path: new Route('/'),
+                }
+            );
 
             if (Navigation.getQueryStringByName('redirectUrl')) {
                 Navigation.navigate(
