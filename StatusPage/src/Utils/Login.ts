@@ -18,15 +18,15 @@ export default abstract class LoginUtil {
 
         UserUtil.setEmail(statusPageId, user.email as Email);
         UserUtil.setUserId(statusPageId, user.id as ObjectID);
-
-        // set token as cookie.
-        Cookie.setItem(
-            'user-token-' + statusPageId.toString(),
-            value['token'],
-            {
-                httpOnly: true,
-                path: new Route('/'),
-            }
-        );
+        if (value && value['token']) {
+            // set token as cookie.
+            Cookie.setItem(
+                'user-token-' + statusPageId.toString(),
+                value['token'],
+                {
+                    path: new Route('/'),
+                }
+            );
+        }
     }
 }

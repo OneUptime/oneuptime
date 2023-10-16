@@ -95,3 +95,5 @@ HelmChart/Values/*.values.yaml
 
 Llama/Models/tokenizer*
 Llama/Models/llama*
+
+Llama/__pycache__/*

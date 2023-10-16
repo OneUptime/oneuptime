@@ -106,7 +106,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 'user-token-' + decodedtoken.statusPageId.toString(),
                 token,
                 {
-                    httpOnly: true,
                     path: new Route('/'),
                 }
             );

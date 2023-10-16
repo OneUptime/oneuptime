@@ -9,23 +9,12 @@ from pydantic import BaseModel
 class Prompt(BaseModel):
    prompt: str
 
-# model_path = "./Models/Llama-2-7b-chat-hf"
+model_path = "./Models/Llama-2-7b-chat-hf"
 
-# tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
-# pipeline = transformers.pipeline(
-#     "text-generation",
-#     model=model_path,
-#     torch_dtype=torch.float16,
-#     device_map="auto",
-# )
-
-
-model = "meta-llama/Llama-2-7b-chat-hf"
-
-tokenizer = AutoTokenizer.from_pretrained(model)
+tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
 pipeline = transformers.pipeline(
     "text-generation",
-    model=model,
+    model=model_path,
     torch_dtype=torch.float16,
     device_map="auto",
 )
