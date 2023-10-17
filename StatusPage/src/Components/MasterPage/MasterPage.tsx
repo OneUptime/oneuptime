@@ -103,7 +103,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
             if (Navigation.getQueryStringByName('redirectUrl')) {
                 Navigation.navigate(
-                    new Route(Navigation.getQueryStringByName('redirectUrl')!)
+                    new Route(Navigation.getQueryStringByName('redirectUrl')!),
+                    { forceNavigate: true }
                 );
             } else {
                 Navigation.navigate(
@@ -115,7 +116,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         : RouteUtil.populateRouteParams(
                               RouteMap[PageMap.PREVIEW_OVERVIEW]!,
                               statusPageId
-                          )
+                          ),
+                    { forceNavigate: true }
                 );
             }
         }
