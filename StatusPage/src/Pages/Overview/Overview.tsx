@@ -11,8 +11,6 @@ import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
 import Alert from 'CommonUI/src/Components/Alerts/Alert';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -51,6 +49,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -128,8 +127,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
             const response: HTTPResponse<JSONObject> =
                 await API.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                        `/status-page/overview/${id.toString()}`
+                    URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                        `/overview/${id.toString()}`
                     ),
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)

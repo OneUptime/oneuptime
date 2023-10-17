@@ -393,6 +393,15 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
+                CookieUtil.setCookie(
+                    res,
+                    CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
+                    token,
+                    {
+                        httpOnly: true,
+                    }
+                );
+
                 return Response.sendEntityResponse(
                     req,
                     res,

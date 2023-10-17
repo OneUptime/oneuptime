@@ -9,7 +9,6 @@ import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -40,6 +39,7 @@ import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -216,8 +216,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
             }
             const response: HTTPResponse<JSONObject> =
                 await API.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                        `/status-page/incidents/${id.toString()}/${incidentId?.toString()}`
+                    URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                        `/incidents/${id.toString()}/${incidentId?.toString()}`
                     ),
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)

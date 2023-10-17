@@ -9,7 +9,7 @@ import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -95,8 +95,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             const response: HTTPResponse<JSONObject> =
                 await API.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                        `/status-page/announcements/${id.toString()}/${announcementId}`
+                    URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                        `/announcements/${id.toString()}/${announcementId}`
                     ),
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)

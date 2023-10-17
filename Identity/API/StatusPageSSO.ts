@@ -24,6 +24,7 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
 import HashedString from 'Common/Types/HashedString';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -272,6 +273,15 @@ router.post(
             const token: string = JSONWebToken.sign(
                 alreadySavedUser,
                 OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
+            );
+
+            CookieUtil.setCookie(
+                res,
+                CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
+                token,
+                {
+                    httpOnly: true,
+                }
             );
 
             // get status page URL.

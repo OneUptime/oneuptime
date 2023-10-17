@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -133,9 +133,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
         // get status page id by hostname.
         const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
-            URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                `/status-page/domain`
-            ),
+            URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(`/domain`),
             {
                 domain: Navigation.getHostname().toString(),
             },
@@ -159,8 +157,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             LocalStorage.setItem('statusPageId', id);
             const response: HTTPResponse<JSONObject> =
                 await API.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                        `/status-page/master-page/${id.toString()}`
+                    URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                        `/master-page/${id.toString()}`
                     ),
                     {},
                     {}

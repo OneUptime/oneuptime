@@ -4,7 +4,11 @@ import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
 import URL from 'Common/Types/API/URL';
 import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { DASHBOARD_API_URL, FILE_URL, IDENTITY_URL } from 'CommonUI/src/Config';
+import { FILE_URL } from 'CommonUI/src/Config';
+import {
+    STATUS_PAGE_API_URL,
+    STATUS_PAGE_SSO_API_URL,
+} from '../../Utils/Config';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageSSO from 'Model/Models/StatusPageSso';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -91,9 +95,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <ModelList<StatusPageSSO>
                         overrideFetchApiUrl={URL.fromString(
-                            DASHBOARD_API_URL.toString()
+                            STATUS_PAGE_API_URL.toString()
                         ).addRoute(
-                            '/status-page/sso/' +
+                            '/sso/' +
                                 StatusPageUtil.getStatusPageId()?.toString()
                         )}
                         modelType={StatusPageSSO}
@@ -109,9 +113,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                             if (list && list.length > 0) {
                                 setIsLoading(true);
                                 Navigation.navigate(
-                                    URL.fromURL(IDENTITY_URL).addRoute(
+                                    URL.fromURL(
+                                        STATUS_PAGE_SSO_API_URL
+                                    ).addRoute(
                                         new Route(
-                                            `/status-page-sso/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                                            `/${StatusPageUtil.getStatusPageId()?.toString()}/${
                                                 list[0]?._id
                                             }`
                                         )

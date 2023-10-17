@@ -12,11 +12,11 @@ import SubscribeSideMenu from './SideMenu';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Card from 'CommonUI/src/Components/Card/Card';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 
 const SubscribePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -96,10 +96,8 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                         },
                                     ]}
                                     apiUrl={URL.fromString(
-                                        DASHBOARD_API_URL.toString()
-                                    ).addRoute(
-                                        `/status-page/subscribe/${id.toString()}`
-                                    )}
+                                        STATUS_PAGE_API_URL.toString()
+                                    ).addRoute(`/subscribe/${id.toString()}`)}
                                     requestHeaders={API.getDefaultHeaders(
                                         StatusPageUtil.getStatusPageId()!
                                     )}

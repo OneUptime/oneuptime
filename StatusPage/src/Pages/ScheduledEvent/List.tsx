@@ -8,8 +8,6 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -36,6 +34,7 @@ import PageMap from '../../Utils/PageMap';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -72,8 +71,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
             const response: HTTPResponse<JSONObject> =
                 await API.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                        `/status-page/scheduled-maintenance-events/${id.toString()}`
+                    URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                        `/scheduled-maintenance-events/${id.toString()}`
                     ),
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
