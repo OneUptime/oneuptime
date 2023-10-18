@@ -361,6 +361,8 @@ services:
         networks:
           - oneuptime
         restart: always
+        ports:
+          - '4317:4317'
 
 
     ingestor:
