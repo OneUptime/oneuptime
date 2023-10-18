@@ -7,7 +7,7 @@ import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableColumn from 'Common/Types/Database/TableColumn';
-import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import Email from 'Common/Types/Email';

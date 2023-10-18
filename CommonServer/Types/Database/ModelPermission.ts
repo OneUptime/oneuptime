@@ -17,7 +17,7 @@ import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import RelationSelect from './RelationSelect';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import LessThan from 'Common/Types/Database/LessThan';
 import IsNull from 'Common/Types/Database/IsNull';
