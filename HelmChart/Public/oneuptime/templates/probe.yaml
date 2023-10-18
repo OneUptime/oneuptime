@@ -29,7 +29,7 @@ spec:
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
             - name: INGESTOR_URL
-              value: http://{{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.port.ingestor }}
+              value: http://{{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.port.ingestor }}
             - name: PROBE_NAME
               value: {{ $val.name }}
             - name: PROBE_DESCRIPTION

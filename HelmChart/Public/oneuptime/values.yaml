@@ -1,5 +1,6 @@
 global:
   storageClass: 
+  clusterDomain: &global-cluster-domain cluster.local
 
 
 # Please change this to the domain name / IP where OneUtpime server is hosted on. 
@@ -26,6 +27,7 @@ ingress:
     loadBalancerIP: 
 
 postgresql: 
+  clusterDomain: *global-cluster-domain
   auth: 
     username: oneuptime
     database: oneuptimedb
@@ -38,6 +40,7 @@ postgresql:
       size: 25Gi
 
 clickhouse: 
+  clusterDomain: *global-cluster-domain
   shards: 1
   replicaCount: 1
   zookeeper: 
@@ -51,6 +54,7 @@ clickhouse:
       CREATE DATABASE oneuptime;
 
 redis: 
+  clusterDomain: *global-cluster-domain
   architecture: standalone
   auth:
     enabled: true

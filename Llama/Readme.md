@@ -8,13 +8,13 @@
 - Docker build 
 
 ```
-docker build -t llama . -f ./Llama/Dockerfile
+docker build -t llama . -f ./Llama/Dockerfile 
 ```
 
 ## Run
 
 ```
-docker run -it llama
+docker run -it -v ./Llama/Models:/app/Models llama 
 ```
 
 

@@ -55,3 +55,6 @@ tests/coverage
 settings.json
 
 GoSDK/tester/
+
+Llama/Models/*
+
