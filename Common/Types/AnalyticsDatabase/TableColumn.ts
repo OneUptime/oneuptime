@@ -105,6 +105,14 @@ export default class AnalyticsTableColumn {
         this._accessControl = v;
     }
 
+    private _nestedModel?: NestedModel | undefined;
+    public get nestedModel(): NestedModel | undefined {
+        return this._nestedModel;
+    }
+    public set nestedModel(v: NestedModel | undefined) {
+        this._nestedModel = v;
+    }
+
     public constructor(data: {
         key: string;
         nestedModel?: NestedModel | undefined;
@@ -138,5 +146,6 @@ export default class AnalyticsTableColumn {
         this.billingAccessControl = data.billingAccessControl;
         this.allowAccessIfSubscriptionIsUnpaid =
             data.allowAccessIfSubscriptionIsUnpaid || false;
+        this.nestedModel = data.nestedModel;
     }
 }

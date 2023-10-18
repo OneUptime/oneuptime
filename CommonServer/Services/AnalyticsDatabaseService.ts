@@ -1,4 +1,4 @@
-import TableColumnType from 'Common/Types/BaseDatabase/TableColumnType';
+import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import ClickhouseDatabase, {
     ClickhouseAppInstance,
     ClickhouseClient,
@@ -272,7 +272,7 @@ export default class AnalyticsDatabaseService<
             this.database.getDatasourceOptions().database
         }.${this.model.tableName} 
         ( 
-            ${this.toColumnsCreateStatement()} 
+            ${this.toColumnsCreateStatement(this.model.tableColumns)} 
         )
         ENGINE = ${this.model.tableEngine}
         PRIMARY KEY (
@@ -438,9 +438,7 @@ export default class AnalyticsDatabaseService<
     ): JSONValue {
         if (
             column.type === TableColumnType.ObjectID ||
-            column.type === TableColumnType.LongText ||
-            column.type === TableColumnType.VeryLongText ||
-            column.type === TableColumnType.ShortText
+            column.type === TableColumnType.Text 
         ) {
             value = `'${value?.toString()}'`;
         }
@@ -774,13 +772,23 @@ export default class AnalyticsDatabaseService<
         return true;
     }
 
-    public toColumnsCreateStatement(): string {
+    public toColumnsCreateStatement(tableColumns: Array<AnalyticsTableColumn>): string {
         let columns: string = '';
 
-        this.model.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            columns += `${column.key} ${this.toColumnType(column.type)} ${
+        tableColumns.forEach((column: AnalyticsTableColumn) => {
+            const requiredText: string = `${
                 column.required ? 'NOT NULL' : ' NULL'
-            },\n`;
+            }`;
+
+            let nestedModelColumns = '';
+
+            if(column.type === TableColumnType.NestedModel) {
+                nestedModelColumns = `(
+                    ${this.toColumnsCreateStatement(column.nestedModel!.nestedColumnns)};
+                )`;
+            }
+
+            columns += `${column.key} ${this.toColumnType(column.type)} ${nestedModelColumns} ${requiredText},\n`;
         });
 
         return columns;
@@ -845,15 +853,7 @@ export default class AnalyticsDatabaseService<
     }
 
     public toColumnType(type: TableColumnType): string {
-        if (type === TableColumnType.ShortText) {
-            return 'String';
-        }
-
-        if (type === TableColumnType.LongText) {
-            return 'String';
-        }
-
-        if (type === TableColumnType.VeryLongText) {
+        if (type === TableColumnType.Text) {
             return 'String';
         }
 
@@ -869,17 +869,19 @@ export default class AnalyticsDatabaseService<
             return 'Int32';
         }
 
-        if (type === TableColumnType.BigNumber) {
-            return 'Int64';
+        if (type === TableColumnType.Decimal) {
+            return 'Double';
         }
 
         if (type === TableColumnType.Date) {
             return 'DateTime';
         }
 
-        if (type === TableColumnType.Array) {
-            return 'Array';
+        if (type === TableColumnType.NestedModel) {
+            return 'Nested';
         }
+
+
 
         throw new BadDataException('Unknown column type: ' + type);
     }
