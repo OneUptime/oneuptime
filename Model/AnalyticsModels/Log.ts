@@ -104,7 +104,7 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel()
+                    nestedModel: new KeyValueNestedModel(),
                 }),
 
                 new AnalyticsTableColumn({
@@ -115,7 +115,6 @@ export default class Log extends AnalyticsBaseModel {
                     type: TableColumnType.Text,
                 }),
 
-
                 new AnalyticsTableColumn({
                     key: 'spanId',
                     title: 'Span ID',
@@ -123,12 +122,10 @@ export default class Log extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.Text,
                 }),
-
             ],
             primaryKeys: ['projectId', 'serviceId', 'time'],
         });
     }
-
 
     public get projectId(): ObjectID | undefined {
         return this.getColumnValue('projectId') as ObjectID | undefined;
@@ -145,7 +142,6 @@ export default class Log extends AnalyticsBaseModel {
     public set serviceId(v: ObjectID | undefined) {
         this.setColumnValue('serviceId', v);
     }
-
 
     public get name(): string | undefined {
         return this.getColumnValue('name') as string | undefined;
@@ -196,7 +192,9 @@ export default class Log extends AnalyticsBaseModel {
     }
 
     public get attributes(): Array<KeyValueNestedModel> | undefined {
-        return this.getColumnValue('attributes') as Array<KeyValueNestedModel> | undefined;
+        return this.getColumnValue('attributes') as
+            | Array<KeyValueNestedModel>
+            | undefined;
     }
 
     public set attributes(v: Array<KeyValueNestedModel> | undefined) {
@@ -218,5 +216,4 @@ export default class Log extends AnalyticsBaseModel {
     public set spanId(v: string | undefined) {
         this.setColumnValue('spanId', v);
     }
-
 }

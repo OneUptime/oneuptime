@@ -177,7 +177,10 @@ export default class AnalyticsDataModel {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
 
-    public setColumnValue(columnName: string, value: JSONValue | Array<NestedModel>): void {
+    public setColumnValue(
+        columnName: string,
+        value: JSONValue | Array<NestedModel>
+    ): void {
         const column: AnalyticsTableColumn | null =
             this.getTableColumn(columnName);
 

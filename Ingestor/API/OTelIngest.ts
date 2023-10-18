@@ -73,7 +73,6 @@ router.post(
     }
 );
 
-
 router.post(
     '/otel/v1/metrics',
     async (
@@ -93,7 +92,6 @@ router.post(
     }
 );
 
-
 router.post(
     '/otel/v1/logs',
     async (
@@ -112,7 +110,5 @@ router.post(
         }
     }
 );
-
-
 
 export default router;

@@ -1,9 +1,9 @@
-import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import NestedModel from "Common/AnalyticsModels/NestedModel";
-import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
+import NestedModel from 'Common/AnalyticsModels/NestedModel';
+import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 
 export default class KeyValueNestedModel extends NestedModel {
-    public constructor(){
+    public constructor() {
         super({
             nestedColumns: [
                 new AnalyticsTableColumn({
@@ -21,8 +21,7 @@ export default class KeyValueNestedModel extends NestedModel {
                     required: true,
                     type: TableColumnType.Text,
                 }),
-
-            ]
-        })
+            ],
+        });
     }
 }

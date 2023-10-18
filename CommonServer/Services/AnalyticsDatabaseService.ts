@@ -438,7 +438,7 @@ export default class AnalyticsDatabaseService<
     ): JSONValue {
         if (
             column.type === TableColumnType.ObjectID ||
-            column.type === TableColumnType.Text 
+            column.type === TableColumnType.Text
         ) {
             value = `'${value?.toString()}'`;
         }
@@ -772,7 +772,9 @@ export default class AnalyticsDatabaseService<
         return true;
     }
 
-    public toColumnsCreateStatement(tableColumns: Array<AnalyticsTableColumn>): string {
+    public toColumnsCreateStatement(
+        tableColumns: Array<AnalyticsTableColumn>
+    ): string {
         let columns: string = '';
 
         tableColumns.forEach((column: AnalyticsTableColumn) => {
@@ -780,15 +782,19 @@ export default class AnalyticsDatabaseService<
                 column.required ? 'NOT NULL' : ' NULL'
             }`;
 
-            let nestedModelColumns = '';
+            let nestedModelColumns: string = '';
 
-            if(column.type === TableColumnType.NestedModel) {
+            if (column.type === TableColumnType.NestedModel) {
                 nestedModelColumns = `(
-                    ${this.toColumnsCreateStatement(column.nestedModel!.nestedColumnns)};
+                    ${this.toColumnsCreateStatement(
+                        column.nestedModel!.nestedColumnns
+                    )};
                 )`;
             }
 
-            columns += `${column.key} ${this.toColumnType(column.type)} ${nestedModelColumns} ${requiredText},\n`;
+            columns += `${column.key} ${this.toColumnType(
+                column.type
+            )} ${nestedModelColumns} ${requiredText},\n`;
         });
 
         return columns;
@@ -880,8 +886,6 @@ export default class AnalyticsDatabaseService<
         if (type === TableColumnType.NestedModel) {
             return 'Nested';
         }
-
-
 
         throw new BadDataException('Unknown column type: ' + type);
     }

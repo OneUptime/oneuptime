@@ -4,7 +4,6 @@ import TableColumnType from '../AnalyticsDatabase/TableColumnType';
 import { JSONValue } from '../JSON';
 import NestedModel from '../../AnalyticsModels/NestedModel';
 
-
 export default class AnalyticsTableColumn {
     private _key: string = 'id';
 
@@ -129,8 +128,7 @@ export default class AnalyticsTableColumn {
             | (() => Date | string | number | boolean)
             | undefined;
     }) {
-
-        if(data.type === TableColumnType.NestedModel && !data.nestedModel){
+        if (data.type === TableColumnType.NestedModel && !data.nestedModel) {
             throw new Error('NestedModel is required when type is NestedModel');
         }
 

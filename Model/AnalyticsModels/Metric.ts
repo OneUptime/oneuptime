@@ -35,7 +35,7 @@ import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
 
 export class MetricValue extends NestedModel {
-    public constructor(){
+    public constructor() {
         super({
             nestedColumns: [
                 new AnalyticsTableColumn({
@@ -52,11 +52,10 @@ export class MetricValue extends NestedModel {
                     description: 'Labels',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel()
+                    nestedModel: new KeyValueNestedModel(),
                 }),
-
-            ]
-        })
+            ],
+        });
     }
 }
 
@@ -92,14 +91,13 @@ export default class Metric extends AnalyticsBaseModel {
                     type: TableColumnType.Date,
                 }),
 
-              
                 new AnalyticsTableColumn({
                     key: 'attributes',
                     title: 'Attributes',
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel()
+                    nestedModel: new KeyValueNestedModel(),
                 }),
 
                 new AnalyticsTableColumn({
@@ -108,9 +106,8 @@ export default class Metric extends AnalyticsBaseModel {
                     description: 'Metric Values',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new MetricValue()
+                    nestedModel: new MetricValue(),
                 }),
-            
             ],
             primaryKeys: ['projectId', 'sourceId', 'time'],
         });
@@ -141,7 +138,9 @@ export default class Metric extends AnalyticsBaseModel {
     }
 
     public get attributes(): Array<KeyValueNestedModel> | undefined {
-        return this.getColumnValue('attributes') as Array<KeyValueNestedModel> | undefined;
+        return this.getColumnValue('attributes') as
+            | Array<KeyValueNestedModel>
+            | undefined;
     }
 
     public set attributes(v: Array<KeyValueNestedModel> | undefined) {
@@ -149,7 +148,9 @@ export default class Metric extends AnalyticsBaseModel {
     }
 
     public get metricValues(): Array<MetricValue> | undefined {
-        return this.getColumnValue('Array<MetricValue>s') as Array<MetricValue> | undefined;
+        return this.getColumnValue('Array<MetricValue>s') as
+            | Array<MetricValue>
+            | undefined;
     }
 
     public set metricValues(v: Array<MetricValue> | undefined) {

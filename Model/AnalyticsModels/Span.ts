@@ -44,8 +44,6 @@ ORDER BY (trace_id, span_id);
 
  */
 
-
-
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
@@ -55,7 +53,7 @@ import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
 
 export class SpanEvent extends NestedModel {
-    public constructor(){
+    public constructor() {
         super({
             nestedColumns: [
                 new AnalyticsTableColumn({
@@ -80,19 +78,15 @@ export class SpanEvent extends NestedModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel()
+                    nestedModel: new KeyValueNestedModel(),
                 }),
-
-                
-
-            ]
-        })
+            ],
+        });
     }
 }
 
-
 export class SpanLink extends NestedModel {
-    public constructor(){
+    public constructor() {
         super({
             nestedColumns: [
                 new AnalyticsTableColumn({
@@ -103,7 +97,6 @@ export class SpanLink extends NestedModel {
                     type: TableColumnType.Text,
                 }),
 
-
                 new AnalyticsTableColumn({
                     key: 'spanId',
                     title: 'Span ID',
@@ -112,7 +105,6 @@ export class SpanLink extends NestedModel {
                     type: TableColumnType.Text,
                 }),
 
-
                 new AnalyticsTableColumn({
                     key: 'traceState',
                     title: 'Trace State',
@@ -120,18 +112,17 @@ export class SpanLink extends NestedModel {
                     required: false,
                     type: TableColumnType.Text,
                 }),
-                
+
                 new AnalyticsTableColumn({
                     key: 'attributes',
                     title: 'Attributes',
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel()
+                    nestedModel: new KeyValueNestedModel(),
                 }),
-
-            ]
-        })
+            ],
+        });
     }
 }
 
@@ -175,7 +166,6 @@ export default class Span extends AnalyticsBaseModel {
                     type: TableColumnType.Date,
                 }),
 
-
                 new AnalyticsTableColumn({
                     key: 'traceId',
                     title: 'Trace ID',
@@ -183,7 +173,6 @@ export default class Span extends AnalyticsBaseModel {
                     required: true,
                     type: TableColumnType.Text,
                 }),
-
 
                 new AnalyticsTableColumn({
                     key: 'spanId',
@@ -215,7 +204,7 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel()
+                    nestedModel: new KeyValueNestedModel(),
                 }),
 
                 new AnalyticsTableColumn({
@@ -224,9 +213,8 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Span Events',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new SpanEvent()
+                    nestedModel: new SpanEvent(),
                 }),
-
 
                 new AnalyticsTableColumn({
                     key: 'links',
@@ -234,7 +222,7 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Span Links',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new SpanLink()
+                    nestedModel: new SpanLink(),
                 }),
 
                 new AnalyticsTableColumn({
@@ -252,9 +240,14 @@ export default class Span extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.Text,
                 }),
-            
             ],
-            primaryKeys: ['projectId', 'sourceId', 'traceId', 'startTime', 'endTime'],
+            primaryKeys: [
+                'projectId',
+                'sourceId',
+                'traceId',
+                'startTime',
+                'endTime',
+            ],
         });
     }
 
@@ -323,7 +316,9 @@ export default class Span extends AnalyticsBaseModel {
     }
 
     public get attributes(): Array<KeyValueNestedModel> | undefined {
-        return this.getColumnValue('attributes') as Array<KeyValueNestedModel> | undefined;
+        return this.getColumnValue('attributes') as
+            | Array<KeyValueNestedModel>
+            | undefined;
     }
 
     public set attributes(v: Array<KeyValueNestedModel> | undefined) {
