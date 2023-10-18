@@ -243,7 +243,7 @@ export default class Span extends AnalyticsBaseModel {
             ],
             primaryKeys: [
                 'projectId',
-                'sourceId',
+                'serviceId',
                 'traceId',
                 'startTime',
                 'endTime',

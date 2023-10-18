@@ -287,6 +287,8 @@ export default class AnalyticsDatabaseService<
         logger.info(`${this.model.tableName} Table Create Statement`);
         logger.info(statement);
 
+        debugger;
+
         return statement;
     }
 
@@ -773,12 +775,13 @@ export default class AnalyticsDatabaseService<
     }
 
     public toColumnsCreateStatement(
-        tableColumns: Array<AnalyticsTableColumn>
+        tableColumns: Array<AnalyticsTableColumn>,
+        isNestedModel: boolean = false
     ): string {
         let columns: string = '';
 
         tableColumns.forEach((column: AnalyticsTableColumn) => {
-            const requiredText: string = `${
+            let requiredText: string = `${
                 column.required ? 'NOT NULL' : ' NULL'
             }`;
 
@@ -787,9 +790,15 @@ export default class AnalyticsDatabaseService<
             if (column.type === TableColumnType.NestedModel) {
                 nestedModelColumns = `(
                     ${this.toColumnsCreateStatement(
-                        column.nestedModel!.nestedColumnns
-                    )};
+                        column.nestedModel!.nestedColumnns, true
+                    )}
                 )`;
+
+                requiredText='';
+            }
+
+            if(isNestedModel){
+                requiredText='';
             }
 
             columns += `${column.key} ${this.toColumnType(
@@ -797,7 +806,7 @@ export default class AnalyticsDatabaseService<
             )} ${nestedModelColumns} ${requiredText},\n`;
         });
 
-        return columns;
+        return columns.substring(0, columns.length - 2); // remove last comma.
     }
 
     public async onTrigger(

@@ -109,7 +109,7 @@ export default class Metric extends AnalyticsBaseModel {
                     nestedModel: new MetricValue(),
                 }),
             ],
-            primaryKeys: ['projectId', 'sourceId', 'time'],
+            primaryKeys: ['projectId', 'serviceId', 'time'],
         });
     }
 

@@ -119,6 +119,8 @@ import ResellerPlanService from './ResellerPlanService';
 
 import PromoCodeService from './PromoCodeService';
 import LogService from './LogService';
+import MetricService from './MetricService';
+import SpanService from './SpanService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
@@ -232,6 +234,6 @@ const services: Array<BaseService> = [
 
 export const AnalyticsServices: Array<
     AnalyticsDatabaseService<AnalyticsBaseModel>
-> = [LogService];
+> = [LogService, MetricService, SpanService];
 
 export default services;
