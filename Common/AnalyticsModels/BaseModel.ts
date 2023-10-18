@@ -9,6 +9,7 @@ import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import OneUptimeDate from '../Types/Date';
+import NestedModel from './NestedModel';
 
 export default class AnalyticsDataModel {
     private data: JSONObject = {};
@@ -176,7 +177,7 @@ export default class AnalyticsDataModel {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
 
-    public setColumnValue(columnName: string, value: JSONValue): void {
+    public setColumnValue(columnName: string, value: JSONValue | Array<NestedModel>): void {
         const column: AnalyticsTableColumn | null =
             this.getTableColumn(columnName);
 

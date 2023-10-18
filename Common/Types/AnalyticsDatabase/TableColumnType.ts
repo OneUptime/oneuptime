@@ -5,8 +5,9 @@ enum ColumnType {
     Boolean = 'Boolean',
     Number = 'Number',
     Text = 'Text',
-    NestedModel = 'Nested',
+    NestedModel = 'Nested Model',
     JSON = 'JSON',
+    Decimal = 'Decimal',
 
 }
 
