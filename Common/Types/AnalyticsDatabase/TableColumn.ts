@@ -1,7 +1,9 @@
 import { ColumnAccessControl } from '../BaseDatabase/AccessControl';
 import ColumnBillingAccessControl from '../BaseDatabase/ColumnBillingAccessControl';
-import TableColumnType from '../BaseDatabase/TableColumnType';
+import TableColumnType from '../AnalyticsDatabase/TableColumnType';
 import { JSONValue } from '../JSON';
+import NestedModel from '../../AnalyticsModels/NestedModel';
+
 
 export default class AnalyticsTableColumn {
     private _key: string = 'id';
@@ -45,7 +47,7 @@ export default class AnalyticsTableColumn {
         this._isTenantId = v;
     }
 
-    private _type: TableColumnType = TableColumnType.ShortText;
+    private _type: TableColumnType = TableColumnType.Text;
     public get type(): TableColumnType {
         return this._type;
     }
@@ -105,6 +107,7 @@ export default class AnalyticsTableColumn {
 
     public constructor(data: {
         key: string;
+        nestedModel?: NestedModel | undefined;
         title: string;
         description: string;
         required: boolean;
@@ -118,6 +121,11 @@ export default class AnalyticsTableColumn {
             | (() => Date | string | number | boolean)
             | undefined;
     }) {
+
+        if(data.type === TableColumnType.NestedModel && !data.nestedModel){
+            throw new Error('NestedModel is required when type is NestedModel');
+        }
+
         this.accessControl = data.accessControl;
         this.key = data.key;
         this.title = data.title;

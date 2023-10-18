@@ -55,7 +55,7 @@ router.use(
 );
 
 router.post(
-    '/otel/*',
+    '/otel/v1/traces',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -72,5 +72,47 @@ router.post(
         }
     }
 );
+
+
+router.post(
+    '/otel/v1/metrics',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            logger.info('OTel Ingestor API called');
+
+            logger.info(req.body);
+
+            return Response.sendEmptyResponse(req, res);
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+
+router.post(
+    '/otel/v1/logs',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            logger.info('OTel Ingestor API called');
+
+            logger.info(req.body);
+
+            return Response.sendEmptyResponse(req, res);
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+
 
 export default router;

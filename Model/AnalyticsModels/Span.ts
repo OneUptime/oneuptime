@@ -1,37 +1,65 @@
-/** 
- * CREATE TABLE opentelemetry_logs
+/**
+ * 
+ * 
+ * CREATE TABLE opentelemetry_spans
 (
     trace_id String,
     span_id String,
+    trace_state String,
+    parent_span_id String,
     name String,
-    time DateTime('UTC'),
-    body String,
+    kind Int32,
+    start_time DateTime('UTC'),
+    end_time DateTime('UTC'),
     attributes Nested
     (
         key String,
         value String
     ),
-    flags Int32,
-    severity_number Int32,
-    severity_text String
+    events Nested
+    (
+        time DateTime('UTC'),
+        name String,
+        attributes Nested
+        (
+            key String,
+            value String
+        )
+    ),
+    links Nested
+    (
+        trace_id String,
+        span_id String,
+        trace_state String,
+        attributes Nested
+        (
+            key String,
+            value String
+        )
+    ),
+    status_code Int32,
+    status_message String
 ) ENGINE = MergeTree()
 ORDER BY (trace_id, span_id);
 
  */
+
+
 
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
+import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 
-export default class Log extends AnalyticsBaseModel {
+export default class Span extends AnalyticsBaseModel {
     public constructor() {
         super({
-            tableName: 'Log',
+            tableName: 'Span',
             tableEngine: AnalyticsTableEngine.MergeTree,
-            singularName: 'Log',
-            pluralName: 'Logs',
+            singularName: 'Span',
+            pluralName: 'Spans',
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',
@@ -50,28 +78,65 @@ export default class Log extends AnalyticsBaseModel {
                 }),
 
                 new AnalyticsTableColumn({
-                    key: 'message',
-                    title: 'Log Message',
-                    description: 'Log message',
-                    required: true,
-                    type: TableColumnType.Text,
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'timestamp',
-                    title: 'Timestamp',
-                    description: 'When was the log created?',
+                    key: 'startTime',
+                    title: 'Start Time',
+                    description: 'When did the span start?',
                     required: true,
                     type: TableColumnType.Date,
                 }),
 
                 new AnalyticsTableColumn({
-                    key: 'severity',
-                    title: 'Severity',
-                    description: 'Log Severity',
+                    key: 'endTime',
+                    title: 'End Time',
+                    description: 'When did the span end?',
+                    required: true,
+                    type: TableColumnType.Date,
+                }),
+
+
+                new AnalyticsTableColumn({
+                    key: 'traceId',
+                    title: 'Trace ID',
+                    description: 'ID of the trace',
                     required: true,
                     type: TableColumnType.Text,
                 }),
+
+
+                new AnalyticsTableColumn({
+                    key: 'spanId',
+                    title: 'Span ID',
+                    description: 'ID of the span',
+                    required: true,
+                    type: TableColumnType.Text,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'parentSpanId',
+                    title: 'Parent Span ID',
+                    description: 'ID of the parent span',
+                    required: false,
+                    type: TableColumnType.Text,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'traceState',
+                    title: 'Trace State',
+                    description: 'Trace State',
+                    required: false,
+                    type: TableColumnType.NestedModel,
+                    nestedModel: new KeyValueNestedModel()
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'attributes',
+                    title: 'Attributes',
+                    description: 'Attributes',
+                    required: false,
+                    type: TableColumnType.NestedModel,
+                    nestedModel: new KeyValueNestedModel()
+                }),
+            
             ],
             primaryKeys: ['projectId', 'sourceId', 'timestamp'],
         });

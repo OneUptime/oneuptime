@@ -1,4 +1,4 @@
-import TableColumnType from '../Types/BaseDatabase/TableColumnType';
+import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
