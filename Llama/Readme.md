@@ -13,6 +13,14 @@ docker build -t llama . -f ./Llama/Dockerfile
 
 ## Run
 
+### For Linux
+
+```
+docker run --gpus all -p 8547:8547 -it -v ./Llama/Models:/app/Models llama 
+```
+
+### For MacOS
+
 ```
 docker run -p 8547:8547 -it -v ./Llama/Models:/app/Models llama 
 ```

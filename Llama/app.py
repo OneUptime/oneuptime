@@ -15,7 +15,8 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
 pipeline = transformers.pipeline(
     "text-generation",
     model=model_path,
-    torch_dtype=torch.float32,
+    # torch_dtype=torch.float32, # for CPU
+    torch_dtype=torch.float16, # for GPU
     device_map="auto",
 )
 
