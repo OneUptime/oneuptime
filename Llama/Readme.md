@@ -14,7 +14,7 @@ docker build -t llama . -f ./Llama/Dockerfile
 ## Run
 
 ```
-docker run -it -v ./Llama/Models:/app/Models llama 
+docker run -p 8547:8547 -it -v ./Llama/Models:/app/Models llama 
 ```
 
 
