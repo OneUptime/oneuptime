@@ -25,3 +25,28 @@ export default class KeyValueNestedModel extends NestedModel {
         });
     }
 }
+
+export class ValueModel extends NestedModel {
+    public constructor() {
+        super({
+            nestedColumns: [
+                new AnalyticsTableColumn({
+                    key: 'stringValue',
+                    title: 'Key',
+                    description: 'Key of the attribute',
+                    required: false,
+                    type: TableColumnType.Text,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'value',
+                    title: 'Value',
+                    description: 'Value of the attribute',
+                    required: false,
+                    type: TableColumnType.Text,
+                    
+                }),
+            ],
+        });
+    }
+}
