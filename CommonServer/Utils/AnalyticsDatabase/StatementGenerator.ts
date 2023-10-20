@@ -66,9 +66,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 for (const nestedModelColumnName of nestedModelColumnNames) {
                     columnNames.push(`${column.key}.${nestedModelColumnName}`);
                 }
-            }else{
+            } else {
                 columnNames.push(column.key);
-            }   
+            }
         }
 
         return columnNames;
@@ -79,22 +79,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         for (const value of record) {
             if (Array.isArray(value)) {
-
-                if(value.length === 0) {
+                if (value.length === 0) {
                     valueStatement += `[], `;
                     continue;
                 }
 
-                valueStatement += `[${value.join(",")}], `;
+                valueStatement += `[${value.join(',')}], `;
             } else {
                 valueStatement += `${value}, `;
             }
         }
 
-        valueStatement = valueStatement.substring(
-            0,
-            valueStatement.length - 2
-        ); // remove last comma.
+        valueStatement = valueStatement.substring(0, valueStatement.length - 2); // remove last comma.
 
         return valueStatement;
     }
@@ -164,14 +160,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     for (const nestedModelItem of item.getColumnValue(
                         column.key
                     ) as Array<CommonModel>) {
-                        const value: RecordValue =
-                            this.sanitizeValue(
-                                nestedModelItem.getColumnValue(subColumn.key),
-                                subColumn,
-                                {
-                                    isNestedModel: true
-                                }
-                            );
+                        const value: RecordValue = this.sanitizeValue(
+                            nestedModelItem.getColumnValue(subColumn.key),
+                            subColumn,
+                            {
+                                isNestedModel: true,
+                            }
+                        );
 
                         subRecord.push(value);
                     }
@@ -198,15 +193,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             isNestedModel?: boolean;
         }
     ): RecordValue {
-
-        if(!value && value !== 0 && value !== false) {
-
-            if(options?.isNestedModel){
-                if(column.type === TableColumnType.Text) {
+        if (!value && value !== 0 && value !== false) {
+            if (options?.isNestedModel) {
+                if (column.type === TableColumnType.Text) {
                     return `''`;
                 }
 
-                if(column.type === TableColumnType.Number) {
+                if (column.type === TableColumnType.Number) {
                     return 0;
                 }
             }
@@ -227,14 +220,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             )}')`;
         }
 
-        if(column.type === TableColumnType.Number) {
-            if(typeof value === 'string') {
+        if (column.type === TableColumnType.Number) {
+            if (typeof value === 'string') {
                 value = parseInt(value);
             }
         }
 
-        if(column.type === TableColumnType.Decimal) {
-            if(typeof value === 'string') {
+        if (column.type === TableColumnType.Decimal) {
+            if (typeof value === 'string') {
                 value = parseFloat(value);
             }
         }

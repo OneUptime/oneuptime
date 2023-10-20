@@ -91,10 +91,9 @@ export default class AnalyticsDataModel extends CommonModel {
         this.accessControl = data.accessControl;
         this.enableWorkflowOn = data.enableWorkflowOn;
 
-
-        // initialize Arrays. 
-        for(const column of this.tableColumns){
-            if(column.type === TableColumnType.NestedModel){
+        // initialize Arrays.
+        for (const column of this.tableColumns) {
+            if (column.type === TableColumnType.NestedModel) {
                 this.setColumnValue(column.key, []);
             }
         }
