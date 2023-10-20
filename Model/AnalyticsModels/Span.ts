@@ -72,14 +72,14 @@ export class SpanEvent extends NestedModel {
                     type: TableColumnType.Text,
                 }),
 
-                new AnalyticsTableColumn({
-                    key: 'attributes',
-                    title: 'Attributes',
-                    description: 'Attributes',
-                    required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
-                }),
+                // new AnalyticsTableColumn({
+                //     key: 'attributes',
+                //     title: 'Attributes',
+                //     description: 'Attributes',
+                //     required: false,
+                //     type: TableColumnType.NestedModel,
+                //     nestedModel: new KeyValueNestedModel(),
+                // }),
             ],
         });
     }
@@ -139,14 +139,14 @@ export class SpanLink extends NestedModel {
                     type: TableColumnType.Text,
                 }),
 
-                new AnalyticsTableColumn({
-                    key: 'attributes',
-                    title: 'Attributes',
-                    description: 'Attributes',
-                    required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
-                }),
+                // new AnalyticsTableColumn({
+                //     key: 'attributes',
+                //     title: 'Attributes',
+                //     description: 'Attributes',
+                //     required: false,
+                //     type: TableColumnType.NestedModel,
+                //     nestedModel: new KeyValueNestedModel(),
+                // }),
             ],
         });
     }

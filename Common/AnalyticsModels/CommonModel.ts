@@ -7,7 +7,7 @@ import BadDataException from '../Types/Exception/BadDataException';
 import { JSONObject, JSONValue } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
-export type RecordValue = string | number | boolean | Date | Array<CommonModel>;
+export type RecordValue = ObjectID | string | number | boolean | Date | Array<CommonModel>;
 
 export type Record = Array<RecordValue | Record>;
 
@@ -106,6 +106,11 @@ export default class CommonModel {
 
             if (recordValue instanceof CommonModel) {
                 json[column.key] = recordValue.toJSON();
+                return;
+            }
+
+            if(recordValue instanceof Array) {
+                json[column.key] = CommonModel.toJSONArray(recordValue);
                 return;
             }
 

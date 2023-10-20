@@ -9,7 +9,7 @@ show tables from oneuptime
 ## Show table structure
 
 ```sql
-desc table_name from oneuptime
+DESCRIBE TABLE oneuptime.Span
 ```
 
 ## Show table data

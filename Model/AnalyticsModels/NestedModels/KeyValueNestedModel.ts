@@ -27,7 +27,7 @@ export default class KeyValueNestedModel extends NestedModel {
                     title: 'Number Value',
                     description: 'Value of the attribute',
                     required: false,
-                    type: TableColumnType.Text,
+                    type: TableColumnType.Number,
                 }),
             ],
         });

@@ -66,18 +66,43 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 for (const nestedModelColumnName of nestedModelColumnNames) {
                     columnNames.push(`${column.key}.${nestedModelColumnName}`);
                 }
-            }
-
-            columnNames.push(column.key);
+            }else{
+                columnNames.push(column.key);
+            }   
         }
 
         return columnNames;
     }
 
+    public getRecordValuesStatement(record: Record): string {
+        let valueStatement: string = '';
+
+        for (const value of record) {
+            if (Array.isArray(value)) {
+
+                if(value.length === 0) {
+                    valueStatement += `[], `;
+                    continue;
+                }
+
+                valueStatement += `[${value.join(",")}], `;
+            } else {
+                valueStatement += `${value}, `;
+            }
+        }
+
+        valueStatement = valueStatement.substring(
+            0,
+            valueStatement.length - 2
+        ); // remove last comma.
+
+        return valueStatement;
+    }
+
     public getValuesStatement(records: Array<Record>): string {
         let statement: string = '';
         for (const record of records) {
-            statement += `(${record.join(', ')}), `;
+            statement += `(${this.getRecordValuesStatement(record)}), `;
         }
 
         statement = statement.substring(0, statement.length - 2); // remove last comma.
@@ -139,13 +164,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     for (const nestedModelItem of item.getColumnValue(
                         column.key
                     ) as Array<CommonModel>) {
-                        const value: RecordValue | undefined =
+                        const value: RecordValue =
                             this.sanitizeValue(
                                 nestedModelItem.getColumnValue(subColumn.key),
-                                column
+                                subColumn,
+                                {
+                                    isNestedModel: true
+                                }
                             );
 
-                        subRecord.push(value || 'NULL');
+                        subRecord.push(value);
                     }
 
                     record.push(subRecord);
@@ -156,7 +184,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     column
                 );
 
-                record.push(value || 'NULL');
+                record.push(value);
             }
         }
 
@@ -165,8 +193,27 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     private sanitizeValue(
         value: RecordValue | undefined,
-        column: AnalyticsTableColumn
-    ): RecordValue | undefined {
+        column: AnalyticsTableColumn,
+        options?: {
+            isNestedModel?: boolean;
+        }
+    ): RecordValue {
+
+        if(!value && value !== 0 && value !== false) {
+
+            if(options?.isNestedModel){
+                if(column.type === TableColumnType.Text) {
+                    return `''`;
+                }
+
+                if(column.type === TableColumnType.Number) {
+                    return 0;
+                }
+            }
+
+            return 'NULL';
+        }
+
         if (
             column.type === TableColumnType.ObjectID ||
             column.type === TableColumnType.Text
@@ -178,6 +225,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
                 value as Date
             )}')`;
+        }
+
+        if(column.type === TableColumnType.Number) {
+            if(typeof value === 'string') {
+                value = parseInt(value);
+            }
+        }
+
+        if(column.type === TableColumnType.Decimal) {
+            if(typeof value === 'string') {
+                value = parseFloat(value);
+            }
         }
 
         return value;

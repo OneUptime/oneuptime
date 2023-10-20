@@ -548,8 +548,11 @@ export default class AnalyticsDatabaseService<
         }
 
         try {
+
+            const insertStatement: string = this.statementGenerator.toCreateStatement({ item: items });
+
             await this.execute(
-                this.statementGenerator.toCreateStatement({ item: items })
+                insertStatement
             );
 
             if (!createBy.props.ignoreHooks) {
