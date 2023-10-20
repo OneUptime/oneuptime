@@ -55,7 +55,7 @@ import NestedModel from 'Common/AnalyticsModels/NestedModel';
 export class SpanEvent extends NestedModel {
     public constructor() {
         super({
-            nestedColumns: [
+            tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'time',
                     title: 'Time',
@@ -83,12 +83,38 @@ export class SpanEvent extends NestedModel {
             ],
         });
     }
+
+    public get time(): Date | undefined {
+        return this.getColumnValue('time') as Date | undefined;
+    }
+
+    public set time(v: Date | undefined) {
+        this.setColumnValue('time', v);
+    }
+
+    public get name(): string | undefined {
+        return this.getColumnValue('name') as string | undefined;
+    }
+
+    public set name(v: string | undefined) {
+        this.setColumnValue('name', v);
+    }
+
+    public get attributes(): Array<KeyValueNestedModel> | undefined {
+        return this.getColumnValue('attributes') as
+            | Array<KeyValueNestedModel>
+            | undefined;
+    }
+
+    public set attributes(v: Array<KeyValueNestedModel> | undefined) {
+        this.setColumnValue('attributes', v);
+    }
 }
 
 export class SpanLink extends NestedModel {
     public constructor() {
         super({
-            nestedColumns: [
+            tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'traceId',
                     title: 'Trace ID',
@@ -160,6 +186,22 @@ export default class Span extends AnalyticsBaseModel {
 
                 new AnalyticsTableColumn({
                     key: 'endTime',
+                    title: 'End Time',
+                    description: 'When did the span end?',
+                    required: true,
+                    type: TableColumnType.Date,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'startTimeUnixNano',
+                    title: 'Start Time in Unix Nano',
+                    description: 'When did the span start?',
+                    required: true,
+                    type: TableColumnType.Number,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'endTimeUnixNano',
                     title: 'End Time',
                     description: 'When did the span end?',
                     required: true,
@@ -240,6 +282,22 @@ export default class Span extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.Text,
                 }),
+
+                new AnalyticsTableColumn({
+                    key: 'name',
+                    title: 'Name',
+                    description: 'Name of the span',
+                    required: false,
+                    type: TableColumnType.Text,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'kind',
+                    title: 'Kind',
+                    description: 'Kind of the span',
+                    required: false,
+                    type: TableColumnType.Number,
+                }),
             ],
             primaryKeys: [
                 'projectId',
@@ -249,6 +307,38 @@ export default class Span extends AnalyticsBaseModel {
                 'endTime',
             ],
         });
+    }
+
+    public get startTimeUnixNano(): number | undefined {
+        return this.getColumnValue('startTimeUnixNano') as number | undefined;
+    }
+
+    public set startTimeUnixNano(v: number | undefined) {
+        this.setColumnValue('startTimeUnixNano', v);
+    }
+
+    public get endTimeUnixNano(): number | undefined {
+        return this.getColumnValue('endTimeUnixNano') as number | undefined;
+    }
+
+    public set endTimeUnixNano(v: number | undefined) {
+        this.setColumnValue('endTimeUnixNano', v);
+    }
+
+    public get name(): string | undefined {
+        return this.getColumnValue('name') as string | undefined;
+    }
+
+    public set name(v: string | undefined) {
+        this.setColumnValue('name', v);
+    }
+
+    public get kind(): number | undefined {
+        return this.getColumnValue('kind') as number | undefined;
+    }
+
+    public set kind(v: number | undefined) {
+        this.setColumnValue('kind', v);
     }
 
     public get projectId(): ObjectID | undefined {

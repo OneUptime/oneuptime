@@ -1,4 +1,4 @@
-import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
+
 import ClickhouseDatabase, {
     ClickhouseAppInstance,
     ClickhouseClient,
@@ -35,25 +35,27 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Query from '../Types/AnalyticsDatabase/Query';
 import Select from '../Types/AnalyticsDatabase/Select';
-import Sort from '../Types/AnalyticsDatabase/Sort';
 import { ExecResult } from '@clickhouse/client';
 import { Stream } from 'node:stream';
 import StreamUtil from '../Utils/Stream';
-import { JSONObject, JSONValue } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
 import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
 import OneUptimeDate from 'Common/Types/Date';
+import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
+import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
+    public statementGenerator!:  StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -66,6 +68,11 @@ export default class AnalyticsDatabaseService<
         }
 
         this.databaseClient = this.database.getDataSource() as ClickhouseClient;
+
+        this.statementGenerator = new StatementGenerator<TBaseModel>({
+            modelType: this.modelType,
+            database: this.database,
+        });
     }
 
     public async findBy(
@@ -202,95 +209,7 @@ export default class AnalyticsDatabaseService<
         return items;
     }
 
-    public toWhereStatement(query: Query<TBaseModel>): string {
-        let whereStatement: string = '';
 
-        for (const key in query) {
-            const value: any = query[key];
-            const tableColumn: AnalyticsTableColumn | null =
-                this.model.getTableColumn(key);
-
-            if (!tableColumn) {
-                throw new BadDataException(`Unknown column: ${key}`);
-            }
-
-            whereStatement += `${key} = ${this.sanitizeValue(
-                value,
-                tableColumn
-            )} AND`;
-        }
-
-        // remove last AND.
-        whereStatement = whereStatement.substring(0, whereStatement.length - 4);
-
-        return whereStatement;
-    }
-
-    public toSortStatemennt(sort: Sort<TBaseModel>): string {
-        let sortStatement: string = '';
-
-        for (const key in sort) {
-            const value: any = sort[key];
-            sortStatement += `${key} ${value}`;
-        }
-
-        return sortStatement;
-    }
-
-    public toSelectStatement(select: Select<TBaseModel>): {
-        statement: string;
-        columns: Array<string>;
-    } {
-        let selectStatement: string = '';
-        const columns: Array<string> = [];
-
-        for (const key in select) {
-            const value: any = select[key];
-            if (value) {
-                columns.push(key);
-                selectStatement += `${key}, `;
-            }
-        }
-
-        selectStatement = selectStatement.substring(
-            0,
-            selectStatement.length - 2
-        ); // remove last comma.
-
-        return {
-            columns: columns,
-            statement: selectStatement,
-        };
-    }
-
-    public toTableCreateStatement(): string {
-        if (!this.database) {
-            this.useDefaultDatabase();
-        }
-
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ( 
-            ${this.toColumnsCreateStatement(this.model.tableColumns)} 
-        )
-        ENGINE = ${this.model.tableEngine}
-        PRIMARY KEY (
-            ${this.model.primaryKeys
-                .map((key: string) => {
-                    return key;
-                })
-                .join(', ')}
-        )
-        `;
-
-        logger.info(`${this.model.tableName} Table Create Statement`);
-        logger.info(statement);
-
-        debugger;
-
-        return statement;
-    }
 
     protected async onBeforeDelete(
         deleteBy: DeleteBy<TBaseModel>
@@ -322,15 +241,13 @@ export default class AnalyticsDatabaseService<
         }
 
         const select: { statement: string; columns: Array<string> } =
-            this.toSelectStatement(findBy.select!);
+            this.statementGenerator.toSelectStatement(findBy.select!);
 
-        const statement: string = `SELECT ${select.statement} FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ${
-            Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
-        } ${this.toWhereStatement(findBy.query)}
-        ORDER BY ${this.toSortStatemennt(findBy.sort!)}
+        const statement: string = `SELECT ${select.statement} FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        ${Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
+            } ${this.statementGenerator.toWhereStatement(findBy.query)}
+        ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit}
         OFFSET ${findBy.skip}
         `;
@@ -346,12 +263,10 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-            DELETE ${
-                Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
-            } ${this.toWhereStatement(deleteBy.query)}
+        const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+            DELETE ${Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+            } ${this.statementGenerator.toWhereStatement(deleteBy.query)}
         `;
 
         logger.info(`${this.model.tableName} Delete Statement`);
@@ -360,99 +275,6 @@ export default class AnalyticsDatabaseService<
         return statement;
     }
 
-    public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): string {
-        if (!this.database) {
-            this.useDefaultDatabase();
-        }
-
-        const statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        UPDATE ${this.toSetStatement(updateBy.data)}
-        ${
-            Object.keys(updateBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
-        } ${this.toWhereStatement(updateBy.query)}
-        `;
-
-        logger.info(`${this.model.tableName} Update Statement`);
-        logger.info(statement);
-
-        return statement;
-    }
-
-    public toSetStatement(data: TBaseModel): string {
-        let setStatement: string = '';
-
-        for (const column of data.getTableColumns()) {
-            if (data.getColumnValue(column.key) !== undefined) {
-                setStatement += `${column.key} = ${this.sanitizeValue(
-                    data.getColumnValue(column.key),
-                    column
-                )}, `;
-            }
-        }
-
-        setStatement = setStatement.substring(0, setStatement.length - 2); // remove last comma.
-
-        return setStatement;
-    }
-
-    public toCreateStatement(data: { item: TBaseModel }): string {
-        if (!data.item) {
-            throw new BadDataException('Item cannot be null');
-        }
-
-        const columnNames: Array<string> = [];
-        const values: Array<string | number | boolean | Date> = [];
-
-        for (const column of data.item.getTableColumns()) {
-            columnNames.push(column.key);
-
-            const value: JSONValue = this.sanitizeValue(
-                data.item.getColumnValue(column.key),
-                column
-            );
-
-            values.push(value as string | number | boolean | Date);
-        }
-
-        const statement: string = `INSERT INTO ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ( 
-            ${columnNames.join(', ')}
-        )
-        VALUES
-        (
-            ${values.join(', ')}
-        )
-        `;
-
-        logger.info(`${this.model.tableName} Create Statement`);
-        logger.info(statement);
-
-        return statement;
-    }
-
-    private sanitizeValue(
-        value: JSONValue,
-        column: AnalyticsTableColumn
-    ): JSONValue {
-        if (
-            column.type === TableColumnType.ObjectID ||
-            column.type === TableColumnType.Text
-        ) {
-            value = `'${value?.toString()}'`;
-        }
-
-        if (column.type === TableColumnType.Date && value instanceof Date) {
-            value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
-                value as Date
-            )}')`;
-        }
-
-        return value;
-    }
 
     public async findOneBy(
         findOneBy: FindOneBy<TBaseModel>
@@ -547,7 +369,7 @@ export default class AnalyticsDatabaseService<
                 (select as any)[tenantColumnName] = true;
             }
 
-            await this.execute(this.toUpdateStatement(beforeUpdateBy));
+            await this.execute(this.statementGenerator.toUpdateStatement(beforeUpdateBy));
         } catch (error) {
             await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);
@@ -668,80 +490,124 @@ export default class AnalyticsDatabaseService<
         return await this.onBeforeCreate(createBy);
     }
 
-    public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
-            ? { createBy, carryForward: [] }
-            : await this._onBeforeCreate(createBy);
-
-        const _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
-
-        const carryForward: any = onCreate.carryForward;
-
-        let data: TBaseModel = _createdBy.data;
+    public async createMany(createBy: CreateManyBy<TBaseModel>): Promise<Array<TBaseModel>> {
 
         // add tenantId if present.
         const tenantColumnName: string | null =
-            data.getTenantColumn()?.key || null;
+            this.model.getTenantColumn()?.key || null;
 
-        if (tenantColumnName && _createdBy.props.tenantId) {
-            data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
+        const items: Array<TBaseModel> = []
+        const carryForwards: Array<any> = []
+
+        for (const item of createBy.items) {
+            let data: TBaseModel = item;
+
+            const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
+                ? {
+                    createBy: {
+                        data: data,
+                        props: createBy.props
+                    }, carryForward: []
+                }
+                : await this._onBeforeCreate({
+                    data: data,
+                    props: createBy.props
+                });
+
+
+            data = onCreate.createBy.data;
+
+            const carryForward: any = onCreate.carryForward;
+
+            carryForwards.push(carryForward);
+
+            if (tenantColumnName && createBy.props.tenantId) {
+                data.setColumnValue(tenantColumnName, createBy.props.tenantId);
+            }
+
+            data = this.sanitizeCreate(data);
+            data = this.generateDefaultValues(data);
+            data = this.checkRequiredFields(data);
+
+            if (!this.isValid(data)) {
+                throw new BadDataException('Data is not valid');
+            }
+
+            // check total items by
+
+            ModelPermission.checkCreatePermissions(
+                this.modelType,
+                data,
+                createBy.props
+            );
+
+            items.push(data);
         }
-
-        data = this.sanitizeCreate(data);
-        data = this.generateDefaultValues(data);
-        data = this.checkRequiredFields(data);
-
-        if (!this.isValid(data)) {
-            throw new BadDataException('Data is not valid');
-        }
-
-        // check total items by
-
-        ModelPermission.checkCreatePermissions(
-            this.modelType,
-            data,
-            _createdBy.props
-        );
-
-        createBy.data = data;
 
         try {
-            await this.execute(this.toCreateStatement({ item: createBy.data }));
+            await this.execute(this.statementGenerator.toCreateStatement({ item: items }));
 
             if (!createBy.props.ignoreHooks) {
-                createBy.data = await this.onCreateSuccess(
-                    {
-                        createBy,
-                        carryForward,
-                    },
-                    createBy.data
-                );
+                for (let i = 0; i < items.length; i++) {
+
+                    if(!items[i]){
+                        continue;
+                    }
+
+                    items[i] = await this.onCreateSuccess(
+                        {
+                            createBy: {
+                                data: items[i]!,
+                                props: createBy.props
+                            },
+                            carryForward: carryForwards[i],
+                        },
+                        items[i]!
+                    );
+                }
             }
 
             // hit workflow.;
             if (this.getModel().enableWorkflowOn?.create) {
                 let tenantId: ObjectID | undefined = createBy.props.tenantId;
 
-                if (!tenantId && this.getModel().getTenantColumn()) {
-                    tenantId = createBy.data.getColumnValue<ObjectID>(
-                        this.getModel().getTenantColumn()!.key
-                    );
-                }
-
-                if (tenantId) {
-                    await this.onTrigger(
-                        createBy.data.id!,
-                        tenantId,
-                        'on-create'
-                    );
+                for(const item of items){
+                    if (!tenantId && this.getModel().getTenantColumn()) {
+                        tenantId = item.getColumnValue<ObjectID>(
+                            this.getModel().getTenantColumn()!.key
+                        );
+                    }
+    
+                    if (tenantId) {
+                        await this.onTrigger(
+                            item.id!,
+                            tenantId,
+                            'on-create'
+                        );
+                    }
                 }
             }
 
-            return createBy.data;
+            return createBy.items;
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+        const items: Array<TBaseModel> = await this.createMany({
+            props: createBy.props,
+            items: [createBy.data],
+        });
+        
+        const item = items[0];
+
+        if(!item){
+            throw new BadDataException('Item not created');
+        }
+
+        return item;
     }
 
     private sanitizeCreate<TBaseModel extends AnalyticsBaseModel>(
@@ -774,40 +640,7 @@ export default class AnalyticsDatabaseService<
         return true;
     }
 
-    public toColumnsCreateStatement(
-        tableColumns: Array<AnalyticsTableColumn>,
-        isNestedModel: boolean = false
-    ): string {
-        let columns: string = '';
 
-        tableColumns.forEach((column: AnalyticsTableColumn) => {
-            let requiredText: string = `${
-                column.required ? 'NOT NULL' : ' NULL'
-            }`;
-
-            let nestedModelColumns: string = '';
-
-            if (column.type === TableColumnType.NestedModel) {
-                nestedModelColumns = `(
-                    ${this.toColumnsCreateStatement(
-                        column.nestedModel!.nestedColumnns, true
-                    )}
-                )`;
-
-                requiredText='';
-            }
-
-            if(isNestedModel){
-                requiredText='';
-            }
-
-            columns += `${column.key} ${this.toColumnType(
-                column.type
-            )} ${nestedModelColumns} ${requiredText},\n`;
-        });
-
-        return columns.substring(0, columns.length - 2); // remove last comma.
-    }
 
     public async onTrigger(
         id: ObjectID,
@@ -867,35 +700,5 @@ export default class AnalyticsDatabaseService<
         return this.model;
     }
 
-    public toColumnType(type: TableColumnType): string {
-        if (type === TableColumnType.Text) {
-            return 'String';
-        }
 
-        if (type === TableColumnType.ObjectID) {
-            return 'String';
-        }
-
-        if (type === TableColumnType.Boolean) {
-            return 'Bool';
-        }
-
-        if (type === TableColumnType.Number) {
-            return 'Int32';
-        }
-
-        if (type === TableColumnType.Decimal) {
-            return 'Double';
-        }
-
-        if (type === TableColumnType.Date) {
-            return 'DateTime';
-        }
-
-        if (type === TableColumnType.NestedModel) {
-            return 'Nested';
-        }
-
-        throw new BadDataException('Unknown column type: ' + type);
-    }
 }

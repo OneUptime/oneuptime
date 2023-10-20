@@ -29,6 +29,10 @@ export default class OneUptimeDate {
         return this.getSomeDaysAgo(new PositiveNumber(1));
     }
 
+    public static fromUnixNano(timestamp: number): Date {
+        return moment(timestamp / 1000000).toDate();
+    }
+
     public static getSecondsTo(date: Date): number {
         date = this.fromString(date);
         const dif: number = date.getTime() - this.getCurrentDate().getTime();

@@ -8,6 +8,10 @@ import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import Span from 'Model/AnalyticsModels/Span';
+import OneUptimeDate from 'Common/Types/Date';
+import KeyValueNestedModel from 'Model/AnalyticsModels/NestedModels/KeyValueNestedModel';
+import SpanService from 'CommonServer/Services/SpanService';
 // Load proto file for OTel
 
 // Create a root namespace
@@ -62,9 +66,67 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            logger.info('OTel Ingestor API called');
 
-            logger.info(req.body);
+            const traceData = req.body.toJSON();
+            const resourceSpans = traceData.resourceSpans;
+
+            const dbSpans: Array<Span> = [];
+
+            for (const resourceSpan of resourceSpans) {
+
+                const scopeSpans = resourceSpan.scopeSpans;
+
+                for (const scopeSpan of scopeSpans) {
+
+                    const spans = scopeSpan.spans;
+
+
+
+                    for (const span of spans) {
+
+
+                        const dbSpan = new Span();
+                        dbSpan.spanId = span.spanId;
+                        dbSpan.traceId = span.traceId;
+                        dbSpan.parentSpanId = span.parentSpanId;
+                        dbSpan.startTimeUnixNano = span.startTimeUnixNano;
+                        dbSpan.endTimeUnixNano = span.endTimeUnixNano;
+                        dbSpan.startTime = OneUptimeDate.fromUnixNano(span.startTimeUnixNano);
+                        dbSpan.endTime = OneUptimeDate.fromUnixNano(span.endTimeUnixNano);
+                        dbSpan.name = span.name;
+                        dbSpan.kind = span.kind;
+
+                        // We need to convert this to date. 
+                        const attributes = span.attributes;
+
+                        const dbattributes: Array<KeyValueNestedModel> = [];
+
+                        for (const attribute of attributes) {
+                            const dbattribute = new KeyValueNestedModel();
+                            dbattribute.key = attribute.key;
+                            if (attribute.value.stringValue) {
+                                dbattribute.stringValue = attribute.value.stringValue;
+                            }
+                            if (attribute.value.intValue) {
+                                dbattribute.numberValue = attribute.value.intValue;
+                            }
+                            dbattributes.push(dbattribute);
+                        }
+
+                        dbSpan.attributes = dbattributes;
+
+                        dbSpans.push(dbSpan);
+
+                    }
+                }
+            }
+
+            await SpanService.createMany({
+                items: dbSpans,
+                props: {
+                    isRoot: true
+                }
+            });
 
             return Response.sendEmptyResponse(req, res);
         } catch (err) {

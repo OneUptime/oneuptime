@@ -37,7 +37,7 @@ import NestedModel from 'Common/AnalyticsModels/NestedModel';
 export class MetricValue extends NestedModel {
     public constructor() {
         super({
-            nestedColumns: [
+            tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'value',
                     title: 'Value',
