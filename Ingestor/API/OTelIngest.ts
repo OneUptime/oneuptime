@@ -12,6 +12,7 @@ import Span from 'Model/AnalyticsModels/Span';
 import OneUptimeDate from 'Common/Types/Date';
 import KeyValueNestedModel from 'Model/AnalyticsModels/NestedModels/KeyValueNestedModel';
 import SpanService from 'CommonServer/Services/SpanService';
+import ObjectID from 'Common/Types/ObjectID';
 // Load proto file for OTel
 
 // Create a root namespace
@@ -86,6 +87,10 @@ router.post(
 
 
                         const dbSpan = new Span();
+
+                        dbSpan.projectId = ObjectID.getZeroObjectID();
+                        dbSpan.serviceId = ObjectID.getZeroObjectID();
+
                         dbSpan.spanId = span.spanId;
                         dbSpan.traceId = span.traceId;
                         dbSpan.parentSpanId = span.parentSpanId;

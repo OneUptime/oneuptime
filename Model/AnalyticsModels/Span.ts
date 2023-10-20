@@ -60,7 +60,7 @@ export class SpanEvent extends NestedModel {
                     key: 'time',
                     title: 'Time',
                     description: 'Time',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Date,
                 }),
 
@@ -68,7 +68,7 @@ export class SpanEvent extends NestedModel {
                     key: 'name',
                     title: 'Name',
                     description: 'Name of the span event',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Text,
                 }),
 
@@ -119,7 +119,7 @@ export class SpanLink extends NestedModel {
                     key: 'traceId',
                     title: 'Trace ID',
                     description: 'ID of the trace',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Text,
                 }),
 
@@ -127,7 +127,7 @@ export class SpanLink extends NestedModel {
                     key: 'spanId',
                     title: 'Span ID',
                     description: 'ID of the span',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Text,
                 }),
 
@@ -196,7 +196,7 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'startTimeUnixNano',
                     title: 'Start Time in Unix Nano',
                     description: 'When did the span start?',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Number,
                 }),
 
@@ -204,8 +204,8 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'endTimeUnixNano',
                     title: 'End Time',
                     description: 'When did the span end?',
-                    required: true,
-                    type: TableColumnType.Date,
+                    required: false,
+                    type: TableColumnType.Number,
                 }),
 
                 new AnalyticsTableColumn({
