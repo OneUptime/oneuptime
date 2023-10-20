@@ -7,6 +7,10 @@ import BadDataException from "../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../Types/JSON";
 import ObjectID from "../Types/ObjectID";
 
+export type RecordValue = string | number | boolean | Date | Array<CommonModel>;
+
+export type Record = Array<RecordValue | Record>;
+
 export default class CommonModel { 
 
     protected data: JSONObject = {};
@@ -57,7 +61,7 @@ export default class CommonModel {
         this.tableColumns = data.tableColumns;
     }
 
-    public getColumnValue<T extends JSONValue>(
+    public getColumnValue<T extends RecordValue>(
         columnName: string
     ): T | undefined {
         if (this.getTableColumn(columnName)) {
@@ -83,5 +87,59 @@ export default class CommonModel {
 
     public getTableColumns(): Array<AnalyticsTableColumn> {
         return this.tableColumns;
+    }
+
+
+    public fromJSON(json: JSONObject): CommonModel {
+        for (const key in json) {
+            this.setColumnValue(key, json[key]);
+        }
+
+        return this;
+    }
+
+    public toJSON(): JSONObject {
+        const json: JSONObject = {};
+
+        this.tableColumns.forEach((column: AnalyticsTableColumn) => {
+
+            const recordValue: RecordValue | undefined = this.getColumnValue(column.key);
+
+            if(recordValue instanceof CommonModel){
+                json[column.key] = recordValue.toJSON();
+                return;
+            }
+            
+            json[column.key] = recordValue; 
+        });
+
+        return json;
+    }
+
+    public static fromJSONArray<TBaseModel extends CommonModel>(
+        modelType: { new (): CommonModel },
+        jsonArray: Array<JSONObject>
+    ): Array<TBaseModel> {
+        const models: Array<CommonModel> = [];
+
+        jsonArray.forEach((json: JSONObject) => {
+            const model: CommonModel = new modelType();
+            model.fromJSON(json);
+            models.push(model);
+        });
+
+        return models as Array<TBaseModel>;
+    }
+
+    public static toJSONArray(
+        models: Array<CommonModel>
+    ): Array<JSONObject> {
+        const json: Array<JSONObject> = [];
+
+        models.forEach((model: CommonModel) => {
+            json.push(model.toJSON());
+        });
+
+        return json;
     }
 }

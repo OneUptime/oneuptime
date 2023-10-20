@@ -2,7 +2,6 @@ import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
-import { JSONObject } from '../Types/JSON';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
 import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
@@ -11,7 +10,6 @@ import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 
 export default class AnalyticsDataModel extends CommonModel {
-    
 
     public constructor(data: {
         tableName: string;
@@ -243,50 +241,5 @@ export default class AnalyticsDataModel extends CommonModel {
 
     public set updatedAt(v: Date | undefined) {
         this.setColumnValue('updatedAt', v);
-    }
-
-    public fromJSON(json: JSONObject): AnalyticsDataModel {
-        for (const key in json) {
-            this.setColumnValue(key, json[key]);
-        }
-
-        return this;
-    }
-
-    public toJSON(): JSONObject {
-        const json: JSONObject = {};
-
-        this.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            json[column.key] = this.getColumnValue(column.key);
-        });
-
-        return json;
-    }
-
-    public static fromJSONArray<TBaseModel extends AnalyticsDataModel>(
-        modelType: { new (): AnalyticsDataModel },
-        jsonArray: Array<JSONObject>
-    ): Array<TBaseModel> {
-        const models: Array<AnalyticsDataModel> = [];
-
-        jsonArray.forEach((json: JSONObject) => {
-            const model: AnalyticsDataModel = new modelType();
-            model.fromJSON(json);
-            models.push(model);
-        });
-
-        return models as Array<TBaseModel>;
-    }
-
-    public static toJSONArray(
-        models: Array<AnalyticsDataModel>
-    ): Array<JSONObject> {
-        const json: Array<JSONObject> = [];
-
-        models.forEach((model: AnalyticsDataModel) => {
-            json.push(model.toJSON());
-        });
-
-        return json;
     }
 }

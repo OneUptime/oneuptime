@@ -8,8 +8,8 @@ import Select from "../../Types/AnalyticsDatabase/Select";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import logger from "../Logger";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
-import { JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import CommonModel, { RecordValue, Record } from "Common/AnalyticsModels/CommonModel";
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
@@ -43,37 +43,53 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return statement;
     }
 
+    public getColumnNames(tableColumns: Array<AnalyticsTableColumn>): Array<string> {
+
+        const columnNames: Array<string> = [];
+        for (const column of tableColumns) {
+
+            if (column.type === TableColumnType.NestedModel) {
+
+                // Example of nested model query: 
+
+                /**
+                 * 
+                 * INSERT INTO opentelemetry_spans (trace_id, span_id, attributes.key, attributes.value) VALUES 
+                    ('trace1', 'span1', ['key1', 'key2'], ['value1', 'value2']),
+                    ('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
+                 */
+
+
+                // Nested Model Support.
+                const nestedModelColumnNames = this.getColumnNames(column.nestedModel!.tableColumns);
+
+                for (const nestedModelColumnName of nestedModelColumnNames) {
+                    columnNames.push(`${column.key}.${nestedModelColumnName}`);
+                }
+            }
+
+            columnNames.push(column.key);
+        }
+
+        return columnNames;
+    }
+
     public toCreateStatement(data: { item: Array<TBaseModel> }): string {
 
-        type Record = Array<string | number | boolean | Date>
-        type RecordValue = string | number | boolean | Date;
+
 
         if (!data.item) {
             throw new BadDataException('Item cannot be null');
         }
 
-        const columnNames: Array<string> = [];
+        const columnNames: Array<string> = this.getColumnNames(this.model.getTableColumns());
 
         const records: Array<Record> = [];
-
-        for (const column of this.model.getTableColumns()) {
-            columnNames.push(column.key);
-        }
 
 
         for (const item of data.item) {
 
-            const record: Record = [];
-
-            for (const column of this.model.getTableColumns()) {
-                const value: JSONValue = this.sanitizeValue(
-                    item.getColumnValue(column.key),
-                    column
-                );
-
-                record.push(value as RecordValue);
-            }
-
+            const record: Record = this.getRecord(item);
             records.push(record);
         }
 
@@ -104,10 +120,58 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return statement;
     }
 
+    private getRecord(item: CommonModel): Record {
+        const record: Record = [];
+
+        for (const column of item.getTableColumns()) {
+
+            if (column.type === TableColumnType.NestedModel) {
+                // Nested Model Support.
+
+                // THis is very werid, but the output should work in a query like this: 
+
+                /**
+                 * 
+                 * INSERT INTO opentelemetry_spans (trace_id, span_id, attributes.key, attributes.value) VALUES 
+                    ('trace1', 'span1', ['key1', 'key2'], ['value1', 'value2']),
+                    ('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
+                 */                
+
+                for (const subColumn of column.nestedModel!.tableColumns) {
+
+                    const subRecord: Record = [];
+
+                    for (const nestedModelItem of item.getColumnValue(column.key) as Array<CommonModel>) {
+                        const value: RecordValue | undefined = this.sanitizeValue(
+                            nestedModelItem.getColumnValue(subColumn.key),
+                            column
+                        );
+
+                        subRecord.push(value || 'NULL');
+                    }
+
+                    record.push(subRecord);
+                }
+
+            } else {
+                const value: RecordValue | undefined = this.sanitizeValue(
+                    item.getColumnValue(column.key),
+                    column
+                );
+
+                record.push(value || 'NULL');
+            }
+
+
+        }
+
+        return record;
+    }
+
     private sanitizeValue(
-        value: JSONValue,
+        value: RecordValue | undefined,
         column: AnalyticsTableColumn
-    ): JSONValue {
+    ): RecordValue | undefined {
         if (
             column.type === TableColumnType.ObjectID ||
             column.type === TableColumnType.Text

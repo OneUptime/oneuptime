@@ -30,3 +30,13 @@ truncate table_name
 drop table oneuptime.table_name 
 ```
 
+## Insert for nested data
+
+```sql
+INSERT INTO opentelemetry_spans (trace_id, span_id, attributes.key, attributes.value) VALUES 
+('trace1', 'span1', ['key1', 'key2'], ['value1', 'value2']),
+('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
+```
+
+
+
