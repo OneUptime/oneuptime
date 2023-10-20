@@ -1,0 +1,39 @@
+<div id="videoContainer" class="hidden modal-lg relative z-10" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+
+    <div  class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+    <div id="video-veil" class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+
+            <div
+                class="relative transform overflow-hidden rounded-lg px-1 pb-6 pt-6 text-left transition-all sm:my-8 sm:w-full sm:max-w-xl">
+                <div class="sm:flex sm:items-start">
+
+                    <div class="mt-3 text-center sm:ml-1 sm:mt-0 sm:text-left">
+                        <div class="mt-2">
+                            <iframe id="videoPlayer" width="560" height="315" src="" frameborder="0"
+                                allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function playVideo(videoId) {
+        var videoUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=1";
+        document.getElementById('videoPlayer').src = videoUrl;
+        document.getElementById('videoContainer').classList.remove('hidden');
+
+        var veil = document.getElementById("video-veil");
+
+        veil.onclick = function () {
+            document.getElementById('videoContainer').classList.add('hidden');
+            document.getElementById('videoPlayer').src = "";
+        }
+    }
+</script>
