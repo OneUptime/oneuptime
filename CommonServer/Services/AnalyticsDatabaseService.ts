@@ -1,4 +1,3 @@
-
 import ClickhouseDatabase, {
     ClickhouseAppInstance,
     ClickhouseClient,
@@ -48,14 +47,14 @@ import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
-    public statementGenerator!:  StatementGenerator<TBaseModel>;
+    public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -209,8 +208,6 @@ export default class AnalyticsDatabaseService<
         return items;
     }
 
-
-
     protected async onBeforeDelete(
         deleteBy: DeleteBy<TBaseModel>
     ): Promise<OnDelete<TBaseModel>> {
@@ -243,10 +240,12 @@ export default class AnalyticsDatabaseService<
         const select: { statement: string; columns: Array<string> } =
             this.statementGenerator.toSelectStatement(findBy.select!);
 
-        const statement: string = `SELECT ${select.statement} FROM ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
-        ${Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
-            } ${this.statementGenerator.toWhereStatement(findBy.query)}
+        const statement: string = `SELECT ${select.statement} FROM ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+        ${
+            Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
+        } ${this.statementGenerator.toWhereStatement(findBy.query)}
         ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit}
         OFFSET ${findBy.skip}
@@ -263,9 +262,11 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
-            DELETE ${Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+        const statement: string = `ALTER TABLE ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+            DELETE ${
+                Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
             } ${this.statementGenerator.toWhereStatement(deleteBy.query)}
         `;
 
@@ -274,7 +275,6 @@ export default class AnalyticsDatabaseService<
 
         return statement;
     }
-
 
     public async findOneBy(
         findOneBy: FindOneBy<TBaseModel>
@@ -369,7 +369,9 @@ export default class AnalyticsDatabaseService<
                 (select as any)[tenantColumnName] = true;
             }
 
-            await this.execute(this.statementGenerator.toUpdateStatement(beforeUpdateBy));
+            await this.execute(
+                this.statementGenerator.toUpdateStatement(beforeUpdateBy)
+            );
         } catch (error) {
             await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);
@@ -490,30 +492,31 @@ export default class AnalyticsDatabaseService<
         return await this.onBeforeCreate(createBy);
     }
 
-    public async createMany(createBy: CreateManyBy<TBaseModel>): Promise<Array<TBaseModel>> {
-
+    public async createMany(
+        createBy: CreateManyBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         // add tenantId if present.
         const tenantColumnName: string | null =
             this.model.getTenantColumn()?.key || null;
 
-        const items: Array<TBaseModel> = []
-        const carryForwards: Array<any> = []
+        const items: Array<TBaseModel> = [];
+        const carryForwards: Array<any> = [];
 
         for (const item of createBy.items) {
             let data: TBaseModel = item;
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                    createBy: {
-                        data: data,
-                        props: createBy.props
-                    }, carryForward: []
-                }
+                      createBy: {
+                          data: data,
+                          props: createBy.props,
+                      },
+                      carryForward: [],
+                  }
                 : await this._onBeforeCreate({
-                    data: data,
-                    props: createBy.props
-                });
-
+                      data: data,
+                      props: createBy.props,
+                  });
 
             data = onCreate.createBy.data;
 
@@ -545,12 +548,13 @@ export default class AnalyticsDatabaseService<
         }
 
         try {
-            await this.execute(this.statementGenerator.toCreateStatement({ item: items }));
+            await this.execute(
+                this.statementGenerator.toCreateStatement({ item: items })
+            );
 
             if (!createBy.props.ignoreHooks) {
-                for (let i = 0; i < items.length; i++) {
-
-                    if(!items[i]){
+                for (let i: number = 0; i < items.length; i++) {
+                    if (!items[i]) {
                         continue;
                     }
 
@@ -558,7 +562,7 @@ export default class AnalyticsDatabaseService<
                         {
                             createBy: {
                                 data: items[i]!,
-                                props: createBy.props
+                                props: createBy.props,
                             },
                             carryForward: carryForwards[i],
                         },
@@ -571,19 +575,15 @@ export default class AnalyticsDatabaseService<
             if (this.getModel().enableWorkflowOn?.create) {
                 let tenantId: ObjectID | undefined = createBy.props.tenantId;
 
-                for(const item of items){
+                for (const item of items) {
                     if (!tenantId && this.getModel().getTenantColumn()) {
                         tenantId = item.getColumnValue<ObjectID>(
                             this.getModel().getTenantColumn()!.key
                         );
                     }
-    
+
                     if (tenantId) {
-                        await this.onTrigger(
-                            item.id!,
-                            tenantId,
-                            'on-create'
-                        );
+                        await this.onTrigger(item.id!, tenantId, 'on-create');
                     }
                 }
             }
@@ -600,10 +600,10 @@ export default class AnalyticsDatabaseService<
             props: createBy.props,
             items: [createBy.data],
         });
-        
-        const item = items[0];
 
-        if(!item){
+        const item: TBaseModel | undefined = items[0];
+
+        if (!item) {
             throw new BadDataException('Item not created');
         }
 
@@ -639,8 +639,6 @@ export default class AnalyticsDatabaseService<
 
         return true;
     }
-
-
 
     public async onTrigger(
         id: ObjectID,
@@ -699,6 +697,4 @@ export default class AnalyticsDatabaseService<
     public getModel(): TBaseModel {
         return this.model;
     }
-
-
 }

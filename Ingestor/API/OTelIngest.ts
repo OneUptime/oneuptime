@@ -13,6 +13,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import KeyValueNestedModel from 'Model/AnalyticsModels/NestedModels/KeyValueNestedModel';
 import SpanService from 'CommonServer/Services/SpanService';
 import ObjectID from 'Common/Types/ObjectID';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 // Load proto file for OTel
 
 // Create a root namespace
@@ -67,53 +68,71 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
-            const traceData = req.body.toJSON();
-            const resourceSpans = traceData.resourceSpans;
+            const traceData: JSONObject = req.body.toJSON();
+            const resourceSpans: JSONArray = traceData[
+                'resourceSpans'
+            ] as JSONArray;
 
             const dbSpans: Array<Span> = [];
 
             for (const resourceSpan of resourceSpans) {
-
-                const scopeSpans = resourceSpan.scopeSpans;
+                const scopeSpans: JSONArray = resourceSpan[
+                    'scopeSpans'
+                ] as JSONArray;
 
                 for (const scopeSpan of scopeSpans) {
-
-                    const spans = scopeSpan.spans;
-
-
+                    const spans: JSONArray = scopeSpan['spans'] as JSONArray;
 
                     for (const span of spans) {
-
-
-                        const dbSpan = new Span();
+                        const dbSpan: Span = new Span();
 
                         dbSpan.projectId = ObjectID.getZeroObjectID();
                         dbSpan.serviceId = ObjectID.getZeroObjectID();
 
-                        dbSpan.spanId = span.spanId;
-                        dbSpan.traceId = span.traceId;
-                        dbSpan.parentSpanId = span.parentSpanId;
-                        dbSpan.startTimeUnixNano = span.startTimeUnixNano;
-                        dbSpan.endTimeUnixNano = span.endTimeUnixNano;
-                        dbSpan.startTime = OneUptimeDate.fromUnixNano(span.startTimeUnixNano);
-                        dbSpan.endTime = OneUptimeDate.fromUnixNano(span.endTimeUnixNano);
-                        dbSpan.name = span.name;
-                        dbSpan.kind = span.kind;
+                        dbSpan.spanId = span['spanId'] as string;
+                        dbSpan.traceId = span['traceId'] as string;
+                        dbSpan.parentSpanId = span['parentSpanId'] as string;
+                        dbSpan.startTimeUnixNano = span[
+                            'startTimeUnixNano'
+                        ] as number;
+                        dbSpan.endTimeUnixNano = span[
+                            'endTimeUnixNano'
+                        ] as number;
+                        dbSpan.startTime = OneUptimeDate.fromUnixNano(
+                            span['startTimeUnixNano'] as number
+                        );
+                        dbSpan.endTime = OneUptimeDate.fromUnixNano(
+                            span['endTimeUnixNano'] as number
+                        );
+                        dbSpan.name = span['name'] as string;
+                        dbSpan.kind = span['kind'] as string;
 
-                        // We need to convert this to date. 
-                        const attributes = span.attributes;
+                        // We need to convert this to date.
+                        const attributes: JSONArray = span[
+                            'attributes'
+                        ] as JSONArray;
 
                         const dbattributes: Array<KeyValueNestedModel> = [];
 
                         for (const attribute of attributes) {
-                            const dbattribute = new KeyValueNestedModel();
-                            dbattribute.key = attribute.key;
-                            if (attribute.value.stringValue) {
-                                dbattribute.stringValue = attribute.value.stringValue;
+                            const dbattribute: KeyValueNestedModel =
+                                new KeyValueNestedModel();
+                            dbattribute.key = attribute['key'] as string;
+
+                            const value: JSONObject = attribute[
+                                'value'
+                            ] as JSONObject;
+
+                            if (value['stringValue']) {
+                                dbattribute.stringValue = value[
+                                    'stringValue'
+                                ] as string;
                             }
-                            if (attribute.value.intValue) {
-                                dbattribute.numberValue = attribute.value.intValue;
+
+                            if (value['intValue']) {
+                                dbattribute.numberValue = value[
+                                    'intValue'
+                                ] as number;
                             }
                             dbattributes.push(dbattribute);
                         }
@@ -121,7 +140,6 @@ router.post(
                         dbSpan.attributes = dbattributes;
 
                         dbSpans.push(dbSpan);
-
                     }
                 }
             }
@@ -129,8 +147,8 @@ router.post(
             await SpanService.createMany({
                 items: dbSpans,
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
 
             return Response.sendEmptyResponse(req, res);

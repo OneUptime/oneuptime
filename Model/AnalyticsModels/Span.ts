@@ -296,7 +296,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'Kind',
                     description: 'Kind of the span',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.Text,
                 }),
             ],
             primaryKeys: [
@@ -333,11 +333,11 @@ export default class Span extends AnalyticsBaseModel {
         this.setColumnValue('name', v);
     }
 
-    public get kind(): number | undefined {
-        return this.getColumnValue('kind') as number | undefined;
+    public get kind(): string | undefined {
+        return this.getColumnValue('kind') as string | undefined;
     }
 
-    public set kind(v: number | undefined) {
+    public set kind(v: string | undefined) {
         this.setColumnValue('kind', v);
     }
 

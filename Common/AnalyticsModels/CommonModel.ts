@@ -1,20 +1,19 @@
-// This model will be extended by BaseModel and Nested Mdoel 
+// This model will be extended by BaseModel and Nested Mdoel
 
-import AnalyticsTableColumn from "../Types/AnalyticsDatabase/TableColumn";
-import TableColumnType from "../Types/AnalyticsDatabase/TableColumnType";
-import OneUptimeDate from "../Types/Date";
-import BadDataException from "../Types/Exception/BadDataException";
-import { JSONObject, JSONValue } from "../Types/JSON";
-import ObjectID from "../Types/ObjectID";
+import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
+import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
+import OneUptimeDate from '../Types/Date';
+import BadDataException from '../Types/Exception/BadDataException';
+import { JSONObject, JSONValue } from '../Types/JSON';
+import ObjectID from '../Types/ObjectID';
 
 export type RecordValue = string | number | boolean | Date | Array<CommonModel>;
 
 export type Record = Array<RecordValue | Record>;
 
-export default class CommonModel { 
-
+export default class CommonModel {
     protected data: JSONObject = {};
-    
+
     private _tableColumns: Array<AnalyticsTableColumn> = [];
     public get tableColumns(): Array<AnalyticsTableColumn> {
         return this._tableColumns;
@@ -89,7 +88,6 @@ export default class CommonModel {
         return this.tableColumns;
     }
 
-
     public fromJSON(json: JSONObject): CommonModel {
         for (const key in json) {
             this.setColumnValue(key, json[key]);
@@ -102,15 +100,16 @@ export default class CommonModel {
         const json: JSONObject = {};
 
         this.tableColumns.forEach((column: AnalyticsTableColumn) => {
+            const recordValue: RecordValue | undefined = this.getColumnValue(
+                column.key
+            );
 
-            const recordValue: RecordValue | undefined = this.getColumnValue(column.key);
-
-            if(recordValue instanceof CommonModel){
+            if (recordValue instanceof CommonModel) {
                 json[column.key] = recordValue.toJSON();
                 return;
             }
-            
-            json[column.key] = recordValue; 
+
+            json[column.key] = recordValue;
         });
 
         return json;
@@ -131,9 +130,7 @@ export default class CommonModel {
         return models as Array<TBaseModel>;
     }
 
-    public static toJSONArray(
-        models: Array<CommonModel>
-    ): Array<JSONObject> {
+    public static toJSONArray(models: Array<CommonModel>): Array<JSONObject> {
         const json: Array<JSONObject> = [];
 
         models.forEach((model: CommonModel) => {

@@ -1,40 +1,41 @@
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import Query from "../../Types/AnalyticsDatabase/Query";
-import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import ClickhouseDatabase from "../../Infrastructure/ClickhouseDatabase";
-import Sort from "../../Types/AnalyticsDatabase/Sort";
-import Select from "../../Types/AnalyticsDatabase/Select";
-import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import logger from "../Logger";
-import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
-import OneUptimeDate from "Common/Types/Date";
-import CommonModel, { RecordValue, Record } from "Common/AnalyticsModels/CommonModel";
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Query from '../../Types/AnalyticsDatabase/Query';
+import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
+import ClickhouseDatabase from '../../Infrastructure/ClickhouseDatabase';
+import Sort from '../../Types/AnalyticsDatabase/Sort';
+import Select from '../../Types/AnalyticsDatabase/Select';
+import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
+import logger from '../Logger';
+import UpdateBy from '../../Types/AnalyticsDatabase/UpdateBy';
+import OneUptimeDate from 'Common/Types/Date';
+import CommonModel, {
+    RecordValue,
+    Record,
+} from 'Common/AnalyticsModels/CommonModel';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
-
     public model!: TBaseModel;
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database: ClickhouseDatabase;
     }) {
-
         this.modelType = data.modelType;
         this.model = new this.modelType();
         this.database = data.database;
     }
 
     public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): string {
-
-
-        const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `ALTER TABLE ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         UPDATE ${this.toSetStatement(updateBy.data)}
-        ${Object.keys(updateBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
-            } ${this.toWhereStatement(updateBy.query)}
+        ${
+            Object.keys(updateBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+        } ${this.toWhereStatement(updateBy.query)}
         `;
 
         logger.info(`${this.model.tableName} Update Statement`);
@@ -43,14 +44,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return statement;
     }
 
-    public getColumnNames(tableColumns: Array<AnalyticsTableColumn>): Array<string> {
-
+    public getColumnNames(
+        tableColumns: Array<AnalyticsTableColumn>
+    ): Array<string> {
         const columnNames: Array<string> = [];
         for (const column of tableColumns) {
-
             if (column.type === TableColumnType.NestedModel) {
-
-                // Example of nested model query: 
+                // Example of nested model query:
 
                 /**
                  * 
@@ -59,9 +59,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     ('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
                  */
 
-
                 // Nested Model Support.
-                const nestedModelColumnNames = this.getColumnNames(column.nestedModel!.tableColumns);
+                const nestedModelColumnNames: Array<string> =
+                    this.getColumnNames(column.nestedModel!.tableColumns);
 
                 for (const nestedModelColumnName of nestedModelColumnNames) {
                     columnNames.push(`${column.key}.${nestedModelColumnName}`);
@@ -74,44 +74,41 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return columnNames;
     }
 
+    public getValuesStatement(records: Array<Record>): string {
+        let statement: string = '';
+        for (const record of records) {
+            statement += `(${record.join(', ')}), `;
+        }
+
+        statement = statement.substring(0, statement.length - 2); // remove last comma.
+
+        return statement;
+    }
+
     public toCreateStatement(data: { item: Array<TBaseModel> }): string {
-
-
-
         if (!data.item) {
             throw new BadDataException('Item cannot be null');
         }
 
-        const columnNames: Array<string> = this.getColumnNames(this.model.getTableColumns());
+        const columnNames: Array<string> = this.getColumnNames(
+            this.model.getTableColumns()
+        );
 
         const records: Array<Record> = [];
 
-
         for (const item of data.item) {
-
             const record: Record = this.getRecord(item);
             records.push(record);
         }
 
-        const getValuesStatement = (records: Array<Record>): string => {
-            let statement = '';
-            for (const record of records) {
-                statement += `(${record.join(', ')}), `;
-            }
-
-            statement = statement.substring(0, statement.length - 2); // remove last comma.
-
-            return statement;
-        }
-
-
-        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
         VALUES
-        ${getValuesStatement(records)}
+        ${this.getValuesStatement(records)}
         `;
 
         logger.info(`${this.model.tableName} Create Statement`);
@@ -124,35 +121,35 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         const record: Record = [];
 
         for (const column of item.getTableColumns()) {
-
             if (column.type === TableColumnType.NestedModel) {
                 // Nested Model Support.
 
-                // THis is very werid, but the output should work in a query like this: 
+                // THis is very werid, but the output should work in a query like this:
 
                 /**
                  * 
                  * INSERT INTO opentelemetry_spans (trace_id, span_id, attributes.key, attributes.value) VALUES 
                     ('trace1', 'span1', ['key1', 'key2'], ['value1', 'value2']),
                     ('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
-                 */                
+                 */
 
                 for (const subColumn of column.nestedModel!.tableColumns) {
-
                     const subRecord: Record = [];
 
-                    for (const nestedModelItem of item.getColumnValue(column.key) as Array<CommonModel>) {
-                        const value: RecordValue | undefined = this.sanitizeValue(
-                            nestedModelItem.getColumnValue(subColumn.key),
-                            column
-                        );
+                    for (const nestedModelItem of item.getColumnValue(
+                        column.key
+                    ) as Array<CommonModel>) {
+                        const value: RecordValue | undefined =
+                            this.sanitizeValue(
+                                nestedModelItem.getColumnValue(subColumn.key),
+                                column
+                            );
 
                         subRecord.push(value || 'NULL');
                     }
 
                     record.push(subRecord);
                 }
-
             } else {
                 const value: RecordValue | undefined = this.sanitizeValue(
                     item.getColumnValue(column.key),
@@ -161,8 +158,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
                 record.push(value || 'NULL');
             }
-
-
         }
 
         return record;
@@ -204,7 +199,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         return setStatement;
     }
-
 
     public toWhereStatement(query: Query<TBaseModel>): string {
         let whereStatement: string = '';
@@ -274,16 +268,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         let columns: string = '';
 
         tableColumns.forEach((column: AnalyticsTableColumn) => {
-            let requiredText: string = `${column.required ? 'NOT NULL' : ' NULL'
-                }`;
+            let requiredText: string = `${
+                column.required ? 'NOT NULL' : ' NULL'
+            }`;
 
             let nestedModelColumns: string = '';
 
             if (column.type === TableColumnType.NestedModel) {
                 nestedModelColumns = `(
                     ${this.toColumnsCreateStatement(
-                    column.nestedModel!.tableColumns, true
-                )}
+                        column.nestedModel!.tableColumns,
+                        true
+                    )}
                 )`;
 
                 requiredText = '';
@@ -334,10 +330,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toTableCreateStatement(): string {
-
-
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `CREATE TABLE IF NOT EXISTS ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${this.toColumnsCreateStatement(this.model.tableColumns)} 
         )
@@ -353,8 +348,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         logger.info(`${this.model.tableName} Table Create Statement`);
         logger.info(statement);
-
-        debugger;
 
         return statement;
     }

@@ -57,4 +57,3 @@ export default class KeyValueNestedModel extends NestedModel {
         this.setColumnValue('numberValue', v);
     }
 }
-

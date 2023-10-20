@@ -10,7 +10,6 @@ import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 
 export default class AnalyticsDataModel extends CommonModel {
-
     public constructor(data: {
         tableName: string;
         singularName: string;
@@ -25,7 +24,7 @@ export default class AnalyticsDataModel extends CommonModel {
     }) {
         super({
             tableColumns: data.tableColumns,
-        })
+        });
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
         this.tableName = data.tableName;
