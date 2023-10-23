@@ -233,12 +233,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         if (column.type === TableColumnType.ArrayNumber) {
-            value = `(${(value as Array<number>).map((v) => v).join(', ')})`;
+            value = `(${(value as Array<number>)
+                .map((v: number) => {
+                    return v;
+                })
+                .join(', ')})`;
         }
 
         if (column.type === TableColumnType.ArrayText) {
             value = `(${(value as Array<string>)
-                .map((v) => `'${v}'`)
+                .map((v: string) => {
+                    return `'${v}'`;
+                })
                 .join(', ')})`;
         }
 

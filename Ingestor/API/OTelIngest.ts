@@ -144,7 +144,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            
             req.body = req.body.toJSON();
 
             const resourceMetrics: JSONArray = req.body[
@@ -154,84 +153,137 @@ router.post(
             const dbMetricsSum: Array<MetricSum> = [];
             const dbMetricsHistogram: Array<MetricHistogram> = [];
 
-
-            for(const resourceMetric of resourceMetrics) {
+            for (const resourceMetric of resourceMetrics) {
                 const scopeMetrics: JSONArray = resourceMetric[
                     'scopeMetrics'
                 ] as JSONArray;
 
-                for(const scopeMetric of scopeMetrics) {
+                for (const scopeMetric of scopeMetrics) {
                     const metrics: JSONArray = scopeMetric[
                         'metrics'
                     ] as JSONArray;
 
-                    for(const metric of metrics) {
+                    for (const metric of metrics) {
                         const metricName: string = metric['name'] as string;
-                        const metricDescription: string = metric['description'] as string;
+                        const metricDescription: string = metric[
+                            'description'
+                        ] as string;
 
-                        if(metric['sum'] && (metric['sum'] as JSONObject)['dataPoints'] && ((metric['sum'] as JSONObject)['dataPoints'] as JSONArray).length > 0) {
-                            for(const datapoint of ((metric['sum'] as JSONObject)['dataPoints'] as JSONArray)) {
+                        if (
+                            metric['sum'] &&
+                            (metric['sum'] as JSONObject)['dataPoints'] &&
+                            (
+                                (metric['sum'] as JSONObject)[
+                                    'dataPoints'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            for (const datapoint of (
+                                metric['sum'] as JSONObject
+                            )['dataPoints'] as JSONArray) {
                                 const dbMetricSum: MetricSum = new MetricSum();
 
-                                dbMetricSum.projectId = ObjectID.getZeroObjectID();
-                                dbMetricSum.serviceId = ObjectID.getZeroObjectID();
+                                dbMetricSum.projectId =
+                                    ObjectID.getZeroObjectID();
+                                dbMetricSum.serviceId =
+                                    ObjectID.getZeroObjectID();
 
                                 dbMetricSum.name = metricName;
                                 dbMetricSum.description = metricDescription;
 
-                                dbMetricSum.startTimeUnixNano = datapoint['startTimeUnixNano'] as number;
-                                dbMetricSum.startTime = OneUptimeDate.fromUnixNano(
-                                    datapoint['startTimeUnixNano'] as number
-                                );
+                                dbMetricSum.startTimeUnixNano = datapoint[
+                                    'startTimeUnixNano'
+                                ] as number;
+                                dbMetricSum.startTime =
+                                    OneUptimeDate.fromUnixNano(
+                                        datapoint['startTimeUnixNano'] as number
+                                    );
 
-                                dbMetricSum.timeUnixNano = datapoint['timeUnixNano'] as number;
+                                dbMetricSum.timeUnixNano = datapoint[
+                                    'timeUnixNano'
+                                ] as number;
                                 dbMetricSum.time = OneUptimeDate.fromUnixNano(
                                     datapoint['timeUnixNano'] as number
                                 );
 
-                                dbMetricSum.value = datapoint['asInt'] as number;
+                                dbMetricSum.value = datapoint[
+                                    'asInt'
+                                ] as number;
 
-                                dbMetricSum.attributes = OTelIngestService.getKeyValues(
-                                    metric['attributes'] as JSONArray
-                                );
+                                dbMetricSum.attributes =
+                                    OTelIngestService.getKeyValues(
+                                        metric['attributes'] as JSONArray
+                                    );
 
                                 dbMetricsSum.push(dbMetricSum);
                             }
                         }
 
-                        if(metric['histogram'] && (metric['histogram'] as JSONObject)['dataPoints'] && ((metric['histogram'] as JSONObject)['dataPoints'] as JSONArray).length > 0) {
-                            for(const datapoint of ((metric['histogram'] as JSONObject)['dataPoints'] as JSONArray)) {
-                                const dbMetricHistogram: MetricHistogram = new MetricHistogram();
+                        if (
+                            metric['histogram'] &&
+                            (metric['histogram'] as JSONObject)['dataPoints'] &&
+                            (
+                                (metric['histogram'] as JSONObject)[
+                                    'dataPoints'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            for (const datapoint of (
+                                metric['histogram'] as JSONObject
+                            )['dataPoints'] as JSONArray) {
+                                const dbMetricHistogram: MetricHistogram =
+                                    new MetricHistogram();
 
-                                dbMetricHistogram.projectId = ObjectID.getZeroObjectID();
-                                dbMetricHistogram.serviceId = ObjectID.getZeroObjectID();
+                                dbMetricHistogram.projectId =
+                                    ObjectID.getZeroObjectID();
+                                dbMetricHistogram.serviceId =
+                                    ObjectID.getZeroObjectID();
 
                                 dbMetricHistogram.name = metricName;
-                                dbMetricHistogram.description = metricDescription;
+                                dbMetricHistogram.description =
+                                    metricDescription;
 
-                                dbMetricHistogram.startTimeUnixNano = datapoint['startTimeUnixNano'] as number;
-                                dbMetricHistogram.startTime = OneUptimeDate.fromUnixNano(
-                                    datapoint['startTimeUnixNano'] as number
-                                );
+                                dbMetricHistogram.startTimeUnixNano = datapoint[
+                                    'startTimeUnixNano'
+                                ] as number;
+                                dbMetricHistogram.startTime =
+                                    OneUptimeDate.fromUnixNano(
+                                        datapoint['startTimeUnixNano'] as number
+                                    );
 
-                                dbMetricHistogram.timeUnixNano = datapoint['timeUnixNano'] as number;
-                                dbMetricHistogram.time = OneUptimeDate.fromUnixNano(
-                                    datapoint['timeUnixNano'] as number
-                                );
+                                dbMetricHistogram.timeUnixNano = datapoint[
+                                    'timeUnixNano'
+                                ] as number;
+                                dbMetricHistogram.time =
+                                    OneUptimeDate.fromUnixNano(
+                                        datapoint['timeUnixNano'] as number
+                                    );
 
-                                dbMetricHistogram.count = datapoint['count'] as number;
-                                dbMetricHistogram.sum = datapoint['sum'] as number;
+                                dbMetricHistogram.count = datapoint[
+                                    'count'
+                                ] as number;
+                                dbMetricHistogram.sum = datapoint[
+                                    'sum'
+                                ] as number;
 
-                                dbMetricHistogram.min = datapoint['min'] as number;
-                                dbMetricHistogram.max = datapoint['max'] as number;
+                                dbMetricHistogram.min = datapoint[
+                                    'min'
+                                ] as number;
+                                dbMetricHistogram.max = datapoint[
+                                    'max'
+                                ] as number;
 
-                                dbMetricHistogram.bucketCounts = datapoint['bucketCounts'] as Array<number>;
-                                dbMetricHistogram.explicitBounds = datapoint['explicitBounds'] as Array<number>;
+                                dbMetricHistogram.bucketCounts = datapoint[
+                                    'bucketCounts'
+                                ] as Array<number>;
+                                dbMetricHistogram.explicitBounds = datapoint[
+                                    'explicitBounds'
+                                ] as Array<number>;
 
-
-                                dbMetricHistogram.attributes = OTelIngestService.getKeyValues(
-                                    metric['attributes'] as JSONArray
-                                );
+                                dbMetricHistogram.attributes =
+                                    OTelIngestService.getKeyValues(
+                                        metric['attributes'] as JSONArray
+                                    );
 
                                 dbMetricsHistogram.push(dbMetricHistogram);
                             }
@@ -247,14 +299,12 @@ router.post(
                 },
             });
 
-
             await MetricHistogramService.createMany({
                 items: dbMetricsHistogram,
                 props: {
                     isRoot: true,
                 },
             });
-
 
             return Response.sendEmptyResponse(req, res);
         } catch (err) {

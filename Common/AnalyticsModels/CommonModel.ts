@@ -118,11 +118,15 @@ export default class CommonModel {
             }
 
             if (recordValue instanceof Array) {
-
-                if (recordValue.length > 0 && recordValue[0] instanceof CommonModel) {
-                    json[column.key] = CommonModel.toJSONArray(recordValue as Array<CommonModel>);
+                if (
+                    recordValue.length > 0 &&
+                    recordValue[0] instanceof CommonModel
+                ) {
+                    json[column.key] = CommonModel.toJSONArray(
+                        recordValue as Array<CommonModel>
+                    );
                 }
-                
+
                 return;
             }
 
@@ -133,7 +137,7 @@ export default class CommonModel {
     }
 
     public static fromJSONArray<TBaseModel extends CommonModel>(
-        modelType: { new(): CommonModel },
+        modelType: { new (): CommonModel },
         jsonArray: Array<JSONObject>
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];

@@ -1,5 +1,3 @@
-
-
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
@@ -137,7 +135,6 @@ export default class Metric extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.ArrayNumber,
                 }),
-               
             ],
             primaryKeys: ['projectId', 'serviceId', 'time'],
         });
@@ -217,7 +214,6 @@ export default class Metric extends AnalyticsBaseModel {
         this.setColumnValue('timeUnixNano', v);
     }
 
-
     public get count(): number | undefined {
         return this.getColumnValue('count') as number | undefined;
     }
@@ -242,7 +238,6 @@ export default class Metric extends AnalyticsBaseModel {
         this.setColumnValue('min', v);
     }
 
-
     public get max(): number | undefined {
         return this.getColumnValue('max') as number | undefined;
     }
@@ -260,11 +255,12 @@ export default class Metric extends AnalyticsBaseModel {
     }
 
     public get explicitBounds(): Array<number> | undefined {
-        return this.getColumnValue('explicitBounds') as Array<number> | undefined;
+        return this.getColumnValue('explicitBounds') as
+            | Array<number>
+            | undefined;
     }
 
     public set explicitBounds(v: Array<number> | undefined) {
         this.setColumnValue('explicitBounds', v);
     }
-
 }

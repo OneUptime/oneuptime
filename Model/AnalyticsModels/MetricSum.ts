@@ -1,5 +1,3 @@
-
-
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
@@ -49,9 +47,6 @@ export default class Metric extends AnalyticsBaseModel {
                     type: TableColumnType.Text,
                 }),
 
-
-
-
                 new AnalyticsTableColumn({
                     key: 'time',
                     title: 'Time',
@@ -100,7 +95,6 @@ export default class Metric extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.Number,
                 }),
-               
             ],
             primaryKeys: ['projectId', 'serviceId', 'time'],
         });
@@ -145,7 +139,6 @@ export default class Metric extends AnalyticsBaseModel {
     public set description(v: string | undefined) {
         this.setColumnValue('description', v);
     }
-    
 
     public get attributes(): Array<KeyValueNestedModel> | undefined {
         return this.getColumnValue('attributes') as
@@ -188,5 +181,4 @@ export default class Metric extends AnalyticsBaseModel {
     public set timeUnixNano(v: number | undefined) {
         this.setColumnValue('timeUnixNano', v);
     }
-
 }
