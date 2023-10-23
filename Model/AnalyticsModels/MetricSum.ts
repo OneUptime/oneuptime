@@ -1,30 +1,4 @@
-/** 
- * 
- *  CREATE TABLE opentelemetry_metrics
-(
-    name String,
-    description String,
-    unit String,
-    time DateTime('UTC'),
-    attributes Nested
-    (
-        key String,
-        value String
-    ),
-    metric_values Nested
-    (
-        value Double,
-        labels Nested
-        (
-            key String,
-            value String
-        )
-    )
-) ENGINE = MergeTree()
-ORDER BY (name, time);
 
- * 
- */
 
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
@@ -32,40 +6,14 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
 import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
-import NestedModel from 'Common/AnalyticsModels/NestedModel';
-
-export class MetricValue extends NestedModel {
-    public constructor() {
-        super({
-            tableColumns: [
-                new AnalyticsTableColumn({
-                    key: 'value',
-                    title: 'Value',
-                    description: 'Value',
-                    required: true,
-                    type: TableColumnType.Decimal,
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'labels',
-                    title: 'Labels',
-                    description: 'Labels',
-                    required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
-                }),
-            ],
-        });
-    }
-}
 
 export default class Metric extends AnalyticsBaseModel {
     public constructor() {
         super({
-            tableName: 'Metric',
+            tableName: 'MetricSum',
             tableEngine: AnalyticsTableEngine.MergeTree,
-            singularName: 'Metric',
-            pluralName: 'Metrics',
+            singularName: 'Metric Sum',
+            pluralName: 'Metrics Sum',
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',
@@ -92,6 +40,30 @@ export default class Metric extends AnalyticsBaseModel {
                 }),
 
                 new AnalyticsTableColumn({
+                    key: 'startTime',
+                    title: 'Start Time',
+                    description: 'When did the Metric happen?',
+                    required: true,
+                    type: TableColumnType.Date,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'timeUnixNano',
+                    title: 'Time (in Unix Nano)',
+                    description: 'When did the Metric happen?',
+                    required: true,
+                    type: TableColumnType.Date,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'startTimeUnixNano',
+                    title: 'Start Time (in Unix Nano)',
+                    description: 'When did the Metric happen?',
+                    required: true,
+                    type: TableColumnType.Date,
+                }),
+
+                new AnalyticsTableColumn({
                     key: 'attributes',
                     title: 'Attributes',
                     description: 'Attributes',
@@ -101,13 +73,13 @@ export default class Metric extends AnalyticsBaseModel {
                 }),
 
                 new AnalyticsTableColumn({
-                    key: 'metricValues',
-                    title: 'Metric Values',
-                    description: 'Metric Values',
+                    key: 'value',
+                    title: 'Value',
+                    description: 'Value',
                     required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModel: new MetricValue(),
+                    type: TableColumnType.Number,
                 }),
+               
             ],
             primaryKeys: ['projectId', 'serviceId', 'time'],
         });
@@ -147,13 +119,36 @@ export default class Metric extends AnalyticsBaseModel {
         this.setColumnValue('attributes', v);
     }
 
-    public get metricValues(): Array<MetricValue> | undefined {
-        return this.getColumnValue('Array<MetricValue>s') as
-            | Array<MetricValue>
-            | undefined;
+    public get value(): number | undefined {
+        return this.getColumnValue('value') as number | undefined;
     }
 
-    public set metricValues(v: Array<MetricValue> | undefined) {
-        this.setColumnValue('metricValues', v);
+    public set value(v: number | undefined) {
+        this.setColumnValue('value', v);
     }
+
+    public get startTime(): Date | undefined {
+        return this.getColumnValue('startTime') as Date | undefined;
+    }
+
+    public set startTime(v: Date | undefined) {
+        this.setColumnValue('startTime', v);
+    }
+
+    public get startTimeUnixNano(): number | undefined {
+        return this.getColumnValue('startTimeUnixNano') as number | undefined;
+    }
+
+    public set startTimeUnixNano(v: number | undefined) {
+        this.setColumnValue('startTimeUnixNano', v);
+    }
+
+    public get timeUnixNano(): number | undefined {
+        return this.getColumnValue('timeUnixNano') as number | undefined;
+    }
+
+    public set timeUnixNano(v: number | undefined) {
+        this.setColumnValue('timeUnixNano', v);
+    }
+
 }

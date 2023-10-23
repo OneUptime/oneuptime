@@ -13,6 +13,8 @@ export type RecordValue =
     | number
     | boolean
     | Date
+    | Array<number>
+    | Array<string>
     | Array<CommonModel>;
 
 export type Record = Array<RecordValue | Record>;
@@ -116,7 +118,11 @@ export default class CommonModel {
             }
 
             if (recordValue instanceof Array) {
-                json[column.key] = CommonModel.toJSONArray(recordValue);
+
+                if (recordValue.length > 0 && recordValue[0] instanceof CommonModel) {
+                    json[column.key] = CommonModel.toJSONArray(recordValue as Array<CommonModel>);
+                }
+                
                 return;
             }
 
@@ -127,7 +133,7 @@ export default class CommonModel {
     }
 
     public static fromJSONArray<TBaseModel extends CommonModel>(
-        modelType: { new (): CommonModel },
+        modelType: { new(): CommonModel },
         jsonArray: Array<JSONObject>
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];

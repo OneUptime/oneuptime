@@ -232,6 +232,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             }
         }
 
+        if (column.type === TableColumnType.ArrayNumber) {
+            value = `(${(value as Array<number>).map((v) => v).join(', ')})`;
+        }
+
+        if (column.type === TableColumnType.ArrayText) {
+            value = `(${(value as Array<string>)
+                .map((v) => `'${v}'`)
+                .join(', ')})`;
+        }
+
         return value;
     }
 
@@ -376,6 +386,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         if (type === TableColumnType.NestedModel) {
             return 'Nested';
+        }
+
+        if (type === TableColumnType.ArrayNumber) {
+            return 'Array(Int32)';
+        }
+
+        if (type === TableColumnType.ArrayText) {
+            return 'Array(String)';
         }
 
         throw new BadDataException('Unknown column type: ' + type);
