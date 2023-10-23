@@ -35,7 +35,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'name',
                     title: 'Name',
                     description: 'Name of the Metric',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Text,
                 }),
 
@@ -43,7 +43,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'description',
                     title: 'Description',
                     description: 'Description of the Metric',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Text,
                 }),
 
@@ -51,7 +51,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'time',
                     title: 'Time',
                     description: 'When did the Metric happen?',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Date,
                 }),
 
@@ -59,7 +59,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'startTime',
                     title: 'Start Time',
                     description: 'When did the Metric happen?',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Date,
                 }),
 
@@ -67,7 +67,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'timeUnixNano',
                     title: 'Time (in Unix Nano)',
                     description: 'When did the Metric happen?',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Date,
                 }),
 
@@ -75,7 +75,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'startTimeUnixNano',
                     title: 'Start Time (in Unix Nano)',
                     description: 'When did the Metric happen?',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Date,
                 }),
 

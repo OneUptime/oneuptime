@@ -357,6 +357,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 requiredText = '';
             }
 
+            if(column.type === TableColumnType.ArrayNumber || column.type === TableColumnType.ArrayText) {
+                requiredText = '';
+            }
+
             columns += `${column.key} ${this.toColumnType(
                 column.type
             )} ${nestedModelColumns} ${requiredText},\n`;
