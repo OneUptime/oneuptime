@@ -11,11 +11,11 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Span from 'Model/AnalyticsModels/Span';
 import Log from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
-import KeyValueNestedModel from 'Model/AnalyticsModels/NestedModels/KeyValueNestedModel';
 import SpanService from 'CommonServer/Services/SpanService';
 import LogService from 'CommonServer/Services/LogService';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import OTelIngestService from '../Service/OTelIngest';
 // Load proto file for OTel
 
 // Create a root namespace
@@ -109,37 +109,9 @@ router.post(
                         dbSpan.name = span['name'] as string;
                         dbSpan.kind = span['kind'] as string;
 
-                        // We need to convert this to date.
-                        const attributes: JSONArray = span[
-                            'attributes'
-                        ] as JSONArray;
-
-                        const dbattributes: Array<KeyValueNestedModel> = [];
-
-                        for (const attribute of attributes) {
-                            const dbattribute: KeyValueNestedModel =
-                                new KeyValueNestedModel();
-                            dbattribute.key = attribute['key'] as string;
-
-                            const value: JSONObject = attribute[
-                                'value'
-                            ] as JSONObject;
-
-                            if (value['stringValue']) {
-                                dbattribute.stringValue = value[
-                                    'stringValue'
-                                ] as string;
-                            }
-
-                            if (value['intValue']) {
-                                dbattribute.numberValue = value[
-                                    'intValue'
-                                ] as number;
-                            }
-                            dbattributes.push(dbattribute);
-                        }
-
-                        dbSpan.attributes = dbattributes;
+                        dbSpan.attributes = OTelIngestService.getKeyValues(
+                            span['attributes'] as JSONArray
+                        );
 
                         dbSpans.push(dbSpan);
                     }
@@ -244,38 +216,9 @@ router.post(
                         dbLog.spanId = log['spanId'] as string;
 
                         // We need to convert this to date.
-                        const attributes: JSONArray = log[
-                            'attributes'
-                        ] as JSONArray;
-
-                        if (attributes) {
-                            const dbattributes: Array<KeyValueNestedModel> = [];
-
-                            for (const attribute of attributes) {
-                                const dbattribute: KeyValueNestedModel =
-                                    new KeyValueNestedModel();
-                                dbattribute.key = attribute['key'] as string;
-
-                                const value: JSONObject = attribute[
-                                    'value'
-                                ] as JSONObject;
-
-                                if (value['stringValue']) {
-                                    dbattribute.stringValue = value[
-                                        'stringValue'
-                                    ] as string;
-                                }
-
-                                if (value['intValue']) {
-                                    dbattribute.numberValue = value[
-                                        'intValue'
-                                    ] as number;
-                                }
-                                dbattributes.push(dbattribute);
-                            }
-
-                            dbLog.attributes = dbattributes;
-                        }
+                        dbLog.attributes = OTelIngestService.getKeyValues(
+                            log['attributes'] as JSONArray
+                        );
 
                         dbLogs.push(dbLog);
                     }
