@@ -191,19 +191,24 @@ router.post(
 
             req.body = req.body.toJSON();
 
-            const resourceLogs = req.body['resourceLogs'] as JSONArray;
+            const resourceLogs: JSONArray = req.body[
+                'resourceLogs'
+            ] as JSONArray;
 
             const dbLogs: Array<Log> = [];
 
             for (const resourceLog of resourceLogs) {
-                const scopeLogs = resourceLog['scopeLogs'] as JSONArray;
+                const scopeLogs: JSONArray = resourceLog[
+                    'scopeLogs'
+                ] as JSONArray;
 
                 for (const scopeLog of scopeLogs) {
-
-                    const logRecords = scopeLog['logRecords'] as JSONArray;
+                    const logRecords: JSONArray = scopeLog[
+                        'logRecords'
+                    ] as JSONArray;
 
                     for (const log of logRecords) {
-                        const dbLog = new Log();
+                        const dbLog: Log = new Log();
 
                         /*
                         Example: 
@@ -225,18 +230,18 @@ router.post(
                         dbLog.serviceId = ObjectID.getZeroObjectID();
 
                         dbLog.timeUnixNano = log['timeUnixNano'] as number;
-                        dbLog.time = OneUptimeDate.fromUnixNano(log['timeUnixNano'] as number);
+                        dbLog.time = OneUptimeDate.fromUnixNano(
+                            log['timeUnixNano'] as number
+                        );
                         dbLog.severityNumber = log['severityNumber'] as string;
                         dbLog.severityText = log['severityText'] as string;
 
                         const logBody: JSONObject = log['body'] as JSONObject;
 
-
                         dbLog.body = logBody['stringValue'] as string;
-                        
+
                         dbLog.traceId = log['traceId'] as string;
                         dbLog.spanId = log['spanId'] as string;
-
 
                         // We need to convert this to date.
                         const attributes: JSONArray = log[
@@ -244,7 +249,6 @@ router.post(
                         ] as JSONArray;
 
                         if (attributes) {
-
                             const dbattributes: Array<KeyValueNestedModel> = [];
 
                             for (const attribute of attributes) {
@@ -274,9 +278,7 @@ router.post(
                         }
 
                         dbLogs.push(dbLog);
-
                     }
-
                 }
             }
 

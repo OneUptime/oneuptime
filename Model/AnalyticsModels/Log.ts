@@ -29,7 +29,6 @@ export default class Log extends AnalyticsBaseModel {
                     type: TableColumnType.ObjectID,
                 }),
 
-            
                 new AnalyticsTableColumn({
                     key: 'time',
                     title: 'Time',
@@ -45,7 +44,6 @@ export default class Log extends AnalyticsBaseModel {
                     required: true,
                     type: TableColumnType.Number,
                 }),
-
 
                 new AnalyticsTableColumn({
                     key: 'severityText',
@@ -63,7 +61,6 @@ export default class Log extends AnalyticsBaseModel {
                     type: TableColumnType.Text,
                 }),
 
-    
                 new AnalyticsTableColumn({
                     key: 'attributes',
                     title: 'Attributes',
@@ -156,7 +153,6 @@ export default class Log extends AnalyticsBaseModel {
     public set severityNumber(v: string | undefined) {
         this.setColumnValue('severityNumber', v);
     }
-
 
     public get attributes(): Array<KeyValueNestedModel> | undefined {
         return this.getColumnValue('attributes') as
