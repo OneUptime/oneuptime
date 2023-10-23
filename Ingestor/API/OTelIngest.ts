@@ -189,7 +189,7 @@ router.post(
         try {
             logger.info('OTel Ingestor API called');
 
-            logger.info(req.body);
+            req.body = req.body.toJSON();
 
             const resourceLogs = req.body['resourceLogs'] as JSONArray;
 
@@ -228,7 +228,12 @@ router.post(
                         dbLog.time = OneUptimeDate.fromUnixNano(log['timeUnixNano'] as number);
                         dbLog.severityNumber = log['severityNumber'] as string;
                         dbLog.severityText = log['severityText'] as string;
-                        dbLog.body = log['body'] as string;
+
+                        const logBody: JSONObject = log['body'] as JSONObject;
+
+
+                        dbLog.body = logBody['stringValue'] as string;
+                        
                         dbLog.traceId = log['traceId'] as string;
                         dbLog.spanId = log['spanId'] as string;
 
@@ -238,32 +243,35 @@ router.post(
                             'attributes'
                         ] as JSONArray;
 
-                        const dbattributes: Array<KeyValueNestedModel> = [];
+                        if (attributes) {
 
-                        for (const attribute of attributes) {
-                            const dbattribute: KeyValueNestedModel =
-                                new KeyValueNestedModel();
-                            dbattribute.key = attribute['key'] as string;
+                            const dbattributes: Array<KeyValueNestedModel> = [];
 
-                            const value: JSONObject = attribute[
-                                'value'
-                            ] as JSONObject;
+                            for (const attribute of attributes) {
+                                const dbattribute: KeyValueNestedModel =
+                                    new KeyValueNestedModel();
+                                dbattribute.key = attribute['key'] as string;
 
-                            if (value['stringValue']) {
-                                dbattribute.stringValue = value[
-                                    'stringValue'
-                                ] as string;
+                                const value: JSONObject = attribute[
+                                    'value'
+                                ] as JSONObject;
+
+                                if (value['stringValue']) {
+                                    dbattribute.stringValue = value[
+                                        'stringValue'
+                                    ] as string;
+                                }
+
+                                if (value['intValue']) {
+                                    dbattribute.numberValue = value[
+                                        'intValue'
+                                    ] as number;
+                                }
+                                dbattributes.push(dbattribute);
                             }
 
-                            if (value['intValue']) {
-                                dbattribute.numberValue = value[
-                                    'intValue'
-                                ] as number;
-                            }
-                            dbattributes.push(dbattribute);
+                            dbLog.attributes = dbattributes;
                         }
-
-                        dbLog.attributes = dbattributes;
 
                         dbLogs.push(dbLog);
 

@@ -1,24 +1,3 @@
-/** 
- * CREATE TABLE opentelemetry_logs
-(
-    trace_id String,
-    span_id String,
-    name String,
-    time DateTime('UTC'),
-    body String,
-    attributes Nested
-    (
-        key String,
-        value String
-    ),
-    flags Int32,
-    severity_number Int32,
-    severity_text String
-) ENGINE = MergeTree()
-ORDER BY (trace_id, span_id);
-
- */
-
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
