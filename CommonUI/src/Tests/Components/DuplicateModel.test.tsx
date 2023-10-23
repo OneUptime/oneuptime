@@ -1,7 +1,7 @@
 import React from 'react';
 import BaseModel from 'Common/Models/BaseModel';
-import Select from '../Utils/ModelAPI/Select';
-import { ModelField } from '../Components/Forms/ModelForm';
+import Select from '../../Utils/ModelAPI/Select';
+import { ModelField } from '../../Components/Forms/ModelForm';
 import TableMetaData from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import {
@@ -11,7 +11,7 @@ import {
     fireEvent,
     waitFor,
 } from '@testing-library/react';
-import DuplicateModel from '../Components/DuplicateModel/DuplicateModel';
+import DuplicateModel from '../../Components/DuplicateModel/DuplicateModel';
 import ObjectID from 'Common/Types/ObjectID';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import { act } from 'react-test-renderer';
