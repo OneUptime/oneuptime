@@ -12,6 +12,10 @@ import Span from 'Model/AnalyticsModels/Span';
 import Log from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
+import MetricSumService from 'CommonServer/Services/MetricSumService';
+import MetricHistogramService from 'CommonServer/Services/MetricHistogramService';
+import MetricSum from 'Model/AnalyticsModels/MetricSum';
+import MetricHistogram from 'Model/AnalyticsModels/MetricHistogram';
 import LogService from 'CommonServer/Services/LogService';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -140,9 +144,117 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            logger.info('OTel Ingestor API called');
+            
+            req.body = req.body.toJSON();
 
-            logger.info(req.body);
+            const resourceMetrics: JSONArray = req.body[
+                'resourceMetrics'
+            ] as JSONArray;
+
+            const dbMetricsSum: Array<MetricSum> = [];
+            const dbMetricsHistogram: Array<MetricHistogram> = [];
+
+
+            for(const resourceMetric of resourceMetrics) {
+                const scopeMetrics: JSONArray = resourceMetric[
+                    'scopeMetrics'
+                ] as JSONArray;
+
+                for(const scopeMetric of scopeMetrics) {
+                    const metrics: JSONArray = scopeMetric[
+                        'metrics'
+                    ] as JSONArray;
+
+                    for(const metric of metrics) {
+                        const metricName: string = metric['name'] as string;
+                        const metricDescription: string = metric['description'] as string;
+
+                        if(metric['sum'] && (metric['sum'] as JSONObject)['dataPoints'] && ((metric['sum'] as JSONObject)['dataPoints'] as JSONArray).length > 0) {
+                            for(const datapoint of ((metric['sum'] as JSONObject)['dataPoints'] as JSONArray)) {
+                                const dbMetricSum: MetricSum = new MetricSum();
+
+                                dbMetricSum.projectId = ObjectID.getZeroObjectID();
+                                dbMetricSum.serviceId = ObjectID.getZeroObjectID();
+
+                                dbMetricSum.name = metricName;
+                                dbMetricSum.description = metricDescription;
+
+                                dbMetricSum.startTimeUnixNano = datapoint['startTimeUnixNano'] as number;
+                                dbMetricSum.startTime = OneUptimeDate.fromUnixNano(
+                                    datapoint['startTimeUnixNano'] as number
+                                );
+
+                                dbMetricSum.timeUnixNano = datapoint['timeUnixNano'] as number;
+                                dbMetricSum.time = OneUptimeDate.fromUnixNano(
+                                    datapoint['timeUnixNano'] as number
+                                );
+
+                                dbMetricSum.value = datapoint['asInt'] as number;
+
+                                dbMetricSum.attributes = OTelIngestService.getKeyValues(
+                                    metric['attributes'] as JSONArray
+                                );
+
+                                dbMetricsSum.push(dbMetricSum);
+                            }
+                        }
+
+                        if(metric['histogram'] && (metric['histogram'] as JSONObject)['dataPoints'] && ((metric['histogram'] as JSONObject)['dataPoints'] as JSONArray).length > 0) {
+                            for(const datapoint of ((metric['histogram'] as JSONObject)['dataPoints'] as JSONArray)) {
+                                const dbMetricHistogram: MetricHistogram = new MetricHistogram();
+
+                                dbMetricHistogram.projectId = ObjectID.getZeroObjectID();
+                                dbMetricHistogram.serviceId = ObjectID.getZeroObjectID();
+
+                                dbMetricHistogram.name = metricName;
+                                dbMetricHistogram.description = metricDescription;
+
+                                dbMetricHistogram.startTimeUnixNano = datapoint['startTimeUnixNano'] as number;
+                                dbMetricHistogram.startTime = OneUptimeDate.fromUnixNano(
+                                    datapoint['startTimeUnixNano'] as number
+                                );
+
+                                dbMetricHistogram.timeUnixNano = datapoint['timeUnixNano'] as number;
+                                dbMetricHistogram.time = OneUptimeDate.fromUnixNano(
+                                    datapoint['timeUnixNano'] as number
+                                );
+
+                                dbMetricHistogram.count = datapoint['count'] as number;
+                                dbMetricHistogram.sum = datapoint['sum'] as number;
+
+                                dbMetricHistogram.min = datapoint['min'] as number;
+                                dbMetricHistogram.max = datapoint['max'] as number;
+
+                                dbMetricHistogram.bucketCounts = datapoint['bucketCounts'] as Array<number>;
+                                dbMetricHistogram.explicitBounds = datapoint['explicitBounds'] as Array<number>;
+
+
+                                dbMetricHistogram.attributes = OTelIngestService.getKeyValues(
+                                    metric['attributes'] as JSONArray
+                                );
+
+                                dbMetricsHistogram.push(dbMetricHistogram);
+                            }
+                        }
+                    }
+                }
+            }
+
+            await MetricSumService.createMany({
+                items: dbMetricsSum,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+
+            await MetricHistogramService.createMany({
+                items: dbMetricsHistogram,
+                props: {
+                    isRoot: true,
+                },
+            });
+
 
             return Response.sendEmptyResponse(req, res);
         } catch (err) {

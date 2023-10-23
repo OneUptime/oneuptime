@@ -31,6 +31,24 @@ export default class Metric extends AnalyticsBaseModel {
                     type: TableColumnType.ObjectID,
                 }),
 
+                // add name and description
+
+                new AnalyticsTableColumn({
+                    key: 'name',
+                    title: 'Name',
+                    description: 'Name of the Metric',
+                    required: true,
+                    type: TableColumnType.Text,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'description',
+                    title: 'Description',
+                    description: 'Description of the Metric',
+                    required: true,
+                    type: TableColumnType.Text,
+                }),
+
                 new AnalyticsTableColumn({
                     key: 'time',
                     title: 'Time',
@@ -135,6 +153,22 @@ export default class Metric extends AnalyticsBaseModel {
 
     public get serviceId(): ObjectID | undefined {
         return this.getColumnValue('serviceId') as ObjectID | undefined;
+    }
+
+    public get name(): string | undefined {
+        return this.getColumnValue('name') as string | undefined;
+    }
+
+    public set name(v: string | undefined) {
+        this.setColumnValue('name', v);
+    }
+
+    public get description(): string | undefined {
+        return this.getColumnValue('description') as string | undefined;
+    }
+
+    public set description(v: string | undefined) {
+        this.setColumnValue('description', v);
     }
 
     public set serviceId(v: ObjectID | undefined) {
