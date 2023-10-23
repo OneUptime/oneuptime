@@ -616,10 +616,15 @@ export class BillingService extends BaseService {
 
         // check if there's a default payment method.
 
-        const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
-            await this.stripe.customers.retrieve(customerId);
+        const customer: Stripe.Response<
+            Stripe.Customer | Stripe.DeletedCustomer
+        > = await this.stripe.customers.retrieve(customerId);
 
-        if ((customer as Stripe.Customer).invoice_settings && !(customer as Stripe.Customer).invoice_settings?.default_payment_method) {
+        if (
+            (customer as Stripe.Customer).invoice_settings &&
+            !(customer as Stripe.Customer).invoice_settings
+                ?.default_payment_method
+        ) {
             // set the first payment method as default.
             if (paymentMethods.length > 0 && paymentMethods[0]?.id) {
                 await this.setDefaultPaymentMethod(
@@ -628,7 +633,6 @@ export class BillingService extends BaseService {
                 );
             }
         }
-
 
         return paymentMethods;
     }
