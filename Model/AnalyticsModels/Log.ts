@@ -50,22 +50,7 @@ export default class Log extends AnalyticsBaseModel {
                     type: TableColumnType.ObjectID,
                 }),
 
-                new AnalyticsTableColumn({
-                    key: 'name',
-                    title: 'Name',
-                    description: 'Name',
-                    required: true,
-                    type: TableColumnType.Text,
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'body',
-                    title: 'Log Body',
-                    description: 'Log Body',
-                    required: true,
-                    type: TableColumnType.Text,
-                }),
-
+            
                 new AnalyticsTableColumn({
                     key: 'time',
                     title: 'Time',
@@ -73,6 +58,15 @@ export default class Log extends AnalyticsBaseModel {
                     required: true,
                     type: TableColumnType.Date,
                 }),
+
+                new AnalyticsTableColumn({
+                    key: 'timeUnixNano',
+                    title: 'Time (in Unix Nano)',
+                    description: 'When was the log created?',
+                    required: true,
+                    type: TableColumnType.Number,
+                }),
+
 
                 new AnalyticsTableColumn({
                     key: 'severityText',
@@ -87,17 +81,10 @@ export default class Log extends AnalyticsBaseModel {
                     title: 'Severity Number',
                     description: 'Log Severity Number',
                     required: true,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.Text,
                 }),
 
-                new AnalyticsTableColumn({
-                    key: 'flags',
-                    title: 'Flags',
-                    description: 'Log Flags',
-                    required: true,
-                    type: TableColumnType.Number,
-                }),
-
+    
                 new AnalyticsTableColumn({
                     key: 'attributes',
                     title: 'Attributes',
@@ -119,6 +106,14 @@ export default class Log extends AnalyticsBaseModel {
                     key: 'spanId',
                     title: 'Span ID',
                     description: 'ID of the span',
+                    required: false,
+                    type: TableColumnType.Text,
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'body',
+                    title: 'Log Body',
+                    description: 'Body of the Log',
                     required: false,
                     type: TableColumnType.Text,
                 }),
@@ -147,14 +142,6 @@ export default class Log extends AnalyticsBaseModel {
         return this.getColumnValue('name') as string | undefined;
     }
 
-    public set name(v: string | undefined) {
-        this.setColumnValue('name', v);
-    }
-
-    public get body(): string | undefined {
-        return this.getColumnValue('body') as string | undefined;
-    }
-
     public set body(v: string | undefined) {
         this.setColumnValue('body', v);
     }
@@ -167,6 +154,14 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('time', v);
     }
 
+    public get timeUnixNano(): number | undefined {
+        return this.getColumnValue('timeUnixNano') as number | undefined;
+    }
+
+    public set timeUnixNano(v: number | undefined) {
+        this.setColumnValue('timeUnixNano', v);
+    }
+
     public get severityText(): string | undefined {
         return this.getColumnValue('severityText') as string | undefined;
     }
@@ -175,21 +170,14 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('severityText', v);
     }
 
-    public get severityNumber(): number | undefined {
-        return this.getColumnValue('severityNumber') as number | undefined;
+    public get severityNumber(): string | undefined {
+        return this.getColumnValue('severityNumber') as string | undefined;
     }
 
-    public set severityNumber(v: number | undefined) {
+    public set severityNumber(v: string | undefined) {
         this.setColumnValue('severityNumber', v);
     }
 
-    public get flags(): number | undefined {
-        return this.getColumnValue('flags') as number | undefined;
-    }
-
-    public set flags(v: number | undefined) {
-        this.setColumnValue('flags', v);
-    }
 
     public get attributes(): Array<KeyValueNestedModel> | undefined {
         return this.getColumnValue('attributes') as

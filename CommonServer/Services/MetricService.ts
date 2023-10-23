@@ -7,4 +7,5 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         super({ modelType: Metric, database: clickhouseDatabase });
     }
 }
+
 export default new MetricService();

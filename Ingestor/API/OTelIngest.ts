@@ -9,9 +9,11 @@ import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Span from 'Model/AnalyticsModels/Span';
+import Log from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import KeyValueNestedModel from 'Model/AnalyticsModels/NestedModels/KeyValueNestedModel';
 import SpanService from 'CommonServer/Services/SpanService';
+import LogService from 'CommonServer/Services/LogService';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 // Load proto file for OTel
@@ -188,6 +190,94 @@ router.post(
             logger.info('OTel Ingestor API called');
 
             logger.info(req.body);
+
+            const resourceLogs = req.body['resourceLogs'] as JSONArray;
+
+            const dbLogs: Array<Log> = [];
+
+            for (const resourceLog of resourceLogs) {
+                const scopeLogs = resourceLog['scopeLogs'] as JSONArray;
+
+                for (const scopeLog of scopeLogs) {
+
+                    const logRecords = scopeLog['logRecords'] as JSONArray;
+
+                    for (const log of logRecords) {
+                        const dbLog = new Log();
+
+                        /*
+                        Example: 
+
+                        {
+                            "timeUnixNano":"1698069643739368000",
+                            "severityNumber":"SEVERITY_NUMBER_INFO",
+                            "severityText":"Information",
+                            "body":{
+                                "stringValue":"Application is shutting down..."
+                            },
+                            "traceId":"",
+                            "spanId":"",
+                            "observedTimeUnixNano":"1698069643739368000"
+                        }
+                        */
+
+                        dbLog.projectId = ObjectID.getZeroObjectID();
+                        dbLog.serviceId = ObjectID.getZeroObjectID();
+
+                        dbLog.timeUnixNano = log['timeUnixNano'] as number;
+                        dbLog.time = OneUptimeDate.fromUnixNano(log['timeUnixNano'] as number);
+                        dbLog.severityNumber = log['severityNumber'] as string;
+                        dbLog.severityText = log['severityText'] as string;
+                        dbLog.body = log['body'] as string;
+                        dbLog.traceId = log['traceId'] as string;
+                        dbLog.spanId = log['spanId'] as string;
+
+
+                        // We need to convert this to date.
+                        const attributes: JSONArray = log[
+                            'attributes'
+                        ] as JSONArray;
+
+                        const dbattributes: Array<KeyValueNestedModel> = [];
+
+                        for (const attribute of attributes) {
+                            const dbattribute: KeyValueNestedModel =
+                                new KeyValueNestedModel();
+                            dbattribute.key = attribute['key'] as string;
+
+                            const value: JSONObject = attribute[
+                                'value'
+                            ] as JSONObject;
+
+                            if (value['stringValue']) {
+                                dbattribute.stringValue = value[
+                                    'stringValue'
+                                ] as string;
+                            }
+
+                            if (value['intValue']) {
+                                dbattribute.numberValue = value[
+                                    'intValue'
+                                ] as number;
+                            }
+                            dbattributes.push(dbattribute);
+                        }
+
+                        dbLog.attributes = dbattributes;
+
+                        dbLogs.push(dbLog);
+
+                    }
+
+                }
+            }
+
+            await LogService.createMany({
+                items: dbLogs,
+                props: {
+                    isRoot: true,
+                },
+            });
 
             return Response.sendEmptyResponse(req, res);
         } catch (err) {
