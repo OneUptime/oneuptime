@@ -88,17 +88,6 @@ builder.Services.AddOpenTelemetry()
 
 var app = builder.Build();
 
-
-
-
-var value = 1; 
-
-int getGuage()
-{
-    value++;
-    return value;
-}
-
 greeterMeter.CreateObservableGauge("ThreadCount", () => new[] { new Measurement<int>(ThreadPool.ThreadCount) });
 var countGreetings = greeterMeter.CreateCounter<int>("greetings.count", description: "Counts the number of greetings");
 
