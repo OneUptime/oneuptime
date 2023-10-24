@@ -62,7 +62,7 @@ describe('BearerTokenAuthorization', () => {
                 next
             );
             expect(next.mock.calls[0][0]).toMatchInlineSnapshot(
-                `[Error: Invalid bearer token.]`
+                `[Error: Invalid bearer token, or bearer token not provided.]`
             );
         });
         it('calls next with exception if token is invalid', () => {
@@ -80,7 +80,7 @@ describe('BearerTokenAuthorization', () => {
                 next
             );
             expect(next.mock.calls[0][0]).toMatchInlineSnapshot(
-                `[JsonWebTokenError: jwt must be provided]`
+                `[Error: Invalid bearer token, or bearer token not provided.]`
             );
         });
         it('calls next with exception if token header is not present', () => {
@@ -95,7 +95,7 @@ describe('BearerTokenAuthorization', () => {
                 next
             );
             expect(next.mock.calls[0][0]).toMatchInlineSnapshot(
-                `[TypeError: Cannot read properties of undefined (reading 'authorization')]`
+                `[Error: Invalid bearer token, or bearer token not provided.]`
             );
         });
     });
