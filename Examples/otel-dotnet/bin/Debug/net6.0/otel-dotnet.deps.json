@@ -11,7 +11,8 @@
           "OpenTelemetry.Exporter.Console": "1.6.0",
           "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.6.0",
           "OpenTelemetry.Extensions.Hosting": "1.6.0",
-          "OpenTelemetry.Instrumentation.AspNetCore": "1.5.1-beta.1"
+          "OpenTelemetry.Instrumentation.AspNetCore": "1.5.1-beta.1",
+          "OpenTelemetry.Instrumentation.Runtime": "1.5.1"
         },
         "runtime": {
           "otel-dotnet.dll": {}
@@ -207,6 +208,17 @@
           }
         }
       },
+      "OpenTelemetry.Instrumentation.Runtime/1.5.1": {
+        "dependencies": {
+          "OpenTelemetry.Api": "1.6.0"
+        },
+        "runtime": {
+          "lib/net6.0/OpenTelemetry.Instrumentation.Runtime.dll": {
+            "assemblyVersion": "1.5.1.0",
+            "fileVersion": "1.5.1.0"
+          }
+        }
+      },
       "System.Diagnostics.DiagnosticSource/7.0.2": {
         "dependencies": {
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
@@ -397,6 +409,13 @@
       "sha512": "sha512-szyjWK0GdA0hFfxjdBykYsgrXv6NVTu5HDxIgQOcZMqWu6hyikKDMcP+hYC3rD2mJbIdvjEdhEyZOb84sCevHA==",
       "path": "opentelemetry.instrumentation.aspnetcore/1.5.1-beta.1",
       "hashPath": "opentelemetry.instrumentation.aspnetcore.1.5.1-beta.1.nupkg.sha512"
+    },
+    "OpenTelemetry.Instrumentation.Runtime/1.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-F3uYt/T5+2YZCxZmAdoK7u5AZxqDLYaTj5ddZ//Cnn9x+Lys9D9wRzqizQgKpAQJJ6prVh0TcBEbCCpEKKDZvw==",
+      "path": "opentelemetry.instrumentation.runtime/1.5.1",
+      "hashPath": "opentelemetry.instrumentation.runtime.1.5.1.nupkg.sha512"
     },
     "System.Diagnostics.DiagnosticSource/7.0.2": {
       "type": "package",

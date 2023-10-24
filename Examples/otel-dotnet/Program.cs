@@ -56,12 +56,17 @@ builder.Services.AddOpenTelemetry()
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
                 }));
 
+
+// Custom metrics for the application
+var greeterMeter = new Meter("OtPrGrYa.Example");
+
 // Metrics.
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource
         .AddService(serviceName: builder.Environment.ApplicationName))
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
+        .AddMeter("OtPrGrYa.Example")
         .AddConsoleExporter((exporterOptions, metricReaderOptions) =>
         {
             metricReaderOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 1000;
@@ -75,14 +80,28 @@ builder.Services.AddOpenTelemetry()
                     }
 
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
+ 
                 }));
+
+
+
 
 var app = builder.Build();
 
 
-// Custom metrics for the application
-var greeterMeter = new Meter("OtPrGrYa.Example", "1.0.0");
+
+
+var value = 1; 
+
+int getGuage()
+{
+    value++;
+    return value;
+}
+
+greeterMeter.CreateObservableGauge("ThreadCount", () => new[] { new Measurement<int>(ThreadPool.ThreadCount) });
 var countGreetings = greeterMeter.CreateCounter<int>("greetings.count", description: "Counts the number of greetings");
+
 
 // Custom ActivitySource for the application
 var greeterActivitySource = new ActivitySource("OtPrGrJa.Example");

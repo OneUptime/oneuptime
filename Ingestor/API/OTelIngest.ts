@@ -14,7 +14,9 @@ import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
 import MetricSumService from 'CommonServer/Services/MetricSumService';
 import MetricHistogramService from 'CommonServer/Services/MetricHistogramService';
+import MetricGaugeService from 'CommonServer/Services/MetricGaugeService';
 import MetricSum from 'Model/AnalyticsModels/MetricSum';
+import MetricGauge from 'Model/AnalyticsModels/MetricGauge';
 import MetricHistogram from 'Model/AnalyticsModels/MetricHistogram';
 import LogService from 'CommonServer/Services/LogService';
 import ObjectID from 'Common/Types/ObjectID';
@@ -152,6 +154,7 @@ router.post(
 
             const dbMetricsSum: Array<MetricSum> = [];
             const dbMetricsHistogram: Array<MetricHistogram> = [];
+            const dbMetricsGauge: Array<MetricGauge> = [];
 
             for (const resourceMetric of resourceMetrics) {
                 const scopeMetrics: JSONArray = resourceMetric[
@@ -217,9 +220,55 @@ router.post(
 
                                 dbMetricsSum.push(dbMetricSum);
                             }
-                        }
+                        }else if (
+                            metric['gauge'] &&
+                            (metric['gauge'] as JSONObject)['dataPoints'] &&
+                            (
+                                (metric['gauge'] as JSONObject)[
+                                    'dataPoints'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            for (const datapoint of (
+                                metric['gauge'] as JSONObject
+                            )['dataPoints'] as JSONArray) {
+                                const dbMetricGauge: MetricGauge = new MetricGauge();
 
-                        if (
+                                dbMetricGauge.projectId =
+                                    ObjectID.getZeroObjectID();
+                                dbMetricGauge.serviceId =
+                                    ObjectID.getZeroObjectID();
+
+                                dbMetricGauge.name = metricName;
+                                dbMetricGauge.description = metricDescription;
+
+                                dbMetricGauge.startTimeUnixNano = datapoint[
+                                    'startTimeUnixNano'
+                                ] as number;
+                                dbMetricGauge.startTime =
+                                    OneUptimeDate.fromUnixNano(
+                                        datapoint['startTimeUnixNano'] as number
+                                    );
+
+                                dbMetricGauge.timeUnixNano = datapoint[
+                                    'timeUnixNano'
+                                ] as number;
+                                dbMetricGauge.time = OneUptimeDate.fromUnixNano(
+                                    datapoint['timeUnixNano'] as number
+                                );
+
+                                dbMetricGauge.value = datapoint[
+                                    'asInt'
+                                ] as number;
+
+                                dbMetricGauge.attributes =
+                                    OTelIngestService.getKeyValues(
+                                        metric['attributes'] as JSONArray
+                                    );
+
+                                dbMetricsGauge.push(dbMetricGauge);
+                            }
+                        } else if (
                             metric['histogram'] &&
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
@@ -287,6 +336,8 @@ router.post(
 
                                 dbMetricsHistogram.push(dbMetricHistogram);
                             }
+                        }else{
+                            logger.warn('Unknown metric type', metric);
                         }
                     }
                 }
@@ -302,6 +353,13 @@ router.post(
 
             await MetricHistogramService.createMany({
                 items: dbMetricsHistogram,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            await MetricGaugeService.createMany({
+                items: dbMetricsGauge,
                 props: {
                     isRoot: true,
                 },

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "q904JtYq1lLAiuvP7YZAtmR3LAs+M1o5PfyM0Qj3+rz7xX6AiTGIp6qCcuj7Ew3h5sJxnepofHEAg0S9PbQ4GA==",
+  "dgSpecHash": "kBspCkYM82GK1DjcaFAxuFSJ5yyZDweAwZpDY3NzeL+b5AIdlzzBhqF0w41aQvigzdX60YHSP8Nwd+epadb4vQ==",
   "success": true,
   "projectFilePath": "/Users/nawazdhandala/Projects/OneUptime/oneuptime/Examples/otel-dotnet/otel-dotnet.csproj",
   "expectedPackageFiles": [
@@ -28,6 +28,7 @@
     "/Users/nawazdhandala/.nuget/packages/opentelemetry.exporter.opentelemetryprotocol/1.6.0/opentelemetry.exporter.opentelemetryprotocol.1.6.0.nupkg.sha512",
     "/Users/nawazdhandala/.nuget/packages/opentelemetry.extensions.hosting/1.6.0/opentelemetry.extensions.hosting.1.6.0.nupkg.sha512",
     "/Users/nawazdhandala/.nuget/packages/opentelemetry.instrumentation.aspnetcore/1.5.1-beta.1/opentelemetry.instrumentation.aspnetcore.1.5.1-beta.1.nupkg.sha512",
+    "/Users/nawazdhandala/.nuget/packages/opentelemetry.instrumentation.runtime/1.5.1/opentelemetry.instrumentation.runtime.1.5.1.nupkg.sha512",
     "/Users/nawazdhandala/.nuget/packages/system.diagnostics.diagnosticsource/7.0.2/system.diagnostics.diagnosticsource.7.0.2.nupkg.sha512",
     "/Users/nawazdhandala/.nuget/packages/system.memory/4.5.3/system.memory.4.5.3.nupkg.sha512",
     "/Users/nawazdhandala/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",

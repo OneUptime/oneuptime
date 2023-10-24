@@ -33,3 +33,4 @@
 /Users/nawazdhandala/Projects/OneUptime/oneuptime/Examples/otel-dotnet/bin/Debug/net6.0/Grpc.Net.Client.dll
 /Users/nawazdhandala/Projects/OneUptime/oneuptime/Examples/otel-dotnet/bin/Debug/net6.0/Grpc.Net.Common.dll
 /Users/nawazdhandala/Projects/OneUptime/oneuptime/Examples/otel-dotnet/bin/Debug/net6.0/OpenTelemetry.Exporter.OpenTelemetryProtocol.dll
+/Users/nawazdhandala/Projects/OneUptime/oneuptime/Examples/otel-dotnet/bin/Debug/net6.0/OpenTelemetry.Instrumentation.Runtime.dll
