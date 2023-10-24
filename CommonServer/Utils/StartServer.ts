@@ -26,12 +26,7 @@ import StatusCode from 'Common/Types/API/StatusCode';
 import Typeof from 'Common/Types/Typeof';
 import Response from './Response';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import API from 'Common/Utils/API';
-import URL from 'Common/Types/API/URL';
-import { AppVersion, DashboardApiHostname } from '../EnvironmentConfig';
-import { DashboardApiRoute } from 'Common/ServiceRoute';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import { AppVersion } from '../EnvironmentConfig';
 import ServerException from 'Common/Types/Exception/ServerException';
 import zlib from 'zlib';
 import CookieParser from 'cookie-parser';
@@ -182,26 +177,8 @@ const init: Function = async (
             async (req: ExpressRequest, res: ExpressResponse) => {
                 // ping api server for database config.
 
-                const databaseConfig:
-                    | HTTPResponse<JSONObject>
-                    | HTTPErrorResponse = await API.get<JSONObject>(
-                    URL.fromString(
-                        `http://${DashboardApiHostname}/${DashboardApiRoute}/global-config/vars`
-                    )
-                );
-
-                if (databaseConfig instanceof HTTPErrorResponse) {
-                    // error getting database config.
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new ServerException('Error getting database config.')
-                    );
-                }
-
                 const env: JSONObject = {
                     ...process.env,
-                    ...databaseConfig.data,
                 };
 
                 const script: string = `

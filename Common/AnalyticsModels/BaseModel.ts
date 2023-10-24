@@ -1,18 +1,15 @@
-import TableColumnType from '../Types/BaseDatabase/TableColumnType';
+import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
-import { JSONObject, JSONValue } from '../Types/JSON';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
 import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
-import OneUptimeDate from '../Types/Date';
+import CommonModel from './CommonModel';
 
-export default class AnalyticsDataModel {
-    private data: JSONObject = {};
-
+export default class AnalyticsDataModel extends CommonModel {
     public constructor(data: {
         tableName: string;
         singularName: string;
@@ -25,6 +22,9 @@ export default class AnalyticsDataModel {
         primaryKeys: Array<string>; // this should be the subset of tableColumns
         enableWorkflowOn?: EnableWorkflowOn | undefined;
     }) {
+        super({
+            tableColumns: data.tableColumns,
+        });
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
         this.tableName = data.tableName;
@@ -70,13 +70,23 @@ export default class AnalyticsDataModel {
         // check if primary keys are subset of tableColumns
 
         data.primaryKeys.forEach((primaryKey: string) => {
-            if (
-                !columns.find((column: AnalyticsTableColumn) => {
+            const column: AnalyticsTableColumn | undefined = columns.find(
+                (column: AnalyticsTableColumn) => {
                     return column.key === primaryKey;
-                })
-            ) {
+                }
+            );
+
+            if (!column) {
                 throw new BadDataException(
                     'Primary key ' + primaryKey + ' is not part of tableColumns'
+                );
+            }
+
+            if (!column.required) {
+                throw new BadDataException(
+                    'Primary key ' +
+                        primaryKey +
+                        ' is not required. Primary keys must be required.'
                 );
             }
         });
@@ -90,6 +100,13 @@ export default class AnalyticsDataModel {
             data.allowAccessIfSubscriptionIsUnpaid || false;
         this.accessControl = data.accessControl;
         this.enableWorkflowOn = data.enableWorkflowOn;
+
+        // initialize Arrays.
+        for (const column of this.tableColumns) {
+            if (column.type === TableColumnType.NestedModel) {
+                this.setColumnValue(column.key, []);
+            }
+        }
     }
 
     private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -106,14 +123,6 @@ export default class AnalyticsDataModel {
     }
     public set accessControl(v: TableAccessControl | undefined) {
         this._accessControl = v;
-    }
-
-    private _tableColumns: Array<AnalyticsTableColumn> = [];
-    public get tableColumns(): Array<AnalyticsTableColumn> {
-        return this._tableColumns;
-    }
-    public set tableColumns(v: Array<AnalyticsTableColumn>) {
-        this._tableColumns = v;
     }
 
     private _tableName: string = '';
@@ -174,65 +183,6 @@ export default class AnalyticsDataModel {
     }
     public set allowAccessIfSubscriptionIsUnpaid(v: boolean) {
         this._allowAccessIfSubscriptionIsUnpaid = v;
-    }
-
-    public setColumnValue(columnName: string, value: JSONValue): void {
-        const column: AnalyticsTableColumn | null =
-            this.getTableColumn(columnName);
-
-        if (column) {
-            if (
-                column.type === TableColumnType.ObjectID &&
-                typeof value === 'string'
-            ) {
-                value = new ObjectID(value);
-            }
-
-            if (
-                column.type === TableColumnType.Date &&
-                typeof value === 'string'
-            ) {
-                value = OneUptimeDate.fromString(value);
-            }
-
-            if (
-                column.type === TableColumnType.JSON &&
-                typeof value === 'string'
-            ) {
-                value = JSON.parse(value);
-            }
-
-            return (this.data[columnName] = value as any);
-        }
-        throw new BadDataException('Column ' + columnName + ' does not exist');
-    }
-
-    public getColumnValue<T extends JSONValue>(
-        columnName: string
-    ): T | undefined {
-        if (this.getTableColumn(columnName)) {
-            return this.data[columnName] as T;
-        }
-
-        return undefined;
-    }
-
-    public getTableColumn(name: string): AnalyticsTableColumn | null {
-        const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
-            (column: AnalyticsTableColumn) => {
-                return column.key === name;
-            }
-        );
-
-        if (!column) {
-            return null;
-        }
-
-        return column;
-    }
-
-    public getTableColumns(): Array<AnalyticsTableColumn> {
-        return this.tableColumns;
     }
 
     public getTenantColumn(): AnalyticsTableColumn | null {
@@ -307,50 +257,5 @@ export default class AnalyticsDataModel {
 
     public set updatedAt(v: Date | undefined) {
         this.setColumnValue('updatedAt', v);
-    }
-
-    public fromJSON(json: JSONObject): AnalyticsDataModel {
-        for (const key in json) {
-            this.setColumnValue(key, json[key]);
-        }
-
-        return this;
-    }
-
-    public toJSON(): JSONObject {
-        const json: JSONObject = {};
-
-        this.tableColumns.forEach((column: AnalyticsTableColumn) => {
-            json[column.key] = this.getColumnValue(column.key);
-        });
-
-        return json;
-    }
-
-    public static fromJSONArray<TBaseModel extends AnalyticsDataModel>(
-        modelType: { new (): AnalyticsDataModel },
-        jsonArray: Array<JSONObject>
-    ): Array<TBaseModel> {
-        const models: Array<AnalyticsDataModel> = [];
-
-        jsonArray.forEach((json: JSONObject) => {
-            const model: AnalyticsDataModel = new modelType();
-            model.fromJSON(json);
-            models.push(model);
-        });
-
-        return models as Array<TBaseModel>;
-    }
-
-    public static toJSONArray(
-        models: Array<AnalyticsDataModel>
-    ): Array<JSONObject> {
-        const json: Array<JSONObject> = [];
-
-        models.forEach((model: AnalyticsDataModel) => {
-            json.push(model.toJSON());
-        });
-
-        return json;
     }
 }
