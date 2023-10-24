@@ -151,7 +151,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'Start Time in Unix Nano',
                     description: 'When did the span start?',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.LongNumber,
                 }),
 
                 new AnalyticsTableColumn({
@@ -159,7 +159,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'End Time',
                     description: 'When did the span end?',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.LongNumber,
                 }),
 
                 new AnalyticsTableColumn({

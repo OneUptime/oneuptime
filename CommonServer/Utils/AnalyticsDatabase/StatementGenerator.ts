@@ -249,6 +249,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .join(', ')})`;
         }
 
+        if(column.type === TableColumnType.JSON) {
+            value = `'${JSON.stringify(value)}'`;
+        }
+
         return value;
     }
 
@@ -395,6 +399,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             return 'DateTime';
         }
 
+        if (type === TableColumnType.JSON) {
+            return 'JSON';
+        }
+
         if (type === TableColumnType.NestedModel) {
             return 'Nested';
         }
@@ -405,6 +413,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         if (type === TableColumnType.ArrayText) {
             return 'Array(String)';
+        }
+
+        if(type === TableColumnType.LongNumber) {
+            return 'Int128';
         }
 
         throw new BadDataException('Unknown column type: ' + type);

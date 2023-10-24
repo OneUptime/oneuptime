@@ -9,6 +9,7 @@ enum ColumnType {
     Decimal = 'Decimal',
     ArrayNumber = 'Array of Numbers',
     ArrayText = 'Array of Text',
+    LongNumber = 'Long Number',
 }
 
 export default ColumnType;

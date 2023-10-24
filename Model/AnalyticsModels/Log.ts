@@ -42,7 +42,7 @@ export default class Log extends AnalyticsBaseModel {
                     title: 'Time (in Unix Nano)',
                     description: 'When was the log created?',
                     required: true,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.LongNumber,
                 }),
 
                 new AnalyticsTableColumn({

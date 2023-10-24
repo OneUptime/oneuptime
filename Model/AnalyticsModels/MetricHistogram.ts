@@ -68,7 +68,7 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Time (in Unix Nano)',
                     description: 'When did the Metric happen?',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.LongNumber,
                 }),
 
                 new AnalyticsTableColumn({
@@ -76,7 +76,7 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Start Time (in Unix Nano)',
                     description: 'When did the Metric happen?',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.LongNumber,
                 }),
 
                 new AnalyticsTableColumn({
