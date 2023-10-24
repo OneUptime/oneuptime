@@ -89,7 +89,11 @@ builder.Services.AddOpenTelemetry()
 var app = builder.Build();
 
 greeterMeter.CreateObservableGauge("ThreadCount", () => new[] { new Measurement<int>(ThreadPool.ThreadCount) });
+
+var histogram = greeterMeter.CreateHistogram<int>("greetings.size", "Size of greetings", "desc");
+
 var countGreetings = greeterMeter.CreateCounter<int>("greetings.count", description: "Counts the number of greetings");
+
 
 
 // Custom ActivitySource for the application
@@ -110,6 +114,7 @@ async Task<String> SendGreeting(ILogger<Program> logger)
     // Add a tag to the Activity
     activity?.SetTag("greeting", "Hello World!");
 
+    histogram.Record("Hello World!".Length);
 
     return $"Hello World! OpenTelemetry Trace: {Activity.Current?.Id}";
 }
