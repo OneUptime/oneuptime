@@ -66,7 +66,7 @@ export default class CommonModel {
                 value = parseInt(value);
             }
 
-            // decimal 
+            // decimal
             if (
                 column.type === TableColumnType.Decimal &&
                 typeof value === 'string'

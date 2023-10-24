@@ -236,6 +236,12 @@ const services: Array<BaseService> = [
 
 export const AnalyticsServices: Array<
     AnalyticsDatabaseService<AnalyticsBaseModel>
-> = [LogService, SpanService, MetricSumService, MetricHistogramService, MetricGaugeService];
+> = [
+    LogService,
+    SpanService,
+    MetricSumService,
+    MetricHistogramService,
+    MetricGaugeService,
+];
 
 export default services;

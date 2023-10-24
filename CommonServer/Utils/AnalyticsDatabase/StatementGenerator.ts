@@ -215,7 +215,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         if (column.type === TableColumnType.Date && value instanceof Date) {
-
             value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
                 value as Date
             )}')`;
@@ -249,7 +248,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .join(', ')}]`;
         }
 
-        if(column.type === TableColumnType.JSON) {
+        if (column.type === TableColumnType.JSON) {
             value = `'${JSON.stringify(value)}'`;
         }
 
@@ -362,7 +361,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 requiredText = '';
             }
 
-            if(column.type === TableColumnType.ArrayNumber || column.type === TableColumnType.ArrayText) {
+            if (
+                column.type === TableColumnType.ArrayNumber ||
+                column.type === TableColumnType.ArrayText
+            ) {
                 requiredText = '';
             }
 
@@ -415,7 +417,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             return 'Array(String)';
         }
 
-        if(type === TableColumnType.LongNumber) {
+        if (type === TableColumnType.LongNumber) {
             return 'Int128';
         }
 

@@ -220,7 +220,7 @@ router.post(
 
                                 dbMetricsSum.push(dbMetricSum);
                             }
-                        }else if (
+                        } else if (
                             metric['gauge'] &&
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
@@ -232,7 +232,8 @@ router.post(
                             for (const datapoint of (
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricGauge: MetricGauge = new MetricGauge();
+                                const dbMetricGauge: MetricGauge =
+                                    new MetricGauge();
 
                                 dbMetricGauge.projectId =
                                     ObjectID.getZeroObjectID();
@@ -336,13 +337,12 @@ router.post(
 
                                 dbMetricsHistogram.push(dbMetricHistogram);
                             }
-                        }else{
+                        } else {
                             logger.warn('Unknown metric type', metric);
                         }
                     }
                 }
             }
-
 
             await MetricSumService.createMany({
                 items: dbMetricsSum,
