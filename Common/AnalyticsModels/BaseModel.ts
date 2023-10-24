@@ -70,13 +70,22 @@ export default class AnalyticsDataModel extends CommonModel {
         // check if primary keys are subset of tableColumns
 
         data.primaryKeys.forEach((primaryKey: string) => {
+
+            const column: AnalyticsTableColumn | undefined = columns.find((column: AnalyticsTableColumn) => {
+                return column.key === primaryKey;
+            });
+
             if (
-                !columns.find((column: AnalyticsTableColumn) => {
-                    return column.key === primaryKey;
-                })
+                !column
             ) {
                 throw new BadDataException(
                     'Primary key ' + primaryKey + ' is not part of tableColumns'
+                );
+            }
+
+            if(!column.required){
+                throw new BadDataException(
+                    'Primary key ' + primaryKey + ' is not required. Primary keys must be required.'
                 );
             }
         });

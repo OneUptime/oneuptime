@@ -215,6 +215,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         if (column.type === TableColumnType.Date && value instanceof Date) {
+
             value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
                 value as Date
             )}')`;

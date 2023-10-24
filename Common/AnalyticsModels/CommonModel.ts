@@ -59,6 +59,21 @@ export default class CommonModel {
                 value = JSON.parse(value);
             }
 
+            if (
+                column.type === TableColumnType.Number &&
+                typeof value === 'string'
+            ) {
+                value = parseInt(value);
+            }
+
+            // decimal 
+            if (
+                column.type === TableColumnType.Decimal &&
+                typeof value === 'string'
+            ) {
+                value = parseFloat(value);
+            }
+
             return (this.data[columnName] = value as any);
         }
         throw new BadDataException('Column ' + columnName + ' does not exist');
