@@ -72,7 +72,7 @@ import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
 
 import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
-import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
+// import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
 
 import './Jobs/Workflow/TimeoutJobs';
 
@@ -102,7 +102,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
         await RunDatabaseMigrations();
 
         // create tables in analytics database
-        await AnalyticsTableManagement.createTables();
+        // await AnalyticsTableManagement.createTables();
 
         // Job process.
         QueueWorker.getWorker(
