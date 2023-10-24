@@ -234,19 +234,19 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         if (column.type === TableColumnType.ArrayNumber) {
-            value = `(${(value as Array<number>)
+            value = `[${(value as Array<number>)
                 .map((v: number) => {
                     return v;
                 })
-                .join(', ')})`;
+                .join(', ')}]`;
         }
 
         if (column.type === TableColumnType.ArrayText) {
-            value = `(${(value as Array<string>)
+            value = `[${(value as Array<string>)
                 .map((v: string) => {
                     return `'${v}'`;
                 })
-                .join(', ')})`;
+                .join(', ')}]`;
         }
 
         if(column.type === TableColumnType.JSON) {

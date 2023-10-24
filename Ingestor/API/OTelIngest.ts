@@ -292,6 +292,7 @@ router.post(
                 }
             }
 
+
             await MetricSumService.createMany({
                 items: dbMetricsSum,
                 props: {
