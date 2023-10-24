@@ -76,7 +76,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             changeMonitorStatus: true,
             createIncidents: false,
             name: 'Check if online',
-            description: 'This criteria checks if the monitor is online',
+            description: `This criteria checks if the ${arg.monitorType} is online`,
         };
 
         if (
@@ -118,8 +118,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 ],
                 incidents: [
                     {
-                        title: `${arg.monitorType} monitor is offline`,
-                        description: `${arg.monitorType} monitor is currently offline.`,
+                        title: `${arg.monitorType} is offline`,
+                        description: `${arg.monitorType} is currently offline.`,
                         incidentSeverityId: arg.incidentSeverityId,
                         autoResolveIncident: true,
                         id: ObjectID.generate().toString(),
@@ -129,7 +129,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 changeMonitorStatus: true,
                 createIncidents: true,
                 name: 'Check if offline',
-                description: 'This criteria checks if the monitor is offline',
+                description: `This criteria checks if the ${arg.monitorType} is offline`,
             };
         }
 
@@ -155,8 +155,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 ],
                 incidents: [
                     {
-                        title: `${arg.monitorType} monitor is offline`,
-                        description: `${arg.monitorType} monitor is currently offline.`,
+                        title: `${arg.monitorType} is offline`,
+                        description: `${arg.monitorType} is currently offline.`,
                         incidentSeverityId: arg.incidentSeverityId,
                         autoResolveIncident: true,
                         id: ObjectID.generate().toString(),
@@ -166,7 +166,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 changeMonitorStatus: true,
                 createIncidents: true,
                 name: 'Check if offline',
-                description: 'This criteria checks if the monitor is offline',
+                description: `This criteria checks if the ${arg.monitorType} is offline`,
             };
         }
 
@@ -184,8 +184,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 ],
                 incidents: [
                     {
-                        title: `${arg.monitorType} monitor is offline`,
-                        description: `${arg.monitorType} monitor is currently offline.`,
+                        title: `${arg.monitorType} is offline`,
+                        description: `${arg.monitorType} is currently offline.`,
                         incidentSeverityId: arg.incidentSeverityId,
                         autoResolveIncident: true,
                         id: ObjectID.generate().toString(),
@@ -195,7 +195,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 changeMonitorStatus: true,
                 createIncidents: true,
                 name: 'Check if offline',
-                description: 'This criteria checks if the monitor is offline',
+                description: `This criteria checks if the ${arg.monitorType} is offline`,
             };
         }
 
