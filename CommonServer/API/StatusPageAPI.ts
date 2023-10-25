@@ -418,7 +418,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 projectId: true,
                                 isPublicStatusPage: true,
                                 overviewPageDescription: true,
-                                showIncidentLabelsOnStatusPage: true
+                                showIncidentLabelsOnStatusPage: true,
                             },
                             props: {
                                 isRoot: true,
@@ -564,7 +564,6 @@ export default class StatusPageAPI extends BaseAPI<
                     // check if status page has active incident.
                     let activeIncidents: Array<Incident> = [];
                     if (monitorsOnStatusPage.length > 0) {
-
                         let select: Select<Incident> = {
                             createdAt: true,
                             title: true,
@@ -580,17 +579,17 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                             monitors: {
                                 _id: true,
-                            }
+                            },
                         };
 
-                        if(statusPage.showIncidentLabelsOnStatusPage){
+                        if (statusPage.showIncidentLabelsOnStatusPage) {
                             select = {
                                 ...select,
                                 labels: {
                                     name: true,
-                                    color: true
-                                }
-                            }
+                                    color: true,
+                                },
+                            };
                         }
 
                         activeIncidents = await IncidentService.findBy({
@@ -1573,7 +1572,7 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     projectId: true,
                     showIncidentHistoryInDays: true,
-                    showIncidentLabelsOnStatusPage: true
+                    showIncidentLabelsOnStatusPage: true,
                 },
                 props: {
                     isRoot: true,
@@ -1657,19 +1656,17 @@ export default class StatusPageAPI extends BaseAPI<
             },
         };
 
-
-        if(statusPage.showIncidentLabelsOnStatusPage){
+        if (statusPage.showIncidentLabelsOnStatusPage) {
             selectIncidents = {
                 ...selectIncidents,
                 labels: {
-                    name: true, 
-                    color: true
-                }
-            }
+                    name: true,
+                    color: true,
+                },
+            };
         }
 
         if (monitorsOnStatusPage.length > 0) {
-
             incidents = await IncidentService.findBy({
                 query: incidentQuery,
                 select: selectIncidents,

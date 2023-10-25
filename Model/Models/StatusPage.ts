@@ -881,8 +881,6 @@ export default class StatusPage extends BaseModel {
     })
     public isPublicStatusPage?: boolean = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
