@@ -40,6 +40,7 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import Label from 'Model/Models/Label';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -172,6 +173,12 @@ export const getIncidentEventItem: Function = (
               OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
             : '',
         eventTypeColor: Red,
+        labels: incident.labels?.map((label: Label) => {
+            return {
+                name: label.name!,
+                color: label.color!,
+            }
+        }) || [],
     };
 
     return data;
