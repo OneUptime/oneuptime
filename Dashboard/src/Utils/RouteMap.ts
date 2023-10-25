@@ -398,6 +398,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/domains`
     ),
 
+    [PageMap.SETTINGS_FEATURE_FLAGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/feature-flags`
+    ),
+
     [PageMap.SETTINGS_SSO]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/sso`
     ),

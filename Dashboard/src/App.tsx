@@ -90,6 +90,7 @@ import SettingsApiKeyView from './Pages/Settings/APIKeyView';
 import SettingLabels from './Pages/Settings/Labels';
 import SettingProbes from './Pages/Settings/Probes';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
+import SettingFeatureFlags from './Pages/Settings/FeatureFlags';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 import SettingsMonitors from './Pages/Settings/MonitorStatus';
@@ -1536,6 +1537,23 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.SETTINGS_FEATURE_FLAGS]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <SettingFeatureFlags
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_FEATURE_FLAGS
                                 ] as Route
                             }
                         />
