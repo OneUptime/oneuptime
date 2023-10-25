@@ -49,7 +49,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                        PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -58,10 +58,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <CardModelDetail<StatusPage>
-                name="Status Page >  Settings"
+                name="Status Page > Settings"
                 cardProps={{
-                    title: 'Status Page Settings',
-                    description: 'Settings for this status page.',
+                    title: 'Incident Settings',
+                    description: 'Incident Settings for Status Page',
                 }}
                 editButtonText="Edit Settings"
                 isEditable={true}
@@ -77,22 +77,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            showAnnouncementHistoryInDays: true,
+                            showIncidentLabelsOnStatusPage: true,
                         },
-                        title: 'Show Announcement History (in days)',
-                        fieldType: FormFieldSchemaType.Number,
-                        required: true,
-                        placeholder: '14',
-                    },
-                    {
-                        field: {
-                            showScheduledEventHistoryInDays: true,
-                        },
-                        title: 'Show Scheduled Event History (in days)',
-                        fieldType: FormFieldSchemaType.Number,
-                        required: true,
-                        placeholder: '14',
-                    },
+                        title: 'Show Incident Labels',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                        
+                    }
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -108,11 +99,83 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
+                                showIncidentLabelsOnStatusPage: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Show Incident Labels',
+                            placeholder: 'No',
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Settings"
+                cardProps={{
+                    title: 'Anouncement Settings',
+                    description: 'Announcement Settings for Status Page',
+                }}
+                editButtonText="Edit Settings"
+                isEditable={true}
+                formFields={[
+
+                    {
+                        field: {
+                            showAnnouncementHistoryInDays: true,
+                        },
+                        title: 'Show Announcement History (in days)',
+                        fieldType: FormFieldSchemaType.Number,
+                        required: true,
+                        placeholder: '14',
+                    }
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
                                 showAnnouncementHistoryInDays: true,
                             },
                             fieldType: FieldType.Number,
                             title: 'Show Announcement History (in days)',
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Settings"
+                cardProps={{
+                    title: 'Scheduled Event Settings',
+                    description: 'Scheduled Event Settings for Status Page',
+                }}
+                editButtonText="Edit Settings"
+                isEditable={true}
+                formFields={[
+
+                    {
+                        field: {
+                            showScheduledEventHistoryInDays: true,
                         },
+                        title: 'Show Scheduled Event History (in days)',
+                        fieldType: FormFieldSchemaType.Number,
+                        required: true,
+                        placeholder: '14',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+
                         {
                             field: {
                                 showScheduledEventHistoryInDays: true,
@@ -124,6 +187,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+
+
+
         </ModelPage>
     );
 };
