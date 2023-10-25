@@ -418,6 +418,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 projectId: true,
                                 isPublicStatusPage: true,
                                 overviewPageDescription: true,
+                                showIncidentLabelsOnStatusPage: true
                             },
                             props: {
                                 isRoot: true,
@@ -563,6 +564,35 @@ export default class StatusPageAPI extends BaseAPI<
                     // check if status page has active incident.
                     let activeIncidents: Array<Incident> = [];
                     if (monitorsOnStatusPage.length > 0) {
+
+                        let select: Select<Incident> = {
+                            createdAt: true,
+                            title: true,
+                            description: true,
+                            _id: true,
+                            incidentSeverity: {
+                                name: true,
+                                color: true,
+                            },
+                            currentIncidentState: {
+                                name: true,
+                                color: true,
+                            },
+                            monitors: {
+                                _id: true,
+                            }
+                        };
+
+                        if(statusPage.showIncidentLabelsOnStatusPage){
+                            select = {
+                                ...select,
+                                labels: {
+                                    name: true,
+                                    color: true
+                                }
+                            }
+                        }
+
                         activeIncidents = await IncidentService.findBy({
                             query: {
                                 monitors: monitorsOnStatusPage as any,
@@ -571,23 +601,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 } as any,
                                 projectId: statusPage.projectId!,
                             },
-                            select: {
-                                createdAt: true,
-                                title: true,
-                                description: true,
-                                _id: true,
-                                incidentSeverity: {
-                                    name: true,
-                                    color: true,
-                                },
-                                currentIncidentState: {
-                                    name: true,
-                                    color: true,
-                                },
-                                monitors: {
-                                    _id: true,
-                                },
-                            },
+                            select: select,
                             sort: {
                                 createdAt: SortOrder.Ascending,
                             },
@@ -1559,6 +1573,7 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     projectId: true,
                     showIncidentHistoryInDays: true,
+                    showIncidentLabelsOnStatusPage: true
                 },
                 props: {
                     isRoot: true,
@@ -1623,26 +1638,41 @@ export default class StatusPageAPI extends BaseAPI<
 
         // check if status page has active incident.
         let incidents: Array<Incident> = [];
+
+        let selectIncidents: Select<Incident> = {
+            createdAt: true,
+            title: true,
+            description: true,
+            _id: true,
+            incidentSeverity: {
+                name: true,
+                color: true,
+            },
+            currentIncidentState: {
+                name: true,
+                color: true,
+            },
+            monitors: {
+                _id: true,
+            },
+        };
+
+
+        if(statusPage.showIncidentLabelsOnStatusPage){
+            selectIncidents = {
+                ...selectIncidents,
+                labels: {
+                    name: true, 
+                    color: true
+                }
+            }
+        }
+
         if (monitorsOnStatusPage.length > 0) {
+
             incidents = await IncidentService.findBy({
                 query: incidentQuery,
-                select: {
-                    createdAt: true,
-                    title: true,
-                    description: true,
-                    _id: true,
-                    incidentSeverity: {
-                        name: true,
-                        color: true,
-                    },
-                    currentIncidentState: {
-                        name: true,
-                        color: true,
-                    },
-                    monitors: {
-                        _id: true,
-                    },
-                },
+                select: selectIncidents,
                 sort: {
                     createdAt: SortOrder.Descending,
                 },
@@ -1665,23 +1695,7 @@ export default class StatusPageAPI extends BaseAPI<
                         } as any,
                         projectId: statusPage.projectId!,
                     },
-                    select: {
-                        createdAt: true,
-                        title: true,
-                        description: true,
-                        _id: true,
-                        incidentSeverity: {
-                            name: true,
-                            color: true,
-                        },
-                        currentIncidentState: {
-                            name: true,
-                            color: true,
-                        },
-                        monitors: {
-                            _id: true,
-                        },
-                    },
+                    select: selectIncidents,
                     sort: {
                         createdAt: SortOrder.Descending,
                     },
