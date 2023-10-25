@@ -186,7 +186,7 @@ router.post(
 
                 // Set a cookie with token.
                 CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
-                    maxAge: OneUptimeDate.getSecondsInDays(
+                    maxAge: OneUptimeDate.getMillisecondsInDays(
                         new PositiveNumber(30)
                     ),
                     httpOnly: true,
@@ -581,7 +581,7 @@ router.post(
                         CookieUtil.getUserTokenKey(),
                         token,
                         {
-                            maxAge: OneUptimeDate.getSecondsInDays(
+                            maxAge: OneUptimeDate.getMillisecondsInDays(
                                 new PositiveNumber(30)
                             ),
                             httpOnly: true,

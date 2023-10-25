@@ -357,7 +357,7 @@ router.post(
                 CookieUtil.getUserSSOKey(projectId),
                 token,
                 {
-                    maxAge: OneUptimeDate.getSecondsInDays(
+                    maxAge: OneUptimeDate.getMillisecondsInDays(
                         new PositiveNumber(30)
                     ),
                     httpOnly: true,

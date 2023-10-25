@@ -3,8 +3,9 @@ import Email from 'Common/Types/Email';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import Typeof from 'Common/Types/Typeof';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import UniversalCookies from 'universal-cookie';
+import UniversalCookies, { CookieSetOptions } from 'universal-cookie';
 import Route from 'Common/Types/API/Route';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default class Cookie {
     public static setItem(
@@ -14,6 +15,7 @@ export default class Cookie {
             | {
                   httpOnly?: boolean | undefined;
                   path: Route;
+                  maxAgeInDays?: number | undefined;
               }
             | undefined
     ): void {
@@ -25,10 +27,19 @@ export default class Cookie {
         }
 
         const cookies: UniversalCookies = new UniversalCookies();
-        cookies.set(key, value as string, {
+
+        const cookieOptions: CookieSetOptions = {
             httpOnly: options?.httpOnly || false,
             path: options?.path ? options.path.toString() : '/',
-        });
+        };
+
+        if (options?.maxAgeInDays) {
+            cookieOptions.maxAge = OneUptimeDate.getMillisecondsInDays(
+                options.maxAgeInDays
+            );
+        }
+
+        cookies.set(key, value as string, cookieOptions);
     }
 
     public static getItem(key: string): JSONValue {

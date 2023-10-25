@@ -112,7 +112,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 name="Status Page > Settings"
                 cardProps={{
-                    title: 'Anouncement Settings',
+                    title: 'Announcement Settings',
                     description: 'Announcement Settings for Status Page',
                 }}
                 editButtonText="Edit Settings"
