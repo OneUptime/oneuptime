@@ -8,10 +8,9 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
-import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import MonitorGroup from 'Model/Models/MonitorGroup';
 
-const MonitorDelete: FunctionComponent<PageComponentProps> = (
+const MonitorGroupDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -19,7 +18,7 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
     return (
         <ModelPage
             title="Monitor Group"
-            modelType={Monitor}
+            modelType={MonitorGroup}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -31,37 +30,37 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Monitors',
+                    title: 'Monitor Groups',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITORS] as Route,
+                        RouteMap[PageMap.MONITOR_GROUPS] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View Monitor',
+                    title: 'View Monitor Group',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'Delete Monitor',
+                    title: 'Delete Monitor Group',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route,
                         { modelId }
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <DisabledWarning monitorId={modelId} />
+          
             <ModelDelete
-                modelType={Monitor}
+                modelType={MonitorGroup}
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
                         RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITORS] as Route,
+                            RouteMap[PageMap.MONITOR_GROUPS] as Route,
                             { modelId }
                         )
                     );
@@ -71,4 +70,4 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default MonitorDelete;
+export default MonitorGroupDelete;
