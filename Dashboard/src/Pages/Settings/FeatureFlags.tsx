@@ -10,6 +10,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -55,6 +56,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             'Monitor Groups allow you to group monitors together and view them as a group and allows you to add these to your status page.',
                     },
                 ]}
+                onSaveSuccess={()=>{
+                    Navigation.reload();
+                }}
                 modelDetailProps={{
                     modelType: Project,
                     id: 'model-detail-project',
