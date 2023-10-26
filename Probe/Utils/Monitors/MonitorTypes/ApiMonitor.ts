@@ -189,16 +189,7 @@ export default class ApiMonitor {
                 return await this.ping(url, options);
             }
 
-            // check if timeout exceeded and if yes, return null
-            if (
-                (err as any).toString().includes('timeout') &&
-                (err as any).toString().includes('exceeded')
-            ) {
-                logger.info(
-                    `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
-                );
-                return null;
-            }
+           
 
             if (!options.isOnlineCheckRequest) {
                 if (!(await ApiMonitor.isProbeOnline())) {
@@ -221,6 +212,19 @@ export default class ApiMonitor {
                 responseHeaders: {},
                 failureCause: (err as any).toString(),
             };
+
+             // check if timeout exceeded and if yes, return null
+             if (
+                (err as any).toString().includes('timeout') &&
+                (err as any).toString().includes('exceeded')
+            ) {
+                logger.info(
+                    `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
+                );
+
+                apiResponse.failureCause = 'Timeout exceeded';
+                apiResponse.isOnline = false;
+            }
 
             logger.error(
                 `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(

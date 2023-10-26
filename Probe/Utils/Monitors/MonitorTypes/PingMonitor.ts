@@ -147,7 +147,11 @@ export default class PingMonitor {
                 logger.info(
                     `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                 );
-                return null;
+                
+                return {
+                    isOnline: false,
+                    failureCause: 'Timeout exceeded',
+                };
             }
 
             // check if the probe is online.
