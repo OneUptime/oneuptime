@@ -113,6 +113,7 @@ export default class WebsiteMonitor {
             let startTime: [number, number] = process.hrtime();
             let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
                 isHeadRequest: options.isHeadRequest,
+                timeout: 30000,
             });
 
             if (
@@ -123,6 +124,7 @@ export default class WebsiteMonitor {
                 startTime = process.hrtime();
                 result = await WebsiteRequest.fetch(url, {
                     isHeadRequest: false,
+                    timeout: 30000,
                 });
             }
 
