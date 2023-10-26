@@ -379,6 +379,29 @@ import UserNotificationSettingService, {
     Service as UserNotificationSettingServiceType,
 } from 'CommonServer/Services/UserNotificationSettingService';
 
+
+// Monitor Group
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import MonitorGroupService, {
+    Service as MonitorGroupServiceType,
+} from 'CommonServer/Services/MonitorGroupService';
+
+import MonitorGroupOwnerUser from 'Model/Models/MonitorGroupOwnerUser';
+import MonitorGroupOwnerUserService, {
+    Service as MonitorGroupOwnerUserServiceType,
+} from 'CommonServer/Services/MonitorGroupOwnerUserService';
+
+import MonitorGroupOwnerTeam from 'Model/Models/MonitorGroupOwnerTeam';
+import MonitorGroupOwnerTeamService, {
+    Service as MonitorGroupOwnerTeamServiceType,
+} from 'CommonServer/Services/MonitorGroupOwnerTeamService';
+
+import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
+import MonitorGroupResourceService, {
+    Service as MonitorGroupResourceServiceType,
+} from 'CommonServer/Services/MonitorGroupResourceService';
+
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -416,6 +439,39 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
+);
+
+// Monitor Groups. 
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroup, MonitorGroupServiceType>(
+        MonitorGroup,
+        MonitorGroupService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroupOwnerUser, MonitorGroupOwnerUserServiceType>(
+        MonitorGroupOwnerUser,
+        MonitorGroupOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroupOwnerTeam, MonitorGroupOwnerTeamServiceType>(
+        MonitorGroupOwnerTeam,
+        MonitorGroupOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroupResource, MonitorGroupResourceServiceType>(
+        MonitorGroupResource,
+        MonitorGroupResourceService
+    ).getRouter()
 );
 
 app.use(
