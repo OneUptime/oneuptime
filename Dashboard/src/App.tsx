@@ -157,7 +157,7 @@ import MonitorGroups from './Pages/MonitorGroup/MonitorGroups';
 import MonitorGroupView from './Pages/MonitorGroup/View/Index';
 import MonitorGroupViewDelete from './Pages/MonitorGroup/View/Delete';
 import MonitorGroupViewMonitors from './Pages/MonitorGroup/View/Monitors';
-import MonitorGroupViewIncidents from './Pages/MonitorGroup/View/MonitorGroupViewIncidents';
+import MonitorGroupViewIncidents from './Pages/MonitorGroup/View/Incidents';
 import MonitorGroupViewOwners from './Pages/MonitorGroup/View/Owners';
 
 
