@@ -28,31 +28,37 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadMonitorsIds = async (): Promise<void> => {
-
+    const loadMonitorsIds: Function = async (): Promise<void> => {
         setIsLoading(true);
 
         try {
+            const monitorGroupResources: ListResult<MonitorGroupResource> =
+                await ModelAPI.getList(
+                    MonitorGroupResource,
+                    {
+                        monitorGroupId: modelId.toString(),
+                    },
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        monitorId: true,
+                    },
+                    {}
+                );
 
-            const monitorGroupResources: ListResult<MonitorGroupResource> = await ModelAPI.getList(MonitorGroupResource, {
-                monitorGroupId: modelId.toString(),
-            }, LIMIT_PER_PROJECT, 0, {
-                monitorId: true,
-            }, {});
-
-            const monitorIds: Array<ObjectID> = monitorGroupResources.data.map((monitorGroupResource: MonitorGroupResource): ObjectID => {
-                return monitorGroupResource.monitorId!;
-            });
+            const monitorIds: Array<ObjectID> = monitorGroupResources.data.map(
+                (monitorGroupResource: MonitorGroupResource): ObjectID => {
+                    return monitorGroupResource.monitorId!;
+                }
+            );
 
             setMonitorIds(monitorIds);
-
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
     };
-
 
     useEffect(() => {
         loadMonitorsIds().catch(() => {});
@@ -62,8 +68,8 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
         return <PageLoader isVisible={true} />;
     }
 
-    if(error) {
-        return  <ErrorMessage error={error} />;
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
 
     return (
@@ -104,7 +110,6 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             <IncidentsTable
                 viewPageRoute={Navigation.getCurrentRoute()}
                 query={{
@@ -112,8 +117,6 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                     monitors: monitorIds,
                 }}
             />
-
-
         </ModelPage>
     );
 };

@@ -85,7 +85,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
     tableDescription:
         'Monitor Groups are a way to organize your monitors into groups. You can create as many groups as you want and add as many monitors as you want to each group.',
 })
-export default class Monitor extends BaseModel {
+export default class MonitorGroup extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

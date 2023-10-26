@@ -14,6 +14,7 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import MonitorGroup from 'Model/Models/MonitorGroup';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -87,6 +88,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Description',
                     },
                 ]}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
                 showFilterButton={true}
                 columns={[

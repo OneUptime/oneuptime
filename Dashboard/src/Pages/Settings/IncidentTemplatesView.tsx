@@ -412,7 +412,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - Teams',
+                    title: 'Owners (Teams)',
                     description:
                         'These are the list of teams that will be added to the incident by default when its created.',
                 }}
@@ -488,7 +488,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - User',
+                    title: 'Owners (Users)',
                     description:
                         'These are the list of users that will be added to the incident by default when its created.',
                 }}

@@ -22,7 +22,6 @@ import User from 'Model/Models/User';
 import UserElement from '../../../Components/User/User';
 import ProjectUser from '../../../Utils/ProjectUser';
 
-
 const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -66,7 +65,6 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
             <ModelTable<MonitorGroupOwnerTeam>
                 modelType={MonitorGroupOwnerTeam}
                 id="table-monitor-group-owner-team"
@@ -89,11 +87,13 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - Teams',
+                    title: 'Owners (Teams)',
                     description:
-                        'Here is list of teams that own this monitor group. They will be alerted when this monitor group is created or updated.',
+                        'Here is list of teams that own this monitor group. ',
                 }}
-                noItemsMessage={'No teams associated with this monitor group so far.'}
+                noItemsMessage={
+                    'No teams associated with this monitor group so far.'
+                }
                 formFields={[
                     {
                         field: {
@@ -163,11 +163,13 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - User',
+                    title: 'Owners (Users)',
                     description:
-                        'Here is list of users that own this monitor group. They will be alerted when this monitor group is created or updated.',
+                        'Here is list of users that own this monitor group.',
                 }}
-                noItemsMessage={'No users associated with this monitor group so far.'}
+                noItemsMessage={
+                    'No users associated with this monitor group so far.'
+                }
                 formFields={[
                     {
                         field: {
