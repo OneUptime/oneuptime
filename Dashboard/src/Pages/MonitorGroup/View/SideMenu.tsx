@@ -33,23 +33,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route,
+                            RouteMap[
+                                PageMap.MONITOR_GROUP_VIEW_OWNERS
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
                     icon={IconProp.Team}
                 />
-
-
             </SideMenuSection>
 
             <SideMenuSection title="Monitors and Incidents">
-
                 <SideMenuItem
                     link={{
                         title: 'Monitors',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route,
+                            RouteMap[
+                                PageMap.MONITOR_GROUP_VIEW_MONITORS
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
@@ -60,7 +61,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Incidents',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_GROUP_VIEW_INCIDENTS] as Route,
+                            RouteMap[
+                                PageMap.MONITOR_GROUP_VIEW_INCIDENTS
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
@@ -69,12 +72,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
-
                 <SideMenuItem
                     link={{
                         title: 'Delete Group',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route,
+                            RouteMap[
+                                PageMap.MONITOR_GROUP_VIEW_DELETE
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}

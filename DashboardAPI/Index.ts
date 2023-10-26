@@ -379,7 +379,6 @@ import UserNotificationSettingService, {
     Service as UserNotificationSettingServiceType,
 } from 'CommonServer/Services/UserNotificationSettingService';
 
-
 // Monitor Group
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import MonitorGroupService, {
@@ -400,7 +399,6 @@ import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
 import MonitorGroupResourceService, {
     Service as MonitorGroupResourceServiceType,
 } from 'CommonServer/Services/MonitorGroupResourceService';
-
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -441,7 +439,7 @@ app.use(
     new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
 );
 
-// Monitor Groups. 
+// Monitor Groups.
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<MonitorGroup, MonitorGroupServiceType>(

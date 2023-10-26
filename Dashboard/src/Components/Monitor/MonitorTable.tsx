@@ -71,7 +71,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                             values.monitorType !== MonitorType.IncomingRequest
                         );
                     },
-                }
+                },
             ]}
             cardProps={{
                 title: props.title || 'Monitors',
@@ -162,7 +162,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     required: true,
                     dropdownOptions: MonitoringInterval,
                     placeholder: 'Select Monitoring Interval',
-                }
+                },
             ]}
             showRefreshButton={true}
             showFilterButton={true}

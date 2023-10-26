@@ -540,7 +540,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/incidents`
     ),
-
 };
 
 export class RouteUtil {

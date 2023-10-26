@@ -56,7 +56,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             'Monitor Groups allow you to group monitors together and view them as a group and allows you to add these to your status page.',
                     },
                 ]}
-                onSaveSuccess={()=>{
+                onSaveSuccess={() => {
                     Navigation.reload();
                 }}
                 modelDetailProps={{

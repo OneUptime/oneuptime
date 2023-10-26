@@ -409,5 +409,4 @@ export default class Monitor extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
-
 }

@@ -54,7 +54,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                                     trialEndsAt: true,
                                     paymentProviderPlanId: true,
                                     resellerId: true,
-                                    isFeatureFlagMonitorGroupsEnabled: true
+                                    isFeatureFlagMonitorGroupsEnabled: true,
                                 },
                             },
                             limit: LIMIT_PER_PROJECT,

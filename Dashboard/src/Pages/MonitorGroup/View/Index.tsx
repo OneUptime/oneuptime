@@ -16,13 +16,10 @@ import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
-
 const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-   
-
 
     return (
         <ModelPage
@@ -51,12 +48,10 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                         RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
-                }
+                },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-           
-
             {/* MonitorGroup View  */}
             <CardModelDetail<MonitorGroup>
                 name="MonitorGroup Details"
@@ -118,7 +113,6 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                   
                     showDetailsInNumberOfColumns: 2,
                     modelType: MonitorGroup,
                     id: 'model-detail-monitors',
@@ -168,8 +162,6 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
-           
         </ModelPage>
     );
 };

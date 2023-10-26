@@ -131,8 +131,6 @@ import MonitorGroupOwnerTeam from './MonitorGroupOwnerTeam';
 import MonitorGroupOwnerUser from './MonitorGroupOwnerUser';
 import MonitorGroupResource from './MonitorGroupResource';
 
-
-
 export default [
     User,
     Probe,
@@ -248,5 +246,5 @@ export default [
     MonitorGroup,
     MonitorGroupOwnerTeam,
     MonitorGroupOwnerUser,
-    MonitorGroupResource
+    MonitorGroupResource,
 ];

@@ -65,18 +65,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-            {props.project?.isFeatureFlagMonitorGroupsEnabled ? <SideMenuSection title="Monitor Groups">
-                <SideMenuItem
-                    link={{
-                        title: 'All Groups',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_GROUPS] as Route
-                        ),
-                    }}
-                    icon={IconProp.List}
-                />
-            </SideMenuSection> : <></>}
-
+            {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
+                <SideMenuSection title="Monitor Groups">
+                    <SideMenuItem
+                        link={{
+                            title: 'All Groups',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.MONITOR_GROUPS] as Route
+                            ),
+                        }}
+                        icon={IconProp.List}
+                    />
+                </SideMenuSection>
+            ) : (
+                <></>
+            )}
         </SideMenu>
     );
 };

@@ -72,7 +72,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}

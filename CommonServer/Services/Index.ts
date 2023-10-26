@@ -238,7 +238,7 @@ const services: Array<BaseService> = [
     WorkflowService,
     WorkflowVariablesService,
 
-    // Monitor Group Service 
+    // Monitor Group Service
     MonitorGroupService,
     MonitorGroupResourceService,
     MonitorGroupOwnerUserService,

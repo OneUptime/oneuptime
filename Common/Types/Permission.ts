@@ -152,7 +152,6 @@ enum Permission {
     CanEditMonitorOwnerUser = 'CanEditMonitorOwnerUser',
     CanReadMonitorOwnerUser = 'CanReadMonitorOwnerUser',
 
-
     CanCreateMonitorGroupOwnerTeam = 'CanCreateMonitorGroupOwnerTeam',
     CanDeleteMonitorGroupOwnerTeam = 'CanDeleteMonitorGroupOwnerTeam',
     CanEditMonitorGroupOwnerTeam = 'CanEditMonitorGroupOwnerTeam',
@@ -162,7 +161,6 @@ enum Permission {
     CanDeleteMonitorGroupOwnerUser = 'CanDeleteMonitorGroupOwnerUser',
     CanEditMonitorGroupOwnerUser = 'CanEditMonitorGroupOwnerUser',
     CanReadMonitorGroupOwnerUser = 'CanReadMonitorGroupOwnerUser',
-
 
     CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
     CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
@@ -1830,13 +1828,11 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
             {
                 permission: Permission.CanCreateMonitorGroupResource,
                 title: 'Can Create Monitor Group Resource',
-                description: 'This permission can create monitor group resource.',
+                description:
+                    'This permission can create monitor group resource.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -1862,8 +1858,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateOnCallDutyPolicyCustomField,
@@ -2545,11 +2539,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
-
-
             {
                 permission: Permission.CanCreateMonitorGroupOwnerTeam,
                 title: 'Can Create Monitor Group Team Owner',
@@ -2615,7 +2604,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateProjectIncident,

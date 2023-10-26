@@ -47,7 +47,6 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                 />
             }
         >
-
             <ModelTable<MonitorGroup>
                 modelType={MonitorGroup}
                 name="Monitor Groups"
@@ -57,24 +56,19 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                 isEditable={false}
                 isCreateable={true}
                 isViewable={true}
-                
-              
-               
                 cardProps={{
                     title: 'Monitor Groups',
                     description:
-                        
                         'Here is a list of monitors groups for this project.',
                 }}
-
-                noItemsMessage={ 'No monitor groups found.'}
+                noItemsMessage={'No monitor groups found.'}
                 formFields={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Name',
-                      
+
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Monitor Name',
@@ -86,12 +80,12 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                       
+
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -138,7 +132,6 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
         </Page>
     );
 };

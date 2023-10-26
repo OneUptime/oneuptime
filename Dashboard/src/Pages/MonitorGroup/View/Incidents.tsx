@@ -93,7 +93,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                         RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
-                }
+                },
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(

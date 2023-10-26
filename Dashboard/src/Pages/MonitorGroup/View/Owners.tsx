@@ -55,7 +55,7 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                         RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
-                }
+                },
                 {
                     title: 'Owners',
                     to: RouteUtil.populateRouteParams(

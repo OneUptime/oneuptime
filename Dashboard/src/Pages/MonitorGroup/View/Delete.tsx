@@ -53,7 +53,6 @@ const MonitorGroupDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-          
             <ModelDelete
                 modelType={MonitorGroup}
                 modelId={modelId}

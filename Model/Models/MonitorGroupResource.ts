@@ -343,5 +343,4 @@ export default class MonitorGroupResource extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public createdByUserId?: ObjectID = undefined;
-
 }
