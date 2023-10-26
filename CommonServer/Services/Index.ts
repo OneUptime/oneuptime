@@ -124,6 +124,11 @@ import MetricSumService from './MetricSumService';
 import MetricHistogramService from './MetricHistogramService';
 import MetricGaugeService from './MetricGaugeService';
 
+import MonitorGroupService from './MonitorGroupService';
+import MonitorGroupResourceService from './MonitorGroupResourceService';
+import MonitorGroupOwnerUserService from './MonitorGroupOwnerUserService';
+import MonitorGroupOwnerTeamService from './MonitorGroupOwnerTeamService';
+
 const services: Array<BaseService> = [
     PromoCodeService,
 
@@ -232,6 +237,12 @@ const services: Array<BaseService> = [
     WorkflowLogService,
     WorkflowService,
     WorkflowVariablesService,
+
+    // Monitor Group Service 
+    MonitorGroupService,
+    MonitorGroupResourceService,
+    MonitorGroupOwnerUserService,
+    MonitorGroupOwnerTeamService,
 ];
 
 export const AnalyticsServices: Array<

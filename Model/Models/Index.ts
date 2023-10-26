@@ -125,6 +125,14 @@ import Reseller from './Reseller';
 import PromoCode from './PromoCode';
 import GlobalConfig from './GlobalConfig';
 
+// Monitor Groups
+import MonitorGroup from './MonitorGroup';
+import MonitorGroupOwnerTeam from './MonitorGroupOwnerTeam';
+import MonitorGroupOwnerUser from './MonitorGroupOwnerUser';
+import MonitorGroupResource from './MonitorGroupResource';
+
+
+
 export default [
     User,
     Probe,
@@ -236,4 +244,9 @@ export default [
     PromoCode,
 
     GlobalConfig,
+
+    MonitorGroup,
+    MonitorGroupOwnerTeam,
+    MonitorGroupOwnerUser,
+    MonitorGroupResource
 ];
