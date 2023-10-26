@@ -147,7 +147,7 @@ export default class PingMonitor {
                 logger.info(
                     `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                 );
-                
+
                 return {
                     isOnline: false,
                     failureCause: 'Timeout exceeded',

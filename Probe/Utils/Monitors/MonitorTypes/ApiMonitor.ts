@@ -189,8 +189,6 @@ export default class ApiMonitor {
                 return await this.ping(url, options);
             }
 
-           
-
             if (!options.isOnlineCheckRequest) {
                 if (!(await ApiMonitor.isProbeOnline())) {
                     logger.error(
@@ -213,8 +211,8 @@ export default class ApiMonitor {
                 failureCause: (err as any).toString(),
             };
 
-             // check if timeout exceeded and if yes, return null
-             if (
+            // check if timeout exceeded and if yes, return null
+            if (
                 (err as any).toString().includes('timeout') &&
                 (err as any).toString().includes('exceeded')
             ) {
