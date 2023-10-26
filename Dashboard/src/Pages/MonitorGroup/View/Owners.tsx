@@ -45,21 +45,21 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Monitor Groups',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITORS] as Route,
+                        RouteMap[PageMap.MONITOR_GROUPS] as Route,
                         { modelId }
                     ),
                 },
                 {
                     title: 'View Monitor Group',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
-                },
+                }
                 {
                     title: 'Owners',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route,
                         { modelId }
                     ),
                 },

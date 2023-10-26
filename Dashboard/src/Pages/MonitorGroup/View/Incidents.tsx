@@ -81,23 +81,23 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Monitors',
+                    title: 'Monitor Groups',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITORS] as Route,
+                        RouteMap[PageMap.MONITOR_GROUPS] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View Monitor',
+                    title: 'View Monitor Group',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
-                },
+                }
                 {
                     title: 'Incidents',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW_INCIDENTS] as Route,
                         { modelId }
                     ),
                 },
