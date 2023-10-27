@@ -2,13 +2,18 @@ import ObjectID from 'Common/Types/ObjectID';
 import Phone from 'Common/Types/Phone';
 import {
     CallDefaultCostInCentsPerMinute,
+    CallHighRiskCostInCentsPerMinute,
     TwilioConfig,
     getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
 import CallLog from 'Model/Models/CallLog';
 import CallStatus from 'Common/Types/Call/CallStatus';
-import CallRequest, { GatherInput, Say } from 'Common/Types/Call/CallRequest';
+import CallRequest, {
+    GatherInput,
+    Say,
+    isHighRiskPhoneNumber,
+} from 'Common/Types/Call/CallRequest';
 import { IsBillingEnabled } from 'CommonServer/EnvironmentConfig';
 import CallLogService from 'CommonServer/Services/CallLogService';
 import ProjectService from 'CommonServer/Services/ProjectService';
@@ -33,6 +38,15 @@ export default class CallService {
             userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
+        let callCost: number = 0;
+
+        if (IsBillingEnabled) {
+            callCost = CallDefaultCostInCentsPerMinute / 100;
+            if (isHighRiskPhoneNumber(callRequest.to)) {
+                callCost = CallHighRiskCostInCentsPerMinute / 100;
+            }
+        }
+
         const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
         if (!twilioConfig) {
@@ -165,9 +179,7 @@ export default class CallService {
                             `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
                                 (project.smsOrCallCurrentBalanceInUSDCents ||
                                     0) / 100
-                            } USD. Required balance to send this SMS should is ${
-                                CallDefaultCostInCentsPerMinute / 100
-                            } USD. Please enable auto recharge or recharge manually.`
+                            } USD. Required balance to send this SMS should is ${callCost} USD. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
@@ -175,14 +187,12 @@ export default class CallService {
 
                 if (
                     project.smsOrCallCurrentBalanceInUSDCents <
-                    CallDefaultCostInCentsPerMinute
+                    callCost * 100
                 ) {
                     callLog.status = CallStatus.LowBalance;
                     callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
                         project.smsOrCallCurrentBalanceInUSDCents / 100
-                    } USD. Required balance is ${
-                        CallDefaultCostInCentsPerMinute / 100
-                    } USD to make this call.`;
+                    } USD. Required balance is ${callCost} USD to make this call.`;
                     logger.error(callLog.statusMessage);
                     await CallLogService.create({
                         data: callLog,
@@ -207,9 +217,7 @@ export default class CallService {
                                 (project.name || ''),
                             `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
                                 project.smsOrCallCurrentBalanceInUSDCents / 100
-                            } USD. Required balance is ${
-                                CallDefaultCostInCentsPerMinute / 100
-                            } USD to make this call. Please enable auto recharge or recharge manually.`
+                            } USD. Required balance is ${callCost} USD to make this call. Please enable auto recharge or recharge manually.`
                         );
                     }
                     return;
@@ -230,18 +238,17 @@ export default class CallService {
             logger.info('Call Request sent successfully.');
             logger.info(callLog.statusMessage);
             if (IsBillingEnabled && project) {
-                callLog.callCostInUSDCents = CallDefaultCostInCentsPerMinute;
+                callLog.callCostInUSDCents = callCost * 100;
 
                 if (twillioCall && parseInt(twillioCall.duration) > 60) {
                     callLog.callCostInUSDCents = Math.ceil(
                         Math.ceil(parseInt(twillioCall.duration) / 60) *
-                            CallDefaultCostInCentsPerMinute
+                            (callCost * 100)
                     );
                 }
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
-                    project.smsOrCallCurrentBalanceInUSDCents! -
-                        CallDefaultCostInCentsPerMinute
+                    project.smsOrCallCurrentBalanceInUSDCents! - callCost * 100
                 );
 
                 await ProjectService.updateOneById({

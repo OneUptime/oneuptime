@@ -185,6 +185,18 @@ export const SMSDefaultCostInCents: number = process.env[
     ? parseInt(process.env['SMS_DEFAULT_COST_IN_CENTS'])
     : 0;
 
+export const SMSHighRiskCostInCents: number = process.env[
+    'SMS_HIGH_RISK_COST_IN_CENTS'
+]
+    ? parseInt(process.env['SMS_HIGH_RISK_COST_IN_CENTS'])
+    : 0;
+
+export const CallHighRiskCostInCentsPerMinute: number = process.env[
+    'CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE'
+]
+    ? parseInt(process.env['CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE'])
+    : 0;
+
 export const CallDefaultCostInCentsPerMinute: number = process.env[
     'CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE'
 ]
