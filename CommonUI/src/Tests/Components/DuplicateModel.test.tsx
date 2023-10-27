@@ -111,7 +111,7 @@ describe('DuplicateModel', () => {
         });
         fireEvent.click(button);
         expect(screen.getByRole('dialog')).toBeDefined();
-        const confirmDialog = screen.getByRole('dialog');
+        const confirmDialog: HTMLElement = screen.getByRole('dialog');
         expect(
             within(confirmDialog).getByTestId('modal-title')?.textContent
         ).toBe('Duplicate Foo');
@@ -223,7 +223,7 @@ describe('DuplicateModel', () => {
             fireEvent.click(confirmationButton);
         });
         await screen.findByText('Duplicate Error');
-        const errorDialog = screen.getByRole('dialog');
+        const errorDialog: HTMLElement = screen.getByRole('dialog');
         expect(
             within(errorDialog).getByTestId('modal-title')?.textContent
         ).toBe('Duplicate Error');
@@ -265,7 +265,7 @@ describe('DuplicateModel', () => {
             fireEvent.click(confirmationButton);
         });
         await screen.findByText('Duplicate Error');
-        const errorDialog = screen.getByRole('dialog');
+        const errorDialog: HTMLElement = screen.getByRole('dialog');
         expect(
             within(errorDialog).getByTestId('modal-title')?.textContent
         ).toBe('Duplicate Error');
