@@ -620,9 +620,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     name: true,
                 };
             } else if (key && model.isEntityColumn(key)) {
-                (relationSelect as JSONObject)[key] = (column.field as any)[
-                    key
-                ];
+
+                if(!(relationSelect as JSONObject)[key]) {
+                    (relationSelect as JSONObject)[key] = {};
+                }
+
+                (relationSelect as JSONObject)[key] = {
+                    ...((relationSelect as JSONObject)[key] as JSONObject), 
+                    ...(column.field as any)[key]
+                };
             }
         }
 

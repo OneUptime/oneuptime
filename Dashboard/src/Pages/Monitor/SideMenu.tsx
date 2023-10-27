@@ -74,7 +74,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                                 RouteMap[PageMap.MONITOR_GROUPS] as Route
                             ),
                         }}
-                        icon={IconProp.List}
+                        icon={IconProp.Folder}
                     />
                 </SideMenuSection>
             ) : (

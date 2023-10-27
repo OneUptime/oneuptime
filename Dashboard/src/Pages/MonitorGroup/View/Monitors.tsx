@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -18,11 +18,67 @@ import MonitorElement from '../../../Components/Monitor/Monitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import StatusPage from 'Model/Models/StatusPage';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import API from 'CommonUI/src/Utils/API/API';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import Color from 'Common/Types/Color';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+    const [monitorStatuses, setMonitorStatuses] = React.useState<MonitorStatus[]>([]);
+
+    const [error, setError] = React.useState<string | undefined>(undefined);
+
+    const loadMonitorStatuses: Function = async (): Promise<void> => {
+        setIsLoading(true);
+
+        try {
+            const monitorGroupResources: ListResult<MonitorStatus> =
+                await ModelAPI.getList<MonitorStatus>(
+                    MonitorStatus,
+                    {
+                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                    },
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        _id: true,
+                        name: true,
+                        color: true,
+                    },
+                    {}
+                );
+
+
+
+            setMonitorStatuses(monitorGroupResources.data);
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        loadMonitorStatuses().catch(() => { });
+    }, []);
+
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
+    }
+
+    if (error) {
+        return <ErrorMessage error={error} />;
+    }
 
     return (
         <ModelPage
@@ -129,6 +185,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                     name: true,
                                     _id: true,
                                     projectId: true,
+
                                 },
                             },
                             title: 'Monitor',
@@ -158,6 +215,60 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                 );
                             },
                         },
+                        {
+                            field: {
+                                monitor: {
+                                    currentMonitorStatusId: true,
+                                },
+                            },
+                            title: 'Current Status',
+                            type: FieldType.Element,
+
+                            getElement: (item: JSONObject): ReactElement => {
+
+                                if (!item['monitor']) {
+                                    throw new BadDataException(
+                                        'Monitor not found'
+                                    );
+                                }
+
+                                if (!(item['monitor'] as JSONObject)['currentMonitorStatusId']) {
+                                    throw new BadDataException(
+                                        'Monitor Status not found'
+                                    );
+                                }
+
+
+                                const monitorStatus: MonitorStatus | undefined = monitorStatuses.find(
+                                    (monitorStatus: MonitorStatus) => {
+                                        return monitorStatus._id ===
+                                            (item['monitor'] as JSONObject)[
+                                                'currentMonitorStatusId'
+                                            ]?.toString();
+                                    }
+                                );
+
+                                if (!monitorStatus) {
+                                    throw new BadDataException(
+                                        'Monitor Status not found'
+                                    );
+                                }
+
+
+                                return (
+                                    <Statusbubble
+                                        color={
+                                            monitorStatus.color! as Color
+                                        }
+                                        text={
+
+                                            monitorStatus.name! as string
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                        
                     ]}
                 />
             </>
@@ -166,3 +277,4 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 };
 
 export default MonitorGroupResources;
+
