@@ -25,6 +25,7 @@ export default abstract class LoginUtil {
                 value['token'],
                 {
                     path: new Route('/'),
+                    maxAgeInDays: 30,
                 }
             );
         }

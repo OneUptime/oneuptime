@@ -25,8 +25,6 @@ import {
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
-import Team from 'Model/Models/Team';
-import ProjectUser from '../../Utils/ProjectUser';
 import { Grey } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
@@ -73,14 +71,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                             values.monitorType !== MonitorType.IncomingRequest
                         );
                     },
-                },
-                {
-                    title: 'Owners',
-                    id: 'owners',
-                },
-                {
-                    title: 'Labels',
-                    id: 'labels',
                 },
             ]}
             cardProps={{
@@ -172,61 +162,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     required: true,
                     dropdownOptions: MonitoringInterval,
                     placeholder: 'Select Monitoring Interval',
-                },
-                {
-                    overrideField: {
-                        ownerTeams: true,
-                    },
-                    forceShow: true,
-                    title: 'Owner - Teams',
-                    stepId: 'owners',
-                    description:
-                        'Select which teams own this monitor. They will be notified when monitor status changes.',
-                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                    dropdownModal: {
-                        type: Team,
-                        labelField: 'name',
-                        valueField: '_id',
-                    },
-                    required: false,
-                    placeholder: 'Select Teams',
-                    overrideFieldKey: 'ownerTeams',
-                },
-                {
-                    overrideField: {
-                        ownerUsers: true,
-                    },
-                    forceShow: true,
-                    title: 'Owner - Users',
-                    stepId: 'owners',
-                    description:
-                        'Select which users own this incident. They will be notified when monitor status changes.',
-                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                    fetchDropdownOptions: async () => {
-                        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                            DashboardNavigation.getProjectId()!
-                        );
-                    },
-                    required: false,
-                    placeholder: 'Select Users',
-                    overrideFieldKey: 'ownerUsers',
-                },
-                {
-                    field: {
-                        labels: true,
-                    },
-                    title: 'Labels ',
-                    stepId: 'labels',
-                    description:
-                        'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
-                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                    dropdownModal: {
-                        type: Label,
-                        labelField: 'name',
-                        valueField: '_id',
-                    },
-                    required: false,
-                    placeholder: 'Labels',
                 },
             ]}
             showRefreshButton={true}

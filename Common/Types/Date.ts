@@ -102,6 +102,10 @@ export default class OneUptimeDate {
         return days.positiveNumber * 24 * 60 * 60;
     }
 
+    public static getMillisecondsInDays(days: PositiveNumber | number): number {
+        return this.getSecondsInDays(days) * 1000;
+    }
+
     public static getSomeHoursAgo(hours: PositiveNumber | number): Date {
         if (!(hours instanceof PositiveNumber)) {
             hours = new PositiveNumber(hours);

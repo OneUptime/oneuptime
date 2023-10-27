@@ -399,6 +399,9 @@ router.post(
                     token,
                     {
                         httpOnly: true,
+                        maxAge: OneUptimeDate.getMillisecondsInDays(
+                            new PositiveNumber(30)
+                        ),
                     }
                 );
 

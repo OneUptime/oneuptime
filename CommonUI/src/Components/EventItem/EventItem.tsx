@@ -25,6 +25,11 @@ export interface TimelineItem {
     iconColor: Color;
 }
 
+export interface EventItemLabel {
+    name: string;
+    color: Color;
+}
+
 export interface ComponentProps {
     eventTitle: string;
     eventResourcesAffected?: Array<string> | undefined;
@@ -40,6 +45,7 @@ export interface ComponentProps {
     anotherStatus?: string | undefined;
     anotherStatusColor?: Color | undefined;
     eventSecondDescription: string;
+    labels?: Array<EventItemLabel> | undefined;
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
@@ -104,6 +110,25 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     <p className="mt-3 text-gray-400 text-sm">
                         {props.eventMiniDescription}
                     </p>
+                )}
+
+                {props.labels && props.labels.length > 0 ? (
+                    <div className="flex space-x-1 mt-3">
+                        {props.labels.map(
+                            (label: EventItemLabel, i: number) => {
+                                return (
+                                    <div key={i}>
+                                        <Pill
+                                            text={label.name}
+                                            color={label.color}
+                                        />
+                                    </div>
+                                );
+                            }
+                        )}
+                    </div>
+                ) : (
+                    <></>
                 )}
             </div>
             <div>

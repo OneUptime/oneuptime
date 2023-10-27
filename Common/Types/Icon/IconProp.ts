@@ -16,6 +16,7 @@ enum IconProp {
     Database = 'Database',
     ChevronDown = 'ChevronDown',
     Pencil = 'Pencil',
+    Flag = 'Flag',
     Copy = 'Copy',
     ChevronRight = 'ChevronRight',
     ChevronUp = 'ChevronUp',

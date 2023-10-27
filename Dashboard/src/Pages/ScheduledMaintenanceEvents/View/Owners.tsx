@@ -89,7 +89,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - Teams',
+                    title: 'Owners (Teams)',
                     description:
                         'Here is list of teams that own this scheduled maintenance event. They will be alerted when this scheduled maintenance event is created or updated.',
                 }}
@@ -165,7 +165,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - User',
+                    title: 'Owners (Users)',
                     description:
                         'Here is list of users that own this scheduled maintenance event. They will be alerted when this scheduled maintenance event is created or updated.',
                 }}

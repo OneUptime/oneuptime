@@ -14,8 +14,6 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import Team from 'Model/Models/Team';
-import ProjectUser from '../../Utils/ProjectUser';
 
 const StatusPages: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -52,20 +50,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         'Here is a list of status page for this project.',
                 }}
                 showViewIdButton={true}
-                formSteps={[
-                    {
-                        title: 'Status Page Info',
-                        id: 'status-page-info',
-                    },
-                    {
-                        title: 'Owners',
-                        id: 'owners',
-                    },
-                    {
-                        title: 'Labels',
-                        id: 'labels',
-                    },
-                ]}
                 noItemsMessage={'No status pages found.'}
                 formFields={[
                     {
@@ -73,7 +57,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        stepId: 'status-page-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Status Page Name',
@@ -85,65 +68,10 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        stepId: 'status-page-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    },
-                    {
-                        overrideField: {
-                            ownerTeams: true,
-                        },
-                        forceShow: true,
-                        title: 'Owner - Teams',
-                        stepId: 'owners',
-                        description:
-                            'Select which teams own this status page. ',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        dropdownModal: {
-                            type: Team,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: false,
-                        placeholder: 'Select Teams',
-                        overrideFieldKey: 'ownerTeams',
-                    },
-                    {
-                        overrideField: {
-                            ownerUsers: true,
-                        },
-                        forceShow: true,
-                        title: 'Owner - Users',
-                        stepId: 'owners',
-                        description: 'Select which users own this status page.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        fetchDropdownOptions: async () => {
-                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                                DashboardNavigation.getProjectId()!
-                            );
-                        },
-                        required: false,
-                        placeholder: 'Select Users',
-                        overrideFieldKey: 'ownerUsers',
-                    },
-                    {
-                        field: {
-                            labels: true,
-                        },
-                        title: 'Labels ',
-                        stepId: 'labels',
-                        description:
-                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        dropdownModal: {
-                            type: Label,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: false,
-                        placeholder: 'Labels',
                     },
                 ]}
                 showRefreshButton={true}

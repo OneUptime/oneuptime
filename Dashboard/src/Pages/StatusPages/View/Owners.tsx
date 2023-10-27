@@ -87,7 +87,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - Teams',
+                    title: 'Owners (Teams)',
                     description:
                         'Here is list of teams that own this status page. They will be alerted when this status page is created or updated.',
                 }}
@@ -163,7 +163,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - User',
+                    title: 'Owners (Users)',
                     description:
                         'Here is list of users that own this status page. They will be alerted when this status page is created or updated.',
                 }}

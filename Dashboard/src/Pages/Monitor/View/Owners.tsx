@@ -89,7 +89,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - Teams',
+                    title: 'Owners (Teams)',
                     description:
                         'Here is list of teams that own this monitor. They will be alerted when this monitor is created or updated.',
                 }}
@@ -163,7 +163,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Owners - User',
+                    title: 'Owners (Users)',
                     description:
                         'Here is list of users that own this monitor. They will be alerted when this monitor is created or updated.',
                 }}
