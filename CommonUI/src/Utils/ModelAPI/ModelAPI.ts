@@ -355,12 +355,21 @@ export default class ModelAPI {
             );
         }
 
+        return this.post<TBaseModel>(modelType, apiUrl, select, requestOptions);
+    }
+
+    public static async post<TBaseModel extends BaseModel>(
+        modelType: { new (): TBaseModel },
+        apiUrl: URL,
+        select?: Select<TBaseModel> | undefined,
+        requestOptions?: RequestOptions | undefined
+    ): Promise<TBaseModel | null> {
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
                 HTTPMethod.POST,
                 apiUrl,
                 {
-                    select: JSONFunctions.serialize(select as JSONObject),
+                    select: JSONFunctions.serialize(select as JSONObject) || {},
                 },
                 this.getCommonHeaders(requestOptions)
             );

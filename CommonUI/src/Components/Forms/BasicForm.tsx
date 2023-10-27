@@ -92,6 +92,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             props.submitButtonText || 'Submit'
         );
 
+        const [formSteps, setFormSteps] = useState<
+            Array<FormStep<T>> | undefined
+        >(props.steps);
+
         const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
 
         const refCurrentValue: React.MutableRefObject<FormValues<T>> = useRef(
@@ -103,8 +107,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         >(null);
 
         useEffect(() => {
-            if (props.steps && props.steps.length > 0 && props.steps[0]) {
-                setCurrentFormStepId(props.steps[0].id);
+            if (formSteps && formSteps.length > 0 && formSteps[0]) {
+                setCurrentFormStepId(formSteps[0].id);
             }
         }, []);
 
@@ -112,11 +116,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             // if last step,
 
             if (
-                props.steps &&
-                props.steps.length > 0 &&
+                formSteps &&
+                formSteps.length > 0 &&
                 (
-                    (props.steps as Array<FormStep<T>>)[
-                        props.steps.length - 1
+                    (formSteps as Array<FormStep<T>>)[
+                        formSteps.length - 1
                     ] as FormStep<T>
                 ).id === currentFormStepId
             ) {
@@ -141,7 +145,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     props.onIsLastFormStep(true);
                 }
             }
-        }, [currentFormStepId]);
+        }, [currentFormStepId, formSteps]);
 
         const [currentValue, setCurrentValue] = useState<FormValues<T>>(
             props.initialValues || {}
@@ -149,6 +153,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         const [errors, setErrors] = useState<Dictionary<string>>({});
         const [touched, setTouched] = useState<Dictionary<boolean>>({});
+
+        useEffect(() => {
+            setFormSteps(
+                props.steps?.filter((step: FormStep<T>) => {
+                    if (!step.showIf) {
+                        return true;
+                    }
+
+                    return step.showIf(refCurrentValue.current);
+                })
+            );
+        }, [refCurrentValue.current]);
 
         const [formFields, setFormFields] = useState<Fields<T>>([]);
 
@@ -289,11 +305,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             // if last step then submit.
 
             if (
-                (props.steps &&
-                    props.steps.length > 0 &&
+                (formSteps &&
+                    formSteps.length > 0 &&
                     (
-                        (props.steps as Array<FormStep<T>>)[
-                            props.steps.length - 1
+                        (formSteps as Array<FormStep<T>>)[
+                            formSteps.length - 1
                         ] as FormStep<T>
                     ).id === currentFormStepId) ||
                 currentFormStepId === null
@@ -369,16 +385,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 UiAnalytics.capture('FORM SUBMIT: ' + props.name);
 
                 props.onSubmit(values);
-            } else if (props.steps && props.steps.length > 0) {
-                const steps: Array<FormStep<T>> = props.steps.filter(
-                    (step: FormStep<T>) => {
-                        if (!step.showIf) {
-                            return true;
-                        }
-
-                        return step.showIf(refCurrentValue.current);
-                    }
-                );
+            } else if (formSteps && formSteps.length > 0) {
+                const steps: Array<FormStep<T>> = formSteps;
 
                 const currentStepIndex: number = steps.findIndex(
                     (step: FormStep<T>) => {
@@ -487,13 +495,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         )}
 
                         <div className="flex">
-                            {props.steps && currentFormStepId && (
+                            {formSteps && currentFormStepId && (
                                 <div className="w-1/3">
                                     {/* Form Steps */}
 
                                     <Steps
                                         currentFormStepId={currentFormStepId}
-                                        steps={props.steps}
+                                        steps={formSteps}
                                         formValues={refCurrentValue.current}
                                         onClick={(step: FormStep<T>) => {
                                             setCurrentFormStepId(step.id);
@@ -503,7 +511,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             )}
                             <div
                                 className={`${
-                                    props.steps && currentFormStepId
+                                    formSteps && currentFormStepId
                                         ? 'w-2/3 pt-6'
                                         : 'w-full pt-1'
                                 }`}

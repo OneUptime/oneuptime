@@ -439,6 +439,37 @@ export default class Model extends TenantModel {
     public isBlocked?: boolean = undefined;
 
     @ColumnAccessControl({
+        create: [Permission.User],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+            Permission.UnAuthorizedSsoUser,
+            Permission.ProjectUser,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+            Permission.CanEditProject,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Boolean,
+        isDefaultValueColumn: true,
+        title: 'Is Feature Flag Monitor Groups Enabled',
+        description: 'Is Feature Flag Monitor Groups Enabled',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: true,
+        unique: false,
+        default: false,
+    })
+    public isFeatureFlagMonitorGroupsEnabled?: boolean = undefined;
+
+    @ColumnAccessControl({
         create: [],
         read: [],
         update: [],

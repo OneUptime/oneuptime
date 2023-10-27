@@ -58,6 +58,11 @@ enum Permission {
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
 
+    CanCreateMonitorGroupResource = 'CanCreateMonitorGroupResource',
+    CanDeleteMonitorGroupResource = 'CanDeleteMonitorGroupResource',
+    CanEditMonitorGroupResource = 'CanEditMonitorGroupResource',
+    CanReadMonitorGroupResource = 'CanReadMonitorGroupResource',
+
     CanCreateMonitorCustomField = 'CanCreateMonitorCustomField',
     CanDeleteMonitorCustomField = 'CanDeleteMonitorCustomField',
     CanEditMonitorCustomField = 'CanEditMonitorCustomField',
@@ -147,6 +152,16 @@ enum Permission {
     CanEditMonitorOwnerUser = 'CanEditMonitorOwnerUser',
     CanReadMonitorOwnerUser = 'CanReadMonitorOwnerUser',
 
+    CanCreateMonitorGroupOwnerTeam = 'CanCreateMonitorGroupOwnerTeam',
+    CanDeleteMonitorGroupOwnerTeam = 'CanDeleteMonitorGroupOwnerTeam',
+    CanEditMonitorGroupOwnerTeam = 'CanEditMonitorGroupOwnerTeam',
+    CanReadMonitorGroupOwnerTeam = 'CanReadMonitorGroupOwnerTeam',
+
+    CanCreateMonitorGroupOwnerUser = 'CanCreateMonitorGroupOwner',
+    CanDeleteMonitorGroupOwnerUser = 'CanDeleteMonitorGroupOwnerUser',
+    CanEditMonitorGroupOwnerUser = 'CanEditMonitorGroupOwnerUser',
+    CanReadMonitorGroupOwnerUser = 'CanReadMonitorGroupOwnerUser',
+
     CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
     CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
     CanEditStatusPageCustomField = 'CanEditStatusPageCustomField',
@@ -220,6 +235,11 @@ enum Permission {
     CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
     CanEditStatusPageDomain = 'CanEditStatusPageDomain',
     CanReadStatusPageDomain = 'CanReadStatusPageDomain',
+
+    CanCreateMonitorGroup = 'CanCreateMonitorGroup',
+    CanDeleteMonitorGroup = 'CanDeleteMonitorGroup',
+    CanEditMonitorGroup = 'CanEditMonitorGroup',
+    CanReadMonitorGroup = 'CanReadMonitorGroup',
 
     CanCreateProjectSSO = 'CanCreateProjectSSO',
     CanDeleteProjectSSO = 'CanDeleteProjectSSO',
@@ -1175,6 +1195,39 @@ export class PermissionHelper {
             },
 
             {
+                permission: Permission.CanCreateMonitorGroup,
+                title: 'Can Create Monitor Group',
+                description:
+                    'This permission can create Monitor Group in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorGroup,
+                title: 'Can Delete Monitor Group',
+                description:
+                    'This permission can delete Monitor Group in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorGroup,
+                title: 'Can Edit Monitor Group',
+                description:
+                    'This permission can edit Monitor Group in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorGroup,
+                title: 'Can Read Monitor Group',
+                description:
+                    'This permission can read Monitor Group in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
                 permission: Permission.CanCreateProjectSSO,
                 title: 'Can Create Project SSO',
                 description:
@@ -1771,6 +1824,37 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectProbe,
                 title: 'Can Read Probe',
                 description: 'This permission can read probe of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateMonitorGroupResource,
+                title: 'Can Create Monitor Group Resource',
+                description:
+                    'This permission can create monitor group resource.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorGroupResource,
+                title: 'Can Delete Monitor Group Resource',
+                description:
+                    'This permission can delete monitor group resource.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorGroupResource,
+                title: 'Can Edit Monitor Group Resource',
+                description: 'This permission can edit monitor group resource.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorGroupResource,
+                title: 'Can Read Monitor Group Resource',
+                description: 'This permission can read monitor group resource.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
@@ -2451,6 +2535,72 @@ export class PermissionHelper {
                 title: 'Can Read Monitor User Owner',
                 description:
                     'This permission can read Monitor User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateMonitorGroupOwnerTeam,
+                title: 'Can Create Monitor Group Team Owner',
+                description:
+                    'This permission can create Monitor Group Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorGroupOwnerTeam,
+                title: 'Can Delete Monitor Group Team Owner',
+                description:
+                    'This permission can delete Monitor Group Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorGroupOwnerTeam,
+                title: 'Can Edit Monitor Group Team Owner',
+                description:
+                    'This permission can edit Monitor Group Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorGroupOwnerTeam,
+                title: 'Can Read Monitor Group Team Owner',
+                description:
+                    'This permission can read Monitor Group Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateMonitorGroupOwnerUser,
+                title: 'Can Create Monitor Group User Owner',
+                description:
+                    'This permission can create Monitor Group User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteMonitorGroupOwnerUser,
+                title: 'Can Delete Monitor Group User Owner',
+                description:
+                    'This permission can delete Monitor Group User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditMonitorGroupOwnerUser,
+                title: 'Can Edit Monitor Group User Owner',
+                description:
+                    'This permission can edit Monitor Group User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadMonitorGroupOwnerUser,
+                title: 'Can Read Monitor Group User Owner',
+                description:
+                    'This permission can read Monitor Group User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

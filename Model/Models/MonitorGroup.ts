@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -13,62 +21,83 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
-import DomainType from 'Common/Types/Domain';
+import Label from './Label';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @EnableDocumentation()
+@TableBillingAccessControl({
+    create: PlanSelect.Scale,
+    read: PlanSelect.Scale,
+    update: PlanSelect.Scale,
+    delete: PlanSelect.Scale,
+})
+@AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectDomain,
+        Permission.ProjectMember,
+        Permission.CanCreateMonitorGroup,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectDomain,
+        Permission.CanReadMonitorGroup,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectDomain,
+        Permission.ProjectMember,
+        Permission.CanDeleteMonitorGroup,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditProjectDomain,
+        Permission.ProjectMember,
+        Permission.CanEditMonitorGroup,
     ],
 })
-@CrudApiEndpoint(new Route('/domain'))
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
+@CrudApiEndpoint(new Route('/monitor-group'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({
-    tableName: 'Domain',
-    singularName: 'Domain',
-    pluralName: 'Domains',
-    icon: IconProp.Globe,
-    tableDescription: 'Manage Custom Domains for your project',
-})
 @Entity({
-    name: 'Domain',
+    name: 'MonitorGroup',
 })
-export default class Domain extends BaseModel {
+@TableMetadata({
+    tableName: 'MonitorGroup',
+    singularName: 'Monitor Group',
+    pluralName: 'Monitor Groups',
+    icon: IconProp.Folder,
+    tableDescription:
+        'Monitor Groups are a way to organize your monitors into groups. You can create as many groups as you want and add as many monitors as you want to each group.',
+})
+export default class MonitorGroup extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
         ],
         update: [],
     })
@@ -98,13 +127,14 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
         ],
         update: [],
     })
@@ -128,43 +158,83 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectDomain,
+            Permission.ProjectMember,
+            Permission.CanEditMonitorGroup,
         ],
     })
+    @Index()
     @TableColumn({
         required: true,
-        type: TableColumnType.Domain,
+        type: TableColumnType.ShortText,
+        title: 'Name',
+        description: 'Any friendly name for this monitor group',
         canReadOnRelationQuery: true,
-        title: 'Domain',
-        description: 'Domain - acmeinc.com for example.',
     })
     @Column({
         nullable: false,
-        type: ColumnType.Domain,
-        length: ColumnLength.Domain,
-        transformer: DomainType.getDatabaseTransformer(),
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
-    @UniqueColumnBy('projectId')
-    public domain?: DomainType = undefined;
+    public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditMonitorGroup,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.LongText,
+        title: 'Description',
+        description: 'Friendly description that will help you remember',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public description?: string = undefined;
+
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorGroup,
         ],
         update: [],
     })
@@ -179,6 +249,7 @@ export default class Domain extends BaseModel {
         nullable: false,
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
+        unique: true,
     })
     public slug?: string = undefined;
 
@@ -186,13 +257,14 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
         ],
         update: [],
     })
@@ -222,13 +294,14 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
         ],
         update: [],
     })
@@ -247,12 +320,7 @@ export default class Domain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -279,12 +347,7 @@ export default class Domain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({
@@ -301,56 +364,49 @@ export default class Domain extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorGroup,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectDomain,
-        ],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        type: TableColumnType.Boolean,
-        title: 'Verified',
-        description: 'Is this domain verified?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        default: false,
-    })
-    public isVerified?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanEditMonitorGroup,
         ],
-        update: [],
     })
     @TableColumn({
-        type: TableColumnType.ShortText,
-        title: 'Domain Verification Text',
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+        title: 'Labels',
         description:
-            'Verification text that you need to add to your domains TXT record to veify the domain.',
+            'Relation to Labels Array where this object is categorized in.',
     })
-    @Column({
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
-        nullable: false,
-        unique: true,
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'MonitorGroupLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'monitorGroupId',
+            referencedColumnName: '_id',
+        },
     })
-    public domainVerificationText?: string = undefined;
+    public labels?: Array<Label> = undefined;
 }
