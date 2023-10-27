@@ -68,7 +68,8 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                 ]}
                 cardProps={{
                     title: 'Monitor Group Details',
-                    description: 'Here are more details for this monitor.',
+                    description:
+                        'Here are more details for this monitor group.',
                 }}
                 isEditable={true}
                 formFields={[
