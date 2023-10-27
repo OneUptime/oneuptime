@@ -29,7 +29,9 @@ export default interface CallRequest extends CallRequestMessage {
     to: Phone;
 }
 
-export const isHighRiskPhoneNumber: Function = (phoneNumber: Phone): boolean => {
+export const isHighRiskPhoneNumber: Function = (
+    phoneNumber: Phone
+): boolean => {
     // Pakistan
     if (phoneNumber.toString().startsWith('+92')) {
         return true;
