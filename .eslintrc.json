@@ -179,7 +179,17 @@
                 "ignoreReadBeforeAssign": false
             }
         ],
-        "no-var": "error"
+        "no-var": "error",
+        "no-magic-numbers": [
+            "error",
+            {
+                "ignore": [
+                    0,
+                    1
+                ],
+                "enforceConst": true
+            }
+        ]
     },
     "settings": {
         "react": {
