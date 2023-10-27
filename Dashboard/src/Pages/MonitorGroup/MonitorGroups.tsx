@@ -4,23 +4,27 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
+import DashboardSideMenu from '../Monitor/SideMenu';
+import DashboardNavigation from '../../Utils/Navigation';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPage from 'Model/Models/StatusPage';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import DashboardNavigation from '../../Utils/Navigation';
+import MonitorGroup from 'Model/Models/MonitorGroup';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
+import ObjectID from 'Common/Types/ObjectID';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
-const StatusPages: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
+    props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Status Pages'}
+            title={'Monitors'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -29,37 +33,49 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Status Pages',
+                    title: 'Monitors',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
+                        RouteMap[PageMap.MONITORS] as Route
+                    ),
+                },
+                {
+                    title: 'Monitor Groups',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_GROUPS] as Route
                     ),
                 },
             ]}
+            sideMenu={
+                <DashboardSideMenu
+                    project={props.currentProject || undefined}
+                />
+            }
         >
-            <ModelTable<StatusPage>
-                modelType={StatusPage}
-                id="status-page-table"
+            <ModelTable<MonitorGroup>
+                modelType={MonitorGroup}
+                name="Monitor Groups"
+                id="monitors-group-table"
                 isDeleteable={false}
+                showViewIdButton={true}
                 isEditable={false}
                 isCreateable={true}
-                name="Status Pages"
                 isViewable={true}
                 cardProps={{
-                    title: 'Status Pages',
+                    title: 'Monitor Groups',
                     description:
-                        'Here is a list of status page for this project.',
+                        'Here is a list of monitors groups for this project.',
                 }}
-                showViewIdButton={true}
-                noItemsMessage={'No status pages found.'}
+                noItemsMessage={'No monitor groups found.'}
                 formFields={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Name',
+
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Status Page Name',
+                        placeholder: 'Monitor Name',
                         validation: {
                             minLength: 2,
                         },
@@ -68,31 +84,46 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
+
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
                     },
                 ]}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {
                             name: true,
                         },
-                        title: 'Name',
+                        title: 'Group Name',
                         type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
                         field: {
-                            description: true,
+                            _id: true,
                         },
-                        title: 'Description',
-                        type: FieldType.Text,
-                        isFilterable: true,
+                        title: 'Current Status',
+                        type: FieldType.Element,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (!item['_id']) {
+                                throw new BadDataException(
+                                    'Monitor Group ID not found'
+                                );
+                            }
+
+                            return (
+                                <CurrentStatusElement
+                                    monitorGroupId={
+                                        new ObjectID(item['_id'].toString())
+                                    }
+                                />
+                            );
+                        },
                     },
                     {
                         field: {
@@ -132,4 +163,4 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default StatusPages;
+export default MonitorGroupPage;

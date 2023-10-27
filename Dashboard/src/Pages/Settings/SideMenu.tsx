@@ -266,6 +266,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     }}
                     icon={IconProp.Terminal}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Feature Flags',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Flag}
+                />
 
                 {/* <SideMenuItem
                     link={{

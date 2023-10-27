@@ -1,24 +1,23 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
+import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
-import DomainType from 'Common/Types/Domain';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import MonitorGroup from './MonitorGroup';
+import Team from './Team';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -26,49 +25,54 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectDomain,
+        Permission.CanCreateMonitorGroupOwnerTeam,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectDomain,
+        Permission.CanReadMonitorGroupOwnerTeam,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectDomain,
+        Permission.CanDeleteMonitorGroupOwnerTeam,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditProjectDomain,
+        Permission.CanEditMonitorGroupOwnerTeam,
     ],
 })
-@CrudApiEndpoint(new Route('/domain'))
-@SlugifyColumn('name', 'slug')
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
+})
+@CrudApiEndpoint(new Route('/monitor-group-owner-team'))
 @TableMetadata({
-    tableName: 'Domain',
-    singularName: 'Domain',
-    pluralName: 'Domains',
-    icon: IconProp.Globe,
-    tableDescription: 'Manage Custom Domains for your project',
+    tableName: 'MonitorGroupOwnerTeam',
+    singularName: 'Monitor Group Team Owner',
+    pluralName: 'Monitor Group Team Owners',
+    icon: IconProp.Signal,
+    tableDescription: 'Add teams as owners to your monitor groups.',
 })
 @Entity({
-    name: 'Domain',
+    name: 'MonitorGroupOwnerTeam',
 })
-export default class Domain extends BaseModel {
+export default class MonitorGroupOwnerTeam extends AccessControlModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CanCreateMonitorGroupOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
@@ -86,7 +90,7 @@ export default class Domain extends BaseModel {
         },
         {
             eager: false,
-            nullable: true,
+            nullable: false,
             onDelete: 'CASCADE',
             orphanedRowAction: 'nullify',
         }
@@ -98,13 +102,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CanCreateMonitorGroupOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
@@ -128,71 +132,144 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CanCreateMonitorGroupOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanEditProjectDomain,
-        ],
-    })
-    @TableColumn({
-        required: true,
-        type: TableColumnType.Domain,
-        canReadOnRelationQuery: true,
-        title: 'Domain',
-        description: 'Domain - acmeinc.com for example.',
-    })
-    @Column({
-        nullable: false,
-        type: ColumnType.Domain,
-        length: ColumnLength.Domain,
-        transformer: DomainType.getDatabaseTransformer(),
-    })
-    @UniqueColumnBy('projectId')
-    public domain?: DomainType = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
     @TableColumn({
-        required: true,
-        unique: true,
-        type: TableColumnType.Slug,
-        title: 'Slug',
-        description: 'Friendly globally unique name for your object',
+        manyToOneRelationColumn: 'teamId',
+        type: TableColumnType.Entity,
+        modelType: Team,
+        title: 'Team',
+        description:
+            'Team that is the owner. All users in this team will receive notifications. ',
     })
-    @Column({
-        nullable: false,
-        type: ColumnType.Slug,
-        length: ColumnLength.Slug,
-    })
-    public slug?: string = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'teamId' })
+    public team?: Team = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CanCreateMonitorGroupOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Team ID',
+        description: 'ID of your OneUptime Team in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public teamId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateMonitorGroupOwnerTeam,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorGroupOwnerTeam,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'monitorGroupId',
+        type: TableColumnType.Entity,
+        modelType: MonitorGroup,
+        title: 'MonitorGroup',
+        description:
+            'Relation to MonitorGroup Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return MonitorGroup;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'monitorGroupId' })
+    public monitorGroup?: MonitorGroup = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateMonitorGroupOwnerTeam,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorGroupOwnerTeam,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'MonitorGroup ID',
+        description:
+            'ID of your OneUptime MonitorGroup in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public monitorGroupId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateMonitorGroupOwnerTeam,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
@@ -222,13 +299,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CanCreateMonitorGroupOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
@@ -251,7 +328,7 @@ export default class Domain extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
@@ -283,7 +360,7 @@ export default class Domain extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
@@ -301,56 +378,31 @@ export default class Domain extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.CanEditProjectDomain,
-        ],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        type: TableColumnType.Boolean,
-        title: 'Verified',
-        description: 'Is this domain verified?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        default: false,
-    })
-    public isVerified?: boolean = undefined;
-
-    @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CanCreateMonitorGroupOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.CanReadMonitorGroupOwnerTeam,
         ],
         update: [],
     })
+    @Index()
     @TableColumn({
-        type: TableColumnType.ShortText,
-        title: 'Domain Verification Text',
-        description:
-            'Verification text that you need to add to your domains TXT record to veify the domain.',
+        type: TableColumnType.Boolean,
+        required: true,
+        isDefaultValueColumn: true,
+        title: 'Are Owners Notified',
+        description: 'Are owners notified of this resource ownership?',
     })
     @Column({
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
+        type: ColumnType.Boolean,
         nullable: false,
-        unique: true,
+        default: false,
     })
-    public domainVerificationText?: string = undefined;
+    public isOwnerNotified?: boolean = undefined;
 }

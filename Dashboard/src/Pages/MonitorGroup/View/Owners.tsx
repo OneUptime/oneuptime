@@ -7,9 +7,9 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
+import MonitorGroup from 'Model/Models/MonitorGroup';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
+import MonitorGroupOwnerTeam from 'Model/Models/MonitorGroupOwnerTeam';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -17,20 +17,20 @@ import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import TeamElement from '../../../Components/Team/Team';
-import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
+import MonitorGroupOwnerUser from 'Model/Models/MonitorGroupOwnerUser';
 import User from 'Model/Models/User';
 import UserElement from '../../../Components/User/User';
 import ProjectUser from '../../../Utils/ProjectUser';
 
-const StatusPageOwners: FunctionComponent<PageComponentProps> = (
+const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
         <ModelPage
-            title="StatusPage"
-            modelType={StatusPage}
+            title="Monitor Group"
+            modelType={MonitorGroup}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -42,33 +42,33 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Status Pages',
+                    title: 'Monitor Groups',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route,
+                        RouteMap[PageMap.MONITOR_GROUPS] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View Status Page',
+                    title: 'View Monitor Group',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
                         { modelId }
                     ),
                 },
                 {
                     title: 'Owners',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS] as Route,
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route,
                         { modelId }
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelTable<StatusPageOwnerTeam>
-                modelType={StatusPageOwnerTeam}
-                id="table-statusPage-owner-team"
-                name="StatusPage > Owner Team"
+            <ModelTable<MonitorGroupOwnerTeam>
+                modelType={MonitorGroupOwnerTeam}
+                id="table-monitor-group-owner-team"
+                name="MonitorGroup > Owner Team"
                 singularName="Team"
                 isDeleteable={true}
                 createVerb={'Add'}
@@ -76,23 +76,23 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 showViewIdButton={true}
                 query={{
-                    statusPageId: modelId,
+                    monitorGroupId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
-                    item: StatusPageOwnerTeam
-                ): Promise<StatusPageOwnerTeam> => {
-                    item.statusPageId = modelId;
+                    item: MonitorGroupOwnerTeam
+                ): Promise<MonitorGroupOwnerTeam> => {
+                    item.monitorGroupId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
                 }}
                 cardProps={{
                     title: 'Owners (Teams)',
                     description:
-                        'Here is list of teams that own this status page. They will be alerted when this status page is created or updated.',
+                        'Here is list of teams that own this monitor group. ',
                 }}
                 noItemsMessage={
-                    'No teams associated with this status page so far.'
+                    'No teams associated with this monitor group so far.'
                 }
                 formFields={[
                     {
@@ -141,10 +141,10 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-            <ModelTable<StatusPageOwnerUser>
-                modelType={StatusPageOwnerUser}
-                id="table-statusPage-owner-team"
-                name="StatusPage > Owner Team"
+            <ModelTable<MonitorGroupOwnerUser>
+                modelType={MonitorGroupOwnerUser}
+                id="table-monitor-group-owner-team"
+                name="MonitorGroup > Owner Team"
                 isDeleteable={true}
                 singularName="User"
                 isCreateable={true}
@@ -152,23 +152,23 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 showViewIdButton={true}
                 createVerb={'Add'}
                 query={{
-                    statusPageId: modelId,
+                    monitorGroupId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
-                    item: StatusPageOwnerUser
-                ): Promise<StatusPageOwnerUser> => {
-                    item.statusPageId = modelId;
+                    item: MonitorGroupOwnerUser
+                ): Promise<MonitorGroupOwnerUser> => {
+                    item.monitorGroupId = modelId;
                     item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
                 }}
                 cardProps={{
                     title: 'Owners (Users)',
                     description:
-                        'Here is list of users that own this status page. They will be alerted when this status page is created or updated.',
+                        'Here is list of users that own this monitor group.',
                 }}
                 noItemsMessage={
-                    'No users associated with this status page so far.'
+                    'No users associated with this monitor group so far.'
                 }
                 formFields={[
                     {
@@ -222,4 +222,4 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default StatusPageOwners;
+export default MonitorGroupOwners;

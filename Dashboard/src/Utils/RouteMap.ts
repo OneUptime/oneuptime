@@ -398,6 +398,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/domains`
     ),
 
+    [PageMap.SETTINGS_FEATURE_FLAGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/feature-flags`
+    ),
+
     [PageMap.SETTINGS_SSO]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/sso`
     ),
@@ -512,6 +516,30 @@ const RouteMap: Dictionary<Route> = {
 
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
+
+    [PageMap.MONITOR_GROUPS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups`
+    ),
+
+    [PageMap.MONITOR_GROUP_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.MONITOR_GROUP_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.MONITOR_GROUP_VIEW_MONITORS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/monitors`
+    ),
+
+    [PageMap.MONITOR_GROUP_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/owners`
+    ),
+
+    [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/incidents`
+    ),
 };
 
 export class RouteUtil {

@@ -90,6 +90,7 @@ import SettingsApiKeyView from './Pages/Settings/APIKeyView';
 import SettingLabels from './Pages/Settings/Labels';
 import SettingProbes from './Pages/Settings/Probes';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
+import SettingFeatureFlags from './Pages/Settings/FeatureFlags';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 import SettingsMonitors from './Pages/Settings/MonitorStatus';
@@ -150,6 +151,14 @@ import MonitorViewInterval from './Pages/Monitor/View/Interval';
 import MonitorViewProbes from './Pages/Monitor/View/Probes';
 import MonitorViewOwner from './Pages/Monitor/View/Owners';
 import MonitorViewSettings from './Pages/Monitor/View/Settings';
+
+// Monitor Groups.
+import MonitorGroups from './Pages/MonitorGroup/MonitorGroups';
+import MonitorGroupView from './Pages/MonitorGroup/View/Index';
+import MonitorGroupViewDelete from './Pages/MonitorGroup/View/Delete';
+import MonitorGroupViewMonitors from './Pages/MonitorGroup/View/Monitors';
+import MonitorGroupViewIncidents from './Pages/MonitorGroup/View/Incidents';
+import MonitorGroupViewOwners from './Pages/MonitorGroup/View/Owners';
 
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
@@ -1544,6 +1553,23 @@ const App: () => JSX.Element = () => {
 
                 <PageRoute
                     path={
+                        RouteMap[PageMap.SETTINGS_FEATURE_FLAGS]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <SettingFeatureFlags
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_FEATURE_FLAGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
                         RouteMap[
                             PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
                         ]?.toString() || ''
@@ -2318,6 +2344,106 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.USER_SETTINGS_ON_CALL_RULES
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                {/** Monitor Groups */}
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_GROUPS]?.toString() || ''}
+                    element={
+                        <MonitorGroups
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_GROUPS] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.MONITOR_GROUP_VIEW]?.toString() || ''
+                    }
+                    element={
+                        <MonitorGroupView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.MONITOR_GROUP_VIEW_DELETE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <MonitorGroupViewDelete
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_GROUP_VIEW_DELETE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.MONITOR_GROUP_VIEW_MONITORS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <MonitorGroupViewMonitors
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_GROUP_VIEW_MONITORS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.MONITOR_GROUP_VIEW_INCIDENTS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <MonitorGroupViewIncidents
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_GROUP_VIEW_INCIDENTS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.MONITOR_GROUP_VIEW_OWNERS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <MonitorGroupViewOwners
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_GROUP_VIEW_OWNERS
                                 ] as Route
                             }
                         />

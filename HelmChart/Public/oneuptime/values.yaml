@@ -87,7 +87,9 @@ billing:
   publicKey: 
   privateKey: 
   smsDefaultValueInCents: 
-  callDefaultValueInCentsPerMinute: 
+  callDefaultValueInCentsPerMinute:
+  smsHighRiskValueInCents:
+  callHighRiskValueInCentsPerMinute: 
 
 subscriptionPlan: 
   basic: 

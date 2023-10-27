@@ -2,6 +2,7 @@ import BarLoader from 'react-spinners/BarLoader';
 import BeatLoader from 'react-spinners/BeatLoader';
 import React, { FunctionComponent } from 'react';
 import Color from 'Common/Types/Color';
+import { VeryLightGrey } from 'Common/Types/BrandColors';
 
 export enum LoaderType {
     Bar,
@@ -16,12 +17,12 @@ export interface ComponentProps {
 
 const Loader: FunctionComponent<ComponentProps> = ({
     size = 50,
-    color = new Color('#000000'),
+    color = VeryLightGrey,
     loaderType = LoaderType.Bar,
 }: ComponentProps) => {
     if (loaderType === LoaderType.Bar) {
         return (
-            <div role="bar-loader" className="justify-center">
+            <div role="bar-loader mt-1" className="justify-center">
                 <BarLoader height={4} width={size} color={color.toString()} />
             </div>
         );
@@ -29,7 +30,7 @@ const Loader: FunctionComponent<ComponentProps> = ({
 
     if (loaderType === LoaderType.Beats) {
         return (
-            <div role="beat-loader" className="justify-center">
+            <div role="beat-loader mt-1" className="justify-center">
                 <BeatLoader size={size} color={color.toString()} />
             </div>
         );

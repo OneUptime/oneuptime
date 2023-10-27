@@ -306,6 +306,7 @@ import UserCallAPI from 'CommonServer/API/UserCallAPI';
 import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
+import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
 
 import Ingestor from 'CommonServer/API/ProbeAPI';
 
@@ -379,6 +380,21 @@ import UserNotificationSettingService, {
     Service as UserNotificationSettingServiceType,
 } from 'CommonServer/Services/UserNotificationSettingService';
 
+import MonitorGroupOwnerUser from 'Model/Models/MonitorGroupOwnerUser';
+import MonitorGroupOwnerUserService, {
+    Service as MonitorGroupOwnerUserServiceType,
+} from 'CommonServer/Services/MonitorGroupOwnerUserService';
+
+import MonitorGroupOwnerTeam from 'Model/Models/MonitorGroupOwnerTeam';
+import MonitorGroupOwnerTeamService, {
+    Service as MonitorGroupOwnerTeamServiceType,
+} from 'CommonServer/Services/MonitorGroupOwnerTeamService';
+
+import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
+import MonitorGroupResourceService, {
+    Service as MonitorGroupResourceServiceType,
+} from 'CommonServer/Services/MonitorGroupResourceService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -416,6 +432,30 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroupOwnerUser, MonitorGroupOwnerUserServiceType>(
+        MonitorGroupOwnerUser,
+        MonitorGroupOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroupOwnerTeam, MonitorGroupOwnerTeamServiceType>(
+        MonitorGroupOwnerTeam,
+        MonitorGroupOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<MonitorGroupResource, MonitorGroupResourceServiceType>(
+        MonitorGroupResource,
+        MonitorGroupResourceService
+    ).getRouter()
 );
 
 app.use(
@@ -825,6 +865,7 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorGroupAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ResellerPlanAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GlobalConfigAPI().getRouter());
@@ -1005,6 +1046,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
+
         // connect to the database.
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
