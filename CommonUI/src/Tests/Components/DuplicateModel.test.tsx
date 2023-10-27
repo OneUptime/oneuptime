@@ -87,16 +87,13 @@ describe('DuplicateModel', () => {
                 fieldsToChange={fieldsToChange}
             />
         );
-        expect(
-            document.querySelector('#payment-details-heading')?.textContent
-        ).toBe('Duplicate Foo');
-        expect(document.querySelector('h2')?.textContent).toBe('Duplicate Foo');
-        expect(
-            document.querySelector('p.mt-1.text-sm.text-gray-500')?.textContent
-        ).toBe(
+        expect(screen.getByTestId('card-details-heading')?.textContent).toBe(
+            'Duplicate Foo'
+        );
+        expect(screen.getByTestId('card-description')?.textContent).toBe(
             'Duplicating this foo will create another foo exactly like this one.'
         );
-        expect(document.querySelector('button')?.textContent).toBe(
+        expect(screen.getByTestId('card-button')?.textContent).toBe(
             'Duplicate Foo'
         );
     });
@@ -114,18 +111,19 @@ describe('DuplicateModel', () => {
         });
         fireEvent.click(button);
         expect(screen.getByRole('dialog')).toBeDefined();
+        const confirmDialog = screen.getByRole('dialog');
         expect(
-            screen.getByRole('dialog').querySelectorAll('h3')[0]?.textContent
+            within(confirmDialog).getByTestId('modal-title')?.textContent
         ).toBe('Duplicate Foo');
         expect(
-            screen.getByRole('dialog').querySelectorAll('h3')[1]?.textContent
+            within(confirmDialog).getByTestId('modal-description')?.textContent
         ).toBe('Are you sure you want to duplicate this foo?');
         expect(
-            screen.getByRole('dialog').querySelectorAll('button')[1]
+            within(confirmDialog).getByTestId('modal-footer-submit-button')
                 ?.textContent
         ).toBe('Duplicate Foo');
         expect(
-            screen.getByRole('dialog').querySelectorAll('button')[2]
+            within(confirmDialog).getByTestId('modal-footer-close-button')
                 ?.textContent
         ).toBe('Close');
     });
@@ -225,17 +223,17 @@ describe('DuplicateModel', () => {
             fireEvent.click(confirmationButton);
         });
         await screen.findByText('Duplicate Error');
+        const errorDialog = screen.getByRole('dialog');
         expect(
-            screen.getByRole('dialog').querySelector('h3')?.textContent
+            within(errorDialog).getByTestId('modal-title')?.textContent
         ).toBe('Duplicate Error');
         expect(
-            screen
-                .getByRole('dialog')
-                .querySelector('.modal-body>div.text-gray-500.mt-5.text-sm')
+            within(errorDialog).getByTestId('confirm-modal-description')
                 ?.textContent
         ).toBe('Error: Could not create Foo');
         expect(
-            screen.getByRole('dialog').querySelector('button')?.textContent
+            within(errorDialog).getByTestId('modal-footer-submit-button')
+                ?.textContent
         ).toBe('Close');
     });
     it('handles item not found error correctly', async () => {
@@ -267,17 +265,17 @@ describe('DuplicateModel', () => {
             fireEvent.click(confirmationButton);
         });
         await screen.findByText('Duplicate Error');
+        const errorDialog = screen.getByRole('dialog');
         expect(
-            screen.getByRole('dialog').querySelector('h3')?.textContent
+            within(errorDialog).getByTestId('modal-title')?.textContent
         ).toBe('Duplicate Error');
         expect(
-            screen
-                .getByRole('dialog')
-                .querySelector('.modal-body>div.text-gray-500.mt-5.text-sm')
+            within(errorDialog).getByTestId('confirm-modal-description')
                 ?.textContent
         ).toBe('Error: Could not find Foo with id foo');
         expect(
-            screen.getByRole('dialog').querySelector('button')?.textContent
+            within(errorDialog).getByTestId('modal-footer-submit-button')
+                ?.textContent
         ).toBe('Close');
     });
     it('closes error dialog when close button is clicked', async () => {

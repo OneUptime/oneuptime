@@ -40,6 +40,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                             ? props.submitButtonType
                             : ButtonType.Button
                     }
+                    dataTestId="modal-footer-submit-button"
                 />
             ) : (
                 <></>
@@ -57,6 +58,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                         props.onClose && props.onClose();
                     }}
+                    dataTestId="modal-footer-close-button"
                 />
             ) : (
                 <></>
