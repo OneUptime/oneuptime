@@ -17,7 +17,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import StatusPage from 'Model/Models/StatusPage';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -26,6 +25,7 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
+import MonitorGroup from 'Model/Models/MonitorGroup';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -84,7 +84,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     return (
         <ModelPage
             title="Monitor Group"
-            modelType={StatusPage}
+            modelType={MonitorGroup}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[

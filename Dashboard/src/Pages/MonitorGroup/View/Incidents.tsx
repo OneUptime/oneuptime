@@ -6,7 +6,6 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import IncidentsTable from '../../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../../Utils/Navigation';
@@ -16,6 +15,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import API from 'CommonUI/src/Utils/API/API';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import MonitorGroup from 'Model/Models/MonitorGroup';
 
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -74,8 +74,8 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
 
     return (
         <ModelPage
-            title="Monitor"
-            modelType={Monitor}
+            title="Monitor Group"
+            modelType={MonitorGroup}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
