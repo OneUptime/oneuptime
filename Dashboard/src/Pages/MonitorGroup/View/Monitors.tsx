@@ -34,7 +34,9 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-    const [monitorStatuses, setMonitorStatuses] = React.useState<MonitorStatus[]>([]);
+    const [monitorStatuses, setMonitorStatuses] = React.useState<
+        MonitorStatus[]
+    >([]);
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
@@ -42,11 +44,12 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
         setIsLoading(true);
 
         try {
-            const monitorGroupResources: ListResult<MonitorStatus> =
+            const monitorStatuses: ListResult<MonitorStatus> =
                 await ModelAPI.getList<MonitorStatus>(
                     MonitorStatus,
                     {
-                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     LIMIT_PER_PROJECT,
                     0,
@@ -58,9 +61,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                     {}
                 );
 
-
-
-            setMonitorStatuses(monitorGroupResources.data);
+            setMonitorStatuses(monitorStatuses.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -69,7 +70,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        loadMonitorStatuses().catch(() => { });
+        loadMonitorStatuses().catch(() => {});
     }, []);
 
     if (isLoading) {
@@ -185,7 +186,6 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                     name: true,
                                     _id: true,
                                     projectId: true,
-
                                 },
                             },
                             title: 'Monitor',
@@ -225,28 +225,33 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Element,
 
                             getElement: (item: JSONObject): ReactElement => {
-
                                 if (!item['monitor']) {
                                     throw new BadDataException(
                                         'Monitor not found'
                                     );
                                 }
 
-                                if (!(item['monitor'] as JSONObject)['currentMonitorStatusId']) {
+                                if (
+                                    !(item['monitor'] as JSONObject)[
+                                        'currentMonitorStatusId'
+                                    ]
+                                ) {
                                     throw new BadDataException(
                                         'Monitor Status not found'
                                     );
                                 }
 
-
-                                const monitorStatus: MonitorStatus | undefined = monitorStatuses.find(
-                                    (monitorStatus: MonitorStatus) => {
-                                        return monitorStatus._id ===
-                                            (item['monitor'] as JSONObject)[
-                                                'currentMonitorStatusId'
-                                            ]?.toString();
-                                    }
-                                );
+                                const monitorStatus: MonitorStatus | undefined =
+                                    monitorStatuses.find(
+                                        (monitorStatus: MonitorStatus) => {
+                                            return (
+                                                monitorStatus._id ===
+                                                (item['monitor'] as JSONObject)[
+                                                    'currentMonitorStatusId'
+                                                ]?.toString()
+                                            );
+                                        }
+                                    );
 
                                 if (!monitorStatus) {
                                     throw new BadDataException(
@@ -254,21 +259,14 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                     );
                                 }
 
-
                                 return (
                                     <Statusbubble
-                                        color={
-                                            monitorStatus.color! as Color
-                                        }
-                                        text={
-
-                                            monitorStatus.name! as string
-                                        }
+                                        color={monitorStatus.color! as Color}
+                                        text={monitorStatus.name! as string}
                                     />
                                 );
                             },
                         },
-                        
                     ]}
                 />
             </>
@@ -277,4 +275,3 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 };
 
 export default MonitorGroupResources;
-

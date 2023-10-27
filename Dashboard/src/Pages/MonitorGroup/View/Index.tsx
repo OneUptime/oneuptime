@@ -15,6 +15,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import CurrentStatusElement from '../../../Components/MonitorGroup/CurrentStatus';
 
 const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -157,6 +158,20 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                                 description: true,
                             },
                             title: 'Description',
+                        },
+                        {
+                            field: {
+                                _id: true,
+                            },
+                            fieldType: FieldType.Element,
+                            title: 'Current Status',
+                            getElement: (): ReactElement => {
+                                return (
+                                    <CurrentStatusElement
+                                        monitorGroupId={modelId}
+                                    />
+                                );
+                            },
                         },
                     ],
                     modelId: modelId,

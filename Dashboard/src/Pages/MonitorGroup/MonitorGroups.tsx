@@ -15,6 +15,9 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
+import ObjectID from 'Common/Types/ObjectID';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -99,6 +102,28 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         title: 'Group Name',
                         type: FieldType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            _id: true,
+                        },
+                        title: 'Current Status',
+                        type: FieldType.Element,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (!item['_id']) {
+                                throw new BadDataException(
+                                    'Monitor Group ID not found'
+                                );
+                            }
+
+                            return (
+                                <CurrentStatusElement
+                                    monitorGroupId={
+                                        new ObjectID(item['_id'].toString())
+                                    }
+                                />
+                            );
+                        },
                     },
                     {
                         field: {

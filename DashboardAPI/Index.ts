@@ -306,6 +306,7 @@ import UserCallAPI from 'CommonServer/API/UserCallAPI';
 import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
+import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
 
 import Ingestor from 'CommonServer/API/ProbeAPI';
 
@@ -379,12 +380,6 @@ import UserNotificationSettingService, {
     Service as UserNotificationSettingServiceType,
 } from 'CommonServer/Services/UserNotificationSettingService';
 
-// Monitor Group
-import MonitorGroup from 'Model/Models/MonitorGroup';
-import MonitorGroupService, {
-    Service as MonitorGroupServiceType,
-} from 'CommonServer/Services/MonitorGroupService';
-
 import MonitorGroupOwnerUser from 'Model/Models/MonitorGroupOwnerUser';
 import MonitorGroupOwnerUserService, {
     Service as MonitorGroupOwnerUserServiceType,
@@ -437,15 +432,6 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
-);
-
-// Monitor Groups.
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<MonitorGroup, MonitorGroupServiceType>(
-        MonitorGroup,
-        MonitorGroupService
-    ).getRouter()
 );
 
 app.use(
@@ -879,6 +865,7 @@ app.use(
 );
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorGroupAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ResellerPlanAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GlobalConfigAPI().getRouter());
@@ -1059,6 +1046,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
+
         // connect to the database.
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
