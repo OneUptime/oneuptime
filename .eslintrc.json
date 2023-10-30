@@ -179,7 +179,8 @@
                 "ignoreReadBeforeAssign": false
             }
         ],
-        "no-var": "error"
+        "no-var": "error",
+        "object-curly-spacing": ["error", "always"]
     },
     "settings": {
         "react": {
