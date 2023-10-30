@@ -108,6 +108,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 <div className="flex justify-between">
                                     <div>
                                         <h3
+                                            data-testid="modal-title"
                                             className={`text-lg font-medium leading-6 text-gray-900 ${
                                                 props.icon
                                                     ? 'ml-10 -mt-8 mb-5'
@@ -118,7 +119,10 @@ const Modal: FunctionComponent<ComponentProps> = (
                                             {props.title}
                                         </h3>
                                         {props.description && (
-                                            <h3 className="text-sm leading-6 text-gray-500">
+                                            <h3
+                                                data-testid="modal-description"
+                                                className="text-sm leading-6 text-gray-500"
+                                            >
                                                 {props.description}
                                             </h3>
                                         )}
