@@ -6,13 +6,87 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorGroupResourceService from './MonitorGroupResourceService';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import MonitorStatusTimelineService from './MonitorStatusTimelineService';
+import QueryHelper from '../Types/Database/QueryHelper';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export class Service extends DatabaseService<MonitorGroup> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(MonitorGroup, postgresDatabase);
+    }
+
+    public async getStatusTimeline(
+        monitorGroupId: ObjectID,
+        startDate: Date,
+        endDate: Date,
+        props: DatabaseCommonInteractionProps
+    ): Promise<Array<MonitorStatusTimeline>> {
+        const monitorGroup: MonitorGroup | null = await this.findOneById({
+            id: monitorGroupId,
+            select: {
+                _id: true,
+                projectId: true,
+            },
+            props: props,
+        });
+
+        if (!monitorGroup) {
+            throw new BadDataException('Monitor group not found.');
+        }
+
+        const monitorGroupResources: Array<MonitorGroupResource> =
+            await MonitorGroupResourceService.findBy({
+                query: {
+                    monitorGroupId: monitorGroup.id!,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
+                    monitor: {
+                        currentMonitorStatusId: true,
+                    },
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const monitorStatusTimelines: Array<MonitorStatusTimeline> =
+            await MonitorStatusTimelineService.findBy({
+                query: {
+                    monitorId: QueryHelper.in(
+                        monitorGroupResources.map(
+                            (monitorGroupResource: MonitorGroupResource) => {
+                                return monitorGroupResource.monitorId!;
+                            }
+                        )
+                    ),
+                    createdAt: QueryHelper.inBetween(startDate, endDate),
+                },
+                select: {
+                    monitorId: true,
+                    createdAt: true,
+                    monitorStatus: {
+                        name: true,
+                        color: true,
+                        priority: true,
+                    } as any,
+                },
+                sort: {
+                    createdAt: SortOrder.Ascending,
+                },
+                skip: 0,
+                limit: LIMIT_MAX, // This can be optimized.
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        return monitorStatusTimelines;
     }
 
     public async getCurrentStatus(

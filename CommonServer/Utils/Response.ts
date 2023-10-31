@@ -175,9 +175,13 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         list: Array<BaseModel>,
-        count: PositiveNumber,
+        count: PositiveNumber | number,
         modelType: { new (): BaseModel }
     ): void {
+        if (!(count instanceof PositiveNumber)) {
+            count = new PositiveNumber(count);
+        }
+
         return this.sendJsonArrayResponse(
             req,
             res,
