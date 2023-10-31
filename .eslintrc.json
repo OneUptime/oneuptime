@@ -180,6 +180,7 @@
             }
         ],
         "no-var": "error",
+        "object-curly-spacing": ["error", "always"]
         "no-unneeded-ternary": "error"
     },
     "settings": {
