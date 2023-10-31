@@ -1,6 +1,8 @@
+import { JSONObject } from 'Common/Types/JSON';
 import CookieUtil from '../../Utils/Cookie';
 import { ExpressRequest, ExpressResponse } from '../../Utils/Express';
 import ObjectID from 'Common/Types/ObjectID';
+import Dictionary from 'Common/Types/Dictionary';
 
 describe('CookieUtils', () => {
     let mockRequest: ExpressRequest;
@@ -19,7 +21,7 @@ describe('CookieUtils', () => {
     });
 
     test('Should set a cookie', () => {
-        const cookie = {
+        const cookie: JSONObject = {
             name: 'testName',
             value: 'testValue',
             options: {},
@@ -28,30 +30,33 @@ describe('CookieUtils', () => {
         mockResponse.cookie = jest.fn();
         CookieUtil.setCookie(
             mockResponse,
-            cookie.name,
-            cookie.value,
-            cookie.options
+            cookie['name'] as string,
+            cookie['value'] as string,
+            cookie['options'] as JSONObject
         );
 
         expect(mockResponse.cookie).toHaveBeenCalledWith(
-            cookie.name,
-            cookie.value,
-            cookie.options
+            cookie['name'] as string,
+            cookie['value'] as string,
+            cookie['options'] as JSONObject
         );
     });
 
     test('Should return a cookie', () => {
-        const cookieName = 'testName';
-        const cookieValue = 'testValue';
+        const cookieName: string = 'testName';
+        const cookieValue: string = 'testValue';
 
         mockRequest.cookies[cookieName] = cookieValue;
-        const value = CookieUtil.getCookie(mockRequest, cookieName);
+        const value: string | undefined = CookieUtil.getCookie(
+            mockRequest,
+            cookieName
+        );
 
         expect(value).toBe(value);
     });
 
     test('Should remove a cookie', () => {
-        const cookieName = 'testName';
+        const cookieName: string = 'testName';
 
         mockResponse.clearCookie = jest.fn();
         CookieUtil.removeCookie(mockResponse, cookieName);
@@ -60,44 +65,46 @@ describe('CookieUtils', () => {
     });
 
     test('Should return all cookies', () => {
-        const value = 'testValue';
+        const value: string = 'testValue';
         mockRequest.cookies = { testName: value };
-        const cookies = CookieUtil.getAllCookies(mockRequest);
+        const cookies: Dictionary<string> =
+            CookieUtil.getAllCookies(mockRequest);
 
         expect(cookies).toEqual({ testName: value });
     });
 
     test('Should return empty object if there are no cookies', () => {
         mockRequest.cookies = undefined;
-        const cookies = CookieUtil.getAllCookies(mockRequest);
+        const cookies: Dictionary<string> =
+            CookieUtil.getAllCookies(mockRequest);
 
         expect(cookies).toEqual({});
     });
 
     test('Should return user token key', () => {
-        const id = '123456789';
-        const keyWithId = CookieUtil.getUserTokenKey(new ObjectID(id));
-        const keyWithoutId = CookieUtil.getUserTokenKey();
+        const id: string = '123456789';
+        const keyWithId: string = CookieUtil.getUserTokenKey(new ObjectID(id));
+        const keyWithoutId: string = CookieUtil.getUserTokenKey();
 
         expect(keyWithId).toBe(`user-token-${id}`);
         expect(keyWithoutId).toBe('user-token');
     });
 
     test('Should return SSO key', () => {
-        const ssoKey = CookieUtil.getSSOKey();
+        const ssoKey: string = CookieUtil.getSSOKey();
 
         expect(ssoKey).toBe('sso-');
     });
 
     test('Should return user SSO key', () => {
-        const id = '123456789';
-        const userSsoKey = CookieUtil.getUserSSOKey(new ObjectID(id));
+        const id: string = '123456789';
+        const userSsoKey: string = CookieUtil.getUserSSOKey(new ObjectID(id));
 
         expect(userSsoKey).toBe(`sso-${id}`);
     });
 
     test('Should remove all cookies', () => {
-        const cookies = {
+        const cookies: Dictionary<string> = {
             testName1: 'testValue1',
             testName2: 'testValue2',
         };

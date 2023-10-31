@@ -15,15 +15,20 @@ import {
     NextFunction,
 } from '../../Utils/Express';
 import { OnCallInputRequest } from 'Common/Types/Call/CallRequest';
+import { JSONObject } from 'Common/Types/JSON';
 
 jest.mock('twilio/lib/twiml/VoiceResponse');
 jest.mock('../../Utils/Response');
-jest.mock('../../Utils/JsonWebToken', () => ({
-    decodeJsonPayload: jest.fn(),
-}));
-jest.mock('Common/Types/JSONFunctions', () => ({
-    deserialize: jest.fn(),
-}));
+jest.mock('../../Utils/JsonWebToken', () => {
+    return {
+        decodeJsonPayload: jest.fn(),
+    };
+});
+jest.mock('Common/Types/JSONFunctions', () => {
+    return {
+        deserialize: jest.fn(),
+    };
+});
 
 describe('NotificationMiddleware', () => {
     describe('sendResponse', () => {
@@ -45,11 +50,13 @@ describe('NotificationMiddleware', () => {
 
         test('Should return correct message for a valid Digits value', async () => {
             onCallInputRequest['1234'] = { sayMessage: 'message 1' };
-            const responseInstance = new VoiceResponse();
+            const responseInstance: VoiceResponse = new VoiceResponse();
 
             (
                 VoiceResponse as jest.MockedClass<typeof VoiceResponse>
-            ).mockImplementation(() => responseInstance);
+            ).mockImplementation(() => {
+                return responseInstance;
+            });
             await NotificationMiddleware.sendResponse(
                 mockRequest,
                 mockResponse,
@@ -67,11 +74,13 @@ describe('NotificationMiddleware', () => {
         });
 
         test('Should return default message for an invalid Digits value', async () => {
-            const responseInstance = new VoiceResponse();
+            const responseInstance: VoiceResponse = new VoiceResponse();
 
             (
                 VoiceResponse as jest.MockedClass<typeof VoiceResponse>
-            ).mockImplementation(() => responseInstance);
+            ).mockImplementation(() => {
+                return responseInstance;
+            });
             await NotificationMiddleware.sendResponse(
                 mockRequest,
                 mockResponse,
@@ -162,7 +171,7 @@ describe('NotificationMiddleware', () => {
         test("Should call 'next' if data is valid", async () => {
             mockRequest.body['Digits'] = '1234';
             mockRequest.query['token'] = 'token';
-            const tokenData = { id: 1 };
+            const tokenData: JSONObject = { id: 1 };
 
             jest.spyOn(JSONFunctions, 'deserialize').mockReturnValue(tokenData);
             await NotificationMiddleware.isValidCallNotificationRequest(
