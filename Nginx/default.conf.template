@@ -62,6 +62,11 @@ upstream otel-collector {
 
 server {
 
+    gzip on;
+    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_proxied    no-cache no-store private expired auth;
+    gzip_min_length 1000;
+   
     listen 80 default_server;
 
     server_name  _; # All domains. 
@@ -72,6 +77,7 @@ server {
 
     fastcgi_buffers  16 16k;
     fastcgi_buffer_size  32k;
+
 
     location / {
        return 301 https://$host$request_uri;
@@ -141,6 +147,11 @@ server {
 }
 
 server {
+
+    gzip on;
+    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_proxied    no-cache no-store private expired auth;
+    gzip_min_length 1000;
 
     listen 443 default_server ssl; # Port HTTPS
 
@@ -232,6 +243,11 @@ server {
 }
 
 server {
+
+    gzip on;
+    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_proxied    no-cache no-store private expired auth;
+    gzip_min_length 1000;
     
     listen 80;
 
@@ -403,6 +419,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+
         proxy_pass http://status-page;
     }
 
