@@ -46,9 +46,7 @@ export class Service extends DatabaseService<MonitorGroup> {
                 limit: LIMIT_PER_PROJECT,
                 skip: 0,
                 select: {
-                    monitor: {
-                        currentMonitorStatusId: true,
-                    },
+                    monitorId: true,
                 },
                 props: {
                     isRoot: true,
@@ -68,8 +66,8 @@ export class Service extends DatabaseService<MonitorGroup> {
                     createdAt: QueryHelper.inBetween(startDate, endDate),
                 },
                 select: {
-                    monitorId: true,
                     createdAt: true,
+                    monitorId: true,
                     monitorStatus: {
                         name: true,
                         color: true,

@@ -58,7 +58,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                             DASHBOARD_API_URL.toString()
                         )
                             .addRoute(new MonitorGroup().getCrudApiPath()!)
-                            .addRoute('/current-status/')
+                            .addRoute('/timeline/')
                             .addRoute(`/${modelId.toString()}`),
                     }
                 );
@@ -116,7 +116,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 cardProps={{
-                    title: 'Monitor Group Hello',
+                    title: 'Monitor Group Details',
                     description:
                         'Here are more details for this monitor group.',
                 }}
@@ -230,7 +230,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
 
             <Card
                 title="Uptime Graph"
-                description="Here the 90 day uptime history of this monitor."
+                description="Here the 90 day uptime history of this monitor group."
             >
                 <MonitorUptimeGraph
                     error={error}
