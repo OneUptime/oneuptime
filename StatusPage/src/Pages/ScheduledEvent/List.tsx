@@ -86,6 +86,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
+
+                if (!response.isSuccess()) {
+                    throw response;
+                }
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
