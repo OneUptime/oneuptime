@@ -37,11 +37,15 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import StatusPageResource from 'Model/Models/StatusPageResource';
+import Dictionary from 'Common/Types/Dictionary';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
     scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>,
     scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
+    statusPageResources: Array<StatusPageResource>,
+    monitorsInGroup: Dictionary<Array<Object>>,
     isPreviewPage: boolean,
     isSummary: boolean
 ): EventItemComponentProps => {
@@ -82,7 +86,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenance.id?.toString() &&
             scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
@@ -102,7 +106,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenance.id?.toString() &&
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
         ) {
             timeline.push({
@@ -116,12 +120,12 @@ export const getScheduledEventEventItem: Function = (
                     .scheduledMaintenanceState.isScheduledState
                     ? IconProp.Clock
                     : scheduledMaintenanceEventstateTimeline
-                          .scheduledMaintenanceState.isOngoingState
-                    ? IconProp.Settings
-                    : scheduledMaintenanceEventstateTimeline
-                          .scheduledMaintenanceState.isResolvedState
-                    ? IconProp.CheckCircle
-                    : IconProp.ArrowCircleRight,
+                        .scheduledMaintenanceState.isOngoingState
+                        ? IconProp.Settings
+                        : scheduledMaintenanceEventstateTimeline
+                            .scheduledMaintenanceState.isResolvedState
+                            ? IconProp.CheckCircle
+                            : IconProp.ArrowCircleRight,
                 iconColor:
                     scheduledMaintenanceEventstateTimeline
                         .scheduledMaintenanceState.color || Grey,
@@ -146,30 +150,79 @@ export const getScheduledEventEventItem: Function = (
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
+    let namesOfResources: Array<StatusPageResource> = [];
+
+    if (scheduledMaintenance.monitors) {
+
+
+        const monitorIdsInThisScheduledMaintenance: Array<string> =
+            scheduledMaintenance.monitors.map((monitor) => {
+                return monitor.id!.toString();
+            }).filter((id) => {
+                return id !== undefined;
+            });
+
+        namesOfResources =
+            statusPageResources.filter((resource: StatusPageResource) => {
+                return resource.monitorId && monitorIdsInThisScheduledMaintenance.includes(resource.monitorId.toString());
+            });
+
+
+        // add names of the groups as well. 
+        namesOfResources = namesOfResources.concat(
+            statusPageResources.filter((resource: StatusPageResource) => {
+
+                if (!resource.monitorGroupId) {
+                    return false;
+                }
+
+                const monitorGroupId = resource.monitorGroupId.toString();
+
+                const monitorIdsInThisGroup = monitorsInGroup[monitorGroupId]!;
+
+                for (const monitorId of monitorIdsInThisGroup) {
+                    if (monitorIdsInThisScheduledMaintenance.find((id: string | undefined) => {
+                        return id?.toString() === monitorId.toString();
+                    })) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+        );
+
+    }
+
     return {
         eventTitle: scheduledMaintenance.title || '',
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
+        eventResourcesAffected: namesOfResources.map(
+            (i: StatusPageResource) => {
+                return i.displayName || '';
+            }
+        ),
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                        ] as Route)
-                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                  scheduledMaintenance.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[
+                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                    ] as Route)
+                    : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                scheduledMaintenance.id!
+            ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
         eventTypeColor: Yellow,
         eventSecondDescription: scheduledMaintenance.startsAt
             ? 'Scheduled at ' +
-              OneUptimeDate.getDateAsLocalFormattedString(
-                  scheduledMaintenance.startsAt!
-              )
+            OneUptimeDate.getDateAsLocalFormattedString(
+                scheduledMaintenance.startsAt!
+            )
             : '',
     };
 };
@@ -191,6 +244,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
+
+    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
+
+    const [statusPageResources, setStatusPageResources] = useState<
+        Array<StatusPageResource>
+    >([]);
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -240,18 +299,36 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
+
+            const statusPageResources: Array<StatusPageResource> =
+                JSONFunctions.fromJSONArray(
+                    (data['statusPageResources'] as JSONArray) || [],
+                    StatusPageResource
+                );
+
+            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
+                (data['monitorsInGroup'] as JSONObject) ||
+                {},
+            ) as Dictionary<Array<ObjectID>>;
 
             // save data. set()
             setscheduledMaintenanceEventsPublicNotes(
                 scheduledMaintenanceEventsPublicNotes
             );
             setscheduledMaintenanceEvent(scheduledMaintenanceEvent);
+            setStatusPageResources(statusPageResources);
+
             setscheduledMaintenanceStateTimelines(
                 scheduledMaintenanceStateTimelines
             );
+
+
+
+
+            setMonitorsInGroup(monitorsInGroup);
 
             setIsLoading(false);
             props.onLoadComplete();
@@ -279,6 +356,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 scheduledMaintenanceEvent,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
+                statusPageResources,
+                monitorsInGroup,
                 Boolean(StatusPageUtil.isPreviewPage())
             )
         );
@@ -313,8 +392,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                            ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
@@ -323,11 +402,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                            ] as Route)
                             : (RouteMap[
-                                  PageMap.SCHEDULED_EVENT_DETAIL
-                              ] as Route),
+                                PageMap.SCHEDULED_EVENT_DETAIL
+                            ] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),
                 },

@@ -410,3 +410,4 @@ export default class MonitorGroup extends BaseModel {
     })
     public labels?: Array<Label> = undefined;
 }
+

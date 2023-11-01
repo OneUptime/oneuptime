@@ -110,6 +110,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         null
     );
 
+    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
+    const [monitorGroupCurrentStatuses, setMonitorGroupCurrentStatuses] = useState<Dictionary<ObjectID>>({});
+
     StatusPageUtil.checkIfUserHasLoggedIn();
 
     const loadPage: Function = async () => {
@@ -192,12 +195,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (data['statusPage'] as JSONObject) || [],
                 StatusPage
             );
+
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline
                 );
+
+            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
+                (data['monitorsInGroup'] as JSONObject) ||
+                    {},
+            ) as Dictionary<Array<ObjectID>>;
+
+            const monitorGroupCurrentStatuses: Dictionary<ObjectID> = JSONFunctions.deserialize(
+                (data['monitorGroupCurrentStatuses'] as JSONObject) ||
+                    {},
+            ) as Dictionary<ObjectID>;
+
+            setMonitorsInGroup(monitorsInGroup);
+            setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
 
             // save data. set()
             setScheduledMaintenanceEventsPublicNotes(
@@ -221,7 +238,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             // Parse Data.
             setCurrentStatus(
-                getOverallMonitorStatus(statusPageResources, monitorStatuses)
+                getOverallMonitorStatus(statusPageResources, monitorStatuses, monitorGroupCurrentStatuses)
             );
 
             setIsLoading(false);
@@ -250,12 +267,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     const getOverallMonitorStatus: Function = (
         statusPageResources: Array<StatusPageResource>,
-        monitorStatuses: Array<MonitorStatus>
+        monitorStatuses: Array<MonitorStatus>,
+        monitorGroupCurrentStatuses: Dictionary<ObjectID>
     ): MonitorStatus | null => {
         let currentStatus: MonitorStatus | null =
             monitorStatuses.length > 0 && monitorStatuses[0]
                 ? monitorStatuses[0]
                 : null;
+
         const dict: Dictionary<number> = {};
 
         for (const resource of statusPageResources) {
@@ -271,6 +290,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ] = 1;
                 } else {
                     dict[resource.monitor?.currentMonitorStatusId.toString()]++;
+                }
+            }
+        }
+
+        // check status of monitor groups.
+
+        for (const groupId in monitorGroupCurrentStatuses) {
+
+            const statusId = monitorGroupCurrentStatuses[groupId];
+
+            if (statusId) {
+                if (
+                    !Object.keys(dict).includes(
+                        statusId.toString() ||
+                            ''
+                    )
+                ) {
+                    dict[
+                        statusId.toString()
+                    ] = 1;
+                } else {
+                    dict[statusId.toString()]++;
                 }
             }
         }
@@ -405,6 +446,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ),
                 incidentSeverity: activeIncident.incidentSeverity!,
                 incidentStateTimelines: [timeline],
+                monitorsInGroup: monitorsInGroup,
+                
             };
 
             groups.push(group);
@@ -466,6 +509,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         }
                     ),
                     scheduledMaintenanceStateTimelines: [timeline],
+                    monitorsInGroup: monitorsInGroup,
                 };
 
                 groups.push(group);
@@ -585,6 +629,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                             incidentGroup.publicNotes,
                                             incidentGroup.incidentStateTimelines,
                                             incidentGroup.incidentResources,
+                                            incidentGroup.monitorsInGroup, 
                                             StatusPageUtil.isPreviewPage(),
                                             true
                                         )}
@@ -610,6 +655,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                             scheduledEventGroup.publicNotes,
                                             scheduledEventGroup.scheduledMaintenanceStateTimelines,
                                             scheduledEventGroup.scheduledEventResources,
+                                            scheduledEventGroup.monitorsInGroup,
                                             StatusPageUtil.isPreviewPage(),
                                             true
                                         )}

@@ -35,6 +35,7 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import StatusPageResource from 'Model/Models/StatusPageResource';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -53,6 +54,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
+
+    const [statusPageResources, setStatusPageResources] = useState<
+        Array<StatusPageResource>
+    >([]);
+
+    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -94,9 +101,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
+
+            const statusPageResources: Array<StatusPageResource> =
+                JSONFunctions.fromJSONArray(
+                    (data['statusPageResources'] as JSONArray) || [],
+                    StatusPageResource
+                );
+
+            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
+                (data['monitorsInGroup'] as JSONObject) ||
+                {},
+            ) as Dictionary<Array<ObjectID>>;
+
+            setStatusPageResources(statusPageResources);
+            setMonitorsInGroup(monitorsInGroup);
 
             // save data. set()
             setscheduledMaintenanceEventsPublicNotes(
@@ -148,6 +169,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     scheduledMaintenance,
                     scheduledMaintenanceEventsPublicNotes,
                     scheduledMaintenanceStateTimelines,
+                    statusPageResources,
+                    monitorsInGroup,
                     Boolean(StatusPageUtil.isPreviewPage()),
                     true
                 )
@@ -192,15 +215,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                            ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
             ]}
         >
             {scheduledMaintenanceEvents &&
-            scheduledMaintenanceEvents.length > 0 ? (
+                scheduledMaintenanceEvents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
             ) : (
                 <></>

@@ -41,12 +41,14 @@ import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Label from 'Model/Models/Label';
+import Dictionary from 'Common/Types/Dictionary';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
     incidentPublicNotes: Array<IncidentPublicNote>,
     incidentStateTimelines: Array<IncidentStateTimeline>,
     statusPageResources: Array<StatusPageResource>,
+    monitorsInGroup: Dictionary<Array<Object>>,
     isPreviewPage: boolean,
     isSummary: boolean
 ): EventItemComponentProps => {
@@ -79,7 +81,7 @@ export const getIncidentEventItem: Function = (
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
             incidentPublicNote.incidentId?.toString() ===
-                incident.id?.toString() &&
+            incident.id?.toString() &&
             incidentPublicNote?.note
         ) {
             timeline.push({
@@ -100,7 +102,7 @@ export const getIncidentEventItem: Function = (
     for (const incidentStateTimeline of incidentStateTimelines) {
         if (
             incidentStateTimeline.incidentId?.toString() ===
-                incident.id?.toString() &&
+            incident.id?.toString() &&
             incidentStateTimeline.incidentState
         ) {
             timeline.push({
@@ -110,10 +112,10 @@ export const getIncidentEventItem: Function = (
                 icon: incidentStateTimeline.incidentState.isCreatedState
                     ? IconProp.Alert
                     : incidentStateTimeline.incidentState.isAcknowledgedState
-                    ? IconProp.TransparentCube
-                    : incidentStateTimeline.incidentState.isResolvedState
-                    ? IconProp.CheckCircle
-                    : IconProp.ArrowCircleRight,
+                        ? IconProp.TransparentCube
+                        : incidentStateTimeline.incidentState.isResolvedState
+                            ? IconProp.CheckCircle
+                            : IconProp.ArrowCircleRight,
                 iconColor: incidentStateTimeline.incidentState.color || Grey,
             });
 
@@ -135,15 +137,40 @@ export const getIncidentEventItem: Function = (
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
-    const monitorIds: Array<string | undefined> =
+    const monitorIdsInThisIncident: Array<string | undefined> =
         incident.monitors?.map((monitor: Monitor) => {
             return monitor._id;
         }) || [];
 
-    const namesOfResources: Array<StatusPageResource> =
+    let namesOfResources: Array<StatusPageResource> =
         statusPageResources.filter((resource: StatusPageResource) => {
-            return monitorIds.includes(resource.monitorId?.toString());
+            return monitorIdsInThisIncident.includes(resource.monitorId?.toString());
         });
+
+
+    // add names of the groups as well. 
+    namesOfResources = namesOfResources.concat(
+        statusPageResources.filter((resource: StatusPageResource) => {
+
+            if (!resource.monitorGroupId) {
+                return false;
+            }
+
+            const monitorGroupId = resource.monitorGroupId.toString();
+
+            const monitorIdsInThisGroup = monitorsInGroup[monitorGroupId]!;
+
+            for (const monitorId of monitorIdsInThisGroup) {
+                if (monitorIdsInThisIncident.find((id: string | undefined) => {
+                    return id?.toString() === monitorId.toString();
+                })) {
+                    return true;
+                }
+            }
+
+            return false;
+        })
+    );
 
     const data: EventItemComponentProps = {
         eventTitle: incident.title || '',
@@ -158,11 +185,11 @@ export const getIncidentEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                  incident.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                incident.id!
+            ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
@@ -170,7 +197,7 @@ export const getIncidentEventItem: Function = (
         anotherStatus: incident.incidentSeverity?.name,
         eventSecondDescription: incident.createdAt
             ? 'Created at ' +
-              OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
+            OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
             : '',
         eventTypeColor: Red,
         labels:
@@ -204,6 +231,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
     >([]);
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
+
+    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
+
 
     useAsyncEffect(async () => {
         try {
@@ -249,11 +279,20 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
+
             const incidentStateTimelines: Array<IncidentStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
+
+            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
+                (data['monitorsInGroup'] as JSONObject) ||
+                {},
+            ) as Dictionary<Array<ObjectID>>;
+
+
+            setMonitorsInGroup(monitorsInGroup);
 
             // save data. set()
             setIncidentPublicNotes(incidentPublicNotes);
@@ -289,6 +328,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 incidentPublicNotes,
                 incidentStateTimelines,
                 statusPageResources,
+                monitorsInGroup,
                 StatusPageUtil.isPreviewPage()
             )
         );
@@ -331,8 +371,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                  PageMap.PREVIEW_INCIDENT_DETAIL
-                              ] as Route)
+                                PageMap.PREVIEW_INCIDENT_DETAIL
+                            ] as Route)
                             : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),

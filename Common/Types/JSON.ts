@@ -123,6 +123,7 @@ export type JSONValue =
     | Array<JSONValue>
     | Array<Permission>
     | Array<JSONValue>
+    | Array<ObjectID>
     | CallRequest
     | undefined
     | null;

@@ -1,3 +1,5 @@
+import Dictionary from 'Common/Types/Dictionary';
+import ObjectID from 'Common/Types/ObjectID';
 import Incident from 'Model/Models/Incident';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
@@ -12,4 +14,5 @@ export default interface IncidentGroup {
     incidentState: IncidentState;
     incidentStateTimelines: Array<IncidentStateTimeline>;
     incidentResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
 }
