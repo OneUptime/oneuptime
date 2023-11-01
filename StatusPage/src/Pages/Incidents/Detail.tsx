@@ -265,9 +265,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
 
-                if (!response.isSuccess()) {
-                    throw response;
-                }
+            if (!response.isSuccess()) {
+                throw response;
+            }
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =

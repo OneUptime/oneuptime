@@ -543,7 +543,8 @@ export default class StatusPageAPI extends BaseAPI<
                             })
                             .map((monitor: StatusPageResource) => {
                                 return monitor.monitorId!;
-                            }).filter((id: ObjectID) => {
+                            })
+                            .filter((id: ObjectID) => {
                                 return Boolean(id); // remove nulls
                             });
 
@@ -587,13 +588,19 @@ export default class StatusPageAPI extends BaseAPI<
                                     return Boolean(id); // remove nulls
                                 });
 
-
-                        const shouuldShowTimelineForThisGroup = statusPageResources.find((resource: StatusPageResource) => {
-                            return resource.monitorGroupId?.toString() === monitorGroupId.toString() && resource.showStatusHistoryChart;
-                        });
+                        const shouldShowTimelineForThisGroup: boolean = Boolean(
+                            statusPageResources.find(
+                                (resource: StatusPageResource) => {
+                                    return (
+                                        resource.monitorGroupId?.toString() ===
+                                            monitorGroupId.toString() &&
+                                        resource.showStatusHistoryChart
+                                    );
+                                }
+                            )
+                        );
 
                         for (const monitorId of monitorsInGroupIds) {
-
                             if (!monitorId) {
                                 continue;
                             }
@@ -610,12 +617,17 @@ export default class StatusPageAPI extends BaseAPI<
 
                             // add this to the timeline event for this group.
 
-                            if (shouuldShowTimelineForThisGroup && !monitorsOnStatusPageForTimeline.find((item: ObjectID) => {
-                                return (
-                                    item.toString() === monitorId.toString()
-                                );
-                            }
-                            )) {
+                            if (
+                                shouldShowTimelineForThisGroup &&
+                                !monitorsOnStatusPageForTimeline.find(
+                                    (item: ObjectID) => {
+                                        return (
+                                            item.toString() ===
+                                            monitorId.toString()
+                                        );
+                                    }
+                                )
+                            ) {
                                 monitorsOnStatusPageForTimeline.push(monitorId);
                             }
                         }
@@ -623,8 +635,6 @@ export default class StatusPageAPI extends BaseAPI<
                         monitorsInGroup[monitorGroupId.toString()] =
                             monitorsInGroupIds;
                     }
-
-
 
                     let monitorStatusTimelines: Array<MonitorStatusTimeline> =
                         [];
