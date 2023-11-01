@@ -22,6 +22,7 @@ import Monitor from './Monitor';
 import StatusPageGroup from './StatusPageGroup';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import MonitorGroup from './MonitorGroup';
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
@@ -271,17 +272,95 @@ export default class StatusPageResource extends BaseModel {
     @Index()
     @TableColumn({
         type: TableColumnType.ObjectID,
-        required: true,
+        required: false,
         title: 'Monitor ID',
         description:
             'Relation to Monitor ID Resource in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public monitorId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'monitorGroupId',
+        type: TableColumnType.Entity,
+        modelType: MonitorGroup,
+        title: 'Monitor Group',
+        description:
+            'Relation to Monitor Group Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return MonitorGroup;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'monitorGroupId' })
+    public monitorGroup?: MonitorGroup = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        title: 'Monitor Group ID',
+        description:
+            'Relation to Monitor Group ID Resource in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public monitorGroupId?: ObjectID = undefined;
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

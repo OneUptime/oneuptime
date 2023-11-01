@@ -7,6 +7,8 @@ import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Project from 'Model/Models/Project';
 
 export interface ComponentProps {
     modelId: ObjectID;
@@ -15,6 +17,8 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const project: Project | null = ProjectUtil.getCurrentProject();
+
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
@@ -56,7 +60,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Resources">
                 <SideMenuItem
                     link={{
-                        title: 'Monitors',
+                        title: project?.isFeatureFlagMonitorGroupsEnabled
+                            ? 'Resources'
+                            : 'Monitors',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_RESOURCES

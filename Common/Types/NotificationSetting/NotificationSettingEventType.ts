@@ -11,10 +11,10 @@ enum NotificationSettingEventType {
     SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION = 'Send monitor status changed notification when I am the owner of the monitor',
 
     // Scheduled Maintenance
-    SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION = 'Send scheduled maintenance created notification when I am the owner of the scheduled maintenance',
-    SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION = 'Send scheduled maintenance note posted notification when I am the owner of the scheduled maintenance',
-    SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION = 'Send notification when I am added as a owner to the scheduled maintenance',
-    SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION = 'Send scheduled maintenance state changed notification when I am the owner of the scheduled maintenance',
+    SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION = 'Send event created notification when I am the owner of the event',
+    SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION = 'Send event note posted notification when I am the owner of the event',
+    SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION = 'Send notification when I am added as a owner to the event',
+    SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION = 'Send event state changed notification when I am the owner of the event',
 
     // Status Page
     SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION = 'Send status page announcement created notification when I am the owner of the status page',
