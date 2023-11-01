@@ -48,7 +48,7 @@ export const getIncidentEventItem: Function = (
     incidentPublicNotes: Array<IncidentPublicNote>,
     incidentStateTimelines: Array<IncidentStateTimeline>,
     statusPageResources: Array<StatusPageResource>,
-    monitorsInGroup: Dictionary<Array<Object>>,
+    monitorsInGroup: Dictionary<Array<ObjectID>>,
     isPreviewPage: boolean,
     isSummary: boolean
 ): EventItemComponentProps => {
@@ -81,7 +81,7 @@ export const getIncidentEventItem: Function = (
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
             incidentPublicNote.incidentId?.toString() ===
-            incident.id?.toString() &&
+                incident.id?.toString() &&
             incidentPublicNote?.note
         ) {
             timeline.push({
@@ -102,7 +102,7 @@ export const getIncidentEventItem: Function = (
     for (const incidentStateTimeline of incidentStateTimelines) {
         if (
             incidentStateTimeline.incidentId?.toString() ===
-            incident.id?.toString() &&
+                incident.id?.toString() &&
             incidentStateTimeline.incidentState
         ) {
             timeline.push({
@@ -112,10 +112,10 @@ export const getIncidentEventItem: Function = (
                 icon: incidentStateTimeline.incidentState.isCreatedState
                     ? IconProp.Alert
                     : incidentStateTimeline.incidentState.isAcknowledgedState
-                        ? IconProp.TransparentCube
-                        : incidentStateTimeline.incidentState.isResolvedState
-                            ? IconProp.CheckCircle
-                            : IconProp.ArrowCircleRight,
+                    ? IconProp.TransparentCube
+                    : incidentStateTimeline.incidentState.isResolvedState
+                    ? IconProp.CheckCircle
+                    : IconProp.ArrowCircleRight,
                 iconColor: incidentStateTimeline.incidentState.color || Grey,
             });
 
@@ -144,26 +144,29 @@ export const getIncidentEventItem: Function = (
 
     let namesOfResources: Array<StatusPageResource> =
         statusPageResources.filter((resource: StatusPageResource) => {
-            return monitorIdsInThisIncident.includes(resource.monitorId?.toString());
+            return monitorIdsInThisIncident.includes(
+                resource.monitorId?.toString()
+            );
         });
 
-
-    // add names of the groups as well. 
+    // add names of the groups as well.
     namesOfResources = namesOfResources.concat(
         statusPageResources.filter((resource: StatusPageResource) => {
-
             if (!resource.monitorGroupId) {
                 return false;
             }
 
-            const monitorGroupId = resource.monitorGroupId.toString();
+            const monitorGroupId: string = resource.monitorGroupId.toString();
 
-            const monitorIdsInThisGroup = monitorsInGroup[monitorGroupId]!;
+            const monitorIdsInThisGroup: Array<ObjectID> =
+                monitorsInGroup[monitorGroupId]! || [];
 
             for (const monitorId of monitorIdsInThisGroup) {
-                if (monitorIdsInThisIncident.find((id: string | undefined) => {
-                    return id?.toString() === monitorId.toString();
-                })) {
+                if (
+                    monitorIdsInThisIncident.find((id: string | undefined) => {
+                        return id?.toString() === monitorId.toString();
+                    })
+                ) {
                     return true;
                 }
             }
@@ -185,11 +188,11 @@ export const getIncidentEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                isPreviewPage
-                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                incident.id!
-            ),
+                  isPreviewPage
+                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                  incident.id!
+              ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
@@ -197,7 +200,7 @@ export const getIncidentEventItem: Function = (
         anotherStatus: incident.incidentSeverity?.name,
         eventSecondDescription: incident.createdAt
             ? 'Created at ' +
-            OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
+              OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
             : '',
         eventTypeColor: Red,
         labels:
@@ -232,8 +235,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
-    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
-
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
 
     useAsyncEffect(async () => {
         try {
@@ -286,11 +290,10 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     IncidentStateTimeline
                 );
 
-            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
-                (data['monitorsInGroup'] as JSONObject) ||
-                {},
-            ) as Dictionary<Array<ObjectID>>;
-
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
 
             setMonitorsInGroup(monitorsInGroup);
 
@@ -371,8 +374,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                PageMap.PREVIEW_INCIDENT_DETAIL
-                            ] as Route)
+                                  PageMap.PREVIEW_INCIDENT_DETAIL
+                              ] as Route)
                             : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),

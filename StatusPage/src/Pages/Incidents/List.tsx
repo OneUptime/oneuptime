@@ -55,8 +55,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
-    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
-
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -103,11 +104,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     IncidentStateTimeline
                 );
 
-            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
-                (data['monitorsInGroup'] as JSONObject) ||
-                {},
-            ) as Dictionary<Array<ObjectID>>;
-
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
 
             setMonitorsInGroup(monitorsInGroup);
 

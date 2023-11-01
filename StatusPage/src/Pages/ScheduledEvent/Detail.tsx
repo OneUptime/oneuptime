@@ -39,13 +39,14 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import Dictionary from 'Common/Types/Dictionary';
+import Monitor from 'Model/Models/Monitor';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
     scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>,
     scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
     statusPageResources: Array<StatusPageResource>,
-    monitorsInGroup: Dictionary<Array<Object>>,
+    monitorsInGroup: Dictionary<Array<ObjectID>>,
     isPreviewPage: boolean,
     isSummary: boolean
 ): EventItemComponentProps => {
@@ -86,7 +87,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString() &&
+                scheduledMaintenance.id?.toString() &&
             scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
@@ -106,7 +107,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString() &&
+                scheduledMaintenance.id?.toString() &&
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
         ) {
             timeline.push({
@@ -120,12 +121,12 @@ export const getScheduledEventEventItem: Function = (
                     .scheduledMaintenanceState.isScheduledState
                     ? IconProp.Clock
                     : scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState.isOngoingState
-                        ? IconProp.Settings
-                        : scheduledMaintenanceEventstateTimeline
-                            .scheduledMaintenanceState.isResolvedState
-                            ? IconProp.CheckCircle
-                            : IconProp.ArrowCircleRight,
+                          .scheduledMaintenanceState.isOngoingState
+                    ? IconProp.Settings
+                    : scheduledMaintenanceEventstateTimeline
+                          .scheduledMaintenanceState.isResolvedState
+                    ? IconProp.CheckCircle
+                    : IconProp.ArrowCircleRight,
                 iconColor:
                     scheduledMaintenanceEventstateTimeline
                         .scheduledMaintenanceState.color || Grey,
@@ -153,37 +154,47 @@ export const getScheduledEventEventItem: Function = (
     let namesOfResources: Array<StatusPageResource> = [];
 
     if (scheduledMaintenance.monitors) {
-
-
         const monitorIdsInThisScheduledMaintenance: Array<string> =
-            scheduledMaintenance.monitors.map((monitor) => {
-                return monitor.id!.toString();
-            }).filter((id) => {
-                return id !== undefined;
-            });
+            scheduledMaintenance.monitors
+                .map((monitor: Monitor) => {
+                    return monitor.id!.toString();
+                })
+                .filter((id: string) => {
+                    return Boolean(id);
+                });
 
-        namesOfResources =
-            statusPageResources.filter((resource: StatusPageResource) => {
-                return resource.monitorId && monitorIdsInThisScheduledMaintenance.includes(resource.monitorId.toString());
-            });
+        namesOfResources = statusPageResources.filter(
+            (resource: StatusPageResource) => {
+                return (
+                    resource.monitorId &&
+                    monitorIdsInThisScheduledMaintenance.includes(
+                        resource.monitorId.toString()
+                    )
+                );
+            }
+        );
 
-
-        // add names of the groups as well. 
+        // add names of the groups as well.
         namesOfResources = namesOfResources.concat(
             statusPageResources.filter((resource: StatusPageResource) => {
-
                 if (!resource.monitorGroupId) {
                     return false;
                 }
 
-                const monitorGroupId = resource.monitorGroupId.toString();
+                const monitorGroupId: string =
+                    resource.monitorGroupId.toString();
 
-                const monitorIdsInThisGroup = monitorsInGroup[monitorGroupId]!;
+                const monitorIdsInThisGroup: Array<ObjectID> =
+                    monitorsInGroup[monitorGroupId]!;
 
                 for (const monitorId of monitorIdsInThisGroup) {
-                    if (monitorIdsInThisScheduledMaintenance.find((id: string | undefined) => {
-                        return id?.toString() === monitorId.toString();
-                    })) {
+                    if (
+                        monitorIdsInThisScheduledMaintenance.find(
+                            (id: string | undefined) => {
+                                return id?.toString() === monitorId.toString();
+                            }
+                        )
+                    ) {
                         return true;
                     }
                 }
@@ -191,7 +202,6 @@ export const getScheduledEventEventItem: Function = (
                 return false;
             })
         );
-
     }
 
     return {
@@ -207,22 +217,22 @@ export const getScheduledEventEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                isPreviewPage
-                    ? (RouteMap[
-                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                    ] as Route)
-                    : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                scheduledMaintenance.id!
-            ),
+                  isPreviewPage
+                      ? (RouteMap[
+                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                        ] as Route)
+                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                  scheduledMaintenance.id!
+              ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
         eventTypeColor: Yellow,
         eventSecondDescription: scheduledMaintenance.startsAt
             ? 'Scheduled at ' +
-            OneUptimeDate.getDateAsLocalFormattedString(
-                scheduledMaintenance.startsAt!
-            )
+              OneUptimeDate.getDateAsLocalFormattedString(
+                  scheduledMaintenance.startsAt!
+              )
             : '',
     };
 };
@@ -245,7 +255,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
-    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
 
     const [statusPageResources, setStatusPageResources] = useState<
         Array<StatusPageResource>
@@ -299,7 +311,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -309,10 +321,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     StatusPageResource
                 );
 
-            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
-                (data['monitorsInGroup'] as JSONObject) ||
-                {},
-            ) as Dictionary<Array<ObjectID>>;
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
 
             // save data. set()
             setscheduledMaintenanceEventsPublicNotes(
@@ -324,9 +336,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setscheduledMaintenanceStateTimelines(
                 scheduledMaintenanceStateTimelines
             );
-
-
-
 
             setMonitorsInGroup(monitorsInGroup);
 
@@ -392,8 +401,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                            ] as Route)
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
@@ -402,11 +411,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                            ] as Route)
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                              ] as Route)
                             : (RouteMap[
-                                PageMap.SCHEDULED_EVENT_DETAIL
-                            ] as Route),
+                                  PageMap.SCHEDULED_EVENT_DETAIL
+                              ] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),
                 },

@@ -395,11 +395,8 @@ export default class StatusPageAPI extends BaseAPI<
                 res: ExpressResponse,
                 next: NextFunction
             ) => {
-
                 const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
                 const endDate: Date = OneUptimeDate.getCurrentDate();
-
-
 
                 try {
                     const objectId: ObjectID = new ObjectID(
@@ -504,7 +501,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     _id: true,
                                     currentMonitorStatusId: true,
                                 },
-                                monitorGroupId: true
+                                monitorGroupId: true,
                             },
                             sort: {
                                 order: SortOrder.Ascending,
@@ -516,67 +513,83 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                         });
 
+                    const monitorGroupIds: Array<ObjectID> = statusPageResources
+                        .map((resource: StatusPageResource) => {
+                            return resource.monitorGroupId!;
+                        })
+                        .filter((id: ObjectID) => {
+                            return Boolean(id); // remove nulls
+                        });
 
-                    const monitorGroupIds: Array<ObjectID> = statusPageResources.map((resource: StatusPageResource) => {
-                        return resource.monitorGroupId!;
-                    }).filter((id: ObjectID) => {
-                        return !!id; // remove nulls
-                    });
-
-                    // get monitors in the group. 
-                    const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
+                    // get monitors in the group.
+                    const monitorGroupCurrentStatuses: Dictionary<ObjectID> =
+                        {};
                     const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
 
                     // get monitor status charts.
                     const monitorsOnStatusPage: Array<ObjectID> =
-                        statusPageResources.map(
-                            (monitor: StatusPageResource) => {
+                        statusPageResources
+                            .map((monitor: StatusPageResource) => {
                                 return monitor.monitorId!;
-                            }
-                        ).filter((id: ObjectID) => {
-                            return !!id; // remove nulls
-                        });
-
+                            })
+                            .filter((id: ObjectID) => {
+                                return Boolean(id); // remove nulls
+                            });
 
                     for (const monitorGroupId of monitorGroupIds) {
                         // get current status of monitors in the group.
 
-                        const currentStatus: MonitorStatus = await MonitorGroupService.getCurrentStatus(monitorGroupId, {
-                            isRoot: true
-                        });
+                        const currentStatus: MonitorStatus =
+                            await MonitorGroupService.getCurrentStatus(
+                                monitorGroupId,
+                                {
+                                    isRoot: true,
+                                }
+                            );
 
-                        monitorGroupCurrentStatuses[monitorGroupId.toString()] = currentStatus.id!;
+                        monitorGroupCurrentStatuses[monitorGroupId.toString()] =
+                            currentStatus.id!;
 
                         // get monitors in the group.
 
-                        const groupResources: Array<MonitorGroupResource> = await MonitorGroupResourceService.findBy({
-                            query: {
-                                monitorGroupId: monitorGroupId
-                            },
-                            select: {
-                                monitorId: true
-                            },
-                            props: {
-                                isRoot: true
-                            },
-                            limit: LIMIT_PER_PROJECT,
-                            skip: 0
-                        })
+                        const groupResources: Array<MonitorGroupResource> =
+                            await MonitorGroupResourceService.findBy({
+                                query: {
+                                    monitorGroupId: monitorGroupId,
+                                },
+                                select: {
+                                    monitorId: true,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                                limit: LIMIT_PER_PROJECT,
+                                skip: 0,
+                            });
 
-                        const monitorsInGroupIds: Array<ObjectID> = groupResources.map((resource: MonitorGroupResource) => {
-                            return resource.monitorId!;
-                        }).filter((id: ObjectID) => {
-                            return !!id; // remove nulls
-                        });
+                        const monitorsInGroupIds: Array<ObjectID> =
+                            groupResources
+                                .map((resource: MonitorGroupResource) => {
+                                    return resource.monitorId!;
+                                })
+                                .filter((id: ObjectID) => {
+                                    return Boolean(id); // remove nulls
+                                });
 
-                        for(const monitorId of monitorsInGroupIds){
-                            if(!monitorsOnStatusPage.find((item)=> item.toString() === monitorId.toString())){
+                        for (const monitorId of monitorsInGroupIds) {
+                            if (
+                                !monitorsOnStatusPage.find((item: ObjectID) => {
+                                    return (
+                                        item.toString() === monitorId.toString()
+                                    );
+                                })
+                            ) {
                                 monitorsOnStatusPage.push(monitorId);
                             }
                         }
 
-                        monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
-
+                        monitorsInGroup[monitorGroupId.toString()] =
+                            monitorsInGroupIds;
                     }
 
                     const monitorsOnStatusPageForTimeline: Array<ObjectID> =
@@ -587,7 +600,6 @@ export default class StatusPageAPI extends BaseAPI<
                             .map((monitor: StatusPageResource) => {
                                 return monitor.monitorId!;
                             });
-
 
                     let monitorStatusTimelines: Array<MonitorStatusTimeline> =
                         [];
@@ -983,8 +995,11 @@ export default class StatusPageAPI extends BaseAPI<
                                 ScheduledMaintenanceStateTimeline
                             ),
 
-                        monitorGroupCurrentStatuses: JSONFunctions.serialize(monitorGroupCurrentStatuses),
-                        monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+                        monitorGroupCurrentStatuses: JSONFunctions.serialize(
+                            monitorGroupCurrentStatuses
+                        ),
+                        monitorsInGroup:
+                            JSONFunctions.serialize(monitorsInGroup),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -1307,6 +1322,7 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                         currentMonitorStatusId: true,
                     },
+                    monitorGroupId: true,
                 },
 
                 skip: 0,
@@ -1485,6 +1501,65 @@ export default class StatusPageAPI extends BaseAPI<
                 });
         }
 
+        const monitorGroupIds: Array<ObjectID> = statusPageResources
+            .map((resource: StatusPageResource) => {
+                return resource.monitorGroupId!;
+            })
+            .filter((id: ObjectID) => {
+                return Boolean(id); // remove nulls
+            });
+
+        // get monitors in the group.
+        const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+        // get monitor status charts.
+        const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+            .map((monitor: StatusPageResource) => {
+                return monitor.monitorId!;
+            })
+            .filter((id: ObjectID) => {
+                return Boolean(id); // remove nulls
+            });
+
+        for (const monitorGroupId of monitorGroupIds) {
+            // get monitors in the group.
+
+            const groupResources: Array<MonitorGroupResource> =
+                await MonitorGroupResourceService.findBy({
+                    query: {
+                        monitorGroupId: monitorGroupId,
+                    },
+                    select: {
+                        monitorId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                });
+
+            const monitorsInGroupIds: Array<ObjectID> = groupResources
+                .map((resource: MonitorGroupResource) => {
+                    return resource.monitorId!;
+                })
+                .filter((id: ObjectID) => {
+                    return Boolean(id); // remove nulls
+                });
+
+            for (const monitorId of monitorsInGroupIds) {
+                if (
+                    !monitorsOnStatusPage.find((item: ObjectID) => {
+                        return item.toString() === monitorId.toString();
+                    })
+                ) {
+                    monitorsOnStatusPage.push(monitorId);
+                }
+            }
+
+            monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+        }
+
         const response: JSONObject = {
             scheduledMaintenanceEventsPublicNotes: JSONFunctions.toJSONArray(
                 scheduledMaintenanceEventsPublicNotes,
@@ -1502,6 +1577,7 @@ export default class StatusPageAPI extends BaseAPI<
                 scheduledMaintenanceStateTimelines,
                 ScheduledMaintenanceStateTimeline
             ),
+            monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
         };
 
         return response;
@@ -1666,6 +1742,7 @@ export default class StatusPageAPI extends BaseAPI<
                         _id: true,
                         currentMonitorStatusId: true,
                     },
+                    monitorGroupId: true,
                 },
 
                 skip: 0,
@@ -1675,12 +1752,65 @@ export default class StatusPageAPI extends BaseAPI<
                 },
             });
 
+        const monitorGroupIds: Array<ObjectID> = statusPageResources
+            .map((resource: StatusPageResource) => {
+                return resource.monitorGroupId!;
+            })
+            .filter((id: ObjectID) => {
+                return Boolean(id); // remove nulls
+            });
+
+        const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
         // get monitor status charts.
-        const monitorsOnStatusPage: Array<ObjectID> = statusPageResources.map(
-            (monitor: StatusPageResource) => {
+        const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+            .map((monitor: StatusPageResource) => {
                 return monitor.monitorId!;
+            })
+            .filter((id: ObjectID) => {
+                return Boolean(id); // remove nulls
+            });
+
+        for (const monitorGroupId of monitorGroupIds) {
+            // get current status of monitors in the group.
+
+            // get monitors in the group.
+
+            const groupResources: Array<MonitorGroupResource> =
+                await MonitorGroupResourceService.findBy({
+                    query: {
+                        monitorGroupId: monitorGroupId,
+                    },
+                    select: {
+                        monitorId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                });
+
+            const monitorsInGroupIds: Array<ObjectID> = groupResources
+                .map((resource: MonitorGroupResource) => {
+                    return resource.monitorId!;
+                })
+                .filter((id: ObjectID) => {
+                    return Boolean(id); // remove nulls
+                });
+
+            for (const monitorId of monitorsInGroupIds) {
+                if (
+                    !monitorsOnStatusPage.find((item: ObjectID) => {
+                        return item.toString() === monitorId.toString();
+                    })
+                ) {
+                    monitorsOnStatusPage.push(monitorId);
+                }
             }
-        );
+
+            monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+        }
 
         const today: Date = OneUptimeDate.getCurrentDate();
         const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
@@ -1851,6 +1981,7 @@ export default class StatusPageAPI extends BaseAPI<
                 incidentStateTimelines,
                 IncidentStateTimeline
             ),
+            monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
         };
 
         return response;

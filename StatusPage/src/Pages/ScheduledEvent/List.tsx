@@ -59,7 +59,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         Array<StatusPageResource>
     >([]);
 
-    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -101,7 +103,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -111,10 +113,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     StatusPageResource
                 );
 
-            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
-                (data['monitorsInGroup'] as JSONObject) ||
-                {},
-            ) as Dictionary<Array<ObjectID>>;
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
 
             setStatusPageResources(statusPageResources);
             setMonitorsInGroup(monitorsInGroup);
@@ -215,15 +217,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                            ] as Route)
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
             ]}
         >
             {scheduledMaintenanceEvents &&
-                scheduledMaintenanceEvents.length > 0 ? (
+            scheduledMaintenanceEvents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
             ) : (
                 <></>

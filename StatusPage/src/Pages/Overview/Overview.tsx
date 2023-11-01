@@ -110,8 +110,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    const [monitorsInGroup, setMonitorsInGroup] = useState<Dictionary<Array<ObjectID>>>({});
-    const [monitorGroupCurrentStatuses, setMonitorGroupCurrentStatuses] = useState<Dictionary<ObjectID>>({});
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
+
+    const [monitorGroupCurrentStatuses, setMonitorGroupCurrentStatuses] =
+        useState<Dictionary<ObjectID>>({});
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -203,15 +207,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ScheduledMaintenanceStateTimeline
                 );
 
-            const monitorsInGroup: Dictionary<Array<ObjectID>> = JSONFunctions.deserialize(
-                (data['monitorsInGroup'] as JSONObject) ||
-                    {},
-            ) as Dictionary<Array<ObjectID>>;
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
 
-            const monitorGroupCurrentStatuses: Dictionary<ObjectID> = JSONFunctions.deserialize(
-                (data['monitorGroupCurrentStatuses'] as JSONObject) ||
-                    {},
-            ) as Dictionary<ObjectID>;
+            const monitorGroupCurrentStatuses: Dictionary<ObjectID> =
+                JSONFunctions.deserialize(
+                    (data['monitorGroupCurrentStatuses'] as JSONObject) || {}
+                ) as Dictionary<ObjectID>;
 
             setMonitorsInGroup(monitorsInGroup);
             setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
@@ -238,7 +242,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             // Parse Data.
             setCurrentStatus(
-                getOverallMonitorStatus(statusPageResources, monitorStatuses, monitorGroupCurrentStatuses)
+                getOverallMonitorStatus(
+                    statusPageResources,
+                    monitorStatuses,
+                    monitorGroupCurrentStatuses
+                )
             );
 
             setIsLoading(false);
@@ -297,19 +305,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         // check status of monitor groups.
 
         for (const groupId in monitorGroupCurrentStatuses) {
-
-            const statusId = monitorGroupCurrentStatuses[groupId];
+            const statusId: ObjectID | undefined =
+                monitorGroupCurrentStatuses[groupId];
 
             if (statusId) {
-                if (
-                    !Object.keys(dict).includes(
-                        statusId.toString() ||
-                            ''
-                    )
-                ) {
-                    dict[
-                        statusId.toString()
-                    ] = 1;
+                if (!Object.keys(dict).includes(statusId.toString() || '')) {
+                    dict[statusId.toString()] = 1;
                 } else {
                     dict[statusId.toString()]++;
                 }
@@ -348,44 +349,119 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
-                let currentStatus: MonitorStatus | undefined =
-                    monitorStatuses.find((status: MonitorStatus) => {
-                        return (
-                            status._id?.toString() ===
-                            resource.monitor?.currentMonitorStatusId?.toString()
-                        );
-                    });
+                // if its not a monitor or a monitor group, then continue. This should ideally not happen.
 
-                if (!currentStatus) {
-                    currentStatus = new MonitorStatus();
-                    currentStatus.name = 'Operational';
-                    currentStatus.color = Green;
+                if (!resource.monitor && !resource.monitorGroupId) {
+                    continue;
                 }
 
-                elements.push(
-                    <MonitorOverview
-                        key={Math.random()}
-                        monitorName={
-                            resource.displayName || resource.monitor?.name || ''
-                        }
-                        description={resource.displayDescription || ''}
-                        tooltip={resource.displayTooltip || ''}
-                        monitorStatus={currentStatus}
-                        monitorStatusTimeline={[
-                            ...monitorStatusTimelines,
-                        ].filter((timeline: MonitorStatusTimeline) => {
+                // if its a monitor
+
+                if (resource.monitor) {
+                    let currentStatus: MonitorStatus | undefined =
+                        monitorStatuses.find((status: MonitorStatus) => {
                             return (
-                                timeline.monitorId?.toString() ===
-                                resource.monitorId?.toString()
+                                status._id?.toString() ===
+                                resource.monitor?.currentMonitorStatusId?.toString()
                             );
-                        })}
-                        startDate={startDate}
-                        endDate={endDate}
-                        showHistoryChart={resource.showStatusHistoryChart}
-                        showCurrentStatus={resource.showCurrentStatus}
-                        uptimeGraphHeight={10}
-                    />
-                );
+                        });
+
+                    if (!currentStatus) {
+                        currentStatus = new MonitorStatus();
+                        currentStatus.name = 'Operational';
+                        currentStatus.color = Green;
+                    }
+
+                    elements.push(
+                        <MonitorOverview
+                            key={Math.random()}
+                            monitorName={
+                                resource.displayName ||
+                                resource.monitor?.name ||
+                                ''
+                            }
+                            description={resource.displayDescription || ''}
+                            tooltip={resource.displayTooltip || ''}
+                            monitorStatus={currentStatus}
+                            monitorStatusTimeline={[
+                                ...monitorStatusTimelines,
+                            ].filter((timeline: MonitorStatusTimeline) => {
+                                return (
+                                    timeline.monitorId?.toString() ===
+                                    resource.monitorId?.toString()
+                                );
+                            })}
+                            startDate={startDate}
+                            endDate={endDate}
+                            showHistoryChart={resource.showStatusHistoryChart}
+                            showCurrentStatus={resource.showCurrentStatus}
+                            uptimeGraphHeight={10}
+                        />
+                    );
+                }
+
+                // if its a monitor group, then...
+
+                if (resource.monitorGroupId) {
+                    let currentStatus: MonitorStatus | undefined =
+                        monitorStatuses.find((status: MonitorStatus) => {
+                            return (
+                                status._id?.toString() ===
+                                monitorGroupCurrentStatuses[
+                                    resource.monitorGroupId?.toString() || ''
+                                ]
+                            );
+                        });
+
+                    if (!currentStatus) {
+                        currentStatus = new MonitorStatus();
+                        currentStatus.name = 'Operational';
+                        currentStatus.color = Green;
+                    }
+
+                    elements.push(
+                        <MonitorOverview
+                            key={Math.random()}
+                            monitorName={
+                                resource.displayName ||
+                                resource.monitor?.name ||
+                                ''
+                            }
+                            description={resource.displayDescription || ''}
+                            tooltip={resource.displayTooltip || ''}
+                            monitorStatus={currentStatus}
+                            monitorStatusTimeline={[
+                                ...monitorStatusTimelines,
+                            ].filter((timeline: MonitorStatusTimeline) => {
+                                const monitorsInThisGroup:
+                                    | Array<ObjectID>
+                                    | undefined =
+                                    monitorsInGroup[
+                                        resource.monitorGroupId?.toString() ||
+                                            ''
+                                    ];
+
+                                if (!monitorsInThisGroup) {
+                                    return false;
+                                }
+
+                                return monitorsInThisGroup.find(
+                                    (monitorId: ObjectID) => {
+                                        return (
+                                            monitorId.toString() ===
+                                            timeline.monitorId?.toString()
+                                        );
+                                    }
+                                );
+                            })}
+                            startDate={startDate}
+                            endDate={endDate}
+                            showHistoryChart={resource.showStatusHistoryChart}
+                            showCurrentStatus={resource.showCurrentStatus}
+                            uptimeGraphHeight={10}
+                        />
+                    );
+                }
             }
         }
 
@@ -447,7 +523,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 incidentSeverity: activeIncident.incidentSeverity!,
                 incidentStateTimelines: [timeline],
                 monitorsInGroup: monitorsInGroup,
-                
             };
 
             groups.push(group);
@@ -629,7 +704,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                             incidentGroup.publicNotes,
                                             incidentGroup.incidentStateTimelines,
                                             incidentGroup.incidentResources,
-                                            incidentGroup.monitorsInGroup, 
+                                            incidentGroup.monitorsInGroup,
                                             StatusPageUtil.isPreviewPage(),
                                             true
                                         )}
