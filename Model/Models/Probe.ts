@@ -1,4 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    ManyToMany,
+    JoinTable,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import ColumnType from 'Common/Types/Database/ColumnType';
@@ -21,6 +28,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import File from './File';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import Label from './Label';
 
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
@@ -469,4 +477,51 @@ export default class Probe extends BaseModel {
         default: false,
     })
     public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+        title: 'Labels',
+        description:
+            'Relation to Labels Array where this object is categorized in.',
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'ProbeLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'probeId',
+            referencedColumnName: '_id',
+        },
+    })
+    public labels?: Array<Label> = undefined;
 }
