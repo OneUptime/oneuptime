@@ -9,7 +9,7 @@ import Navigation from '../../Utils/Navigation';
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement> | string;
     className?: undefined | string;
-    to: Route | URL | null | undefined;
+    to?: Route | URL | null | undefined;
     onClick?: undefined | (() => void);
     onNavigateComplete?: (() => void) | undefined;
     openInNewTab?: boolean | undefined;

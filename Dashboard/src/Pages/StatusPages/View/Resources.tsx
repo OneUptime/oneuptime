@@ -30,6 +30,10 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import API from 'CommonUI/src/Utils/API/API';
 import StatusPage from 'Model/Models/StatusPage';
+import { ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import Link from 'CommonUI/src/Components/Link/Link';
+import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -39,6 +43,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     const [groups, setGroups] = useState<Array<StatusPageGroup>>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
+
+    const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
 
     const fetchGroups: Function = async () => {
         setError('');
@@ -75,6 +81,143 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     useEffect(() => {
         fetchGroups();
     }, []);
+
+    const getFooterForMonitor: Function = (): ReactElement => {
+        if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
+            if (!addMonitorGroup) {
+                return (
+                    <Link
+                        onClick={() => {
+                            setAddMonitorGroup(true);
+                        }}
+                        className="mt-1 text-sm text-gray-500 underline"
+                    >
+                        <div>
+                            <p> Add a Monitor Group instead. </p>
+                        </div>
+                    </Link>
+                );
+            }
+            return (
+                <Link
+                    onClick={() => {
+                        setAddMonitorGroup(false);
+                    }}
+                    className="mt-1 text-sm text-gray-500 underline"
+                >
+                    <div>
+                        <p> Add a Monitor instead. </p>
+                    </div>
+                </Link>
+            );
+        }
+
+        return <></>;
+    };
+
+    let formFields: Array<ModelField<StatusPageResource>> = [
+        {
+            field: {
+                monitor: true,
+            },
+            title: 'Monitor',
+            description:
+                'Select monitor that will be shown on the status page.',
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+                type: Monitor,
+                labelField: 'name',
+                valueField: '_id',
+            },
+            required: true,
+            placeholder: 'Select Monitor',
+            stepId: 'monitor-details',
+            footerElement: getFooterForMonitor(),
+        },
+    ];
+
+    if (addMonitorGroup) {
+        formFields = [
+            {
+                field: {
+                    monitorGroup: true,
+                },
+                title: 'Monitor Group',
+                description:
+                    'Select monitor group that will be shown on the status page.',
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                    type: MonitorGroup,
+                    labelField: 'name',
+                    valueField: '_id',
+                },
+                required: true,
+                placeholder: 'Select Monitor Group',
+                stepId: 'monitor-details',
+                footerElement: getFooterForMonitor(),
+            },
+        ];
+    }
+
+    formFields = formFields.concat([
+        {
+            field: {
+                displayName: true,
+            },
+            title: 'Display Name',
+            description:
+                'This will be the name that will be shown on the status page',
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: 'Display Name',
+            stepId: 'monitor-details',
+        },
+        {
+            field: {
+                displayDescription: true,
+            },
+            title: 'Description',
+            fieldType: FormFieldSchemaType.Markdown,
+            required: false,
+            placeholder: '',
+            stepId: 'monitor-details',
+        },
+        {
+            field: {
+                displayTooltip: true,
+            },
+            title: 'Tooltip ',
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            description:
+                'This will show up as tooltip beside the resource on your status page.',
+            placeholder: 'Tooltip',
+            stepId: 'advanced',
+        },
+        {
+            field: {
+                showCurrentStatus: true,
+            },
+            title: 'Show Current Resource Status',
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+            description:
+                'Current Resource Status will be shown beside this resource on your status page.',
+            stepId: 'advanced',
+        },
+        {
+            field: {
+                showStatusHistoryChart: true,
+            },
+            title: 'Show Status History Chart',
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description: 'Show resource status history for the past 90 days. ',
+            defaultValue: true,
+            stepId: 'advanced',
+        },
+    ]);
 
     const getModelTable: Function = (
         statusPageGroupId: ObjectID | null,
@@ -137,86 +280,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         id: 'advanced',
                     },
                 ]}
-                formFields={[
-                    {
-                        field: {
-                            monitor: true,
-                        },
-                        title: 'Monitor',
-                        description:
-                            'Select monitor that will be shown on the status page.',
-                        fieldType: FormFieldSchemaType.Dropdown,
-                        dropdownModal: {
-                            type: Monitor,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: true,
-                        placeholder: 'Select Monitor',
-                        stepId: 'monitor-details',
-                    },
-                    {
-                        field: {
-                            displayName: true,
-                        },
-                        title: 'Display Name',
-                        description:
-                            'This will be the name that will be shown on the status page',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'Display Name',
-                        stepId: 'monitor-details',
-                    },
-                    {
-                        field: {
-                            displayDescription: true,
-                        },
-                        title: 'Description',
-                        fieldType: FormFieldSchemaType.Markdown,
-                        required: false,
-                        placeholder: '',
-                        stepId: 'monitor-details',
-                    },
-                    {
-                        field: {
-                            displayTooltip: true,
-                        },
-                        title: 'Tooltip ',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: false,
-                        description:
-                            'This will show up as tooltip beside the resource on your status page.',
-                        placeholder: 'Tooltip',
-                        stepId: 'advanced',
-                    },
-                    {
-                        field: {
-                            showCurrentStatus: true,
-                        },
-                        title: 'Show Current Resource Status',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                        defaultValue: true,
-                        description:
-                            'Current Resource Status will be shown beside this resource on your status page.',
-                        stepId: 'advanced',
-                    },
-                    {
-                        field: {
-                            showStatusHistoryChart: true,
-                        },
-                        title: 'Show Status History Chart',
-                        fieldType: FormFieldSchemaType.Toggle,
-                        required: false,
-                        description:
-                            'Show resource status history for the past 90 days. ',
-                        defaultValue: true,
-                        stepId: 'advanced',
-                    },
-                ]}
+                formFields={formFields}
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                selectMoreFields={{
+                    monitorGroup: {
+                        name: true,
+                        _id: true,
+                        projectId: true,
+                    },
+                }}
                 columns={[
                     {
                         field: {
@@ -226,7 +300,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 projectId: true,
                             },
                         },
-                        title: 'Monitor',
+                        title: props.currentProject
+                            ?.isFeatureFlagMonitorGroupsEnabled
+                            ? 'Resource'
+                            : 'Monitor',
                         type: FieldType.Entity,
                         isFilterable: true,
                         filterEntityType: Monitor,
@@ -239,17 +316,47 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
-                            return (
-                                <MonitorElement
-                                    monitor={
-                                        JSONFunctions.fromJSON(
-                                            (item['monitor'] as JSONObject) ||
-                                                [],
-                                            Monitor
-                                        ) as Monitor
-                                    }
-                                />
-                            );
+                            if (item['monitor']) {
+                                return (
+                                    <MonitorElement
+                                        monitor={
+                                            JSONFunctions.fromJSON(
+                                                (item[
+                                                    'monitor'
+                                                ] as JSONObject) || [],
+                                                Monitor
+                                            ) as Monitor
+                                        }
+                                        showIcon={
+                                            props.currentProject
+                                                ?.isFeatureFlagMonitorGroupsEnabled ||
+                                            false
+                                        }
+                                    />
+                                );
+                            }
+
+                            if (item['monitorGroup']) {
+                                return (
+                                    <MonitorGroupElement
+                                        monitorGroup={
+                                            JSONFunctions.fromJSON(
+                                                (item[
+                                                    'monitorGroup'
+                                                ] as JSONObject) || [],
+                                                MonitorGroup
+                                            ) as MonitorGroup
+                                        }
+                                        showIcon={
+                                            props.currentProject
+                                                ?.isFeatureFlagMonitorGroupsEnabled ||
+                                            false
+                                        }
+                                    />
+                                );
+                            }
+
+                            return <></>;
                         },
                     },
                     {

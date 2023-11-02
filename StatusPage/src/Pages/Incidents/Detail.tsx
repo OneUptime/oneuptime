@@ -41,12 +41,14 @@ import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Label from 'Model/Models/Label';
+import Dictionary from 'Common/Types/Dictionary';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
     incidentPublicNotes: Array<IncidentPublicNote>,
     incidentStateTimelines: Array<IncidentStateTimeline>,
     statusPageResources: Array<StatusPageResource>,
+    monitorsInGroup: Dictionary<Array<ObjectID>>,
     isPreviewPage: boolean,
     isSummary: boolean
 ): EventItemComponentProps => {
@@ -135,15 +137,43 @@ export const getIncidentEventItem: Function = (
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
-    const monitorIds: Array<string | undefined> =
+    const monitorIdsInThisIncident: Array<string | undefined> =
         incident.monitors?.map((monitor: Monitor) => {
             return monitor._id;
         }) || [];
 
-    const namesOfResources: Array<StatusPageResource> =
+    let namesOfResources: Array<StatusPageResource> =
         statusPageResources.filter((resource: StatusPageResource) => {
-            return monitorIds.includes(resource.monitorId?.toString());
+            return monitorIdsInThisIncident.includes(
+                resource.monitorId?.toString()
+            );
         });
+
+    // add names of the groups as well.
+    namesOfResources = namesOfResources.concat(
+        statusPageResources.filter((resource: StatusPageResource) => {
+            if (!resource.monitorGroupId) {
+                return false;
+            }
+
+            const monitorGroupId: string = resource.monitorGroupId.toString();
+
+            const monitorIdsInThisGroup: Array<ObjectID> =
+                monitorsInGroup[monitorGroupId]! || [];
+
+            for (const monitorId of monitorIdsInThisGroup) {
+                if (
+                    monitorIdsInThisIncident.find((id: string | undefined) => {
+                        return id?.toString() === monitorId.toString();
+                    })
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        })
+    );
 
     const data: EventItemComponentProps = {
         eventTitle: incident.title || '',
@@ -205,6 +235,10 @@ const Detail: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
+
     useAsyncEffect(async () => {
         try {
             if (!StatusPageUtil.getStatusPageId()) {
@@ -230,6 +264,10 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
+
+            if (!response.isSuccess()) {
+                throw response;
+            }
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
@@ -249,11 +287,19 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
+
             const incidentStateTimelines: Array<IncidentStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
+
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
+
+            setMonitorsInGroup(monitorsInGroup);
 
             // save data. set()
             setIncidentPublicNotes(incidentPublicNotes);
@@ -289,6 +335,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 incidentPublicNotes,
                 incidentStateTimelines,
                 statusPageResources,
+                monitorsInGroup,
                 StatusPageUtil.isPreviewPage()
             )
         );

@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -16,11 +16,60 @@ import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import CurrentStatusElement from '../../../Components/MonitorGroup/CurrentStatus';
+import Card from 'CommonUI/src/Components/Card/Card';
+import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
+import useAsyncEffect from 'use-async-effect';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import URL from 'Common/Types/API/URL';
+import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import OneUptimeDate from 'Common/Types/Date';
 
 const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+    const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
+    const [error, setError] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    useAsyncEffect(async () => {
+        await fetchItem();
+    }, []);
+
+    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const monitorStatus: ListResult<MonitorStatusTimeline> =
+                await ModelAPI.getList(
+                    MonitorStatusTimeline,
+                    {},
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {},
+                    {},
+                    {
+                        overrideRequestUrl: URL.fromString(
+                            DASHBOARD_API_URL.toString()
+                        )
+                            .addRoute(new MonitorGroup().getCrudApiPath()!)
+                            .addRoute('/timeline/')
+                            .addRoute(`/${modelId.toString()}`),
+                    }
+                );
+
+            setData(monitorStatus.data);
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+    };
 
     return (
         <ModelPage
@@ -178,6 +227,19 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <Card
+                title="Uptime Graph"
+                description="Here the 90 day uptime history of this monitor group."
+            >
+                <MonitorUptimeGraph
+                    error={error}
+                    items={data}
+                    startDate={OneUptimeDate.getSomeDaysAgo(90)}
+                    endDate={OneUptimeDate.getCurrentDate()}
+                    isLoading={isLoading}
+                />
+            </Card>
         </ModelPage>
     );
 };

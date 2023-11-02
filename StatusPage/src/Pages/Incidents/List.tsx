@@ -55,6 +55,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
+    const [monitorsInGroup, setMonitorsInGroup] = useState<
+        Dictionary<Array<ObjectID>>
+    >({});
+
     StatusPageUtil.checkIfUserHasLoggedIn();
 
     useAsyncEffect(async () => {
@@ -78,6 +82,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {},
                     API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!)
                 );
+
+            if (!response.isSuccess()) {
+                throw response;
+            }
+
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
@@ -99,6 +108,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
+
+            const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                    (data['monitorsInGroup'] as JSONObject) || {}
+                ) as Dictionary<Array<ObjectID>>;
+
+            setMonitorsInGroup(monitorsInGroup);
 
             // save data. set()
             setIncidentPublicNotes(incidentPublicNotes);
@@ -148,6 +164,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     incidentPublicNotes,
                     incidentStateTimelines,
                     statusPageResources,
+                    monitorsInGroup,
                     StatusPageUtil.isPreviewPage(),
                     true
                 )

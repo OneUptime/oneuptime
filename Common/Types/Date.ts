@@ -359,6 +359,12 @@ export default class OneUptimeDate {
         return moment(date).isAfter(startDate);
     }
 
+    public static isEqualBySeconds(date: Date, startDate: Date): boolean {
+        date = this.fromString(date);
+        startDate = this.fromString(startDate);
+        return moment(date).isSame(startDate, 'seconds');
+    }
+
     public static hasExpired(expirationDate: Date): boolean {
         expirationDate = this.fromString(expirationDate);
         return !moment(this.getCurrentDate()).isBefore(expirationDate);

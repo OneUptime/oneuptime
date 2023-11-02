@@ -1,3 +1,5 @@
+import Dictionary from 'Common/Types/Dictionary';
+import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
@@ -10,4 +12,5 @@ export default interface ScheduledMaintenanceGroup {
     scheduledMaintenanceState: ScheduledMaintenanceState;
     scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>;
     scheduledEventResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
 }
