@@ -229,7 +229,7 @@ export default class OneUptimeDate {
         let hasMins: boolean = false;
         if (hours !== '00') {
             hasHours = true;
-            text += hours + ' hours';
+            text += hours + ' hours ';
         }
 
         if (mins !== '00' || hasHours) {
@@ -239,7 +239,7 @@ export default class OneUptimeDate {
                 text += ', ';
             }
 
-            text += mins + ' minutes';
+            text += mins + ' minutes ';
         }
 
         if (!(hasHours && hasMins)) {

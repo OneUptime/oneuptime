@@ -15,10 +15,10 @@ const MonitorsElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div>
+        <div className="flex">
             {props.monitors.map((monitor: Monitor, i: number) => {
                 return (
-                    <span key={i}>
+                    <span key={i} className="flex">
                         <MonitorElement
                             monitor={monitor}
                             onNavigateComplete={props.onNavigateComplete}

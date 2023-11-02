@@ -37,7 +37,6 @@ import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Monitor from 'Model/Models/Monitor';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
@@ -418,7 +417,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 status._id?.toString() ===
                                 monitorGroupCurrentStatuses[
                                     resource.monitorGroupId?.toString() || ''
-                                ]
+                                ]?.toString()
                             );
                         });
 
@@ -507,20 +506,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Incident Timeline not found.');
             }
 
-            const monitorIds: Array<string | undefined> =
-                activeIncident.monitors?.map((monitor: Monitor) => {
-                    return monitor._id;
-                }) || [];
-
-            const namesOfResources: Array<StatusPageResource> =
-                statusPageResources.filter((resource: StatusPageResource) => {
-                    return monitorIds.includes(resource.monitorId?.toString());
-                });
-
             const group: IncidentGroup = {
                 incident: activeIncident,
                 incidentState: activeIncident.currentIncidentState,
-                incidentResources: namesOfResources,
+                incidentResources: statusPageResources,
                 publicNotes: incidentPublicNotes.filter(
                     (publicNote: IncidentPublicNote) => {
                         return (
@@ -565,25 +554,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     throw new BadDataException('Incident Timeline not found.');
                 }
 
-                const monitorIds: Array<string | undefined> =
-                    activeEvent.monitors?.map((monitor: Monitor) => {
-                        return monitor._id;
-                    }) || [];
-
-                const namesOfResources: Array<StatusPageResource> =
-                    statusPageResources.filter(
-                        (resource: StatusPageResource) => {
-                            return monitorIds.includes(
-                                resource.monitorId?.toString()
-                            );
-                        }
-                    );
-
                 const group: ScheduledMaintenanceGroup = {
                     scheduledMaintenance: activeEvent,
                     scheduledMaintenanceState:
                         activeEvent.currentScheduledMaintenanceState,
-                    scheduledEventResources: namesOfResources,
+                    scheduledEventResources: statusPageResources,
                     publicNotes: scheduledMaintenanceEventsPublicNotes.filter(
                         (publicNote: ScheduledMaintenancePublicNote) => {
                             return (
