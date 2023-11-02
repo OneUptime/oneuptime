@@ -49,6 +49,7 @@ import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer'
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import Section from '../../Components/Section/Section';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -634,6 +635,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <></>;
     };
 
+    const activeIncidentsInIncidentGroup: Array<IncidentGroup> =
+        getActiveIncidents();
+    const activeScheduledMaintenanceEventsInScheduledMaintenanceGroup: Array<ScheduledMaintenanceGroup> =
+        getOngoingScheduledEvents();
+
     return (
         <Page>
             {isLoading ? <PageLoader isVisible={true} /> : <></>}
@@ -675,55 +681,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         )}
                     </div>
 
-                    {/* Load Active Incident */}
-                    <div id="incidents-list">
-                        {getActiveIncidents().map(
-                            (incidentGroup: IncidentGroup, i: number) => {
-                                return (
-                                    <EventItem
-                                        isDetailItem={false}
-                                        key={i}
-                                        {...getIncidentEventItem(
-                                            incidentGroup.incident,
-                                            incidentGroup.publicNotes,
-                                            incidentGroup.incidentStateTimelines,
-                                            incidentGroup.incidentResources,
-                                            incidentGroup.monitorsInGroup,
-                                            StatusPageUtil.isPreviewPage(),
-                                            true
-                                        )}
-                                    />
-                                );
-                            }
-                        )}
-                    </div>
-
-                    {/* Load Active ScheduledEvent */}
-                    <div id="scheduled-events-list">
-                        {getOngoingScheduledEvents().map(
-                            (
-                                scheduledEventGroup: ScheduledMaintenanceGroup,
-                                i: number
-                            ) => {
-                                return (
-                                    <EventItem
-                                        key={i}
-                                        isDetailItem={false}
-                                        {...getScheduledEventEventItem(
-                                            scheduledEventGroup.scheduledMaintenance,
-                                            scheduledEventGroup.publicNotes,
-                                            scheduledEventGroup.scheduledMaintenanceStateTimelines,
-                                            scheduledEventGroup.scheduledEventResources,
-                                            scheduledEventGroup.monitorsInGroup,
-                                            StatusPageUtil.isPreviewPage(),
-                                            true
-                                        )}
-                                    />
-                                );
-                            }
-                        )}
-                    </div>
-
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
@@ -746,7 +703,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     </div>
 
                     {statusPageResources.length > 0 && (
-                        <div className="bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5">
+                        <div className="bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5 mb-6">
                             <AccordionGroup>
                                 {statusPageResources.filter(
                                     (resources: StatusPageResource) => {
@@ -810,8 +767,66 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         </div>
                     )}
 
-                    {getActiveIncidents().length === 0 &&
-                        getOngoingScheduledEvents().length === 0 &&
+                    {/* Load Active Incident */}
+                    {activeIncidentsInIncidentGroup.length > 0 && (
+                        <div id="incidents-list mt-2">
+                            <Section title="Active Incidents" />
+                            {activeIncidentsInIncidentGroup.map(
+                                (incidentGroup: IncidentGroup, i: number) => {
+                                    return (
+                                        <EventItem
+                                            isDetailItem={false}
+                                            key={i}
+                                            {...getIncidentEventItem(
+                                                incidentGroup.incident,
+                                                incidentGroup.publicNotes,
+                                                incidentGroup.incidentStateTimelines,
+                                                incidentGroup.incidentResources,
+                                                incidentGroup.monitorsInGroup,
+                                                StatusPageUtil.isPreviewPage(),
+                                                true
+                                            )}
+                                        />
+                                    );
+                                }
+                            )}
+                        </div>
+                    )}
+
+                    {/* Load Active ScheduledEvent */}
+                    {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup &&
+                        activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length >
+                            0 && (
+                            <div id="scheduled-events-list mt-2">
+                                <Section title="Scheduled Maintenance Events" />
+                                {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
+                                    (
+                                        scheduledEventGroup: ScheduledMaintenanceGroup,
+                                        i: number
+                                    ) => {
+                                        return (
+                                            <EventItem
+                                                key={i}
+                                                isDetailItem={false}
+                                                {...getScheduledEventEventItem(
+                                                    scheduledEventGroup.scheduledMaintenance,
+                                                    scheduledEventGroup.publicNotes,
+                                                    scheduledEventGroup.scheduledMaintenanceStateTimelines,
+                                                    scheduledEventGroup.scheduledEventResources,
+                                                    scheduledEventGroup.monitorsInGroup,
+                                                    StatusPageUtil.isPreviewPage(),
+                                                    true
+                                                )}
+                                            />
+                                        );
+                                    }
+                                )}
+                            </div>
+                        )}
+
+                    {activeIncidentsInIncidentGroup.length === 0 &&
+                        activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length ===
+                            0 &&
                         statusPageResources.length === 0 &&
                         activeAnnouncements.length === 0 &&
                         !isLoading &&
