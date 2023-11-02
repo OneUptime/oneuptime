@@ -34,6 +34,7 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import Section from '../../Components/Section/Section';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -43,7 +44,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [announcements, setAnnouncements] = useState<
         Array<StatusPageAnnouncement>
     >([]);
-    const [parsedData, setParsedData] =
+
+    const [activeAnnounementsParsedData, setActiveAnnouncementsParsedData] =
+        useState<EventHistoryListComponentProps | null>(null);
+    const [pastAnnouncementsParsedData, setPastAnnouncementsParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
     StatusPageUtil.checkIfUserHasLoggedIn();
@@ -96,13 +100,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    useEffect(() => {
-        if (isLoading) {
-            // parse data;
-            setParsedData(null);
-            return;
-        }
-
+    const getAnouncementsParsedData: Function = (
+        announcements: Array<StatusPageAnnouncement>
+    ): EventHistoryListComponentProps => {
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {
             items: [],
         };
@@ -135,8 +135,39 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 days[key] as EventHistoryDayListComponentProps
             );
         }
+        return eventHistoryListComponentProps;
+    };
 
-        setParsedData(eventHistoryListComponentProps);
+    useEffect(() => {
+        if (isLoading) {
+            // parse data;
+            setActiveAnnouncementsParsedData(null);
+            setPastAnnouncementsParsedData(null);
+            return;
+        }
+
+        const activeAnnouncement: Array<StatusPageAnnouncement> =
+            announcements.filter((announcement: StatusPageAnnouncement) => {
+                return OneUptimeDate.isBefore(
+                    OneUptimeDate.getCurrentDate(),
+                    announcement.endAnnouncementAt!
+                );
+            });
+
+        const pastAnnouncement: Array<StatusPageAnnouncement> =
+            announcements.filter((announcement: StatusPageAnnouncement) => {
+                return OneUptimeDate.isAfter(
+                    OneUptimeDate.getCurrentDate(),
+                    announcement.endAnnouncementAt!
+                );
+            });
+
+        setActiveAnnouncementsParsedData(
+            getAnouncementsParsedData(activeAnnouncement)
+        );
+        setPastAnnouncementsParsedData(
+            getAnouncementsParsedData(pastAnnouncement)
+        );
     }, [isLoading]);
 
     if (isLoading) {
@@ -145,10 +176,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     if (error) {
         return <ErrorMessage error={error} />;
-    }
-
-    if (!parsedData) {
-        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -175,8 +202,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
-            {announcements && announcements.length > 0 ? (
-                <EventHistoryList {...parsedData} />
+            {activeAnnounementsParsedData?.items &&
+            activeAnnounementsParsedData?.items.length > 0 ? (
+                <div>
+                    <Section title="Active Announcements" />
+
+                    <EventHistoryList
+                        items={activeAnnounementsParsedData?.items || []}
+                    />
+                </div>
+            ) : (
+                <></>
+            )}
+
+            {pastAnnouncementsParsedData?.items &&
+            pastAnnouncementsParsedData?.items.length > 0 ? (
+                <div>
+                    <Section title="Past Announcements" />
+                    <EventHistoryList
+                        items={pastAnnouncementsParsedData?.items || []}
+                    />
+                </div>
             ) : (
                 <></>
             )}
